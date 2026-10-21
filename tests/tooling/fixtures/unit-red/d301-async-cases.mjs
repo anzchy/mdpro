@@ -37,6 +37,16 @@ function sourceFor() {
     case "retryAwaited": return `${imports} let n = 0; beforeEach(async () => { n++; await expect(Promise.resolve(1)).resolves.toBe(1); }); it("case", { retry: 1 }, () => { expect(1).toBe(2); });`;
     case "repeatAwaited": return `${imports} beforeEach(async () => { await expect(Promise.resolve(1)).resolves.toBe(1); }); it("case", { repeats: 1 }, () => { expect(1).toBe(2); });`;
     case "concurrent": return `${imports} ${deferred} let signalB; const bReady = new Promise(resolve => { signalB = resolve; }); const t = test.extend({ resource: async ({}, use) => { ${variant === "awaited" ? "release(1); await " : ""}expect(pending).resolves.toBe(${variant === "awaited" ? 1 : 2}); signalB(); await use(1); } }); test.concurrent("A", async () => { await bReady; ${variant === "awaited" ? "" : "release(1);"} expect(1).toBe(2); }); t.concurrent("B", ({ resource }) => { expect(resource).toBe(1); });`;
+    case "scopedThrow":
+    case "scopedAwaited":
+    case "scopedUnawaited": {
+      const failure = scenario === "scopedThrow" ? 'throw Error("scoped setup failed")'
+        : scenario === "scopedAwaited" ? 'await expect(Promise.resolve(1)).resolves.toBe(2)'
+          : 'expect(Promise.resolve(1)).resolves.toBe(2)';
+      return `${imports} import { describe } from "vitest"; const t = test.extend({ resource: async ({}, use) => { await use(1); } }); describe("scoped", () => { t.scoped({ resource: async ({}, use) => { if (process.env.PHASE_FAIL === "1") { ${failure}; } await use(1); } }); t("case", ({ resource }) => { expect(resource).toBe(1); if (process.env.BODY_FAIL === "1") expect(1).toBe(2); }); });`;
+    }
+    case "scopedRetry": return `${imports} import { describe } from "vitest"; let n = 0; beforeEach(() => { n++; }); const t = test.extend({ resource: async ({}, use) => { await use(1); } }); describe("scoped", () => { t.scoped({ resource: async ({}, use) => { if (n === 1) throw Error("first setup failed"); await use(1); } }); t("A", { retry: 1 }, ({ resource }) => { expect(resource).toBe(1); }); it("B", () => { expect(1).toBe(2); }); });`;
+    case "softRetryThenPass": return `${imports} let n = 0; beforeEach(() => { n++; if (n === 1) expect.soft(1).toBe(2); }); it("A", { retry: 1 }, () => { expect(1).toBe(1); }); it("B", () => { expect(1).toBe(2); });`;
     case "twoTests": {
       const awaited = variant.toLowerCase().includes("awaited");
       const x = `it("X", ${awaited ? "async " : ""}() => { ${awaited ? "await " : ""}expect(Promise.resolve(1)).resolves.toBe(1); });`;

@@ -24,8 +24,12 @@ Array.prototype.push = function(...incoming) {
       const callbacks = pendingAsyncFinish.get(promisedTest) || [];
       callbacks.push({ attempt, phase });
       pendingAsyncFinish.set(promisedTest, callbacks);
-      promise.then(undefined, () => {
-        if (phase !== "body") attempt.nonBody = true;
+      promise.then(undefined, (error) => {
+        if (phase !== "body" || attempt.completed) {
+          attempt.nonBody = true;
+          attempt.rejectedOutsideBody = true;
+        }
+        if (attempt.reported) throw error;
       });
     }
   }
@@ -101,8 +105,7 @@ function trackFinished(test) {
 }
 function instrumentTest(api) {
   const target = api.fn || api; if (patched.has(target)) return api; patched.add(target);
-  const extend = target.extend, guardedExtend = function(fixtures) {
-    const wrapped = Object.fromEntries(Object.entries(fixtures).map(([name, value]) => {
+  const wrapFixtures = (fixtures) => Object.fromEntries(Object.entries(fixtures).map(([name, value]) => {
       const array = Array.isArray(value), fn = array ? value[0] : value; if (typeof fn !== "function") return [name, value];
       const guarded = function(context, use) {
         const attempt = attemptContext.getStore() || (context?.task || getCurrentTest())?.meta?.__unitRed?.attempts?.at(-1);
@@ -127,9 +130,14 @@ function instrumentTest(api) {
       };
       guarded.toString = () => fn.toString(); if ("__VITEST_FIXTURE_INDEX__" in fn) guarded.__VITEST_FIXTURE_INDEX__ = fn.__VITEST_FIXTURE_INDEX__;
       return [name, array ? [guarded, value[1]] : guarded]; }));
-    return instrumentTest(extend.call(this, wrapped));
+  const extend = target.extend, guardedExtend = function(fixtures) {
+    return instrumentTest(extend.call(this, wrapFixtures(fixtures)));
+  };
+  const scoped = target.scoped, guardedScoped = function(fixtures) {
+    return scoped.call(this, wrapFixtures(fixtures));
   };
   target.extend = guardedExtend; api.extend = guardedExtend;
+  target.scoped = guardedScoped; api.scoped = guardedScoped;
   return api;
 }
 export default class PhaseRunner extends VitestTestRunner {
@@ -178,7 +186,18 @@ export default class PhaseRunner extends VitestTestRunner {
     if (!attempt.started) attempt.nonBody = true;
     attempt.boundary = test.result.errors?.length || 0;
   }
-  onAfterRunTask(test) { this.finish(test); return super.onAfterRunTask(test); }
+  async onAfterRunTask(test) {
+    this.finish(test);
+    const attempt = this.current(test);
+    if (test.promises?.length) {
+      attempt.pendingAtDelivery = true;
+      attempt.nonBodyBeforePending = Boolean(attempt.nonBody);
+      attempt.nonBody = true;
+    }
+    const result = await super.onAfterRunTask(test);
+    attempt.reported = true;
+    return result;
+  }
 }
 `;
 }

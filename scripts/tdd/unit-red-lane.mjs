@@ -35,7 +35,7 @@ export default class UnitRedEvidenceReporter {
           attemptProvenance.push(`${test.name}[retry=${attempt.retry},repeat=${attempt.repeats},body=${Boolean(attempt.bodyFailure)},nonBody=${Boolean(attempt.nonBody)},origin=${(attempt.unawaitedOrigins || []).join("+") || "none"}]`);
         }
         if (attempts.some((attempt) => attempt.unawaited)) unawaitedAssertions.push(`test:${test.id}`);
-        if (attempts.some((attempt) => attempt.nonBody)) phaseFailures.push(`test:${test.id}`);
+        if (attempts.some((attempt) => attempt.nonBody && (!attempt.pendingAtDelivery || attempt.nonBodyBeforePending || attempt.rejectedOutsideBody))) phaseFailures.push(`test:${test.id}`);
         if (test.result().state === "failed" && !attempts.some((attempt) => attempt.bodyFailure || attempt.countFailure)) {
           phaseFailures.push(`unattributed:${test.id}`);
         }

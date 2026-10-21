@@ -43,6 +43,7 @@ coverage/
 .claude/tdd-guardian/review-*.md
 .claude/tdd-guardian/mutation-*.md
 .claude/tdd-guardian/attack-*.md
+.claude/tdd-guardian/.unit-red-*.flock
 /.stryker-tmp
 
 # cc-suite audit output (/cc-suite:audit findings tables) — regenerated per run
