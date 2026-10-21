@@ -227216,6 +227216,233 @@
           "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/unit-red-phase-delayed-soft.test.ts. Additions are healthy; only edits to recorded lines are a finding."
         }
       ]
+    },
+    {
+      "id": "D301-WI-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-21T02:00:10.766Z",
+      "head_sha": "7c97166f88ecd30c29349a786bf441ea577d3a67",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "6 of 7 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/unit-red-phase-async-provenance.test.ts": {
+          "state": "ok",
+          "sha": "87542f1878df3acdac196d6e9a89523e59c071e3e718d40a41076f3d4ee78502",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "b8cbd764da70a65b",
+            "2dd42f124779333e",
+            "e05fabb2b0d7bcbc",
+            "d5dbb991a39a63fa",
+            "096b44f386db1877",
+            "ff198c47b29f30c2",
+            "cc0875649af25c74",
+            "db7aff77d73bbdb6",
+            "83d3d10e620c2d1c",
+            "e142b1ab99222f21",
+            "80f04e9c33126b31",
+            "796a2997ee0e1ef2",
+            "b4d87550936b7131",
+            "d10b36aa74a59bcf",
+            "54462244369add94",
+            "45e04102d0955015",
+            "85e092acaf01f3fd",
+            "85ae62680e91d15c",
+            "080403bc2517d0ca",
+            "29576b54e255e3c9",
+            "3c18ac4cde327b0f",
+            "d96d4add25d55558",
+            "85ae62680e91d15c",
+            "080403bc2517d0ca",
+            "29576b54e255e3c9",
+            "f5d966d93e5d7f35",
+            "adc327c064b20759",
+            "85ae62680e91d15c",
+            "29576b54e255e3c9",
+            "c3b6fc37080b52c0",
+            "c7b273b285043413",
+            "85ae62680e91d15c",
+            "080403bc2517d0ca",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-21T02:01:47.459Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": []
+    },
+    {
+      "id": "D301-WI-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-21T02:02:28.282Z",
+      "head_sha": "7c97166f88ecd30c29349a786bf441ea577d3a67",
+      "dirty_source": [
+        "scripts/tdd/phase-runner-source.mjs",
+        "scripts/tdd/red-receipt.mjs",
+        "scripts/tdd/unit-red-lane.mjs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 8 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts": {
+          "state": "ok",
+          "sha": "3bd87025b3a2c0e92c53f937a272970bd1ec178e7d75b9c78090271cdcac6f27",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "b8cbd764da70a65b",
+            "2dd42f124779333e",
+            "e05fabb2b0d7bcbc",
+            "d5dbb991a39a63fa",
+            "096b44f386db1877",
+            "ff198c47b29f30c2",
+            "cc0875649af25c74",
+            "db7aff77d73bbdb6",
+            "d59c8ae7da2fd796",
+            "e142b1ab99222f21",
+            "80f04e9c33126b31",
+            "796a2997ee0e1ef2",
+            "7bdb8ba12853f982",
+            "d10b36aa74a59bcf",
+            "d318afa27ff94ad3",
+            "6f6021d53f010a3a",
+            "5ece65a3cf1c03d6",
+            "85ae62680e91d15c",
+            "9bbccc366024f982",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "19454dfb0c108c2c",
+            "5e4fdd6e137abcf9",
+            "bad0a5ed6046312c",
+            "7865fcae4438d964",
+            "d10b36aa74a59bcf",
+            "29576b54e255e3c9",
+            "7d8f746b4e03dffc",
+            "4e31a724b486c0c1",
+            "85ae62680e91d15c",
+            "9bbccc366024f982",
+            "29576b54e255e3c9",
+            "1b3440173f2e0154",
+            "974f40a7586aa43d",
+            "7865fcae4438d964",
+            "29576b54e255e3c9",
+            "1395c0e63afb4317",
+            "d1742754bde0e35a",
+            "85ae62680e91d15c",
+            "9bbccc366024f982",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "8f046109e1cbb4e5",
+            "d1742754bde0e35a",
+            "7865fcae4438d964",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-21T02:04:16.520Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "3 non-test file(s) were already modified when the red was recorded (scripts/tdd/phase-runner-source.mjs, scripts/tdd/red-receipt.mjs, scripts/tdd/unit-red-lane.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D301-WI-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-21T02:15:39.640Z",
+      "head_sha": "7c97166f88ecd30c29349a786bf441ea577d3a67",
+      "dirty_source": [
+        "scripts/tdd/phase-runner-source.mjs",
+        "scripts/tdd/red-receipt.mjs",
+        "scripts/tdd/unit-red-lane.mjs"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "4 of 7 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/unit-red-phase-async-attempts.test.ts": {
+          "state": "ok",
+          "sha": "1c8a1b6e4108f96b77c5cc70cc2c0f10c2e288a90ca6fe43ec4eeb2e75db39e1",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "b8cbd764da70a65b",
+            "2dd42f124779333e",
+            "e05fabb2b0d7bcbc",
+            "d5dbb991a39a63fa",
+            "096b44f386db1877",
+            "ff198c47b29f30c2",
+            "cc0875649af25c74",
+            "db7aff77d73bbdb6",
+            "d59c8ae7da2fd796",
+            "e142b1ab99222f21",
+            "80f04e9c33126b31",
+            "796a2997ee0e1ef2",
+            "7bdb8ba12853f982",
+            "d10b36aa74a59bcf",
+            "34d5e0ae92e402f7",
+            "7295475871c82406",
+            "bad0a5ed6046312c",
+            "85ae62680e91d15c",
+            "9bbccc366024f982",
+            "b4c7c02a0afad047",
+            "4921019b6fb88b7b",
+            "6c66f7ed7480422d",
+            "cb33d6f0433d94a4",
+            "764d0dc51ce8cb93",
+            "30b9f033c04472fb",
+            "985045f1c0578a8d",
+            "764d0dc51ce8cb93",
+            "59d38f70dadd32cf",
+            "d10b36aa74a59bcf",
+            "29576b54e255e3c9",
+            "2bf305876f80c385",
+            "208a9045f961575e",
+            "7865fcae4438d964",
+            "29576b54e255e3c9",
+            "19b37b28633a8a01",
+            "9b7343a248aa4f4f",
+            "7865fcae4438d964",
+            "29576b54e255e3c9",
+            "a67c0636ad09fa26",
+            "c9591680a5effb64",
+            "85ae62680e91d15c",
+            "080403bc2517d0ca",
+            "725c90b297af6de6",
+            "bface457748cc90d",
+            "29576b54e255e3c9",
+            "4babc3b2d0533664",
+            "17a4a37da3cd85eb",
+            "7865fcae4438d964",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-21T02:16:43.773Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "3 non-test file(s) were already modified when the red was recorded (scripts/tdd/phase-runner-source.mjs, scripts/tdd/red-receipt.mjs, scripts/tdd/unit-red-lane.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

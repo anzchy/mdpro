@@ -9,8 +9,48 @@ const attemptTask = new WeakMap();
 const patched = new WeakSet();
 const trackedResults = new WeakSet();
 const errorOwners = new WeakMap();
+const promiseOwners = new WeakMap();
+const finishOwners = new WeakMap();
+const pendingAsyncFinish = new WeakMap();
 const originalPush = Array.prototype.push;
 Array.prototype.push = function(...incoming) {
+  const promisedTest = promiseOwners.get(this);
+  if (promisedTest) {
+    const attempt = promisedTest.meta.__unitRed?.attempts.at(-1);
+    const origin = phaseContext.getStore();
+    for (const promise of incoming) {
+      if (!attempt || !(promise instanceof Promise)) continue;
+      const phase = origin?.attempt === attempt ? origin.phase : "hook";
+      const callbacks = pendingAsyncFinish.get(promisedTest) || [];
+      callbacks.push({ attempt, phase });
+      pendingAsyncFinish.set(promisedTest, callbacks);
+      promise.then(undefined, () => {
+        if (phase !== "body") attempt.nonBody = true;
+      });
+    }
+  }
+  const finishedTest = finishOwners.get(this);
+  if (finishedTest) {
+    const callbacks = pendingAsyncFinish.get(finishedTest) || [];
+    incoming = incoming.map((callback) => {
+      const origin = callbacks.shift();
+      if (!origin || typeof callback !== "function") return callback;
+      return function(...args) {
+        const originalWarn = console.warn;
+        let warned = false;
+        console.warn = (...message) => { warned = true; return originalWarn(...message); };
+        try { return callback.apply(this, args); }
+        finally {
+          console.warn = originalWarn;
+          if (warned) {
+            origin.attempt.unawaited = true;
+            (origin.attempt.unawaitedOrigins ??= []).push(origin.phase);
+            if (origin.phase !== "body") origin.attempt.nonBody = true;
+          }
+        }
+      };
+    });
+  }
   const test = errorOwners.get(this);
   const attempt = test?.meta.__unitRed?.attempts.at(-1);
   const origin = phaseContext.getStore();
@@ -40,6 +80,25 @@ function trackErrors(test) {
   });
   if (Array.isArray(value)) errorOwners.set(value, test);
 }
+function trackPromises(test) {
+  let value = test.promises;
+  Object.defineProperty(test, "promises", {
+    configurable: true, enumerable: true,
+    get() { return value; },
+    set(next) { value = next; if (Array.isArray(next)) promiseOwners.set(next, test); },
+  });
+  if (Array.isArray(value)) promiseOwners.set(value, test);
+}
+function trackFinished(test) {
+  let value = test.onFinished;
+  Object.defineProperty(test, "onFinished", {
+    configurable: true, enumerable: true,
+    get() { return value; },
+    set(next) { value = next; if (Array.isArray(next)) finishOwners.set(next, test); },
+  });
+  if (Array.isArray(value)) finishOwners.set(value, test);
+  pendingAsyncFinish.set(test, []);
+}
 function instrumentTest(api) {
   const target = api.fn || api; if (patched.has(target)) return api; patched.add(target);
   const extend = target.extend, guardedExtend = function(fixtures) {
@@ -53,6 +112,7 @@ function instrumentTest(api) {
         let teardownStart;
         const mark = () => { if (attempt) attempt.nonBody = true; };
         const guardedUse = async (fixtureValue) => {
+          if (task?.promises?.length) mark();
           if (errors() > setupStart) mark();
           await use(fixtureValue);
           teardownStart = errors();
@@ -84,11 +144,14 @@ export default class PhaseRunner extends VitestTestRunner {
     (test.meta.__unitRed ??= { attempts: [] }).attempts.push(attempt);
     attemptTask.set(attempt, test);
     trackErrors(test);
+    trackPromises(test);
+    trackFinished(test);
     return super.onBeforeTryTask(test, info);
   }
   async runTask(test) {
     const attempt = this.current(test);
     if ((test.result.errors?.length || 0) > attempt.preHookErrors) attempt.nonBody = true;
+    if (test.promises?.length) attempt.nonBody = true;
     attempt.started = true;
     const fn = getFn(test);
     if (!fn) { attempt.nonBody = true; throw Error("Test function missing"); }

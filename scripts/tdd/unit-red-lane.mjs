@@ -22,6 +22,8 @@ export default class UnitRedEvidenceReporter {
   }
   onTestRunEnd(modules, unhandledErrors) {
     const phaseFailures = [];
+    const unawaitedAssertions = [];
+    const attemptProvenance = [];
     for (const module of modules) {
       if (module.errors().length) phaseFailures.push(`module:${module.moduleId}`);
       for (const suite of module.children.allSuites()) {
@@ -29,6 +31,10 @@ export default class UnitRedEvidenceReporter {
       }
       for (const test of module.children.allTests()) {
         const attempts = test.meta().__unitRed?.attempts || [];
+        for (const attempt of attempts) {
+          attemptProvenance.push(`${test.name}[retry=${attempt.retry},repeat=${attempt.repeats},body=${Boolean(attempt.bodyFailure)},nonBody=${Boolean(attempt.nonBody)},origin=${(attempt.unawaitedOrigins || []).join("+") || "none"}]`);
+        }
+        if (attempts.some((attempt) => attempt.unawaited)) unawaitedAssertions.push(`test:${test.id}`);
         if (attempts.some((attempt) => attempt.nonBody)) phaseFailures.push(`test:${test.id}`);
         if (test.result().state === "failed" && !attempts.some((attempt) => attempt.bodyFailure || attempt.countFailure)) {
           phaseFailures.push(`unattributed:${test.id}`);
@@ -39,6 +45,8 @@ export default class UnitRedEvidenceReporter {
       activeHooks: [...this.activeHooks],
       unhandledErrors: unhandledErrors.length,
       phaseFailures,
+      unawaitedAssertions,
+      attemptProvenance,
     }));
   }
 }
@@ -216,9 +224,19 @@ function main() {
     throw usageError("Vitest JSON or execution evidence is missing or unreadable.");
   }
   const counts = countsFromReport(report, files, cwd);
-  if (!Array.isArray(meta.activeHooks) || !Number.isInteger(meta.unhandledErrors) || !Array.isArray(meta.phaseFailures) ||
+  if (!Array.isArray(meta.activeHooks) || !Number.isInteger(meta.unhandledErrors) || !Array.isArray(meta.phaseFailures) || !Array.isArray(meta.unawaitedAssertions) || !Array.isArray(meta.attemptProvenance)) {
+    throw usageError("Vitest execution evidence is malformed.");
+  }
+  if (meta.unawaitedAssertions.length) {
+    const reason = `Vitest reported an unawaited async assertion (${meta.unawaitedAssertions.join(", ")})${meta.phaseFailures.length || meta.unhandledErrors ? "; nonBody=true" : ""}; provenance=${meta.attemptProvenance.join("; ")}.`;
+    writeFileSync(`${process.env.MDPRO_UNIT_RED_MARKER}.reason`, reason);
+    throw usageError(reason);
+  }
+  if (
       meta.activeHooks.length || meta.unhandledErrors > 0 || meta.phaseFailures.length) {
-    throw usageError("Vitest reported a failed hook or unhandled error.");
+    const reason = `Vitest reported a failed hook or unhandled error${meta.phaseFailures.length || meta.unhandledErrors ? "; nonBody=true" : ""}; provenance=${meta.attemptProvenance.join("; ")}.`;
+    writeFileSync(`${process.env.MDPRO_UNIT_RED_MARKER}.reason`, reason);
+    throw usageError(reason);
   }
   if ((run.status === 0) !== (counts.failed === 0) || (run.status === 0 && report.success !== true)) {
     throw usageError("Vitest exit status and JSON assertions disagree.");

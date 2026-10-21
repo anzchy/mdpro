@@ -136,7 +136,7 @@ function find(store, id) { return store.receipts.find((receipt) => receipt.id ==
 function withSelection(cwd, files, callback, expectedReceipt = null) {
   const folder = mkdtempSync(join(tmpdir(), "mdpro-unit-red-marker-"));
   const marker = join(folder, "selection.json");
-  const logPointer = `${marker}.log`;
+  const logPointer = `${marker}.log`, reasonPointer = `${marker}.reason`;
   const nonce = randomUUID();
   const receipt = expectedReceipt ? {
     id: expectedReceipt.id,
@@ -152,10 +152,10 @@ function withSelection(cwd, files, callback, expectedReceipt = null) {
       MDPRO_UNIT_RED_MARKER: marker,
       MDPRO_UNIT_RED_NONCE: nonce,
     });
-    if (existsSync(logPointer)) process.stdout.write(`[red-receipt] log: ${readFileSync(logPointer, "utf8")}\n`);
+    for (const [pointer, stream, label] of [[logPointer, process.stdout, "log: "], [reasonPointer, process.stderr, ""]]) if (existsSync(pointer)) stream.write(`[red-receipt] ${label}${readFileSync(pointer, "utf8")}\n`);
     return result;
   } finally {
-    if (existsSync(logPointer)) unlinkSync(logPointer);
+    for (const pointer of [logPointer, reasonPointer]) if (existsSync(pointer)) unlinkSync(pointer);
     unlinkSync(marker);
     rmdirSync(folder);
   }
