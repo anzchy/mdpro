@@ -1,6 +1,6 @@
 # 0095. Pull-request CI is a landing gate: fast checks on every PR, prose-only PRs skip the heavy jobs, one required summary check
 
-**Status**: Accepted (2026-10-14). Decided by the user, recorded by
+**Status**: Accepted (2026-10-14); partially superseded (2026-10-21): Decisions 1 and 7, for the coverage gate only, by [ADR-0128](0128-the-coverage-gate-runs-in-ci-and-the-verifier-stops-repeating-the-full-lane.md). Decided by the user, recorded by
 mdpro-delegator. The user read a survey of how vmark and large projects run PR
 CI, then adopted five practices with 「这些建议采纳，看看是否要提一个adr，然后更改repo相关设置」.
 Asked about the two choices this left open, the user answered
