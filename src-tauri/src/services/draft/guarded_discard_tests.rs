@@ -142,11 +142,8 @@ fn g5b_g14vi_dead_owner_but_open_in_a_live_window_is_refused_by_both() {
 
 fn assert_unavailable(r: &str, got: Result<impl std::fmt::Debug, DraftError>) {
     match got {
-        Err(DraftError::IoError { message }) => assert!(
-            message.contains("shadow store unavailable"),
-            "{r}: message {message:?}"
-        ),
-        other => panic!("{r}: expected IoError(shadow store unavailable), got {other:?}"),
+        Err(DraftError::ShadowStoreUnavailable) => {}
+        other => panic!("{r}: expected ShadowStoreUnavailable, got {other:?}"),
     }
 }
 
@@ -170,6 +167,19 @@ fn g26_recover_and_discard_fail_closed_when_the_shadow_store_is_unavailable() {
         assert_eq!(home.read_raw(id), before, "{id}: discard changed bytes");
         assert_eq!(home.value(id)["recovered"], json!(false));
     }
+}
+
+#[test]
+fn d299_unavailable_shadow_store_has_a_typed_refusal() {
+    let home = TempHome::new("d299_shadow_refusal");
+    home.write_raw("s", &bundle_json("R", None, &ago(1), false, None));
+    let c = ctx_unavailable(S, &["B"]);
+    let before = home.read_raw("s");
+    let recover = recover_draft_guarded("s", &who(S, "B"), &c).unwrap_err();
+    assert_eq!(recover.kind(), "ShadowStoreUnavailable");
+    let discard = discard_draft_guarded("s", &c).unwrap_err();
+    assert_eq!(discard.kind(), "ShadowStoreUnavailable");
+    assert_eq!(home.read_raw("s"), before);
 }
 
 /// A12: missing is decided before the store is consulted, and so is a live

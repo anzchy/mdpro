@@ -2,10 +2,9 @@
 //! (ADR-0038 §4).
 //!
 //! Key decisions:
-//! - Held by `save_draft_as` around its write, and by guarded recover,
-//!   guarded discard and cleanup from their check through their write or
-//!   delete. `delete_draft` stays lock-free: a successful save deletes its
-//!   own draft while the document is still open.
+//! - Held by `save_draft_as`, ordinary and claim-bearing `delete_draft`,
+//!   guarded recover/discard and cleanup. The shared-service Own/Protected
+//!   rule (ADR-0127) needs this lock for read-before-move-before-write/delete.
 //! - Lock order: `DraftGate` (gated save and recover only) → `DRAFT_LOCK` →
 //!   shadow-store mutex. The last is taken inside the `make_ctx` provider
 //!   that the `*_with` recover/discard/cleanup call after taking this lock

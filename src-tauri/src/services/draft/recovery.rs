@@ -3,7 +3,10 @@ use std::fs;
 
 use crate::models::DraftMetadata;
 
-use super::{bundle_path, legacy_draft_path, legacy_meta_path, DraftError, RecoverResult};
+use super::{
+    bundle_path, legacy_draft_path, legacy_meta_path, DraftClaimToken, DraftError, RecoverResult,
+    RecoverTarget,
+};
 
 /// Mark a legacy two-file draft recovered and return it, with no in-use
 /// check. Only `guarded.rs` calls this, under the draft lock, after it found
@@ -15,7 +18,11 @@ use super::{bundle_path, legacy_draft_path, legacy_meta_path, DraftError, Recove
 /// for 7-day cleanup (ADR-0038 §5), and it never passed the bundle owner
 /// check. The answer is `NotFound`, which drops the dialog row; a retry takes
 /// the guarded bundle path.
-pub(super) fn recover_draft(document_id: &str) -> Result<RecoverResult, DraftError> {
+pub(super) fn recover_draft(
+    document_id: &str,
+    target: Option<RecoverTarget>,
+    claim_token: DraftClaimToken,
+) -> Result<RecoverResult, DraftError> {
     if bundle_path(document_id)?.exists() {
         return Err(DraftError::NotFound {
             document_id: document_id.to_string(),
@@ -75,6 +82,8 @@ pub(super) fn recover_draft(document_id: &str) -> Result<RecoverResult, DraftErr
         original_path,
         title,
         hold_gen: 0,
+        target,
+        claim_token,
     })
 }
 

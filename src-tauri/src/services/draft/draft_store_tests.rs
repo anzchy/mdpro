@@ -133,3 +133,76 @@ fn test_delete_draft_removes_legacy_files() {
 
     let _ = fs::remove_dir_all(&home);
 }
+
+#[test]
+fn d299_wi5_no_token_save_preserves_prior_session_bundle() {
+    let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let home = make_temp_home("d299_wi5_preserve_save");
+    let _home_guard = set_home(&home);
+    // A prior assertion failure can leave this fixture's directory populated.
+    let _ = fs::remove_dir_all(drafts_dir().unwrap());
+    let old = DraftOwner {
+        session_id: "prior-session".into(),
+        window_label: "main".into(),
+    };
+    let own = DraftOwner {
+        session_id: session_id().into(),
+        window_label: "main".into(),
+    };
+    save_draft_as(
+        Some(old),
+        "b",
+        "R",
+        Some("/tmp/b.md".into()),
+        "Original title",
+    )
+    .unwrap();
+    let original = fs::read_to_string(bundle_path("b").unwrap()).unwrap();
+    save_draft_as(
+        Some(own),
+        "b",
+        "B edit",
+        Some("/tmp/b.md".into()),
+        "B title",
+    )
+    .unwrap();
+
+    let moved: Vec<_> = fs::read_dir(drafts_dir().unwrap())
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter(|e| e.file_name().to_string_lossy() != "b.draft.json")
+        .collect();
+    assert_eq!(moved.len(), 1, "one prior draft must move before B's write");
+    let moved_value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(moved[0].path()).unwrap()).unwrap();
+    let original_value: serde_json::Value = serde_json::from_str(&original).unwrap();
+    for field in ["content", "originalPath", "title", "lastModified"] {
+        assert_eq!(
+            moved_value[field], original_value[field],
+            "{field} must survive move"
+        );
+    }
+    assert!(moved_value.get("owner").is_none());
+    assert_eq!(moved_value["recovered"], serde_json::json!(false));
+    assert_eq!(load_draft("b").unwrap().unwrap().content, "B edit");
+    let same_session = DraftOwner {
+        session_id: session_id().into(),
+        window_label: "main".into(),
+    };
+    save_draft_as(
+        Some(same_session),
+        "b",
+        "B edit again",
+        Some("/tmp/b.md".into()),
+        "B",
+    )
+    .unwrap();
+    assert_eq!(
+        fs::read_dir(drafts_dir().unwrap()).unwrap().count(),
+        2,
+        "second Own autosave must not move again"
+    );
+    assert_eq!(load_draft("b").unwrap().unwrap().content, "B edit again");
+
+    let _ = fs::remove_dir_all(&home);
+}

@@ -1,5 +1,5 @@
 //! D27 WI-2 g17, g17(iv), g19: while the draft lock is held, saves, guarded
-//! recover/discard and cleanup cannot finish; `delete_draft` can; a poisoned
+//! recover/discard, cleanup and `delete_draft` cannot finish; a poisoned
 //! lock does not wedge saving.
 use super::super::draft_test_home::{ago, bundle_json, ctx, who, TempHome};
 use super::super::guarded::{discard_draft_guarded, recover_draft_guarded};
@@ -15,7 +15,7 @@ const BLOCKED_FOR: Duration = Duration::from_millis(500);
 const FINISHES_IN: Duration = Duration::from_secs(10);
 
 #[test]
-fn g17_operations_block_while_the_lock_is_held_and_delete_draft_does_not() {
+fn g17_operations_block_while_the_lock_is_held_including_delete_draft() {
     let home = TempHome::new("lock_g17");
     let fresh = ago(0);
     home.write_raw(
@@ -76,16 +76,21 @@ fn g17_operations_block_while_the_lock_is_held_and_delete_draft_does_not() {
         assert!(home.exists("f"), "discard deleted under the lock");
 
         let (dtx, drx) = mpsc::channel();
-        scope.spawn(move || {
+        let delete = scope.spawn(move || {
             let _ = dtx.send(delete_draft("g"));
         });
-        let deleted = drx
-            .recv_timeout(BLOCKED_FOR)
-            .expect("delete_draft must not take the draft lock");
-        assert!(matches!(deleted, Ok(true)), "{deleted:?}");
-        assert!(!home.exists("g"));
+        assert!(
+            drx.recv_timeout(BLOCKED_FOR).is_err(),
+            "delete ran under the lock"
+        );
+        assert!(home.exists("g"));
 
         drop(guard);
+        let deleted = drx
+            .recv_timeout(FINISHES_IN)
+            .expect("delete finishes after release");
+        assert!(matches!(deleted, Ok(true)), "{deleted:?}");
+        delete.join().unwrap();
         for _ in 0..3 {
             rx.recv_timeout(FINISHES_IN)
                 .expect("finishes after release");

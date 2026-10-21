@@ -8,11 +8,12 @@
 //!   The key is omitted when absent, and bundles without it still load.
 //! - `owner.rs` holds the pure "in use" rule, `types.rs` the public types,
 //!   `paths.rs` the directory and file-name helpers.
-//! - `lock::draft_lock()` (ADR-0038 §4) is held by `save_draft_as`, guarded
-//!   recover/discard and cleanup; their `*_with` forms build the `LiveContext`
-//!   under it. Lock-free writers: `delete_draft` (deliberate), `load_draft`'s
-//!   legacy migrate-on-read, and startup `migrate_legacy_drafts` (no windows),
-//!   which `main` reaches through `startup_migration.rs`'s logged wrapper.
+//! - `lock::draft_lock()` (ADR-0038 §4, ADR-0127) covers saves, ordinary and
+//!   token-bearing deletes, guarded recover/discard and cleanup. Ordinary writes
+//!   and deletes first preserve an old-session or unconsumed-claim bundle under
+//!   a fresh id; legacy pairs are converted before the mutation. Guarded Discard
+//!   and age cleanup use held-lock internal deletion to bypass preservation.
+//!   `load_draft`'s legacy migrate-on-read and startup migration remain separate.
 //! - `live_listing.rs` is the only listing/cleanup; it hides or keeps drafts in use.
 //!
 //! @coordinates-with docs/adr/0038-a-draft-in-use-by-a-live-window-is-not-offered-for-recovery.md
@@ -29,6 +30,7 @@ mod lock;
 mod migration;
 pub mod owner;
 mod paths;
+mod protection;
 mod recovery;
 mod startup_migration;
 mod types;
@@ -52,6 +54,11 @@ pub use owner::{
     in_use, owner_is_live, session_id, InUseReason, LiveContext, OpenSet, ShadowUnavailable,
 };
 pub(crate) use paths::is_valid_draft_id;
+pub use protection::{delete_draft, delete_draft_with_token};
+use protection::{
+    delete_draft_locked, preserve_if_protected_locked, preserve_legacy_if_present_locked,
+    validate_claim_token,
+};
 // `drafts_dir` and (tests only) `legacy_drafts_dir` are crate-visible so the
 // run-isolation test (ADR-0047 WI-002 WI-8) resolves them under a temp HOME.
 #[cfg(test)]
@@ -59,8 +66,8 @@ pub(crate) use migration::legacy_drafts_dir;
 pub(crate) use paths::drafts_dir;
 use paths::{bundle_path, ensure_dir, legacy_draft_path, legacy_meta_path};
 pub use types::{
-    CleanupCounts, DraftError, DraftListCounts, DraftListing, DraftMetadataEntry, DraftOwner,
-    DraftSaveResult, RecoverResult,
+    CleanupCounts, DraftClaimToken, DraftError, DraftListCounts, DraftListing, DraftMetadataEntry,
+    DraftOwner, DraftSaveResult, RecoverResult, RecoverTarget,
 };
 
 // ── Internal bundle ───────────────────────────────────────────────────────────
@@ -73,11 +80,19 @@ pub(super) struct DraftBundle {
     /// Absent in bundles written before ADR-0038, and never written as null.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<DraftOwner>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim: Option<DraftClaimToken>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub claim_consumed: bool,
     pub content: String,
     pub original_path: Option<String>,
     pub last_modified: String,
     pub recovered: bool,
     pub title: String,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 // ── Atomic write helper ───────────────────────────────────────────────────────
@@ -140,6 +155,22 @@ pub fn save_draft_as(
     original_path: Option<String>,
     title: &str,
 ) -> Result<DraftSaveResult, DraftError> {
+    save_draft_as_with_token(owner, document_id, content, original_path, title, None)
+}
+
+/// Write a draft, preserving any Protected bundle at the destination first.
+/// A matching claim authorizes an in-place replacement; a stale claim does not.
+pub fn save_draft_as_with_token(
+    owner: Option<DraftOwner>,
+    document_id: &str,
+    content: &str,
+    original_path: Option<String>,
+    title: &str,
+    token: Option<&DraftClaimToken>,
+) -> Result<DraftSaveResult, DraftError> {
+    if let Some(token) = token {
+        validate_claim_token(token)?;
+    }
     let dir = drafts_dir()?;
     ensure_dir(&dir)?;
 
@@ -147,9 +178,13 @@ pub fn save_draft_as(
     let _draft_lock = lock::draft_lock();
     let now = Utc::now();
     let dest = bundle_path(document_id)?;
+    preserve_if_protected_locked(document_id, token)?;
+    preserve_legacy_if_present_locked(document_id)?;
 
     let bundle = DraftBundle {
         owner,
+        claim: None,
+        claim_consumed: false,
         content: content.to_string(),
         original_path,
         last_modified: now.to_rfc3339(),
@@ -160,6 +195,23 @@ pub fn save_draft_as(
     // Single atomic rename: content + metadata committed together.
     // On APFS (macOS) rename() is atomic — no partial-state window on disk.
     write_bundle_atomic(&dest, &bundle, document_id)?;
+    if let Some(token) = token.filter(|token| token.source_id != document_id) {
+        // The destination is durable. Only now authorize deletion of the matching source.
+        let source = bundle_path(&token.source_id)?;
+        if source.exists() {
+            let raw = fs::read_to_string(&source).map_err(|e| DraftError::IoError {
+                message: e.to_string(),
+            })?;
+            let mut source_bundle: DraftBundle =
+                serde_json::from_str(&raw).map_err(|e| DraftError::ParseError {
+                    message: e.to_string(),
+                })?;
+            if source_bundle.claim.as_ref() == Some(token) {
+                source_bundle.claim_consumed = true;
+                write_bundle_atomic(&source, &source_bundle, &token.source_id)?;
+            }
+        }
+    }
 
     Ok(DraftSaveResult {
         success: true,
@@ -211,6 +263,8 @@ pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
     // Migrate to bundle format — best-effort; read succeeds even if migration fails.
     let bundle = DraftBundle {
         owner: None,
+        claim: None,
+        claim_consumed: false,
         content: content.clone(),
         original_path: original_path.clone(),
         last_modified: last_modified.clone(),
@@ -258,35 +312,15 @@ fn load_bundle(document_id: &str, path: &Path) -> Result<Option<Draft>, DraftErr
     }))
 }
 
-pub fn delete_draft(document_id: &str) -> Result<bool, DraftError> {
-    let mut deleted = false;
-
-    let path = bundle_path(document_id)?;
-    if path.exists() {
-        fs::remove_file(&path).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
-        deleted = true;
-    }
-
-    // Also remove any legacy two-file drafts from pre-bundle builds.
-    let legacy_draft = legacy_draft_path(document_id)?;
-    let legacy_meta = legacy_meta_path(document_id)?;
-    if legacy_draft.exists() {
-        let _ = fs::remove_file(&legacy_draft);
-        deleted = true;
-    }
-    if legacy_meta.exists() {
-        let _ = fs::remove_file(&legacy_meta);
-        deleted = true;
-    }
-
-    Ok(deleted)
-}
-
 #[cfg(test)]
 #[path = "bundle_compat_tests.rs"]
 mod bundle_compat_tests;
+#[cfg(test)]
+#[path = "d299_claim_tests.rs"]
+mod d299_claim_tests;
+#[cfg(test)]
+#[path = "d299_protection_tests.rs"]
+mod d299_protection_tests;
 #[cfg(test)]
 #[path = "draft_store_tests.rs"]
 mod draft_store_tests;

@@ -27,7 +27,7 @@ use crate::models::DraftMetadata;
 
 use super::lock::draft_lock;
 use super::{
-    delete_draft, drafts_dir, in_use, visible, CleanupCounts, DraftBundle, DraftError,
+    delete_draft_locked, drafts_dir, in_use, visible, CleanupCounts, DraftBundle, DraftError,
     DraftListCounts, DraftListing, DraftMetadataEntry, InUseReason, LiveContext,
 };
 
@@ -230,7 +230,7 @@ pub fn cleanup_old_drafts_for_with(
             continue;
         }
         // Best-effort, as before: a failed delete is skipped, not fatal.
-        if matches!(delete_draft(&id), Ok(true)) {
+        if matches!(delete_draft_locked(&id, None, true), Ok(true)) {
             counts.deleted += 1;
         }
     }

@@ -20,21 +20,21 @@ fn owner_json(s: &str, l: &str) -> Value {
 }
 
 /// Thread A's 200 owned saves, each read back; sets `done` at the end.
-fn autosave_a(home: &TempHome, start: &Barrier, done: &AtomicBool) -> Vec<Value> {
+fn autosave_a(home: &TempHome, start: &Barrier, done: &AtomicBool, session: &str) -> Vec<Value> {
     start.wait();
     let mut backs = Vec::with_capacity(SAVES);
     for k in 1..=SAVES {
-        save_draft_as(Some(who(S, "A")), "d", &format!("A-{k}"), None, "t").expect("save");
+        save_draft_as(Some(who(session, "A")), "d", &format!("A-{k}"), None, "t").expect("save");
         backs.push(home.value("d"));
     }
     done.store(true, SeqCst);
     backs
 }
 
-fn assert_read_backs(backs: &[Value]) {
+fn assert_read_backs(backs: &[Value], session: &str) {
     assert_eq!(backs.len(), SAVES);
     for (i, v) in backs.iter().enumerate() {
-        assert_eq!(v["owner"], owner_json(S, "A"), "read-back {}", i + 1);
+        assert_eq!(v["owner"], owner_json(session, "A"), "read-back {}", i + 1);
         assert_eq!(v["recovered"], json!(false), "read-back {}", i + 1);
         assert_eq!(v["content"], json!(format!("A-{}", i + 1)));
     }
@@ -43,21 +43,22 @@ fn assert_read_backs(backs: &[Value]) {
 #[test]
 fn g18_concurrent_owned_autosave_vs_foreign_recover() {
     let home = TempHome::new("lock_g18");
+    let session = super::super::session_id().to_string();
     home.write_raw(
         "d",
         &bundle_json("OLD", None, &ago(0), false, Some((P, "main"))),
     );
-    let c = ctx(S, &["A", "B"], &ShadowStore::default());
+    let c = ctx(&session, &["A", "B"], &ShadowStore::default());
     let (start, done) = (Barrier::new(2), AtomicBool::new(false));
 
     let (backs, results) = std::thread::scope(|scope| {
-        let a = scope.spawn(|| autosave_a(&home, &start, &done));
+        let a = scope.spawn(|| autosave_a(&home, &start, &done, &session));
         let b = scope.spawn(|| {
             start.wait();
             let mut out = Vec::new();
             loop {
                 let finished = done.load(SeqCst);
-                out.push(recover_draft_guarded("d", &who(S, "B"), &c));
+                out.push(recover_draft_guarded("d", &who(&session, "B"), &c));
                 if finished {
                     break out;
                 }
@@ -66,31 +67,33 @@ fn g18_concurrent_owned_autosave_vs_foreign_recover() {
         (a.join().unwrap(), b.join().unwrap())
     });
 
-    assert_read_backs(&backs);
+    assert_read_backs(&backs, &session);
     let oks: Vec<_> = results.iter().filter_map(|r| r.as_ref().ok()).collect();
-    assert!(oks.len() <= 1, "B recovered {} times", oks.len());
+    // ADR-0127 permits repeated Recover in the calling window before A's first
+    // save takes ownership. Every such result must still be the old text.
     assert!(oks.iter().all(|r| r.content == "OLD"));
     for r in results.iter().filter(|r| r.is_err()) {
         assert!(matches!(r, Err(DraftError::OwnedByLiveWindow)), "{r:?}");
     }
     let last = home.value("d");
     assert_eq!(last["content"], json!("A-200"));
-    assert_eq!(last["owner"], owner_json(S, "A"));
+    assert_eq!(last["owner"], owner_json(&session, "A"));
     assert_eq!(last["recovered"], json!(false));
 }
 
 #[test]
 fn g18b_concurrent_owned_autosave_vs_guarded_discard() {
     let home = TempHome::new("lock_g18b");
+    let session = super::super::session_id().to_string();
     home.write_raw(
         "d",
         &bundle_json("OLD", None, &ago(0), false, Some((P, "main"))),
     );
-    let c = ctx(S, &["A", "B"], &ShadowStore::default());
+    let c = ctx(&session, &["A", "B"], &ShadowStore::default());
     let (start, done) = (Barrier::new(2), AtomicBool::new(false));
 
     let (backs, results) = std::thread::scope(|scope| {
-        let a = scope.spawn(|| autosave_a(&home, &start, &done));
+        let a = scope.spawn(|| autosave_a(&home, &start, &done, &session));
         let b = scope.spawn(|| {
             start.wait();
             let mut out = Vec::new();
@@ -105,7 +108,7 @@ fn g18b_concurrent_owned_autosave_vs_guarded_discard() {
         (a.join().unwrap(), b.join().unwrap())
     });
 
-    assert_read_backs(&backs);
+    assert_read_backs(&backs, &session);
     let deleted = results.iter().filter(|r| matches!(r, Ok(true))).count();
     let absent = results.iter().filter(|r| matches!(r, Ok(false))).count();
     assert!(deleted <= 1, "(2) deleted {deleted} times");
@@ -123,7 +126,7 @@ fn g18b_concurrent_owned_autosave_vs_guarded_discard() {
     );
     let last = home.value("d");
     assert_eq!(last["content"], json!("A-200"));
-    assert_eq!(last["owner"], owner_json(S, "A"));
+    assert_eq!(last["owner"], owner_json(&session, "A"));
     assert_eq!(last["recovered"], json!(false));
 }
 

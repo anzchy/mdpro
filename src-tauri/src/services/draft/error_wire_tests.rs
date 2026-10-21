@@ -16,6 +16,7 @@ fn all_with(id: &str, message: &str) -> Vec<DraftError> {
         },
         DraftError::OwnedByLiveWindow,
         DraftError::OpenInWindow,
+        DraftError::ShadowStoreUnavailable,
     ]
 }
 
@@ -26,6 +27,10 @@ fn v(e: &DraftError) -> serde_json::Value {
 #[test]
 fn g2_wire_shapes() {
     assert_eq!(v(&DraftError::OpenInWindow), json!("OpenInWindow"));
+    assert_eq!(
+        v(&DraftError::ShadowStoreUnavailable),
+        json!("ShadowStoreUnavailable")
+    );
     assert_eq!(
         v(&DraftError::OwnedByLiveWindow),
         json!("OwnedByLiveWindow")
@@ -70,6 +75,7 @@ fn g4_kind_is_fixed_per_variant_and_never_carries_the_payload() {
         "ParseError",
         "OwnedByLiveWindow",
         "OpenInWindow",
+        "ShadowStoreUnavailable",
     ];
     let sentinel = all_with("SENTINEL-ID-9", "/Users/x/SENTINEL.md");
     let empty = all_with("", "");
@@ -79,7 +85,7 @@ fn g4_kind_is_fixed_per_variant_and_never_carries_the_payload() {
         assert!(!s.kind().contains("SENTINEL"));
     }
     let kinds: std::collections::HashSet<_> = sentinel.iter().map(|e| e.kind()).collect();
-    assert_eq!(kinds.len(), 5, "kinds are pairwise distinct");
+    assert_eq!(kinds.len(), 6, "kinds are pairwise distinct");
 
     let owned = DraftError::OwnedByLiveWindow.to_string();
     let open = DraftError::OpenInWindow.to_string();

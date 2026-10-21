@@ -47,6 +47,12 @@ fn d173_wi1_s1_replies_serialise_hold_gen_camel_case() {
         original_path: Some("/d/a.md".into()),
         title: "a".into(),
         hold_gen: 7,
+        target: None,
+        claim_token: crate::services::draft::DraftClaimToken {
+            source_id: "a".into(),
+            nonce: "n".into(),
+            session_id: "s".into(),
+        },
     };
     assert_hold_gen(&serde_json::to_value(&recover).expect("json"), "recover");
 }

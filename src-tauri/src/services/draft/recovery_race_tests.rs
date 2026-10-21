@@ -13,6 +13,14 @@ use super::super::draft_test_home::{ago, bundle_json, TempHome};
 use super::*;
 use serde_json::json;
 
+fn token() -> DraftClaimToken {
+    DraftClaimToken {
+        source_id: "L".into(),
+        nonce: "n".into(),
+        session_id: "s".into(),
+    }
+}
+
 fn migrated_bundle(home: &TempHome, id: &str) -> Vec<u8> {
     let json = bundle_json("legacy body", Some("/tmp/l.md"), &ago(30), false, None);
     home.write_raw(id, &json);
@@ -30,7 +38,7 @@ fn assert_untouched(home: &TempHome, id: &str, before: &[u8]) {
 fn r1_bundle_migrated_in_the_window_is_not_found_and_left_untouched() {
     let home = TempHome::new("recovery_race_r1");
     let before = migrated_bundle(&home, "L");
-    let r = recover_draft("L");
+    let r = recover_draft("L", None, token());
     assert!(
         matches!(&r, Err(DraftError::NotFound { document_id }) if document_id == "L"),
         "{r:?}"
@@ -43,7 +51,7 @@ fn r2_bundle_written_before_the_legacy_pair_is_removed_is_not_found() {
     let home = TempHome::new("recovery_race_r2");
     home.write_legacy("L", "legacy body", Some("/tmp/l.md"), &ago(30), false);
     let before = migrated_bundle(&home, "L");
-    let r = recover_draft("L");
+    let r = recover_draft("L", None, token());
     assert!(
         matches!(&r, Err(DraftError::NotFound { document_id }) if document_id == "L"),
         "{r:?}"

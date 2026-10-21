@@ -1,74 +1,30 @@
 /**
- * Purpose: place a recovered draft in the store (D146). When its file is already open
- * under another id (e.g. the path-derived id of a file opened at launch), the draft goes
- * into that tab instead of a second tab for the same file, unless that tab holds unsaved
- * text of its own or another draft is already stored under its id (D151).
+ * Purpose: place a recovered draft without overwriting a newer tab or draft (D146/D151,
+ * ADR-0127). The claim-aware path uses Rust's exact target id and stored path, including
+ * same-id and aliased-path matches. The older D146 helpers remain for legacy callers.
  *
- * Pipeline: recovered document (`draftRecoveryOutcome`, under the draft id) → open tab
- *   with the same non-null path and another id → `get_draft` under that tab's id (D151)
- *   → `placeRecovered`: flush that tab's pending WYSIWYG edits (`flushPendingEditsFor`)
- *   → re-read it →
- *   - dirty, or the flush failed → `collision-dirty`: today's second tab under the draft
- *     id, a toast naming the file, `file.draft.recover.merge` (warn);
- *   - clean, a draft stored under its id → `collision-existing-draft`; the check
- *     rejected (or ran for an id no longer matching) → `collision-draft-check-failed`:
- *     the same second tab, toast and warn line, nothing saved or deleted;
- *   - clean, flush ok, no draft under its id → `merged-into-clean`: the draft's content
- *     into that tab, under its id, modified, with no saved-content baseline (D214) →
- *     `upsertAndActivate`
- *     (→ `prepareWholesaleReplace(id, "draft-recovery")`, so the WYSIWYG view rebuilds)
- *     → `file.draft.recover.merge` → re-key the draft: `save_draft` under the tab's id, then `delete_draft` of the draft
- *     id → `file.draft.delete` (reason `rekeyed`, the target id and byte count; the
- *     audit line for the one draft deletion outside the recovery dialog, WI-2) →
- *     `file.draft.rekey`;
- *   - no match, or no path → `new`: today's tab under the draft id, nothing logged here.
- *   D291: Recovery's return-focus guard starts before the draft IPC and is
- *   committed only after this placement activates its chosen document; an
- *   async `get_draft` never lets the closing dialog focus the outgoing tab.
+ * Pipeline: Recover click captures the document set before the Rust await; Rust returns a
+ * target and claim. After any collision-check await, placement re-reads that target and
+ * checks its identity and baseline epoch. A clean target receives the text, marked dirty
+ * with no saved baseline. A dirty, changed or protected target sends the text to a fresh
+ * tab. With no target, the draft id is the destination unless a tab opened under that id
+ * while Rust was waiting. Every branch writes the destination with the claim before the
+ * dialog row resolves. Only a different destination id gets a conditional source delete.
+ * A failed write keeps the source and row and shows a retry toast.
  *
- * Key decisions:
- * - Neither version's unsaved text is ever discarded: a dirty tab is never overwritten,
- *   and the flush runs first because `prepareWholesaleReplace` discards pending editor
- *   edits unwritten (ADR-0028's rule for every write that can land on an open id).
- * - The merged tab keeps its path, encoding, line ending, saved time and size: a draft
- *   carries only content, path and title (`RecoverResult`), so the file's encoding is
- *   the open tab's, not the UTF-8 / LF `draftRecoveryOutcome` assumes.
- * - The match is the exact path string, the same string `recover_draft` watched (D59)
- *   and held for this window (D173), so the window's one hold on that path is what
- *   `watchHolds` releases once no tab here holds it, with the recover's newer gen.
- *   `FileWatcher::watch` on a watched path is a set insert (`alreadyWatched`), not a
- *   second registration; it re-snapshots the baseline, as recovery always does
- *   (ADR-0068 decision 4).
- * - The re-key keeps the draft linked to the tab that holds it. `recover_draft` stamped
- *   the UUID draft `recovered` with this window as owner, and nothing would ever delete
- *   it: autosave and ⌘S work on the tab's id. Left alone it is hidden while this window
- *   lives and relisted on the next launch (ADR-0038 §3), resurrecting text that was
- *   already merged. So the text is written under the tab's id first, and the UUID draft
- *   is deleted only after that write succeeded; a failed write keeps it (logged), so the
- *   text is never left only in memory. `delete_draft` (unguarded, as saveService uses
- *   it) is right here: the guarded discard refuses a draft owned by a live window, and
- *   this window owns it.
- * - A draft already stored under the open tab's id blocks the merge (D151). `save_draft`
- *   replaces the bundle under that id unconditionally, so the re-key would overwrite it,
- *   and so would the merged tab's next autosave. That draft is a second unrecovered
- *   version of the file (a crash with two dirty tabs on it; both drafts are listed, the
- *   file reopens clean under one id). So the recovered draft keeps its own tab and id,
- *   the open tab stays clean and untouched, and both drafts survive. A failed check is
- *   treated the same way: the merge only runs on a confirmed absence.
- * - Logs carry ids, enums and a byte count only, never the path, content or error text.
+ * The legacy path without a claim preserves D146/D151's original behavior for older
+ * call sites. Both paths flush pending WYSIWYG edits before replacing an open tab.
  *
- * @coordinates-with src/App.tsx — applyDraftOutcome calls applyRecoveredDocument
- * @coordinates-with src/utils/draftRecoveryOutcome.ts — builds the recovered document
- * @coordinates-with src/hooks/useDocument.ts — upsertAndActivateDocument (the store write)
- * @coordinates-with src/stores/milkdownEditorStore.ts — flushPendingEditsFor
- * @coordinates-with src/hooks/useAutoSave.ts — the same `save_draft` payload shape
- * @coordinates-with src-tauri/src/commands/draft.rs — `get_draft` (the D151 check), `save_draft`
- * @coordinates-with src-tauri/src/commands/draft_recover_watch.rs — the watch on the path
+ * @coordinates-with src/App.tsx — applies the outcome and removes the row after success
+ * @coordinates-with src/services/draftService.ts — captures click-time target identity
+ * @coordinates-with src/stores/documentStore.ts — baseline and document lifetime
+ * @coordinates-with src-tauri/src/services/draft/mod.rs — claim write and source delete
  * @module utils/recoverIntoOpenTab
  */
 import { invoke } from "@tauri-apps/api/core";
 import { loggingService } from "../services/loggingService";
-import { useDocumentStore } from "../stores/documentStore";
+import { recoveryStartGeneration, recoveryTargetUnchanged, type RecoverResult } from "../services/draftService";
+import { baselineMovedSince, useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import type { Document } from "../types/document";
 import { extractTitle } from "./draftTitle";
@@ -244,7 +200,11 @@ export async function applyRecoveredDocument(
   draftId: string,
   recovered: Document,
   deps: RecoverIntoStoreDeps,
+  recovery?: RecoverResult,
 ): Promise<RecoverPlacement["kind"] | "failed"> {
+  if (recovery?.claimToken) {
+    return applyClaimedRecoveredDocument(draftId, recovered, deps, recovery);
+  }
   recoveryPlacementStarted(draftId);
   let placement: RecoverPlacement;
   try {
@@ -273,4 +233,94 @@ export async function applyRecoveredDocument(
       await rekeyDraft(draftId, placement.document);
       return placement.kind;
   }
+}
+
+/** ADR-0127: use Rust's target id, then make every branch durable with its claim. */
+async function applyClaimedRecoveredDocument(
+  draftId: string,
+  recovered: Document,
+  deps: RecoverIntoStoreDeps,
+  recovery: RecoverResult,
+): Promise<RecoverPlacement["kind"] | "failed"> {
+  const token = recovery.claimToken;
+  if (!token) return "failed";
+  recoveryPlacementStarted(draftId);
+  const target = recovery.target;
+  const started = recoveryStartGeneration(recovery);
+  let check: OpenIdDraftCheck | undefined;
+  if (target && target.id !== draftId) check = await checkDraftUnder(target.id);
+
+  let kind: RecoverPlacement["kind"] = "new";
+  let next = recovered;
+  let open: Document | undefined;
+  if (!target) {
+    // Rust saw no tab, but one can open under the source id while the IPC awaits.
+    open = useDocumentStore.getState().getDocumentById(draftId);
+    if (open) {
+      kind = "collision-dirty";
+      next = { ...recovered, id: crypto.randomUUID() };
+    }
+  }
+  if (target) {
+    open = useDocumentStore.getState().getDocumentById(target.id);
+    const stale = !open || open.path !== target.storedPath
+      || !recoveryTargetUnchanged(recovery, target.id)
+      || baselineMovedSince(target.id, started);
+    if (!stale && open) {
+      const { status } = useMilkdownEditorStore.getState().flushPendingEditsFor(open.id, "draft-recovery");
+      open = useDocumentStore.getState().getDocumentById(target.id);
+      if (!open || status === "failed" || open.isModified) {
+        kind = "collision-dirty";
+      } else if (check?.state === "present") {
+        kind = "collision-existing-draft";
+      } else if (check?.state === "check-failed") {
+        kind = "collision-draft-check-failed";
+      } else {
+        kind = "merged-into-clean";
+        next = { ...open, content: recovered.content, isModified: true, savedContent: undefined };
+      }
+    } else {
+      kind = "collision-dirty";
+    }
+    if (kind !== "merged-into-clean") {
+      next = { ...recovered, id: crypto.randomUUID() };
+    }
+  }
+
+  recoveryWillActivate(draftId, next.id);
+  deps.upsertAndActivate(next);
+  const placedAtWrite = useDocumentStore.getState().getDocumentById(next.id);
+  const writeClaimed = (document: Document) => invoke("save_draft", {
+    documentId: document.id,
+    content: document.content,
+    originalPath: document.path,
+    title: extractTitle(document.content),
+    claimToken: token,
+  });
+  try {
+    await writeClaimed(next);
+    if (useDocumentStore.getState().getDocumentById(next.id) !== placedAtWrite) {
+      // A close, reload or newer edit won while the write awaited. Keep R under
+      // a new id before allowing the source claim to be deleted.
+      next = { ...recovered, id: crypto.randomUUID() };
+      kind = "collision-dirty";
+      recoveryWillActivate(draftId, next.id);
+      deps.upsertAndActivate(next);
+      await writeClaimed(next);
+    }
+    if (next.id !== draftId) {
+      await invoke("delete_draft", { documentId: draftId, claimToken: token });
+    }
+  } catch {
+    recoveryPlacementFailed(draftId);
+    deps.showToast("Could not finish recovering the draft; please retry.");
+    return "failed";
+  }
+
+  recoveryPlacementCommitted(draftId, next.id);
+  if (kind !== "new" && kind !== "merged-into-clean") {
+    deps.showToast(open?.path ? TOASTS[kind](open.path) : "The open tab changed, so the recovered draft opened in its own tab.");
+  }
+  logMerge(draftId, next.id, kind);
+  return kind;
 }

@@ -442,15 +442,20 @@ function App() {
 
   const applyDraftOutcome = useCallback(
     (draftId: string, input: DraftActionOutcome) => {
-      const { dropRow, upsert, toast } = draftRecoveryOutcome(draftId, input);
+      const { dropRow, upsert, toast, allowKeep } = draftRecoveryOutcome(draftId, input);
       // D146: into the open clean tab of the same path, else its own tab.
       if (upsert) {
         void applyRecoveredDocument(draftId, upsert, {
           upsertAndActivate: upsertAndActivateDocument,
           showToast,
-        });
+        }, input.action === "recover" && input.outcome.kind === "ok" ? input.outcome.result : undefined)
+          .then((placed) => {
+            if (placed !== "failed") setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
+          });
+        return;
       }
       if (dropRow) setDrafts((prev) => prev.filter((draft) => draft.id !== draftId));
+      if (allowKeep) setDrafts((prev) => prev.map((draft) => draft.id === draftId ? { ...draft, inUseRefused: true } : draft));
       if (toast) showToast(toast);
     },
     [showToast, upsertAndActivateDocument],

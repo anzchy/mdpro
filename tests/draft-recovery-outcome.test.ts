@@ -4,7 +4,7 @@
  * (`src/utils/draftRecoveryOutcome.ts`).
  *
  * Matrix: `.claude/tdd-guardian/tests-20260926-170000.md` cases f6–f8. Pure, no mocks.
- * Invariant (f8): `dropRow XOR toast`; `upsert ⇒ recover ∧ ok`; `gone ⇒ ¬upsert ∧ ¬toast`.
+ * Invariant (f8): `dropRow XOR toast`; `upsert ⇒ recover ∧ ok`; `in_use ⇒ keep row + toast`.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -38,7 +38,7 @@ describe("f6: full outcome table for both actions", () => {
       { action: "recover", outcome: { kind: "ok", result: RESULT } },
       { dropRow: true, upsert: docFor("d1", RESULT) },
     ],
-    ["recover/in_use", { action: "recover", outcome: IN_USE }, { dropRow: true }],
+    ["recover/in_use", { action: "recover", outcome: IN_USE }, { dropRow: false, toast: "Draft is in use; try again or keep it for later.", allowKeep: true }],
     ["recover/not_found", { action: "recover", outcome: NOT_FOUND }, { dropRow: true }],
     [
       "recover/error",
@@ -46,7 +46,7 @@ describe("f6: full outcome table for both actions", () => {
       { dropRow: false, toast: "Failed to recover draft" },
     ],
     ["discard/ok", { action: "discard", outcome: { kind: "ok" } }, { dropRow: true }],
-    ["discard/in_use", { action: "discard", outcome: IN_USE }, { dropRow: true }],
+    ["discard/in_use", { action: "discard", outcome: IN_USE }, { dropRow: false, toast: "Draft is in use; try again or keep it for later.", allowKeep: true }],
     ["discard/not_found", { action: "discard", outcome: NOT_FOUND }, { dropRow: true }],
     [
       "discard/error",
@@ -124,7 +124,29 @@ describe("f8: invariants over the whole domain", () => {
     }
     if (input.outcome.kind === "gone") {
       expect(out.upsert).toBeUndefined();
-      expect(out.toast).toBeUndefined();
+      if (input.outcome.reason === "in_use") {
+        expect(out.dropRow).toBe(false);
+        expect(out.toast).toBeTruthy();
+      } else {
+        expect(out.toast).toBeUndefined();
+      }
+    }
+  });
+});
+
+describe("D299 reason-specific refusal messages", () => {
+  const reasons = [
+    ["owned_by_live_window", "owned by another live window"],
+    ["open_in_other_window", "open in another window"],
+    ["shadow_store_unavailable", "Could not check open windows"],
+  ] as const;
+  it.each(["recover", "discard"] as const)("%s keeps each in-use row with its reason", (action) => {
+    for (const [detail, phrase] of reasons) {
+      const out = draftRecoveryOutcome("b", { action, outcome: { kind: "gone", reason: "in_use", detail } });
+      expect(out.dropRow).toBe(false);
+      expect(out.allowKeep).toBe(true);
+      expect(out.toast).toContain(phrase);
+      expect(out.upsert).toBeUndefined();
     }
   });
 });

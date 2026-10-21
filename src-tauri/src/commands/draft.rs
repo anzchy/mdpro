@@ -8,6 +8,8 @@
 //! - The `save_draft` command stamps the draft's owner as (this process's
 //!   session id, the calling window's label). `save_draft_logged` is the
 //!   command body without the injected `WebviewWindow`, so tests can call it.
+//!   An optional claim token uses the same gate and log pair; `delete_draft`
+//!   also accepts it for conditional source removal after a durable placement.
 //! - `save_draft_gated` keeps its unowned signature for its existing callers.
 //! - The save logs as `draft.write` (D56), not `file.write`: it writes the
 //!   draft bundle under the data dir and never the document file. Its start
@@ -22,8 +24,8 @@ use tauri::WebviewWindow;
 
 use crate::models::{Draft, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::draft::{
-    delete_draft as delete_draft_service, load_draft, save_draft_as, session_id, DraftError,
-    DraftOwner, DraftSaveResult,
+    delete_draft_with_token as delete_draft_service, load_draft, save_draft_as_with_token,
+    session_id, DraftClaimToken, DraftError, DraftOwner, DraftSaveResult,
 };
 use crate::services::logger;
 use crate::services::quit_guard::{DraftGate, QUIT_COMMITTED};
@@ -67,8 +69,30 @@ pub(crate) fn save_draft_gated_as(
     original_path: Option<String>,
     title: &str,
 ) -> Result<DraftSaveResult, DraftError> {
+    save_draft_gated_as_with_token(
+        committed,
+        owner,
+        document_id,
+        content,
+        original_path,
+        title,
+        None,
+    )
+}
+
+fn save_draft_gated_as_with_token(
+    committed: &DraftGate,
+    owner: Option<DraftOwner>,
+    document_id: &str,
+    content: &str,
+    original_path: Option<String>,
+    title: &str,
+    token: Option<&DraftClaimToken>,
+) -> Result<DraftSaveResult, DraftError> {
     committed
-        .if_open(|| save_draft_as(owner, document_id, content, original_path, title))
+        .if_open(|| {
+            save_draft_as_with_token(owner, document_id, content, original_path, title, token)
+        })
         .unwrap_or_else(|| {
             Err(DraftError::IoError {
                 message: "a quit has committed: draft saving is closed".to_string(),
@@ -83,22 +107,42 @@ pub async fn save_draft(
     content: String,
     original_path: Option<String>,
     title: String,
+    claim_token: Option<DraftClaimToken>,
 ) -> Result<DraftSaveResult, DraftError> {
     let owner = DraftOwner {
         session_id: session_id().to_string(),
         window_label: window.label().to_string(),
     };
-    save_draft_logged(Some(owner), &document_id, &content, original_path, &title)
+    save_draft_logged_with_token(
+        Some(owner),
+        &document_id,
+        &content,
+        original_path,
+        &title,
+        claim_token.as_ref(),
+    )
 }
 
 /// The `save_draft` command body: a gated save through `QUIT_COMMITTED` that
 /// writes `owner`, with its `draft.write` start / success / fail log lines.
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn save_draft_logged(
     owner: Option<DraftOwner>,
     document_id: &str,
     content: &str,
     original_path: Option<String>,
     title: &str,
+) -> Result<DraftSaveResult, DraftError> {
+    save_draft_logged_with_token(owner, document_id, content, original_path, title, None)
+}
+
+fn save_draft_logged_with_token(
+    owner: Option<DraftOwner>,
+    document_id: &str,
+    content: &str,
+    original_path: Option<String>,
+    title: &str,
+    token: Option<&DraftClaimToken>,
 ) -> Result<DraftSaveResult, DraftError> {
     let action_id = uuid::Uuid::new_v4().to_string();
     let start = std::time::Instant::now();
@@ -115,13 +159,14 @@ pub(crate) fn save_draft_logged(
         duration_ms: None,
         error: None,
     });
-    let result = save_draft_gated_as(
+    let result = save_draft_gated_as_with_token(
         &QUIT_COMMITTED,
         owner,
         document_id,
         content,
         original_path,
         title,
+        token,
     )
     .inspect_err(|err| {
         logger::log_event(LogEntryPayload {
@@ -189,8 +234,11 @@ pub async fn get_draft(document_id: String) -> Result<Option<Draft>, DraftError>
 }
 
 #[tauri::command]
-pub async fn delete_draft(document_id: String) -> Result<bool, DraftError> {
-    delete_draft_service(&document_id)
+pub async fn delete_draft(
+    document_id: String,
+    claim_token: Option<DraftClaimToken>,
+) -> Result<bool, DraftError> {
+    delete_draft_service(&document_id, claim_token.as_ref())
 }
 
 #[cfg(test)]

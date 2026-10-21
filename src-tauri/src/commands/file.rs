@@ -1101,6 +1101,245 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&home);
     }
+
+    #[test]
+    fn d299_wi1_close_preserves_prior_session_draft_with_same_id() {
+        use crate::services::draft::{save_draft_as, DraftOwner};
+
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = make_temp_home(&format!("d299_close_{}", uuid::Uuid::new_v4()));
+        let _home_guard = set_home(&home);
+
+        let id = "d299_same_id_b";
+        let original = "unsaved text from previous launch";
+        let saved = save_draft_as(
+            Some(DraftOwner {
+                session_id: "previous-launch".into(),
+                window_label: "main".into(),
+            }),
+            id,
+            original,
+            Some("/tmp/b.md".into()),
+            "B draft",
+        )
+        .expect("save prior-session draft");
+        let drafts = std::path::Path::new(&saved.draft_path)
+            .parent()
+            .unwrap()
+            .to_path_buf();
+
+        let close = discard_and_close(id);
+        assert!(close.success);
+        let surviving = std::fs::read_dir(&drafts)
+            .expect("draft directory")
+            .filter_map(Result::ok)
+            .filter_map(|entry| std::fs::read_to_string(entry.path()).ok())
+            .filter(|raw| raw.contains(original))
+            .count();
+        assert_eq!(
+            surviving, 1,
+            "closing clean B must keep its unrecovered text on disk"
+        );
+
+        // Reopening B in the same or a reloaded window can close cleanly again.
+        assert!(discard_and_close(id).success);
+        let still_listable = std::fs::read_dir(&drafts)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter_map(|entry| std::fs::read_to_string(entry.path()).ok())
+            .filter(|raw| raw.contains(original))
+            .count();
+        assert_eq!(
+            still_listable, 1,
+            "second clean close must keep the moved draft"
+        );
+
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn d299_wi6_same_id_list_recover_and_keep_close_sequences() {
+        use crate::models::mcp::WindowState;
+        use crate::models::{DocumentState, ShadowStore};
+        use crate::services::draft::{
+            list_drafts_for, recover_draft_guarded, save_draft_as, save_draft_as_with_token,
+            session_id, DraftOwner, LiveContext, OpenSet,
+        };
+        use std::collections::{HashMap, HashSet};
+
+        let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let home = make_temp_home(&format!("d299_full_{}", uuid::Uuid::new_v4()));
+        let _home_guard = set_home(&home);
+        let old = DraftOwner {
+            session_id: "prior-launch".into(),
+            window_label: "main".into(),
+        };
+        let caller = DraftOwner {
+            session_id: session_id().into(),
+            window_label: "main".into(),
+        };
+        let empty = LiveContext {
+            session_id: caller.session_id.clone(),
+            live_labels: HashSet::new(),
+            open: Ok(OpenSet::default()),
+        };
+        let b = "d299_full_b";
+        save_draft_as(
+            Some(old.clone()),
+            b,
+            "R unsaved",
+            Some("/tmp/b.md".into()),
+            "B",
+        )
+        .unwrap();
+        assert!(list_drafts_for(&empty)
+            .unwrap()
+            .entries
+            .iter()
+            .any(|entry| entry.id == b));
+        let doc = DocumentState {
+            id: b.into(),
+            title: "B".into(),
+            path: Some("/tmp/b.md".into()),
+            content: "disk text".into(),
+            cursor: 0,
+            is_dirty: false,
+            is_active: true,
+            over_limit: false,
+        };
+        let window = WindowState {
+            label: "main".into(),
+            documents: vec![doc],
+            active_document_id: Some(b.into()),
+            last_focused_at: 0,
+            routable: true,
+        };
+        let store = ShadowStore {
+            windows: HashMap::from([("main".into(), window)]),
+            focused_window: Some("main".into()),
+        };
+        let open = LiveContext {
+            session_id: caller.session_id.clone(),
+            live_labels: HashSet::from(["main".into()]),
+            open: Ok(OpenSet::from_store(&store)),
+        };
+        let recovered = recover_draft_guarded(b, &caller, &open).expect("same-id Recover");
+        assert_eq!(
+            recovered.target.as_ref().map(|target| target.id.as_str()),
+            Some(b)
+        );
+        assert_eq!(recovered.content, "R unsaved");
+        save_draft_as_with_token(
+            Some(caller.clone()),
+            b,
+            &recovered.content,
+            Some("/tmp/b.md".into()),
+            "B",
+            Some(&recovered.claim_token),
+        )
+        .unwrap();
+        assert_eq!(
+            crate::services::draft::load_draft(b)
+                .unwrap()
+                .unwrap()
+                .content,
+            "R unsaved"
+        );
+
+        // A separate listed row is kept for later: no Recover or Discard call.
+        let k = "d299_full_keep";
+        save_draft_as(Some(old), k, "K unsaved", Some("/tmp/k.md".into()), "K").unwrap();
+        assert!(list_drafts_for(&empty)
+            .unwrap()
+            .entries
+            .iter()
+            .any(|entry| entry.id == k));
+        assert!(discard_and_close(k).success);
+        let next = list_drafts_for(&empty).unwrap();
+        let moved = next
+            .entries
+            .iter()
+            .find(|entry| entry.title == "K")
+            .expect("kept draft relisted");
+        assert_ne!(moved.id, k);
+        assert_eq!(
+            crate::services::draft::load_draft(&moved.id)
+                .unwrap()
+                .unwrap()
+                .content,
+            "K unsaved"
+        );
+
+        // Dirty B cannot erase R after R is written to Y, even if B closes
+        // before Y's first autosave tick.
+        let dirty_id = "d299_full_dirty";
+        save_draft_as(
+            Some(DraftOwner {
+                session_id: "prior-launch".into(),
+                window_label: "main".into(),
+            }),
+            dirty_id,
+            "R from crash",
+            Some("/tmp/dirty.md".into()),
+            "R",
+        )
+        .unwrap();
+        let dirty_doc = DocumentState {
+            id: dirty_id.into(),
+            title: "B".into(),
+            path: Some("/tmp/dirty.md".into()),
+            content: "B edit".into(),
+            cursor: 0,
+            is_dirty: true,
+            is_active: true,
+            over_limit: false,
+        };
+        let dirty_window = WindowState {
+            label: "main".into(),
+            documents: vec![dirty_doc],
+            active_document_id: Some(dirty_id.into()),
+            last_focused_at: 0,
+            routable: true,
+        };
+        let dirty_store = ShadowStore {
+            windows: HashMap::from([("main".into(), dirty_window)]),
+            focused_window: Some("main".into()),
+        };
+        let dirty_open = LiveContext {
+            session_id: caller.session_id.clone(),
+            live_labels: HashSet::from(["main".into()]),
+            open: Ok(OpenSet::from_store(&dirty_store)),
+        };
+        let claim = recover_draft_guarded(dirty_id, &caller, &dirty_open).unwrap();
+        save_draft_as_with_token(
+            Some(caller.clone()),
+            "d299_y",
+            &claim.content,
+            Some("/tmp/dirty.md".into()),
+            "R",
+            Some(&claim.claim_token),
+        )
+        .unwrap();
+        crate::services::draft::delete_draft_with_token(dirty_id, Some(&claim.claim_token))
+            .unwrap();
+        save_draft_as(
+            Some(caller),
+            dirty_id,
+            "B edit",
+            Some("/tmp/dirty.md".into()),
+            "B",
+        )
+        .unwrap();
+        assert!(discard_and_close(dirty_id).success);
+        assert_eq!(
+            crate::services::draft::load_draft("d299_y")
+                .unwrap()
+                .unwrap()
+                .content,
+            "R from crash"
+        );
+        let _ = std::fs::remove_dir_all(&home);
+    }
 }
 
 #[tauri::command]

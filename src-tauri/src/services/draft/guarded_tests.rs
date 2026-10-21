@@ -57,24 +57,113 @@ fn g6_recover_of_a_draft_open_via_a_symlinked_path_is_refused() {
 }
 
 #[test]
-fn g7_no_exemption_for_the_calling_window() {
+fn g7_calling_window_is_allowed_for_recovery() {
     let home = TempHome::new("guarded_g7");
     // (i) open in the caller itself
     save_draft("d", "b", None, "t").unwrap();
     let before = home.read_raw("d");
     let store = store_of(vec![win("B", vec![doc("d", None, true)], true, 1)]);
     let r = recover_draft_guarded("d", &who(S, "B"), &ctx(S, &["B"], &store));
-    assert!(matches!(r, Err(DraftError::OpenInWindow)), "(i) {r:?}");
-    assert_eq!(home.read_raw("d"), before);
+    assert_eq!(r.expect("same-window id").target.unwrap().id, "d");
+    assert_ne!(home.read_raw("d"), before);
     // (ii) owned by the caller itself
     save_draft_as(Some(who(S, "B")), "d2", "b", None, "t").unwrap();
     let before = home.read_raw("d2");
     let r = recover_draft_guarded("d2", &who(S, "B"), &ctx(S, &["B"], &empty()));
-    assert!(
-        matches!(r, Err(DraftError::OwnedByLiveWindow)),
-        "(ii) {r:?}"
+    assert!(r.is_ok(), "(ii) {r:?}");
+    assert_ne!(home.read_raw("d2"), before);
+}
+
+#[test]
+fn d299_wi2_same_id_in_calling_window_returns_target_and_claim() {
+    let home = TempHome::new("d299_wi2_same_id");
+    save_draft_as(
+        Some(who(P, "main")),
+        "b",
+        "older unsaved text",
+        Some("/tmp/b.md".into()),
+        "B",
+    )
+    .unwrap();
+    let store = store_of(vec![win(
+        "B",
+        vec![doc("b", Some("/tmp/b.md"), true)],
+        true,
+        1,
+    )]);
+    let result = recover_draft_guarded("b", &who(S, "B"), &ctx(S, &["B"], &store))
+        .expect("same-window same-id recovery is allowed");
+    let wire = serde_json::to_value(&result).unwrap();
+    assert_eq!(wire["content"], json!("older unsaved text"));
+    assert_eq!(wire["target"], json!({"id":"b","storedPath":"/tmp/b.md"}));
+    assert_eq!(wire["claimToken"]["sourceId"], json!("b"));
+    assert!(wire["claimToken"]["nonce"]
+        .as_str()
+        .is_some_and(|v| !v.is_empty()));
+    assert_eq!(home.value("b")["claim"], wire["claimToken"]);
+}
+
+#[test]
+fn d299_wi2_caller_alias_returns_the_stored_target() {
+    let home = TempHome::new("d299_caller_alias");
+    let fx = Fixture::new();
+    save_draft("draft", "R", Some(fx.a.clone()), "R").unwrap();
+    let store = store_of(vec![win(
+        "B",
+        vec![doc("tab", Some(&fx.canon_a), true)],
+        true,
+        1,
+    )]);
+    let result = recover_draft_guarded("draft", &who(S, "B"), &ctx(S, &["B"], &store))
+        .expect("caller alias is recoverable");
+    assert_eq!(
+        result.target,
+        Some(crate::services::draft::RecoverTarget {
+            id: "tab".into(),
+            stored_path: Some(fx.canon_a.clone()),
+        })
     );
-    assert_eq!(home.read_raw("d2"), before);
+    assert_eq!(result.content, "R");
+    assert_eq!(
+        home.value("draft")["claim"],
+        serde_json::to_value(result.claim_token).unwrap()
+    );
+}
+
+#[test]
+fn d299_wi2_foreign_alias_refuses_even_when_caller_match_is_first() {
+    let home = TempHome::new("d299_mixed_windows");
+    let fx = Fixture::new();
+    save_draft("draft", "R", Some(fx.a.clone()), "R").unwrap();
+    let before = home.read_raw("draft");
+    let caller = win("B", vec![doc("draft", Some(&fx.a), true)], true, 1);
+    let foreign = win("A", vec![doc("alias", Some(&fx.canon_a), true)], true, 1);
+    for rows in [
+        vec![caller.clone(), foreign.clone()],
+        vec![foreign.clone(), caller.clone()],
+    ] {
+        let store = store_of(rows);
+        let result = recover_draft_guarded("draft", &who(S, "B"), &ctx(S, &["A", "B"], &store));
+        assert!(
+            matches!(result, Err(DraftError::OpenInWindow)),
+            "{result:?}"
+        );
+        assert_eq!(home.read_raw("draft"), before);
+    }
+    let caller_alias = win("B", vec![doc("alias", Some(&fx.canon_a), true)], true, 1);
+    let foreign_id = win("A", vec![doc("draft", Some(&fx.a), true)], true, 1);
+    for rows in [
+        vec![caller_alias.clone(), foreign_id.clone()],
+        vec![foreign_id, caller_alias],
+    ] {
+        let store = store_of(rows);
+        let result = recover_draft_guarded("draft", &who(S, "B"), &ctx(S, &["A", "B"], &store));
+        assert!(
+            matches!(result, Err(DraftError::OpenInWindow)),
+            "{result:?}"
+        );
+        assert_eq!(home.read_raw("draft"), before);
+    }
 }
 
 #[test]
@@ -153,11 +242,8 @@ fn g10_ownership_moves_by_recovery_and_dies_with_the_window() {
     assert_eq!(home.read_raw("d"), b1);
 
     let r3 = recover_draft_guarded("d", &who(S, "B"), &abc);
-    assert!(
-        matches!(r3, Err(DraftError::OwnedByLiveWindow)),
-        "3: {r3:?}"
-    );
-    assert_eq!(home.read_raw("d"), b1);
+    assert!(r3.is_ok(), "3: {r3:?}");
+    assert_ne!(home.read_raw("d"), b1);
 
     recover_draft_guarded("d", &who(S, "C"), &ac).expect("4: C recovers once B closed");
     let v4 = home.value("d");
@@ -220,7 +306,10 @@ fn g13_legacy_two_file_recover_gets_the_open_set_check() {
     assert_eq!(r.content, "legacy");
     assert_eq!(r.original_path.as_deref(), Some("/tmp/L.md"));
     assert_eq!(r.title, "legacy L");
-    let meta: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(home.legacy_meta("L")).unwrap()).unwrap();
-    assert_eq!(meta["recovered"], json!(true));
+    let migrated = home.value("L");
+    assert_eq!(migrated["recovered"], json!(true));
+    assert_eq!(
+        migrated["claim"],
+        serde_json::to_value(r.claim_token).unwrap()
+    );
 }

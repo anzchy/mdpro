@@ -85,6 +85,9 @@ fn on_disk(home: &TempHome, id: &str) -> Value {
         serde_json::from_str(&fs::read_to_string(home.legacy_meta(id)).unwrap()).unwrap()
     };
     v.as_object_mut().unwrap().remove("lastModified");
+    // Each recovery issues a distinct nonce; watch transparency concerns the
+    // stable draft fields, not the nonce's random value.
+    v.as_object_mut().unwrap().remove("claim");
     v
 }
 

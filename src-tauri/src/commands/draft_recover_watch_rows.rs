@@ -45,7 +45,7 @@ pub(super) fn refusal(
             match row {
                 "r2" => (open_by(id, None), false, "OpenInWindow"),
                 "r3" => (open_by("other", Some(p)), false, "OpenInWindow"),
-                "r5" => (ctx_unavailable(S, &[]), false, "IoError"),
+                "r5" => (ctx_unavailable(S, &[]), false, "ShadowStoreUnavailable"),
                 _ => (empty_ctx(), true, "IoError"),
             }
         }
@@ -71,7 +71,7 @@ pub(super) fn refusal(
 pub(super) fn message_ok(row: &str, err: &DraftError) -> bool {
     match row {
         "r5" => {
-            matches!(err, DraftError::IoError { message } if message == "shadow store unavailable")
+            matches!(err, DraftError::ShadowStoreUnavailable)
         }
         "r6" => {
             matches!(err, DraftError::IoError { .. })

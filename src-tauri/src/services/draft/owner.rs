@@ -22,7 +22,7 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-use super::DraftOwner;
+use super::{DraftError, DraftOwner, RecoverTarget};
 use crate::models::ShadowStore;
 use crate::services::open_route::lookup::{canonical, same_file};
 
@@ -118,6 +118,50 @@ pub fn in_use(
                 }
         });
     is_open.then_some(InUseReason::OpenInWindow)
+}
+
+/// Resolve a recovery target only after checking every live window for a match.
+/// A caller match must never hide a matching tab in another window.
+pub fn recovery_target(
+    id: &str,
+    original_path: Option<&str>,
+    owner: Option<&DraftOwner>,
+    caller: &DraftOwner,
+    ctx: &LiveContext,
+) -> Result<Option<RecoverTarget>, DraftError> {
+    if owner_is_live(owner, ctx) && owner.is_some_and(|o| o.window_label != caller.window_label) {
+        return Err(DraftError::OwnedByLiveWindow);
+    }
+    let open = ctx
+        .open
+        .as_ref()
+        .map_err(|_| DraftError::ShadowStoreUnavailable)?;
+    let draft_canon = original_path.and_then(canonical);
+    let mut local: Option<&OpenDoc> = None;
+    for doc in open
+        .docs
+        .iter()
+        .filter(|d| ctx.live_labels.contains(&d.window_label))
+    {
+        let matches = doc.id == id
+            || match (original_path, doc.path.as_deref()) {
+                (Some(p), Some(stored)) => same_file(p, draft_canon.as_ref(), stored),
+                _ => false,
+            };
+        if !matches {
+            continue;
+        }
+        if doc.window_label != caller.window_label {
+            return Err(DraftError::OpenInWindow);
+        }
+        if local.is_none() || doc.id == id {
+            local = Some(doc);
+        }
+    }
+    Ok(local.map(|doc| RecoverTarget {
+        id: doc.id.clone(),
+        stored_path: doc.path.clone(),
+    }))
 }
 
 // The symlink fixture is shared with `open_route::lookup`, not copied.

@@ -123,7 +123,9 @@ export function AppDialogs({
   onSettingsClose,
 }: AppDialogsProps) {
   const [mcpRequestId, setMcpRequestId] = useState<string | null>(null);
-  const { rows: recoveryRows, mcpLink } = useRecoveryAdmission(drafts);
+  const [keptIds, setKeptIds] = useState<Set<string>>(() => new Set());
+  const { rows: recoveryRows, mcpLink } = useRecoveryAdmission(drafts.filter((draft) => !keptIds.has(draft.id)));
+  const latestDrafts = new Map(drafts.map((draft) => [draft.id, draft]));
   const [openOrder, setOpenOrder] = useState<OpenDialogEntry[]>([]);
   const tokens: AppDialogTokens = {
     recovery: recoveryRows.length > 0 ? OPEN_TOKEN : null,
@@ -153,7 +155,7 @@ export function AppDialogs({
   const slot = (id: AppDialogId): ReactNode => {
     switch (id) {
       case "recovery":
-        return <RecoveryDialog drafts={recoveryRows} onRecover={onRecoverDraft} onDiscard={onDiscardDraft} />;
+        return <RecoveryDialog drafts={recoveryRows.map((row) => ({ ...row, inUseRefused: latestDrafts.get(row.id)?.inUseRefused }))} onRecover={onRecoverDraft} onDiscard={onDiscardDraft} onKeepForLater={(id) => setKeptIds((old) => new Set(old).add(id))} />;
       case "reload":
         return (
           <ReloadDialog

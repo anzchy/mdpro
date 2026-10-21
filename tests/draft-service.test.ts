@@ -32,13 +32,16 @@ beforeEach(() => {
   useLoggingStore.setState({ enabled: true, level: "info" });
 });
 
-const IN_USE = { kind: "gone", reason: "in_use" };
+const OWNED = { kind: "gone", reason: "in_use", detail: "owned_by_live_window" };
+const IN_USE = { kind: "gone", reason: "in_use", detail: "open_in_other_window" };
+const SHADOW = { kind: "gone", reason: "in_use", detail: "shadow_store_unavailable" };
 const NOT_FOUND = { kind: "gone", reason: "not_found" };
 const ERROR = { kind: "error" };
 
 const F1_TABLE: Array<[string, unknown, unknown]> = [
-  ["OwnedByLiveWindow string", "OwnedByLiveWindow", IN_USE],
+  ["OwnedByLiveWindow string", "OwnedByLiveWindow", OWNED],
   ["OpenInWindow string", "OpenInWindow", IN_USE],
+  ["ShadowStoreUnavailable string", "ShadowStoreUnavailable", SHADOW],
   ["NotFound object", { NotFound: { document_id: "x" } }, NOT_FOUND],
   ["IoError whose message says OpenInWindow", { IoError: { message: "OpenInWindow" } }, ERROR],
   ["ParseError", { ParseError: { message: "m" } }, ERROR],
@@ -64,7 +67,8 @@ describe("f2: recoverDraft maps each invoke result to an outcome", () => {
   const cases: Array<[string, () => unknown, unknown]> = [
     ["resolve", () => RESULT, { kind: "ok", result: RESULT }],
     ["OpenInWindow", () => Promise.reject("OpenInWindow"), IN_USE],
-    ["OwnedByLiveWindow", () => Promise.reject("OwnedByLiveWindow"), IN_USE],
+    ["OwnedByLiveWindow", () => Promise.reject("OwnedByLiveWindow"), OWNED],
+    ["ShadowStoreUnavailable", () => Promise.reject("ShadowStoreUnavailable"), SHADOW],
     ["NotFound", () => Promise.reject({ NotFound: { document_id: "d" } }), NOT_FOUND],
     ["IoError", () => Promise.reject({ IoError: { message: "m" } }), ERROR],
   ];
@@ -80,7 +84,7 @@ describe("f3: discardRecoveryDraft calls the guarded command only", () => {
   const cases: Array<[string, () => unknown, unknown]> = [
     ["Ok(true)", () => true, { kind: "ok" }],
     ["Ok(false) — nothing to delete", () => false, { kind: "ok" }],
-    ["OwnedByLiveWindow", () => Promise.reject("OwnedByLiveWindow"), IN_USE],
+    ["OwnedByLiveWindow", () => Promise.reject("OwnedByLiveWindow"), OWNED],
     ["IoError", () => Promise.reject({ IoError: { message: "m" } }), ERROR],
   ];
 
@@ -131,7 +135,9 @@ describe("f4: total and redacted — one outcome-only log per call", () => {
     expect(logs).toHaveLength(1);
     const [payload] = logs;
     expect(payload.event).toBe(`file.draft.${action}`);
-    expect(Object.keys(payload.context)).toEqual(["outcome"]);
+    expect(Object.keys(payload.context)).toEqual(
+      payload.context.outcome === "in_use" ? ["outcome", "reason"] : ["outcome"],
+    );
     expect(["ok", "in_use", "not_found", "error"]).toContain(payload.context.outcome);
     expect(JSON.stringify(payload)).not.toContain("SENTINEL");
   });

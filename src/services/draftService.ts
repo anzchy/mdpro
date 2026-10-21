@@ -6,7 +6,8 @@
  * Wire contract (args camelCase; Tauri injects the calling window):
  * - `recover_draft { documentId }` → `RecoverResult`
  * - `discard_recovery_draft { documentId }` → `boolean` (`false` = nothing to delete; still ok)
- * - rejections: `"OwnedByLiveWindow"` / `"OpenInWindow"` → in_use,
+ * - rejections: `"OwnedByLiveWindow"` / `"OpenInWindow"` /
+ *   `"ShadowStoreUnavailable"` → in_use with a typed reason,
  *   `{ NotFound: {...} }` → not_found, anything else → error.
  *
  * Key decisions:
@@ -21,6 +22,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { noteHold } from "../utils/watchHoldLedger";
 import { loggingService } from "./loggingService";
+import { useDocumentStore } from "../stores/documentStore";
 
 export interface DraftMetadata {
   id: string;
@@ -28,6 +30,8 @@ export interface DraftMetadata {
   lastModified: string;
   recovered: boolean;
   title: string;
+  /** Set after a guarded in-use refusal; enables Keep for later on this row. */
+  inUseRefused?: boolean;
 }
 
 export interface RecoverResult {
@@ -36,21 +40,44 @@ export interface RecoverResult {
   title: string;
   /** D173: the gen of the watch hold on `originalPath` for this window; 0 = none. */
   holdGen?: number;
+  target?: { id: string; storedPath: string | null } | null;
+  claimToken?: { sourceId: string; nonce: string; sessionId: string };
+}
+
+const recoveryStartGenerations = new WeakMap<RecoverResult, number>();
+const recoveryStartDocuments = new WeakMap<RecoverResult, Map<string, object>>();
+/** The store generation at the Recover click, before the Rust await. */
+export function recoveryStartGeneration(result: RecoverResult): number | undefined {
+  return recoveryStartGenerations.get(result);
+}
+/** Whether Rust's target is still the same document object seen at the click. */
+export function recoveryTargetUnchanged(result: RecoverResult, id: string): boolean {
+  return recoveryStartDocuments.get(result)?.get(id) === useDocumentStore.getState().getDocumentById(id);
 }
 
 export type GoneReason = "in_use" | "not_found";
-export type DraftErrorClass = { kind: "gone"; reason: GoneReason } | { kind: "error" };
+export type InUseDetail = "owned_by_live_window" | "open_in_other_window" | "shadow_store_unavailable";
+export type DraftErrorClass =
+  | { kind: "gone"; reason: "in_use"; detail?: InUseDetail }
+  | { kind: "gone"; reason: "not_found" }
+  | { kind: "error" };
 export type RecoverOutcome = { kind: "ok"; result: RecoverResult } | DraftErrorClass;
 export type DiscardOutcome = { kind: "ok" } | DraftErrorClass;
 
 type LoggedOutcome = "ok" | GoneReason | "error";
 
-const IN_USE_ERRORS: ReadonlySet<string> = new Set(["OwnedByLiveWindow", "OpenInWindow"]);
+const IN_USE_ERRORS: Readonly<Record<string, InUseDetail>> = {
+  OwnedByLiveWindow: "owned_by_live_window",
+  OpenInWindow: "open_in_other_window",
+  ShadowStoreUnavailable: "shadow_store_unavailable",
+};
 
 /** Map a rejected `invoke` value to a closed class. Exact shapes only; no substring matching. */
 export function classifyDraftError(err: unknown): DraftErrorClass {
   if (typeof err === "string") {
-    return IN_USE_ERRORS.has(err) ? { kind: "gone", reason: "in_use" } : { kind: "error" };
+    return Object.prototype.hasOwnProperty.call(IN_USE_ERRORS, err)
+      ? { kind: "gone", reason: "in_use", detail: IN_USE_ERRORS[err] }
+      : { kind: "error" };
   }
   if (typeof err === "object" && err !== null && !(err instanceof Error) && "NotFound" in err) {
     return { kind: "gone", reason: "not_found" };
@@ -76,15 +103,22 @@ function logOutcome(action: "recover" | "discard", outcome: RecoverOutcome | Dis
     event: `file.draft.${action}`,
     status: name === "error" ? "fail" : "success",
     actionId: loggingService.generateActionId(),
-    context: { outcome: name },
+    context: outcome.kind === "gone" && outcome.reason === "in_use"
+      ? { outcome: name, reason: outcome.detail ?? "unspecified" }
+      : { outcome: name },
   });
 }
 
 /** Recover a draft through the guarded command. Never rejects. */
 export async function recoverDraft(documentId: string): Promise<RecoverOutcome> {
+  const atClick = useDocumentStore.getState();
+  const startedGeneration = atClick.baselineGeneration;
+  const documentsAtClick = new Map(atClick.documents.map((doc) => [doc.id, doc]));
   let outcome: RecoverOutcome;
   try {
     const result = await invoke<RecoverResult>("recover_draft", { documentId });
+    recoveryStartGenerations.set(result, startedGeneration);
+    recoveryStartDocuments.set(result, documentsAtClick);
     noteHold(result?.originalPath, result?.holdGen); // D173: released when its tab goes
     outcome = { kind: "ok", result };
   } catch (error: unknown) {

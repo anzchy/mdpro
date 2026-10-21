@@ -25,6 +25,8 @@ pub enum DraftError {
     OwnedByLiveWindow,
     /// Refused: the draft's id or file is open in a live window.
     OpenInWindow,
+    /// Refused because the live-window shadow store could not be read.
+    ShadowStoreUnavailable,
 }
 
 impl DraftError {
@@ -36,6 +38,7 @@ impl DraftError {
             DraftError::ParseError { .. } => "ParseError",
             DraftError::OwnedByLiveWindow => "OwnedByLiveWindow",
             DraftError::OpenInWindow => "OpenInWindow",
+            DraftError::ShadowStoreUnavailable => "ShadowStoreUnavailable",
         }
     }
 }
@@ -52,6 +55,7 @@ impl std::fmt::Display for DraftError {
                 write!(f, "draft is in use: owned by a live window")
             }
             DraftError::OpenInWindow => write!(f, "draft is in use: open in a window"),
+            DraftError::ShadowStoreUnavailable => write!(f, "draft status could not be checked"),
         }
     }
 }
@@ -86,6 +90,26 @@ pub struct RecoverResult {
     /// 0 when it took none (refused, fenced, failed). Gen 0 is never issued.
     #[serde(default)]
     pub hold_gen: u64,
+    /// Open tab selected by the guarded Rust check; absent if no file is open.
+    #[serde(default)]
+    pub target: Option<RecoverTarget>,
+    /// Authorizes the placement write and conditional source deletion.
+    pub claim_token: DraftClaimToken,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoverTarget {
+    pub id: String,
+    pub stored_path: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftClaimToken {
+    pub source_id: String,
+    pub nonce: String,
+    pub session_id: String,
 }
 
 /// Who is using a draft: the launch that wrote it and the window in it

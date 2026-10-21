@@ -8,19 +8,21 @@
 //!   the check sees the windows and open set as they are at the act. The
 //!   `&LiveContext` forms are `#[cfg(test)]` thin wrappers passing a clone of
 //!   `ctx`: a caller-built context would reopen snapshot-before-lock.
-//! - **Check order (A12)**: missing → `NotFound` (discard: `Ok(false)`);
-//!   corrupt → `ParseError` on recover, still deletable on discard; live
-//!   owner → `OwnedByLiveWindow`; unreadable shadow store → `IoError("shadow
-//!   store unavailable")`; id or path open → `OpenInWindow`; then act.
+//! - **Check order (A12, ADR-0127)**: missing → `NotFound` (discard: `Ok(false)`);
+//!   corrupt → `ParseError` on recover, still deletable on discard; another
+//!   live owner → `OwnedByLiveWindow`; unreadable shadow store →
+//!   `ShadowStoreUnavailable`; a match in another window → `OpenInWindow`.
+//!   Recover accepts a match only in its own calling window; Discard refuses
+//!   any live use, including that window.
 //! - **Fail closed on an unreadable store.** `owner::in_use` treats it as
 //!   "nothing open", which is right for listing only, so this module checks
 //!   `ctx.open` itself.
-//! - No caller exemption: a draft open in, or owned by, the calling window is
-//!   refused too.
-//! - A successful recover stamps `recovered`, `owner = caller` and a fresh
-//!   `last_modified`. Legacy two-file drafts have no owner, so they get the
-//!   open-set check only, then `recovery::recover_draft`
-//!   (now `pub(super)`: this is its only caller). If `load_draft`'s unlocked
+//! - Recover allows a match only in the calling window and returns its exact
+//!   target plus a fresh claim; guarded Discard still refuses any live use.
+//! - A successful recover stamps `recovered`, `owner = caller`, a fresh
+//!   `last_modified` and a claim. Legacy two-file drafts pass the same
+//!   open-set check and are converted to a claimed bundle after the legacy read.
+//!   If `load_draft`'s unlocked
 //!   migrate-on-read turned the pair into a bundle in between, that call
 //!   returns `NotFound` rather than recovering an unchecked bundle.
 //!
@@ -34,14 +36,13 @@ use std::sync::MutexGuard;
 use crate::models::DraftMetadata;
 
 use super::lock::draft_lock;
+use super::owner::recovery_target;
 use super::paths::{bundle_path, legacy_draft_path, legacy_meta_path};
 use super::recovery::recover_draft;
 use super::{
-    delete_draft, in_use, owner_is_live, write_bundle_atomic, DraftBundle, DraftError, DraftOwner,
-    InUseReason, LiveContext, RecoverResult,
+    delete_draft_locked, in_use, owner_is_live, write_bundle_atomic, DraftBundle, DraftClaimToken,
+    DraftError, DraftOwner, InUseReason, LiveContext, RecoverResult,
 };
-
-const SHADOW_UNAVAILABLE: &str = "shadow store unavailable";
 
 fn io_error(err: std::io::Error) -> DraftError {
     DraftError::IoError {
@@ -66,9 +67,7 @@ fn refuse_if_in_use(
         return Err(DraftError::OwnedByLiveWindow);
     }
     if ctx.open.is_err() {
-        return Err(DraftError::IoError {
-            message: SHADOW_UNAVAILABLE.to_string(),
-        });
+        return Err(DraftError::ShadowStoreUnavailable);
     }
     match in_use(document_id, original_path, owner, ctx) {
         Some(InUseReason::OwnedByLiveWindow) => Err(DraftError::OwnedByLiveWindow),
@@ -124,14 +123,22 @@ fn recover_locked(
     if path.exists() {
         let raw = fs::read_to_string(path).map_err(io_error)?;
         let mut bundle: DraftBundle = serde_json::from_str(&raw).map_err(parse_error)?;
-        refuse_if_in_use(
+        let target = recovery_target(
             document_id,
             bundle.original_path.as_deref(),
             bundle.owner.as_ref(),
+            caller,
             ctx,
         )?;
+        let token = DraftClaimToken {
+            source_id: document_id.into(),
+            nonce: uuid::Uuid::new_v4().to_string(),
+            session_id: caller.session_id.clone(),
+        };
         bundle.recovered = true;
         bundle.owner = Some(caller.clone());
+        bundle.claim = Some(token.clone());
+        bundle.claim_consumed = false;
         bundle.last_modified = Utc::now().to_rfc3339();
         write_bundle_atomic(path, &bundle, document_id)?;
         return Ok(RecoverResult {
@@ -139,6 +146,8 @@ fn recover_locked(
             original_path: bundle.original_path,
             title: bundle.title,
             hold_gen: 0,
+            target,
+            claim_token: token,
         });
     }
 
@@ -148,8 +157,27 @@ fn recover_locked(
         });
     }
     let original_path = legacy_original_path(document_id)?;
-    refuse_if_in_use(document_id, original_path.as_deref(), None, ctx)?;
-    recover_draft(document_id)
+    let target = recovery_target(document_id, original_path.as_deref(), None, caller, ctx)?;
+    let token = DraftClaimToken {
+        source_id: document_id.into(),
+        nonce: uuid::Uuid::new_v4().to_string(),
+        session_id: caller.session_id.clone(),
+    };
+    let result = recover_draft(document_id, target, token.clone())?;
+    let bundle = DraftBundle {
+        owner: Some(caller.clone()),
+        claim: Some(token),
+        claim_consumed: false,
+        content: result.content.clone(),
+        original_path: result.original_path.clone(),
+        last_modified: Utc::now().to_rfc3339(),
+        recovered: true,
+        title: result.title.clone(),
+    };
+    write_bundle_atomic(path, &bundle, document_id)?;
+    let _ = fs::remove_file(legacy_draft_path(document_id)?);
+    let _ = fs::remove_file(legacy_meta_path(document_id)?);
+    Ok(result)
 }
 
 /// Delete `document_id`'s draft from the recovery dialog, unless a live window
@@ -197,7 +225,7 @@ pub fn discard_draft_guarded_with(
     } else {
         return Ok(false);
     }
-    delete_draft(document_id)
+    delete_draft_locked(document_id, None, true)
 }
 
 #[cfg(all(test, unix))]

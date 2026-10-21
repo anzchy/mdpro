@@ -6,7 +6,7 @@
  * Invariant over {recover, discard} × {ok, gone:in_use, gone:not_found, error}:
  * - `dropRow XOR toast` — every click either resolves the row or tells the user (one signal).
  * - `upsert ⇒ recover ∧ ok`.
- * - `gone ⇒ ¬upsert ∧ ¬toast` — a draft in use elsewhere, or already gone, just leaves the list.
+ * - `in_use ⇒ ¬dropRow ∧ toast ∧ allowKeep`; `not_found ⇒ dropRow ∧ ¬toast`.
  *
  * @coordinates-with src/services/draftService.ts — produces the outcomes
  * @coordinates-with src/App.tsx — applies the result (upsert, drop row, toast)
@@ -24,10 +24,21 @@ export interface DraftRowOutcome {
   dropRow: boolean;
   upsert?: Document;
   toast?: string;
+  allowKeep?: boolean;
 }
 
 const RECOVER_FAILED_TOAST = "Failed to recover draft";
 const DISCARD_FAILED_TOAST = "Failed to discard draft";
+const IN_USE_TOAST = "Draft is in use; try again or keep it for later.";
+const IN_USE_DETAILS = {
+  owned_by_live_window: "This draft is owned by another live window. Close it or keep the draft for later.",
+  open_in_other_window: "This file is open in another window. Close it or keep the draft for later.",
+  shadow_store_unavailable: "Could not check open windows. Try again or keep the draft for later.",
+} as const;
+
+function inUseToast(detail?: keyof typeof IN_USE_DETAILS): string {
+  return detail ? IN_USE_DETAILS[detail] : IN_USE_TOAST;
+}
 
 function recoveredDocument(draftId: string, result: RecoverResult): Document {
   return {
@@ -49,7 +60,9 @@ export function draftRecoveryOutcome(draftId: string, input: DraftActionOutcome)
       case "ok":
         return { dropRow: true, upsert: recoveredDocument(draftId, outcome.result) };
       case "gone":
-        return { dropRow: true };
+        return outcome.reason === "in_use"
+          ? { dropRow: false, toast: inUseToast(outcome.detail), allowKeep: true }
+          : { dropRow: true };
       case "error":
         return { dropRow: false, toast: RECOVER_FAILED_TOAST };
     }
@@ -57,8 +70,11 @@ export function draftRecoveryOutcome(draftId: string, input: DraftActionOutcome)
   const { outcome } = input;
   switch (outcome.kind) {
     case "ok":
-    case "gone":
       return { dropRow: true };
+    case "gone":
+      return outcome.reason === "in_use"
+        ? { dropRow: false, toast: inUseToast(outcome.detail), allowKeep: true }
+        : { dropRow: true };
     case "error":
       return { dropRow: false, toast: DISCARD_FAILED_TOAST };
   }

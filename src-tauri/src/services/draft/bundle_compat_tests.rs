@@ -35,6 +35,8 @@ fn owned_domain() -> Vec<DraftBundle> {
     for (s, l) in owners {
         for recovered in [false, true] {
             out.push(DraftBundle {
+                claim: None,
+                claim_consumed: false,
                 owner: Some(DraftOwner {
                     session_id: s.to_string(),
                     window_label: l.to_string(),
@@ -71,6 +73,8 @@ fn o1_legacy_bundle_round_trips_with_no_owner_key() {
 #[test]
 fn o2_owner_none_writes_no_owner_key() {
     let b = DraftBundle {
+        claim: None,
+        claim_consumed: false,
         owner: None,
         content: "x".to_string(),
         original_path: None,

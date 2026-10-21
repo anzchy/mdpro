@@ -129,6 +129,22 @@ beforeEach(() => {
 });
 
 describe("D241-WI-2 admission (ADR-0116 Decisions 1 and 3)", () => {
+  it("D299: Keep for later removes the last admitted row without calling guarded Discard", async () => {
+    const offered = [draft("d1", "One")];
+    list.result.value = offered;
+    const h = makeHarness();
+    render(<h.Harness initial={{ drafts: offered }} />);
+    await flush();
+    expect(dialogFor("recovery")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Keep for later" })).toBeNull();
+    act(() => h.set({ drafts: [{ ...offered[0], inUseRefused: true }] }));
+    await flush();
+    expect(screen.getByRole("button", { name: "Keep for later" })).toBeVisible();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Keep for later" }));
+    await flush();
+    expect(dialogFor("recovery")).toBeNull();
+    expect(h.calls.some((call) => call.handler === "discardDraft" || call.handler === "recoverDraft")).toBe(false);
+  });
   it("A1 with nothing else open, Recovery shows only once the re-list returns", async () => {
     list.manual.value = true;
     const h = makeHarness();

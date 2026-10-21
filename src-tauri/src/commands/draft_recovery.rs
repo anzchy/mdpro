@@ -57,7 +57,9 @@ const EVENT_CLEANUP: &str = "file.draft.cleanup";
 /// The outcome enum logged for a recover or discard failure.
 fn outcome_of(err: &DraftError) -> &'static str {
     match err {
-        DraftError::OwnedByLiveWindow | DraftError::OpenInWindow => "in_use",
+        DraftError::OwnedByLiveWindow
+        | DraftError::OpenInWindow
+        | DraftError::ShadowStoreUnavailable => "in_use",
         DraftError::NotFound { .. } => "not_found",
         DraftError::IoError { .. } | DraftError::ParseError { .. } => "error",
     }
@@ -66,9 +68,10 @@ fn outcome_of(err: &DraftError) -> &'static str {
 /// Refusals are expected (a stale dialog row); real failures are errors.
 fn fail_level(err: &DraftError) -> LogLevel {
     match err {
-        DraftError::OwnedByLiveWindow | DraftError::OpenInWindow | DraftError::NotFound { .. } => {
-            LogLevel::Warn
-        }
+        DraftError::OwnedByLiveWindow
+        | DraftError::OpenInWindow
+        | DraftError::ShadowStoreUnavailable
+        | DraftError::NotFound { .. } => LogLevel::Warn,
         DraftError::IoError { .. } | DraftError::ParseError { .. } => LogLevel::Error,
     }
 }

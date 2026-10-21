@@ -2,7 +2,8 @@
  * RecoveryDialog Component
  *
  * Purpose: the startup "Recover drafts" dialog — one row per admitted draft,
- * each with Recover and Discard. Renders nothing without rows; the card is
+ * each with Recover and Discard, plus Keep for later after an in-use refusal
+ * (ADR-0127). Renders nothing without rows; the card is
  * mounted only while there are rows, so its focus handling (D273, ADR-0116
  * Decision 5) starts at the first commit that shows a row.
  *
@@ -39,6 +40,7 @@ interface RecoveryDialogProps {
   drafts: DraftMetadata[];
   onRecover: (draftId: string) => void | Promise<void>;
   onDiscard: (draftId: string) => void;
+  onKeepForLater?: (draftId: string) => void;
 }
 
 /** Matches this card, so `isModalOpen` can ask about every *other* modal. */
@@ -59,7 +61,7 @@ interface LastFocus {
   element: HTMLElement;
 }
 
-function RecoveryCard({ drafts, onRecover, onDiscard }: RecoveryDialogProps) {
+function RecoveryCard({ drafts, onRecover, onDiscard, onKeepForLater }: RecoveryDialogProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const firstRecoverRef = useRef<HTMLButtonElement>(null);
   const lastFocus = useRef<LastFocus | null>(null);
@@ -174,6 +176,15 @@ function RecoveryCard({ drafts, onRecover, onDiscard }: RecoveryDialogProps) {
                 >
                   Discard
                 </button>
+                {draft.inUseRefused && onKeepForLater ? (
+                  <button className="toolbar-button" type="button" aria-disabled={pendingIds.has(draft.id)} onClick={() => {
+                    if (pendingIds.has(draft.id)) return;
+                    loggingService.logDialogAction("dialog.recovery.keep_for_later", "success", { draftId: draft.id });
+                    onKeepForLater(draft.id);
+                  }}>
+                    Keep for later
+                  </button>
+                ) : null}
               </div>
             </div>
           ))}
