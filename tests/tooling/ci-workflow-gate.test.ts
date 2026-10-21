@@ -71,6 +71,15 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(frontend.some((step) => stepRun(step)?.includes("node scripts/ci/runner-profile.mjs"))).toBe(true);
   });
 
+  it("retains the per-leg JSON report for the delegator's cross-host parity proof", () => {
+    const upload = steps(job(TEXT, "frontend")).find((step) => scalar(step, "uses") === "actions/upload-artifact@v4");
+    expect(upload).toBeDefined();
+    expect(scalar(upload ?? null, "if")).toBe("always()");
+    const options = entry(upload ?? null, "with")?.body ?? null;
+    expect(scalar(options, "path")).toBe(".ci-vitest-results.json");
+    expect(scalar(options, "if-no-files-found")).toBe("error");
+  });
+
   it("rust-test runs cargo test and no longer runs cargo audit", () => {
     const r = runs("rust-test");
     expect(r).toContain("cargo test --manifest-path src-tauri/Cargo.toml");

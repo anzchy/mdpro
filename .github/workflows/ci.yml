@@ -124,6 +124,13 @@ jobs:
 
       - run: node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.runner-profile.outputs.profile }}" "$PWD"
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-vitest-${{ matrix.os }}
+          path: .ci-vitest-results.json
+          if-no-files-found: error
+
   rust-test:
     needs: [scope]
     if: needs.scope.outputs.code == 'true'
