@@ -7,34 +7,37 @@ const [phase, variant, repo] = process.argv.slice(2);
 const root = mkdtempSync(join(tmpdir(), "mdpro-d301-fix1-"));
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
 
-function sourceFor() {
+function sourceFor(part) {
   const waitMarker = `function waitMarker(name) { return new Promise(done => {
     if (readFileSync(name, "utf8") === "yes") return done();
     const watcher = watch(name, () => { if (readFileSync(name, "utf8") === "yes") { watcher.close(); done(); } });
     if (readFileSync(name, "utf8") === "yes") { watcher.close(); done(); }
   }); }`;
   const makeAssertion = `expectA(pending).resolves.toBe(process.env.PHASE_FAIL === "1" ? 2 : 1); writeFileSync("late-registered", "yes");`;
-  const schedule = phase === "finish"
-    ? `onTestFinished(() => { ${makeAssertion} });`
-    : phase === "timer"
-      ? `setTimeout(async () => { await waitMarker("A-delivered"); ${makeAssertion} }, 0);`
-      : (() => { throw Error(`Unknown phase ${phase}`); })();
-  return `import { it, expect, onTestFinished } from "vitest";
+  if (part === "A") {
+    const schedule = phase === "finish" ? `onTestFinished(() => { ${makeAssertion} });`
+      : phase === "timer" ? `setTimeout(async () => { await waitMarker("A-delivered"); ${makeAssertion} }, 0);`
+        : (() => { throw Error(`Unknown phase ${phase}`); })();
+    return `import { it, expect, onTestFinished } from "vitest";
     import { readFileSync, watch, writeFileSync } from "node:fs";
     ${waitMarker}
-    let release; const pending = new Promise(resolve => { release = resolve; });
-    it("A", context => { const expectA = context.expect; ${schedule} expect(1).toBe(1); });
+    globalThis.__d301Pending = new Promise(resolve => { globalThis.__d301Release = resolve; });
+    it("A", context => { const expectA = context.expect; const pending = globalThis.__d301Pending;
+      ${schedule}
+      expect(1).toBe(1);
+    });`;
+  }
+  if (part === "B") return `import { it, expect } from "vitest";
+    import { readFileSync, watch, writeFileSync } from "node:fs";
+    ${waitMarker}
     it("B", async () => {
-      await waitMarker("A-delivered");
-      writeFileSync("B-saw-A", "yes");
-      await waitMarker("late-registered");
-      writeFileSync("B-saw-late", "yes");
-      release(1);
-      writeFileSync("B-released", "yes");
-      await pending;
-      await new Promise(setImmediate);
+      await waitMarker("A-delivered"); writeFileSync("B-saw-A", "yes");
+      await waitMarker("late-registered"); writeFileSync("B-saw-late", "yes");
+      globalThis.__d301Release(1); writeFileSync("B-released", "yes");
+      await globalThis.__d301Pending; await new Promise(setImmediate);
       expect(1).toBe(process.env.BODY_FAIL === "1" ? 2 : 1);
     });`;
+  throw Error(`Unknown fixture part ${part}`);
 }
 
 function git(args) {
@@ -62,7 +65,11 @@ function setup() {
           return result;
         };
       } }],
-      test: { ...base.test, testTimeout: 20_000, setupFiles: [${JSON.stringify(join(repo, "tests/setup.ts"))}] },
+      test: { ...base.test, testTimeout: 120_000, hookTimeout: 120_000, setupFiles: [${JSON.stringify(join(repo, "tests/setup.ts"))}],
+        pool: "forks", isolate: false, fileParallelism: false,
+        poolOptions: { forks: { singleFork: true } },
+        sequence: { sequencer: class { sort(files) { return files.sort((a, b) => a.moduleId.localeCompare(b.moduleId)); } shard(files) { return files; } } },
+      },
     };`;
   writeFileSync(join(root, "vitest.config.mjs"), config);
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
@@ -73,23 +80,26 @@ function setup() {
   git(["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"]);
   git(["commit", "-qm", "fixture"]);
   git(["switch", "-qc", "feature"]);
-  writeFileSync(join(root, "tests/case.test.ts"), sourceFor());
+  writeFileSync(join(root, "tests/a.test.ts"), sourceFor("A"));
+  writeFileSync(join(root, "tests/b.test.ts"), sourceFor("B"));
 }
 
 function invoke(action, flags) {
   for (const marker of ["A-delivered", "late-registered"]) {
     writeFileSync(join(root, marker), "pending");
   }
-  const env = { ...process.env, PHASE_FAIL: "0", BODY_FAIL: "0", ...flags };
+  const env = { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0", PHASE_FAIL: "0", BODY_FAIL: "0", ...flags };
   for (const key of ["MDPRO_UNIT_RED_FILES", "MDPRO_UNIT_RED_MARKER", "MDPRO_UNIT_RED_NONCE", "MDPRO_UNIT_RED_FLOCK_FD"]) delete env[key];
-  const args = action === "record" ? [entry, "record", "--id", "D301FIX1", "--test", "tests/case.test.ts", "--cwd", root]
+  const selected = ["tests/a.test.ts", "tests/b.test.ts"];
+  const args = action === "record" ? [entry, "record", "--id", "D301FIX1", ...selected.flatMap(file => ["--test", file]), "--cwd", root]
     : [entry, "verify", "--id", "D301FIX1", "--cwd", root];
-  const run = spawnSync(process.execPath, args, { cwd: root, env, encoding: "utf8", timeout: 90_000 });
+  const run = spawnSync(process.execPath, args, { cwd: root, env, encoding: "utf8", timeout: 180_000 });
   const stored = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).receipts[0];
   const output = `${run.stdout || ""}\n${run.stderr || ""}`;
   const logPath = output.match(/\[red-receipt\] log: ([^\n]+)/)?.[1];
+  const vitestLog = logPath && existsSync(logPath) ? readFileSync(logPath, "utf8") : "";
   return { status: run.status, kind: stored?.red.kind || null, verdict: stored?.verdict || null, output,
-    vitestLog: logPath && existsSync(logPath) ? readFileSync(logPath, "utf8") : "" };
+    vitestLog: vitestLog.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "") };
 }
 
 try {

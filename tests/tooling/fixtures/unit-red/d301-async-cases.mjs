@@ -1,6 +1,6 @@
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const [scenario, variant, repo] = process.argv.slice(2);
@@ -47,6 +47,11 @@ function sourceFor() {
     }
     case "scopedRetry": return `${imports} import { describe } from "vitest"; let n = 0; beforeEach(() => { n++; }); const t = test.extend({ resource: async ({}, use) => { await use(1); } }); describe("scoped", () => { t.scoped({ resource: async ({}, use) => { if (n === 1) throw Error("first setup failed"); await use(1); } }); t("A", { retry: 1 }, ({ resource }) => { expect(resource).toBe(1); }); it("B", () => { expect(1).toBe(2); }); });`;
     case "softRetryThenPass": return `${imports} let n = 0; beforeEach(() => { n++; if (n === 1) expect.soft(1).toBe(2); }); it("A", { retry: 1 }, () => { expect(1).toBe(1); }); it("B", () => { expect(1).toBe(2); });`;
+    case "lateSoftPending":
+    case "lateHardPending": {
+      const assertion = scenario === "lateSoftPending" ? "expect.soft" : "expect";
+      return `${imports} import { onTestFinished } from "vitest"; let release; const pending = new Promise(resolve => { release = resolve; }); it("A", ({ expect }) => { onTestFinished(() => { ${assertion}(pending).resolves.toBe(process.env.PHASE_FAIL === "1" ? 2 : 1); let chain = Promise.resolve(); for (let i = 0; i < 6; i++) chain = chain.then(() => {}); chain.then(() => release(1)); }); expect(1).toBe(process.env.BODY_FAIL === "1" ? 2 : 1); });`;
+    }
     case "twoTests": {
       const awaited = variant.toLowerCase().includes("awaited");
       const x = `it("X", ${awaited ? "async " : ""}() => { ${awaited ? "await " : ""}expect(Promise.resolve(1)).resolves.toBe(1); });`;
@@ -88,7 +93,16 @@ function invoke(action, flags) {
     : [entry, "verify", "--id", "D301CASE", "--cwd", root];
   const run = spawnSync(process.execPath, args, { cwd: root, env, encoding: "utf8", timeout: 60_000 });
   const stored = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).receipts[0];
-  return { status: run.status, kind: stored?.red.kind || null, verdict: stored?.verdict || null, output: `${run.stdout || ""}\n${run.stderr || ""}` };
+  const output = `${run.stdout || ""}\n${run.stderr || ""}`;
+  const logPath = output.match(/\[red-receipt\] log: ([^\n]+)/)?.[1];
+  const reportPath = logPath ? join(dirname(logPath), "vitest.json") : null;
+  const metaPath = logPath ? join(dirname(logPath), "vitest-meta.json") : null;
+  const report = reportPath && existsSync(reportPath) ? JSON.parse(readFileSync(reportPath, "utf8")) : null;
+  const meta = metaPath && existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, "utf8")) : null;
+  const result = report?.testResults?.[0]?.assertionResults?.[0];
+  return { status: run.status, kind: stored?.red.kind || null, verdict: stored?.verdict || null, output,
+    evidence: { failureCount: result?.failureMessages?.length ?? null, attempt: result?.meta?.__unitRed?.attempts?.[0] ?? null,
+      phaseFailures: meta?.phaseFailures ?? null, unhandledErrors: meta?.unhandledErrors ?? null } };
 }
 
 try {

@@ -27,6 +27,7 @@ Array.prototype.push = function(...incoming) {
       promise.then(undefined, (error) => {
         if (phase !== "body" || attempt.completed) {
           attempt.nonBody = true;
+          attempt.nonBodyErrorObserved = true;
           attempt.rejectedOutsideBody = true;
         }
         if (attempt.reported) throw error;
@@ -60,15 +61,15 @@ Array.prototype.push = function(...incoming) {
   const origin = phaseContext.getStore();
   if (attempt) {
     if (origin?.attempt === attempt) {
-      if (origin.phase === "body") attempt.bodyFailure = true;
-      else attempt.nonBody = true;
+      if (origin.phase === "body" && !attempt.completed) attempt.bodyFailure = true;
+      else { attempt.nonBody = true; attempt.nonBodyErrorObserved = true; }
     } else if (attempt.pendingBodyThrown > 0) {
       attempt.pendingBodyThrown -= incoming.length;
       attempt.bodyFailure = true;
     } else if (attempt.pendingCountThrown > 0) {
       attempt.pendingCountThrown -= incoming.length;
       attempt.countFailure = true;
-    } else attempt.nonBody = true;
+    } else { attempt.nonBody = true; attempt.nonBodyErrorObserved = true; }
   }
   return Reflect.apply(originalPush, this, incoming);
 };

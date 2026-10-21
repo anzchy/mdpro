@@ -227582,6 +227582,75 @@
       "verified_at": "2026-10-21T03:06:45.059Z",
       "verdict": "SEPARATION-HELD",
       "findings": []
+    },
+    {
+      "id": "D301-FX2-WI-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-21T04:03:15.088Z",
+      "head_sha": "24de0f67b9919b9307f8f232b02fb540e8c5d9c0",
+      "dirty_source": [],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/unit-red-phase-soft-pending.test.ts": {
+          "state": "ok",
+          "sha": "ef7d3126106d50899c35613b16f2dd86166eb08778001155ba626c6ec3e87c33",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "b8cbd764da70a65b",
+            "e05fabb2b0d7bcbc",
+            "2dd42f124779333e",
+            "d5dbb991a39a63fa",
+            "1ddd0c5deb717ae9",
+            "ff198c47b29f30c2",
+            "cc0875649af25c74",
+            "db7aff77d73bbdb6",
+            "fe9b6ef2a2edbabf",
+            "e142b1ab99222f21",
+            "7662bab467b2dc94",
+            "f87e01346b5e2787",
+            "46511038e6ab816c",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9",
+            "796a2997ee0e1ef2",
+            "cbdd857e695c141f",
+            "a6385f3f4841500c",
+            "e14fae13588306c5",
+            "d61bc414ade6de42",
+            "0882c6ae5cc539db",
+            "df3982fd61017359",
+            "d10b36aa74a59bcf",
+            "ae322eee7277acbf",
+            "233e21c90453b5ae",
+            "7baabf6651a1a2ec",
+            "e9e44c2a8e0e5cdd",
+            "647691016fe786aa",
+            "6bd8d67edde5ad7d",
+            "85ae62680e91d15c",
+            "ff01c3ae2f1aac4d",
+            "080403bc2517d0ca",
+            "29576b54e255e3c9",
+            "be1b94e16734e26f",
+            "d0ffa1fd62cf1bf5",
+            "7865fcae4438d964",
+            "390cc7e169f2250b",
+            "29576b54e255e3c9",
+            "95af3520c64f31de",
+            "fb69bba082a2cfd1",
+            "85ae62680e91d15c",
+            "ff01c3ae2f1aac4d",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-21T04:07:27.710Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": []
     }
   ]
 }
