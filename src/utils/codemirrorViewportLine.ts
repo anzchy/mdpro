@@ -138,7 +138,7 @@
  * that the anchor points where a reader is looking, nor that the browser agrees about
  * the scroll limit. Both were therefore established empirically, against a release
  * bundle driven on a real desktop (plan WI-6, checks QA-A…QA-F; procedure in
- * `.claude/skills/gui-acceptance/SKILL.md`). **Both laws held.** The measurements, kept
+ * `.claude/skills/macos-device-test/SKILL.md`). **Both laws held.** The measurements, kept
  * here because they are the only record of what real WKWebView geometry did:
  *
  *   - **Law 1 — symmetry.** Instrumenting `sample()` with a throttled log over a
