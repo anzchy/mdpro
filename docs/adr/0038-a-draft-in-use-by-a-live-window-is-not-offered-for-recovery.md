@@ -1,6 +1,6 @@
 # 0038. A draft in use by a live window is not offered for recovery
 
-**Status**: Accepted (2026-09-26)
+**Status**: Accepted (2026-09-26); partially superseded: decision 4 (refusal when the file is open only in the calling window, and the silent row drop) by [ADR-0127](0127-recover-merges-into-a-tab-of-the-calling-window-and-an-in-use-refusal-is-told.md)
 
 ## Context
 
