@@ -1,4 +1,3 @@
-use chrono::Utc;
 use std::fs;
 
 use crate::models::DraftMetadata;
@@ -8,16 +7,13 @@ use super::{
     RecoverTarget,
 };
 
-/// Mark a legacy two-file draft recovered and return it, with no in-use
-/// check. Only `guarded.rs` calls this, under the draft lock, after it found
-/// no bundle and ran its own open-set check on the legacy pair.
+/// Read a legacy two-file draft without changing it. Only `guarded.rs` calls
+/// this under the draft lock after its in-use check; that caller installs the
+/// claimed bundle before removing the legacy pair (D299 fix round 1).
 ///
 /// A bundle present here can only have been written in between by
-/// `load_draft`'s unlocked migrate-on-read. It is not recovered: stamping it
-/// `recovered` with no owner and its old `lastModified` would make it eligible
-/// for 7-day cleanup (ADR-0038 §5), and it never passed the bundle owner
-/// check. The answer is `NotFound`, which drops the dialog row; a retry takes
-/// the guarded bundle path.
+/// `load_draft`'s unlocked migrate-on-read. It has not passed the bundle owner
+/// check, so return `NotFound` without touching either representation.
 pub(super) fn recover_draft(
     document_id: &str,
     target: Option<RecoverTarget>,
@@ -46,34 +42,12 @@ pub(super) fn recover_draft(
         let raw = fs::read_to_string(&legacy_meta).map_err(|err| DraftError::IoError {
             message: err.to_string(),
         })?;
-        let mut meta: DraftMetadata =
+        let meta: DraftMetadata =
             serde_json::from_str(&raw).map_err(|err| DraftError::ParseError {
                 message: err.to_string(),
             })?;
-        meta.recovered = true;
-        let updated =
-            serde_json::to_string_pretty(&meta).map_err(|err| DraftError::ParseError {
-                message: err.to_string(),
-            })?;
-        fs::write(&legacy_meta, updated).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
         (meta.original_path, meta.title)
     } else {
-        // No metadata — synthesize a recovered marker so the draft no longer appears.
-        let fallback = DraftMetadata {
-            original_path: None,
-            last_modified: Utc::now().to_rfc3339(),
-            recovered: true,
-            title: String::new(),
-        };
-        let payload =
-            serde_json::to_string_pretty(&fallback).map_err(|err| DraftError::ParseError {
-                message: err.to_string(),
-            })?;
-        fs::write(&legacy_meta, payload).map_err(|err| DraftError::IoError {
-            message: err.to_string(),
-        })?;
         (None, String::new())
     };
 

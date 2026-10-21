@@ -245,59 +245,59 @@ async function applyClaimedRecoveredDocument(
   const token = recovery.claimToken;
   if (!token) return "failed";
   recoveryPlacementStarted(draftId);
-  const target = recovery.target;
-  const started = recoveryStartGeneration(recovery);
-  let check: OpenIdDraftCheck | undefined;
-  if (target && target.id !== draftId) check = await checkDraftUnder(target.id);
-
-  let kind: RecoverPlacement["kind"] = "new";
-  let next = recovered;
-  let open: Document | undefined;
-  if (!target) {
-    // Rust saw no tab, but one can open under the source id while the IPC awaits.
-    open = useDocumentStore.getState().getDocumentById(draftId);
-    if (open) {
-      kind = "collision-dirty";
-      next = { ...recovered, id: crypto.randomUUID() };
-    }
-  }
-  if (target) {
-    open = useDocumentStore.getState().getDocumentById(target.id);
-    const stale = !open || open.path !== target.storedPath
-      || !recoveryTargetUnchanged(recovery, target.id)
-      || baselineMovedSince(target.id, started);
-    if (!stale && open) {
-      const { status } = useMilkdownEditorStore.getState().flushPendingEditsFor(open.id, "draft-recovery");
-      open = useDocumentStore.getState().getDocumentById(target.id);
-      if (!open || status === "failed" || open.isModified) {
-        kind = "collision-dirty";
-      } else if (check?.state === "present") {
-        kind = "collision-existing-draft";
-      } else if (check?.state === "check-failed") {
-        kind = "collision-draft-check-failed";
-      } else {
-        kind = "merged-into-clean";
-        next = { ...open, content: recovered.content, isModified: true, savedContent: undefined };
-      }
-    } else {
-      kind = "collision-dirty";
-    }
-    if (kind !== "merged-into-clean") {
-      next = { ...recovered, id: crypto.randomUUID() };
-    }
-  }
-
-  recoveryWillActivate(draftId, next.id);
-  deps.upsertAndActivate(next);
-  const placedAtWrite = useDocumentStore.getState().getDocumentById(next.id);
-  const writeClaimed = (document: Document) => invoke("save_draft", {
-    documentId: document.id,
-    content: document.content,
-    originalPath: document.path,
-    title: extractTitle(document.content),
-    claimToken: token,
-  });
   try {
+    const target = recovery.target;
+    const started = recoveryStartGeneration(recovery);
+    let check: OpenIdDraftCheck | undefined;
+    if (target && target.id !== draftId) check = await checkDraftUnder(target.id);
+
+    let kind: RecoverPlacement["kind"] = "new";
+    let next = recovered;
+    let open: Document | undefined;
+    if (!target) {
+      // Rust saw no tab, but one can open under the source id while the IPC awaits.
+      open = useDocumentStore.getState().getDocumentById(draftId);
+      if (open) {
+        kind = "collision-dirty";
+        next = { ...recovered, id: crypto.randomUUID() };
+      }
+    }
+    if (target) {
+      open = useDocumentStore.getState().getDocumentById(target.id);
+      const stale = !open || open.path !== target.storedPath
+        || !recoveryTargetUnchanged(recovery, target.id)
+        || baselineMovedSince(target.id, started);
+      if (!stale && open) {
+        const { status } = useMilkdownEditorStore.getState().flushPendingEditsFor(open.id, "draft-recovery");
+        open = useDocumentStore.getState().getDocumentById(target.id);
+        if (!open || status === "failed" || open.isModified) {
+          kind = "collision-dirty";
+        } else if (check?.state === "present") {
+          kind = "collision-existing-draft";
+        } else if (check?.state === "check-failed") {
+          kind = "collision-draft-check-failed";
+        } else {
+          kind = "merged-into-clean";
+          next = { ...open, content: recovered.content, isModified: true, savedContent: undefined };
+        }
+      } else {
+        kind = "collision-dirty";
+      }
+      if (kind !== "merged-into-clean") {
+        next = { ...recovered, id: crypto.randomUUID() };
+      }
+    }
+
+    recoveryWillActivate(draftId, next.id);
+    deps.upsertAndActivate(next);
+    const placedAtWrite = useDocumentStore.getState().getDocumentById(next.id);
+    const writeClaimed = (document: Document) => invoke("save_draft", {
+      documentId: document.id,
+      content: document.content,
+      originalPath: document.path,
+      title: extractTitle(document.content),
+      claimToken: token,
+    });
     await writeClaimed(next);
     if (useDocumentStore.getState().getDocumentById(next.id) !== placedAtWrite) {
       // A close, reload or newer edit won while the write awaited. Keep R under
@@ -311,16 +311,16 @@ async function applyClaimedRecoveredDocument(
     if (next.id !== draftId) {
       await invoke("delete_draft", { documentId: draftId, claimToken: token });
     }
+
+    recoveryPlacementCommitted(draftId, next.id);
+    if (kind !== "new" && kind !== "merged-into-clean") {
+      deps.showToast(open?.path ? TOASTS[kind](open.path) : "The open tab changed, so the recovered draft opened in its own tab.");
+    }
+    logMerge(draftId, next.id, kind);
+    return kind;
   } catch {
     recoveryPlacementFailed(draftId);
     deps.showToast("Could not finish recovering the draft; please retry.");
     return "failed";
   }
-
-  recoveryPlacementCommitted(draftId, next.id);
-  if (kind !== "new" && kind !== "merged-into-clean") {
-    deps.showToast(open?.path ? TOASTS[kind](open.path) : "The open tab changed, so the recovered draft opened in its own tab.");
-  }
-  logMerge(draftId, next.id, kind);
-  return kind;
 }

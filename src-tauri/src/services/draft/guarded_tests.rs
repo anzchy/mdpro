@@ -313,3 +313,46 @@ fn g13_legacy_two_file_recover_gets_the_open_set_check() {
         serde_json::to_value(r.claim_token).unwrap()
     );
 }
+
+#[cfg(unix)]
+#[test]
+fn d299_fx1_wi1_failed_legacy_claim_write_keeps_pair_unrecovered_and_relistable() {
+    use std::os::unix::fs::PermissionsExt;
+    let home = TempHome::new("d299_fx1_legacy_failure");
+    home.write_legacy("L", "legacy R", Some("/tmp/L.md"), &ago(1), false);
+    let before_md = std::fs::read(home.legacy_md("L")).unwrap();
+    let before_meta = std::fs::read(home.legacy_meta("L")).unwrap();
+    let dir = home.drafts_dir();
+    let old_mode = std::fs::metadata(&dir).unwrap().permissions().mode();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+    let result = recover_draft_guarded("L", &who(S, "B"), &ctx(S, &["B"], &empty()));
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(old_mode)).unwrap();
+    assert!(
+        matches!(result, Err(DraftError::IoError { .. })),
+        "{result:?}"
+    );
+    assert_eq!(std::fs::read(home.legacy_md("L")).unwrap(), before_md);
+    assert_eq!(std::fs::read(home.legacy_meta("L")).unwrap(), before_meta);
+    assert!(
+        !home.exists("L"),
+        "a failed claim must not install a bundle"
+    );
+    let next_launch = ctx("next-session", &[], &empty());
+    let listed = super::super::list_drafts_for(&next_launch).unwrap();
+    assert!(listed.entries.iter().any(|entry| entry.id == "L"));
+    assert_eq!(std::fs::read(home.legacy_md("L")).unwrap(), b"legacy R");
+}
+
+#[test]
+fn d299_fx1_wi1_successful_legacy_claim_installs_bundle_then_removes_pair() {
+    let home = TempHome::new("d299_fx1_legacy_success");
+    home.write_legacy("L", "legacy R", Some("/tmp/L.md"), &ago(1), false);
+    let result = recover_draft_guarded("L", &who(S, "B"), &ctx(S, &["B"], &empty())).unwrap();
+    assert_eq!(result.content, "legacy R");
+    assert_eq!(
+        home.value("L")["claim"],
+        serde_json::to_value(result.claim_token).unwrap()
+    );
+    assert!(!home.legacy_md("L").exists());
+    assert!(!home.legacy_meta("L").exists());
+}
