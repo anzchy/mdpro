@@ -14,7 +14,9 @@ function sourceFor() {
   const expected = 'process.env.PHASE_FAIL === "1" ? 2 : 1';
   switch (scenario) {
     case "fixture": return `${imports} ${deferred} const t = test.extend({ resource: async ({}, use) => { expect(pending).resolves.toBe(${expected}); await use(1); } }); t("case", ({ resource }) => { expect(resource).toBe(1); ${body} });`;
+    case "fixtureRejects": return `${imports} ${deferred} const t = test.extend({ resource: async ({}, use) => { expect(pending).rejects.toThrow("expected"); await use(1); } }); t("case", ({ resource }) => { expect(resource).toBe(1); ${body} });`;
     case "beforeEach": return `${imports} ${deferred} beforeEach(() => { expect(pending).resolves.toBe(${expected}); }); it("case", () => { ${body} });`;
+    case "beforeEachRejects": return `${imports} ${deferred} beforeEach(() => { expect(pending).rejects.toThrow("expected"); }); it("case", () => { ${body} });`;
     case "beforeAll": return `${imports} beforeAll(() => { expect(Promise.resolve(1)).resolves.toBe(${expected}); }); it("case", () => { if (process.env.BODY_FAIL === "1") expect(1).toBe(2); else expect(1).toBe(1); });`;
     case "afterEachRejects": return `${imports} afterEach(() => { expect(Promise.resolve(1)).rejects.toThrow("expected"); }); it("case", () => { if (process.env.BODY_FAIL === "1") expect(1).toBe(2); else expect(1).toBe(1); });`;
     case "afterAllRejects": return `${imports} afterAll(() => { expect(Promise.resolve(1)).rejects.toThrow("expected"); }); it("case", () => { if (process.env.BODY_FAIL === "1") expect(1).toBe(2); else expect(1).toBe(1); });`;

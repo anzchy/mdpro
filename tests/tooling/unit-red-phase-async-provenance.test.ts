@@ -27,6 +27,14 @@ describe.skipIf(!plugin)("D301 async assertion provenance", () => {
     expect(seen.red.status).toBe(64);
     expect(seen.red.output).toContain("nonBody=true");
   });
+  it.each(["fixtureRejects", "beforeEachRejects"])("refuses setup %s failure alone and beside a body RED", phase => {
+    for (const variant of ["alone", "mixed"]) {
+      const seen = scenario(phase, variant);
+      expect(seen.red.status).toBe(64);
+      expect(seen.red.output).toContain("nonBody=true");
+      expect(seen.red.output).toContain("unawaited async assertion");
+    }
+  });
   it("refuses beforeAll async failure", () => {
     const seen = scenario("beforeAll", "alone");
     expect(seen.red.status).toBe(64);

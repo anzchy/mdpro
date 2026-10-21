@@ -23,6 +23,7 @@ describe.skipIf(!plugin)("D301 attempt and concurrent ownership", () => {
     expect(seen.red.output).toContain("unawaited async assertion");
     if (name === "retrySetupFirst") {
       expect(seen.red.output).toContain("case[retry=0,repeat=0,body=false,nonBody=true");
+      expect(seen.red.output).toContain("origin=hook");
       expect(seen.red.output).toContain("case[retry=1,repeat=0,body=true,nonBody=false");
     } else if (name === "retrySetupLast") {
       expect(seen.red.output).toContain("case[retry=0,repeat=0,body=true,nonBody=false");
