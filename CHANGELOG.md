@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - If an open file is changed, deleted and recreated within half a second (some sync tools and scripts do this), mdpro now ends on the "modified externally" prompt instead of leaving "File was deleted externally" over a file that exists. A file whose folder mdpro can no longer read is no longer reported as deleted; mdpro shows the reload prompt, and the reload says why it failed (D246 follow-up, ADR-0111).
 
 ### Security
+- Updated `rustls-webpki` to 0.103.16 and `webpki-root-certs` to 1.0.10, clearing the two RustSec advisories in the updater's TLS dependency chain (D304).
 - The update checker no longer includes the `zip` library, which clears three RustSec advisories (RUSTSEC-2026-0367, -0368 and -0369). The library only unpacked update packages in the older Tauri v1 format, which mdpro never publishes, so updates work as before (D274, ADR-0122).
 - Updated the bundled HTML sanitizer to ammonia 4.1.8, which clears RustSec advisory RUSTSEC-2026-0373. mdpro's HTML export never let the affected CSS through, so exported files are unchanged (D284).
 
