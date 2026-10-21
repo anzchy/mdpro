@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { DevToolbar } from "./components/DevToolbar";
 import { SplitView } from "./components/Editor/SplitView";
 import { MilkdownEditor } from "./components/Editor/MilkdownEditor";
+import { NoDocumentEditorColumn } from "./components/Editor/NoDocumentEditorColumn";
 import { TOCSidebarContainer } from "./components/Sidebar";
 import { BottomTabs } from "./components/BottomTabs";
 import { useTOC } from "./hooks/useTOC";
@@ -903,13 +904,14 @@ function App() {
           </div>
         ) : null}
         <section className="workspace">
-          {viewMode === "wysiwyg" ? (
+          {!activeDocument ? (
+            <NoDocumentEditorColumn />
+          ) : viewMode === "wysiwyg" ? (
             <MilkdownEditor highlightRequest={highlightRequest} />
           ) : (
             <SplitView
-              markdown={activeDocument?.content ?? ""}
+              markdown={activeDocument.content}
               onChange={updateActiveDocumentContent}
-              readOnly={!activeDocument}
               highlightRequest={highlightRequest}
             />
           )}
