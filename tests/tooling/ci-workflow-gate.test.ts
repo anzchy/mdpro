@@ -39,9 +39,36 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(job(TEXT, id), "if")).toBe("needs.scope.outputs.code == 'true'");
   });
 
-  it("frontend keeps the fast checks", () => {
+  it("frontend keeps build and test typecheck and runs the covered JSON unit lane", () => {
     const r = runs("frontend");
-    for (const cmd of ["pnpm build", "pnpm typecheck:tests", "pnpm test:run"]) expect(r).toContain(cmd);
+    for (const cmd of ["pnpm build", "pnpm typecheck:tests", "pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json"]) expect(r).toContain(cmd);
+  });
+
+  it("checks out the PR head while non-PR runs use the default checkout", () => {
+    const checkout = steps(job(TEXT, "frontend")).filter((step) => scalar(step, "uses") === "actions/checkout@v6");
+    expect(checkout).toHaveLength(2);
+    expect(scalar(checkout[0], "if")).toBe("github.event_name == 'pull_request'");
+    expect(scalar(entry(checkout[0], "with")?.body ?? null, "ref")).toBe("${{ github.event.pull_request.head.sha }}");
+    expect(scalar(checkout[1], "if")).toBe("github.event_name != 'pull_request'");
+    expect(entry(checkout[1], "with")).toBeNull();
+  });
+
+  it("runs profile, coverage, critical checker and comparator as authoritative frontend steps", () => {
+    const frontend = steps(job(TEXT, "frontend"));
+    const commands = [
+      "node scripts/lint/conditional-tests.mjs",
+      "git rev-parse HEAD",
+      "pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json",
+      "node scripts/ci/check-critical-coverage.mjs",
+      'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.runner-profile.outputs.profile }}" "$PWD"',
+    ];
+    for (const command of commands) {
+      const step = frontend.find((item) => stepRun(item) === command);
+      expect(step, command).toBeDefined();
+      expect(scalar(step ?? null, "continue-on-error"), command).toBeNull();
+      expect(scalar(step ?? null, "if"), command).toBeNull();
+    }
+    expect(frontend.some((step) => stepRun(step)?.includes("node scripts/ci/runner-profile.mjs"))).toBe(true);
   });
 
   it("rust-test runs cargo test and no longer runs cargo audit", () => {

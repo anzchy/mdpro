@@ -160,17 +160,15 @@ describe("Stage 3 contrast table (A9)", () => {
     describe(theme, () => {
       for (const pair of PAIRS) {
         const known = ACCEPTED[pair.name]?.[theme];
-        if (known === undefined) {
-          it(`${pair.name} is at least ${pair.min}:1`, () => {
+          it.runIf(known === undefined)(`${pair.name} is at least ${pair.min}:1`, () => {
             expect(measure(pair, theme)).toBeGreaterThanOrEqual(pair.min);
           });
-        } else {
-          it(`${pair.name} stays at ${known}:1, an accepted exception (D227)`, () => {
+          it.runIf(known !== undefined)(`${pair.name} stays at ${known}:1, an accepted exception (D227)`, () => {
+            if (known === undefined) return;
             const ratio = measure(pair, theme);
             expect(ratio).toBeCloseTo(known, 2);
             expect(ratio).toBeLessThan(pair.min);
           });
-        }
       }
     });
   }

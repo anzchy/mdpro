@@ -1,0 +1,2287 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "local Vitest JSON run 2026-10-21, 12367 passed; reviewed against skip gates; D302 heartbeat/probe entries reviewed after gated tests were added",
+  "tests": [
+    {
+      "id": [
+        "tests/control/control-launcher-procfacts-real.test.ts",
+        "WI-R2 procFacts: the real boundary",
+        "PF-R3 a running binary whose file was deleted: exe unknown"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/control/control-launcher-procfacts.test.ts",
+        "procFacts real ps / lsof",
+        "F-09 reads this process's start time and exe; a dead pid is unknown"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/d182-build-mac-masked-failure.test.ts",
+        "D182 build-mac.sh",
+        "fails when tauri build succeeds but only a stale DMG for the version exists"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/d182-build-mac-masked-failure.test.ts",
+        "D182 build-mac.sh",
+        "fails with a build-failed message when tauri build fails, even with an old DMG present"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/d182-build-mac-masked-failure.test.ts",
+        "D182 build-mac.sh",
+        "fails with a DMG-not-found message when no DMG exists at all"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/d182-build-mac-masked-failure.test.ts",
+        "D182 build-mac.sh",
+        "stops before building when pnpm install fails (D181 guard)"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/d182-build-mac-masked-failure.test.ts",
+        "D182 build-mac.sh",
+        "succeeds when the build output has no lines left after filtering"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/d182-build-mac-masked-failure.test.ts",
+        "D182 build-mac.sh",
+        "succeeds when the build writes a fresh DMG, replacing an old one"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d177-no-secrets-scan.test.ts",
+        "D177 no-secrets scan of scripts/device/hooks/",
+        "the real hook token appears in no hook file and no D177 test"
+      ],
+      "prerequisite": "hook-token"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (a) rustc prerequisite",
+        "fails naming rustc when pnpm, cargo and node exist but rustc does not"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (b) newest DMG wins",
+        "reports the newest DMG when it is the one find lists first"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (b) newest DMG wins",
+        "reports the newest DMG when it is the one find lists last"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (c) the .app must come from this build",
+        "accepts an app whose main binary this build rewrote, even if Info.plist is old"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (c) the .app must come from this build",
+        "fails as stale when the DMG is fresh but mdpro.app is left from an earlier build"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (c) the .app must come from this build",
+        "still fails as not found when there is no mdpro.app at all"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (d) one version, or a named mismatch",
+        "accepts a tauri.conf.json version that is a path to package.json"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (d) one version, or a named mismatch",
+        "accepts no tauri.conf.json version when Cargo.toml agrees with package.json"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (d) one version, or a named mismatch",
+        "fails before install or build, naming both values and both files"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (d) one version, or a named mismatch",
+        "falls back to Cargo.toml when tauri.conf.json has no version, and names a mismatch there"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 (d) one version, or a named mismatch",
+        "follows a tauri.conf.json version that is a path to a JSON file, and names a mismatch there"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "D183 control: a consistent, fresh build",
+        "succeeds and builds when versions agree and the DMG and .app are fresh"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/tooling/d187-receipt-rustfmt-guard.test.ts",
+        "D187 receipt-rustfmt-guard: real rustfmt",
+        "compares bytes with the real binary (skipped: rustfmt not installed)"
+      ],
+      "prerequisite": "rustfmt"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-boundary.test.ts",
+        "fix1 boundary regressions",
+        "detects a stale upsert that clears a settled verdict"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-boundary.test.ts",
+        "fix1 boundary regressions",
+        "preserves A replacement and unrelated B after headSha changes in verify window"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-boundary.test.ts",
+        "fix1 boundary regressions",
+        "preserves A replacement and unrelated B after redKind changes in verify window"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-boundary.test.ts",
+        "fix1 boundary regressions",
+        "preserves A replacement and unrelated B after selection changes in verify window"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-boundary.test.ts",
+        "fix1 boundary regressions",
+        "record reads a newly settled A only after its operation lock releases"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-boundary.test.ts",
+        "fix1 boundary regressions",
+        "successfully discards unchanged A after a real plugin lock wait"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-flock.test.ts",
+        "fix1 OS receipt lock",
+        "refuses a same-ID operation while an external process holds its OS lock"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "does not overwrite a new verify incarnation after the lane child's final store read"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "does not reap a new live owner after observing an old dead owner"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "does not steal an aged live owner and times out without changing receipts"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "keeps a recorded RED when the assertion changes during a plugin-lock wait"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "keeps a replacement incarnation during discard's plugin-lock wait"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "rechecks a settled receipt after waiting for the same-id operation lock"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "rechecks the fingerprint after reaching the plugin lock"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "recovers a dead operation owner and removes the lock after refusal"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "recovers a fresh dead owner and an old empty lock"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "recovers the operation lock after its owning process is killed"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "serializes a second same-id record until the first operation releases"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt-race.test.ts",
+        "fix1 WI-2 receipt mutation races",
+        "uses the same lock through a symlinked workspace path"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "accepts a counted assertion failure and settles only the named receipt"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "checks pending branch receipts for the landing verifier"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "discards only an unsettled receipt on this branch"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "documents the sanctioned receipt entry and verifies pending branch receipts"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "keeps logs outside tracked source and a second RED clean"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "overrides a leaked caller selection and refuses direct unmarked verify"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "prints one canonical counted line for failing assertions"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "refuses a master id at record and a missing master ref at discard"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "refuses a settled or master receipt for discard"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "refuses discard when the store has an entry the plugin would drop"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "refuses settled or master ids at record, and edited genuine REDs at discard"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "rejects an opaque RED before verification can settle it"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "rejects branch receipts with weak REDs or nonfinal verdicts at handoff"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "rejects invalid file selections before running or storing"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "rejects invalid runs and bare lane execution"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "rejects Unicode spelling drift and a symlinked parent"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/red-receipt.test.ts",
+        "red-receipt entry",
+        "requires an id and the recorded selector for verify"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "binds a successful two-file RED and GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "captures error-looking assertion failures in its log"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "configures unit-red as an unlocked manual-only lane without coverage"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "ignores inherited pending receipts but refuses malformed stores"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "keeps parallel record logs and receipts independent"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "leaves bare plugin record bound to the existing unit lane"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "preserves B recorded while A verification waits"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "preserves concurrent B while discarding A under the receipt lock"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "refuses a receipt selection changed inside the plugin lane"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "refuses absolute, traversal, comma, duplicate and empty selectors before running"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "refuses wrong lanes, master discard and invalid retry"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "stores an assertion RED despite module-like assertion text"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-lane.test.ts",
+        "unit-red lane child",
+        "uses JSON counts and hides fake summaries from both output streams"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts allPhases body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts allPhasesConfig body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts bodyAsyncReject body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts bodyErrorRed body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts bodyReferenceError body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts bodyString body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts bodyTypeError body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts configTs body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts countAssertions body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts countHasAssertions body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts timeoutLike body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "accepts timeoutLiteral body or post-body count failure and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses afterEachExpect outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses afterEachSoft outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses allPhasesFail outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses cleanupExpect outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses cleanupSoft outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses concurrent outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses configTsFail outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses countAndCleanup outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses countMessageAfterEach outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses countMessageCleanup outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses duplicateForward outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses duplicateReverse outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses finishedExpect outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses fixtureExpect outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses nestedAfterAll outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses nestedAfterAllAlone outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses nestedBeforeAll outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses nestedBeforeAllAlone outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses nestedParentBeforeEach outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses nestedParentBeforeEachAlone outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses repeatCleanupSecond outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses retryBodyThenCleanup outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-advanced.test.ts",
+        "fix1 WI-1 adversarial phase boundaries",
+        "refuses retryCleanupThenBody outside-body failure even beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "accepts an awaited setup assertion on repeat"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "accepts an awaited setup assertion on retry"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "accepts concurrent A's body RED beside awaited, passing B setup"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "refuses B's setup async failure beside concurrent A's body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "refuses unawaited setup from its own attempt: repeatSetupLast"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "refuses unawaited setup from its own attempt: retrySetupFirst"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-attempts.test.ts",
+        "D301 attempt and concurrent ownership",
+        "refuses unawaited setup from its own attempt: retrySetupLast"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-late.test.ts",
+        "D301 fix1 late async assertion after result delivery",
+        "accepts finish passing twin and verifies HELD"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-late.test.ts",
+        "D301 fix1 late async assertion after result delivery",
+        "accepts timer passing twin and verifies HELD"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-late.test.ts",
+        "D301 fix1 late async assertion after result delivery",
+        "refuses finish late rejection beside B's body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-late.test.ts",
+        "D301 fix1 late async assertion after result delivery",
+        "refuses timer late rejection beside B's body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "accepts awaited beforeEachAwaited setup beside body RED and verifies GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "accepts awaited fixtureAwaited setup beside body RED and verifies GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "keeps setup P origin after body Q (pFirst)"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "keeps setup P origin after body Q (qFirst)"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses afterAllRejects async rejects failure alone and beside body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses afterEachRejects async rejects failure alone and beside body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses beforeAll async failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses beforeEach failure beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses beforeEach failure with passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses fixture failure beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses fixture failure with passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses setup beforeEachRejects failure alone and beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-provenance.test.ts",
+        "D301 async assertion provenance",
+        "refuses setup fixtureRejects failure alone and beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "a standalone awaited passing body assertion supplies no RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "accepts awaited body resolves and rejects assertion REDs"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "accepts awaited X beside failing Y (xFirstAwaited)"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "accepts awaited X beside failing Y (yFirstAwaited)"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "accepts its awaited setup twin beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "refuses a failing unawaited hard assertion in the body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "refuses a passing unawaited setup assertion beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "refuses a passing unawaited X beside failing Y (xFirst)"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-async-unawaited.test.ts",
+        "D301 reported unawaited async assertions",
+        "refuses a passing unawaited X beside failing Y (yFirst)"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-chain.test.ts",
+        "fix1 chained and scoped fixtures",
+        "accepts fixtureConcurrentBody body RED and GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-chain.test.ts",
+        "fix1 chained and scoped fixtures",
+        "accepts fixtureFileBody body RED and GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-chain.test.ts",
+        "fix1 chained and scoped fixtures",
+        "D302 worker heartbeat advances while the nested receipt process runs"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-chain.test.ts",
+        "fix1 chained and scoped fixtures",
+        "refuses fixtureConcurrentPrebuilt setup failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-chain.test.ts",
+        "fix1 chained and scoped fixtures",
+        "refuses fixtureFilePrebuilt setup failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-delayed-soft.test.ts",
+        "fix2 delayed fixture soft attribution",
+        "accepts an awaited soft assertion started in the body, then HELD"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-delayed-soft.test.ts",
+        "fix2 delayed fixture soft attribution",
+        "accepts the awaited passing setup twin beside a genuine body RED, then HELD"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-delayed-soft.test.ts",
+        "fix2 delayed fixture soft attribution",
+        "refuses a setup-started soft promise that rejects after the body passes"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-delayed-soft.test.ts",
+        "fix2 delayed fixture soft attribution",
+        "refuses an unawaited soft assertion started in the body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-delayed-soft.test.ts",
+        "fix2 delayed fixture soft attribution",
+        "refuses the unawaited passing setup twin beside a genuine body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-provenance.test.ts",
+        "fix1 true phase provenance",
+        "accepts a body error whose text matches Vitest's collection sentinel"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-provenance.test.ts",
+        "fix1 true phase provenance",
+        "refuses fixturePrebuilt setup failure before body entry"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-provenance.test.ts",
+        "fix1 true phase provenance",
+        "refuses fixtureString setup failure before body entry"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-review.test.ts",
+        "fix1 reviewer phase regressions",
+        "refuses a synchronous over-deadline body even when Vitest detects it before a timer callback"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-review.test.ts",
+        "fix1 reviewer phase regressions",
+        "refuses busyBodyTimeout outside-body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-review.test.ts",
+        "fix1 reviewer phase regressions",
+        "refuses fixtureSetupThrow outside-body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-scoped.test.ts",
+        "D301 fix1 scoped fixture provenance",
+        "accepts a passing scoped override beside a body RED and verifies HELD"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-scoped.test.ts",
+        "D301 fix1 scoped fixture provenance",
+        "attributes a scoped unawaited assertion to the fixture"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-scoped.test.ts",
+        "D301 fix1 scoped fixture provenance",
+        "refuses a scoped setup throw"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-scoped.test.ts",
+        "D301 fix1 scoped fixture provenance",
+        "refuses an awaited failing assertion in scoped setup"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-scoped.test.ts",
+        "D301 fix1 scoped fixture provenance",
+        "refuses an earlier scoped setup failure even when A later passes on retry beside B's body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-scoped.test.ts",
+        "D301 fix1 scoped fixture provenance",
+        "retains a first-attempt non-body failure when retry passes beside B's body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft-pending.test.ts",
+        "D301 FX2 delayed soft cleanup after pending snapshot",
+        "accepts passing soft cleanup beside a body RED, then verifies HELD"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft-pending.test.ts",
+        "D301 FX2 delayed soft cleanup after pending snapshot",
+        "refuses a body RED paired with a later soft cleanup failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft-pending.test.ts",
+        "D301 FX2 delayed soft cleanup after pending snapshot",
+        "still refuses a delayed hard rejection beside a body RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing afterEach soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing beforeEach soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing beforeEachCleanup soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing fixtureSetup soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing fixtureTeardown soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing onFailed soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "accepts a body RED with a passing onFinished soft assertion and reaches GREEN"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses a retry whose first attempt has a soft beforeEach failure and second has a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses afterEach soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses afterEach soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses beforeEach soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses beforeEach soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses beforeEachCleanup soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses beforeEachCleanup soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses fixtureSetup soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses fixtureSetup soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses fixtureTeardown soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses fixtureTeardown soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses onFailed soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses onFailed soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses onFinished soft failure beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase-soft.test.ts",
+        "fix2 WI-1 soft-error phase provenance through real entry/plugin",
+        "refuses onFinished soft failure with a passing body"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful afterAll"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful afterEach"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful beforeAllCleanup"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful beforeEachCleanup"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful fixtureTeardown"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful onFailed"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts a body RED with successful onFinished"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "accepts async and soft body assertions"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses a mixed two-file phase failure in both selection orders"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses afterAll failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses afterEach failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses afterEachCleanup failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses beforeAllCleanup failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses beforeEachCleanup failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses fixtureTeardown failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses onFailed failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses onFinished failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "fix1 WI-1 phase evidence through the real entry and plugin",
+        "refuses timeout failure alone and beside a body failure"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-runner-hygiene.test.ts",
+        "fix1 runner artifacts",
+        "does not add a concurrent runner's generated files to another RED's dirty source"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-runner-hygiene.test.ts",
+        "fix1 runner artifacts",
+        "removes the runner directory after configuration generation fails"
+      ],
+      "prerequisite": "plugin"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "--color-muted on --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "--color-muted on --color-panel stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "--color-muted on --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "--color-text on --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "--color-text on --color-panel stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "--color-text on --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "active row over --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "active row over --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "danger label at rest stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "danger label hovered stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "destructive menu item hovered stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "focus ring on --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "focus ring on --color-panel stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "focus ring on --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "focus ring on accent-soft stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "input border stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "link on the editor background stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "menu highlight stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "primary label at rest stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "primary label hovered stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "toggle knob on the off-track is at least 3:1"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "toggle off-track stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "toggle on-track stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "dark",
+        "typed text in a settings input stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "--color-muted on --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "--color-muted on --color-panel stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "--color-muted on --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "--color-text on --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "--color-text on --color-panel stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "--color-text on --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "active row over --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "active row over --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "danger label at rest stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "danger label hovered is at least 4.5:1"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "destructive menu item hovered stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "focus ring on --color-bg stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "focus ring on --color-panel stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "focus ring on --color-surface stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "focus ring on accent-soft stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "input border stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "link on the editor background stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "menu highlight stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "primary label at rest stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "primary label hovered stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "toggle knob on the off-track is at least 3:1"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "toggle off-track is at least 3:1"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "toggle on-track stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/contrast-stage3.test.ts",
+        "Stage 3 contrast table (A9)",
+        "light",
+        "typed text in a settings input stays at undefined:1, an accepted exception (D227)"
+      ],
+      "reason": "Mutually exclusive contrast threshold and accepted-exception branches"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"all-levels\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"atx-control-alpha\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"cjk-basic\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"clobber-body\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"clobber-forms\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"clobber-location\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"clobber-name\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"clobber-title\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"dup-cjk\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"emoji-then-literal\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"fenced-hash\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"formatted-bold\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"inline-code\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"leading-trailing-punct\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"link-in-heading\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"literal-suffix-then-two-emoji\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"literal-then-emoji\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"non-heading-ids\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"punctuation-cjk\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"setext-noncolliding\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"setext-title\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"suffix-collision\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"trailing-hashes\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/heading-identity-parity.test.ts",
+        "heading identity corpus — JS faces of the three LIVE slug generators (toc, exportFallback, rust; commands/toc.rs is dead code and out of scope)",
+        "toc offsets for \"two-emoji-only\""
+      ],
+      "reason": "Fixture has no expected TOC offsets"
+    },
+    {
+      "id": [
+        "tests/tooling/unit-red-phase.test.ts",
+        "D302 owner cleanup probe"
+      ],
+      "reason": "Nested owner-timeout probe runs only through the D302 outer regression with an explicit environment flag."
+    }
+  ]
+}

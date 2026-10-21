@@ -33,18 +33,21 @@ function checkSyncChildren(source, file) {
   return findings;
 }
 
-function registrationName(node) {
+function unwrap(node) { while (ts.isParenthesizedExpression(node)) node = node.expression; return node; }
+
+function registrationName(node, names) {
   if (!ts.isCallExpression(node)) return null;
-  let target = node.expression;
+  let target = unwrap(node.expression);
   if (ts.isCallExpression(target) && ts.isPropertyAccessExpression(target.expression)) {
     const method = target.expression.name.text;
-    if (["skipIf", "runIf", "each"].includes(method)) target = target.expression.expression;
+    if (["skipIf", "runIf", "each"].includes(method)) target = unwrap(target.expression.expression);
   }
-  if (ts.isPropertyAccessExpression(target) && target.name.text === "each") target = target.expression;
-  return ts.isIdentifier(target) && ["it", "test", "describe"].includes(target.text) ? target.text : null;
+  if (ts.isPropertyAccessExpression(target) && target.name.text === "each") target = unwrap(target.expression);
+  return ts.isIdentifier(target) && names.has(target.text) ? target.text : null;
 }
 
 function isConditional(node) {
+  node = unwrap(node);
   return ts.isIfStatement(node) || ts.isConditionalExpression(node) ||
     (ts.isBinaryExpression(node) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(node.operatorToken.kind));
 }
@@ -52,9 +55,17 @@ function isConditional(node) {
 export function checkConditionalTests(source, file = "fixture.test.ts") {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const findings = [];
+  const names = new Set(["it", "test", "describe"]);
+  for (const statement of tree.statements) {
+    if (!ts.isImportDeclaration(statement) || statement.moduleSpecifier.text !== "vitest") continue;
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings && ts.isNamedImports(bindings)) for (const item of bindings.elements) {
+      if (names.has(item.propertyName?.text ?? item.name.text)) names.add(item.name.text);
+    }
+  }
   function visit(node, conditional = false) {
     const gated = conditional || isConditional(node);
-    const registration = registrationName(node);
+    const registration = registrationName(node, names);
     if (registration) {
       if (gated) findings.push(`${file}:${tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1}: conditional ${registration} registration`);
       const outer = node.expression;
@@ -91,7 +102,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     return [...conditional, ...sync];
   });
   if (fullScan) for (const file of permitted) if (!seen.has(file)) findings.push(`${file}: stale D302 sync exception`);
-  for (const finding of findings) console.error(finding);
+  for (const finding of findings) process.stderr.write(`${finding}\n`);
   if (findings.length) process.exitCode = 1;
   else process.stdout.write(`Conditional registration PASS (${files.length} files)\n`);
 }

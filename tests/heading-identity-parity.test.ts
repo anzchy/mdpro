@@ -174,12 +174,11 @@ describe("heading identity corpus — JS faces of the three LIVE slug generators
       assertFace(c, "toc", actual, c.expectedSlugs);
     });
 
-    if (c.expectedTocOffsets) {
-      it(`toc offsets for "${c.name}"`, () => {
+      it.skipIf(!c.expectedTocOffsets)(`toc offsets for "${c.name}"`, () => {
+        if (!c.expectedTocOffsets) return;
         const actual = parseHeadingsFromContent(c.markdown).map((h) => h.offset);
         assertFace(c, "tocOffsets", actual, c.expectedTocOffsets);
       });
-    }
 
     it(`canonical export preserves anchors for "${c.name}"`, async () => {
       // Shape the IPC result like what Rust really emits for the expected slugs,

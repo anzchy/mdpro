@@ -12,6 +12,7 @@
     "tauri": "tauri",
     "test": "vitest",
     "test:run": "vitest run",
+    "verify:inventory": "node scripts/ci/verify-inventory.mjs",
     "red": "node scripts/tdd/red-receipt.mjs",
     "coverage": "vitest run --coverage",
     "test:heavy": "scripts/heavy-lock.sh vitest run --coverage",

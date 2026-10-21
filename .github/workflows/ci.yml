@@ -85,6 +85,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/checkout@v6
+        if: github.event_name != 'pull_request'
 
       - uses: pnpm/action-setup@v4
         # version read from package.json "packageManager" (single source of truth)
@@ -104,7 +110,19 @@ jobs:
 
       - run: pnpm typecheck:tests
 
-      - run: pnpm test:run
+      - run: node scripts/lint/conditional-tests.mjs
+
+      - run: git rev-parse HEAD
+
+      - id: runner-profile
+        name: Detect frontend runner prerequisites
+        run: echo "profile=$(node scripts/ci/runner-profile.mjs)" >> "$GITHUB_OUTPUT"
+
+      - run: pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json
+
+      - run: node scripts/ci/check-critical-coverage.mjs
+
+      - run: node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.runner-profile.outputs.profile }}" "$PWD"
 
   rust-test:
     needs: [scope]
