@@ -15,6 +15,18 @@ the copy of the file on the ref you dispatch from, so this version applies only 
    pushes `origin master` ([ADR-0083](../adr/0083-master-is-the-single-integration-trunk.md)).
 2. Lock the release SHA. **Precondition for `mode=draft`:** the 0.3.1 device regression has
    passed on that exact SHA (sequencing doc, `#release-031-gate`).
+   - **Tracked findings and gate exceptions**
+     ([ADR-0129](../adr/0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md)
+     Decisions 5 and 8). Before dispatching, run each tracked finding's presence check on the
+     locked SHA, and record the result as present, absent or unknown. Unknown counts as present.
+     A tracked finding is any D row from an ADR-0129 record or a pre-existing High. This applies
+     to a `release/x.y` hotfix too.
+   - **Due findings.** A finding that is present or unknown, with a fix-by at or below this
+     version, or whose fix-by names a skipped version, is due. The user rules on each one: fixed,
+     carried to a named version, or the release waits. A Critical is never carried.
+   - **Gate exceptions.** List every active "until" gate exception from `docs/audit/audit-log.md`
+     with the due findings.
+   - **Record.** Put the list and the rulings in the version's `#release-0xy-gate` paragraph.
 3. Tag caveat: the delegator tags `v<version>` at the landed bump commit and pushes it. Preflight accepts an existing
    tag only when it points at `ref`. If the locked SHA is a later commit, `mode=draft` refuses
    with "tag vX.Y.Z already exists at …". In that case either release the tagged commit, or

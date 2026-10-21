@@ -33,6 +33,22 @@ backfilled.
 | #507 | D284 | High | `06308c46` → `286eae60` | 1 | C0 H0 M0 L0 | C0 H0 M1 L1 | C0 H0 M0 L0 | C0 H0 | PR #507 comments (Codex, security-review, Fable r1, merged r1) | landed `286eae60` |
 | #506 | D274 | High | `e04f35f0` → `76d5f04b` | 1 | C0 H0 M0 L0 | C0 H0 M0 L2 | C0 H0 M0 L0 | C0 H0 | PR #506 comments (Codex, security-review, Fable r1, merged r1) | landed `76d5f04b` |
 
+## Gate exceptions
+
+A user ruling that lets a landing pass a gate it would otherwise fail
+([ADR-0129](../adr/0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md)
+Decision 8). The delegator records each one when it is granted, whatever the round or the count.
+
+- **Scope**: either `this landing only` (with the PR and SHA) or `until <condition>`.
+- **Closed**: set when a this-landing-only exception lands, or when an until-condition first holds.
+- An open `until` row is listed at every release checkpoint.
+
+| Id | PR | Gate waived | Scope | Owner | Ruling | Closed |
+|---|---|---|---|---|---|---|
+| G518-1 | #518 | verifier full frontend lane: exit 1 solely on `[vitest-worker]: Timeout calling "onTaskUpdate"`, every test passing, with `ci-gate` green on the same head | until D302 is fixed | gpt-imple-1 (D302 folded into the ADR-0128 rollout) | 「只因 D302 失败则算通过 (Recommended)」 | open |
+| G518-2 | #518 | receipts D301-WI-1/2/3: recorded lines changed by the brief's mechanical `spawnSync` → `await execFile` conversion | this landing only (`e78a9d49`) | — | 「接受为授权例外 (Recommended)」 | closed at landing `e78a9d49` |
+| G519-1 | #519 | receipts D299-WI-1/2/3 SEPARATION-BROKEN, WI-6 had no original RED; compensating D299-WI-3R/6R; `check-pending` lists D299-WI-3 | this landing only (PR #519) | — | 「补证后接受例外 (Recommended)」 | open (PR #519 not landed) |
+
 ## Findings
 
 - **Id**: `F<PR>-<n>`, stable once posted.

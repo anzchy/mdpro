@@ -10,6 +10,10 @@ Decision 3.
 
 Partially superseded 2026-10-20 by [ADR-0124](0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md), under herdr only: `/security-review` on the High tier is run by an Opus fork of herdr-delegator, not mdpro-codex-audit.
 
+Partially superseded (2026-10-21) by [ADR-0129](0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md): Decision 3 (a pre-existing High's D row also carries a
+fix-by and is assessed at every release checkpoint) and Decision 6 (how a ruling on a disputed finding
+is counted).
+
 The new rules apply to every audit requested after the commit that accepts this ADR. WI-009 and
 WI-4.3a, already in audit, finish under the earlier rules.
 

@@ -16,6 +16,9 @@ Partially superseded (2026-10-18) by [ADR-0121](0121-audit-effort-follows-risk-p
 challenge in the Low tier; Decision 2's escalation concerns open blocking findings. The cap and the
 user's authority to rule are unchanged.
 
+Partially superseded (2026-10-21) by [ADR-0129](0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md): Decision 2 (what a ruling shows and records) and
+Decision 3 (a post-cap fix now gets a scoped confirm by its raisers).
+
 ## Context
 
 Since ADR-0085, a Critical or High finding goes back to the owner, and the auditors confirm the fix.

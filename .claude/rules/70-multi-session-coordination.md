@@ -276,6 +276,32 @@ handoff. Each item is tagged `prep` or `impl`.
    round three gets no fourth round. The delegator brings it to the user, who
    rules, and the ruling is quoted in the row.
 
+   **After the cap** ([ADR-0129](../../docs/adr/0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md);
+   user decision, 2026-10-21: 「采纳 (Recommended)」):
+   - **The ruling request** classifies each open finding:
+     - introduced or pre-existing;
+     - reproduced or disputed;
+     - product or tooling;
+     - its impact.
+
+     It offers five options: fix with a scoped confirm, narrow or revert, reconsider, refuted, or
+     land open.
+   - **Landing a finding open** needs a record:
+     - a D row with an owner;
+     - a fix-by version number;
+     - a compensating control, or "none" with the reason;
+     - for product code, a `CHANGELOG.md` Known issues line;
+     - the quoted ruling.
+
+     A Critical's fix-by is the lowest unreleased version, and it is never carried.
+   - **A post-cap fix** is confirmed by each detector that raised the finding, on the fix diff
+     only. It lands only if every raiser marks it CLOSED. Otherwise it goes back to the user once,
+     and no second fix is offered.
+   - **Every release checkpoint** runs each tracked finding's presence check on the locked SHA.
+     Ancestry does not count.
+   - **Every gate exception** (lane, receipt, unrunnable check) gets a row in
+     `docs/audit/audit-log.md` § Gate exceptions, whenever it is granted.
+
    **Effort follows risk** ([ADR-0121](../../docs/adr/0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md); user decision,
    2026-10-18: 「Accept with revisions (Recommended)」):
    - **Tier.** The delegator names a tier for each range in the audit request, and either auditor

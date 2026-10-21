@@ -20,6 +20,9 @@ Partially superseded 2026-10-20 by [ADR-0124](0124-two-implementation-slots-and-
 
 **Partially superseded** (2026-10-18) by [ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md): Decision 4's gate is the blocking count; Decisions 1, 3, 5 and 6 give way to risk tiers (Low: Codex alone plus a Fable challenge; High: full dimensions plus `/security-review`).
 
+**Partially superseded** (2026-10-21) by [ADR-0129](0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md): Decisions 3 and 5, after the audit cap only. There a
+fix is confirmed by the finding's raiser(s), with no merge challenge.
+
 ## Context
 
 - Since ADR-0085 (2026-10-12) one Codex audit (`/cc-suite:audit --mini`,
