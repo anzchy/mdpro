@@ -1,6 +1,6 @@
 # 0128. The coverage gate runs in CI, and the verifier stops repeating the full lane
 
-**Status**: Accepted (2026-10-21, by the user after review rounds 1–3: 「Accept with the r3 fixes (Recommended)」). Partially supersedes:
+**Status**: Accepted (2026-10-21, by the user after review rounds 1–3: 「Accept with the r3 fixes (Recommended)」). Partially superseded: Decision 1 (single unsharded job) and Decision 3's CI half (single report) by [ADR-0130](0130-ci-coverage-runs-in-shards-workers-follow-load-and-test-timeouts-are-liveness-bounds.md) (2026-10-21). Partially supersedes:
 - [ADR-0125](0125-frontend-red-receipts-run-one-validated-test-file-not-the-full-coverage-lane.md)
   Decision 5, the clause "the verifier's full re-run on the SHA";
 - [ADR-0095](0095-pull-request-ci-is-a-landing-gate.md) Decision 1 (the frontend job's command)
