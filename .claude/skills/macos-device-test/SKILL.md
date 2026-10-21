@@ -1,9 +1,12 @@
 ---
-name: gui-acceptance
+name: macos-device-test
 description: Run empirical GUI acceptance QA for mdpro by driving the real app with computer use. Use when a work item's acceptance criteria are geometric, visual, or scroll/pointer-driven and therefore cannot be proven by vitest under jsdom. Covers the mandatory build-a-bundle prerequisite, launch, evidence capture, and the verdict table.
 ---
 
-# GUI Acceptance (computer use)
+# macOS Device Test (computer use)
+
+Formerly `gui-acceptance` (renamed 2026-10-21). ADRs, dated `docs/test/` records,
+release notes and the Q&A file keep the old name, as written at the time.
 
 Empirical acceptance testing of mdpro by driving the shipping app on the real
 desktop. This is the lane of last resort: it is slow, and it puts the user's

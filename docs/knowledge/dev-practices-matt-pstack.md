@@ -266,7 +266,7 @@ gstack（Garry Tan，mdpro 也在用）是另一种组织方式：按生命周�
 - **白话：** 给 agent 一套能驱动真实 app 的工具（启动、截图、按键、等待界面稳定），让它改完自己检查，一直改到检查通过。"能编译"不算验证。
 - **出处：** pstack Part 1 "Verification is all you need"、"Build the Lever"；Claude Code 最佳实践 <https://code.claude.com/docs/en/best-practices>。
 - **防止：** 每个改动都要等人去点一遍，人成了瓶颈；agent 对从没运行过的东西报告"成功"。
-- **mdpro 里：** ADR-0047（agent 通过只在开发构建里开放的控制通道，在真实 app 里验证）；`scripts/control/` 的启动器；`/gui-acceptance`；Windows 上的 `cdp.sh` / `ui.sh`。rule 70 要求每个真机检查项写明能证明代码路径被走到的那行日志，没走到就记为"not exercised"，不算通过。
+- **mdpro 里：** ADR-0047（agent 通过只在开发构建里开放的控制通道，在真实 app 里验证）；`scripts/control/` 的启动器；`/macos-device-test`；Windows 上的 `cdp.sh` / `ui.sh`。rule 70 要求每个真机检查项写明能证明代码路径被走到的那行日志，没走到就记为"not exercised"，不算通过。
 - **你可以说：** "Don't tell me it works. Show me the log line that proves the path ran."
 
 **28. 功能地图（feature map）**

@@ -50,7 +50,7 @@
 | ledger | `docs/feature-ledger.md`：inventory 185 行（Shipped 80 / Partial 63 / Stub 13 / Absent 28 / Unknown 1）；12 张「Windows 差异」表共 118 行，其中 11 行 `N/A`，其余 107 行里 Unknown 99。「怎么确认」格写动作、IPC 路径、日志行与真机日期，**部分行用散文引用了测试文件**（例如 `tests/d138-saveas-reload-in-place.test.ts`），但**没有机器可核对的旅程引用** |
 | `ledger:check` | `scripts/ledger/check.mjs`：表结构、状态枚举、`限制：`、路径可解析、Windows 差异表四项、声明面覆盖（command / route / `MENU_*` / plugin id / store 只要在文中出现）。backlog 机制只是去掉标记块后重算覆盖，并打印 hollow-pass 数；**不读任何历史基线，也不拒绝新增** `[实测 check.mjs:47-55,113-119]`。CI 的 `prose-checks` 用浅克隆和裸 node 跑它，不装 pnpm `[实测 .github/workflows/ci.yml:52-60]` |
 | 手工 fixture | `tests/manual-fixtures/` 29 个 `<id>-<slug>.md` + `img/`；`scripts/manual-fixtures/generate-large.mjs` 生成多 MB 文件并 `--check` sha256 |
-| macOS 驱动 | `gui-acceptance`（computer use，按字节偏移读日志，PASS / FAIL / partial / NOT VERIFIED）；`gui-manual-verify`（人在回路）；dtrack 按 delegator 的 brief 跑 |
+| macOS 驱动 | `macos-device-test`（computer use，按字节偏移读日志，PASS / FAIL / partial / NOT VERIFIED）；`gui-manual-verify`（人在回路）；dtrack 按 delegator 的 brief 跑 |
 | Windows 驱动 | `remote-windows-device-test`：全 SSH，页面输入走 WebView2 DevTools 9222 端口，原生输入走桌面会话里的 PowerShell。已知缺口，都是 Codex 指出、经 codex-audit 复核的：`common.sh:22-26` 在 ssh 退出 255 后把任何命令重试一次，**包括变更**（[D228](20260912-frontend-backend-sequencing-order.md#d228)）；Mac 侧的包装脚本也吞掉失败：`cdp.sh` 的 `eval` / `evalf` 写成 `out=$(win …); need "$out"`，丢掉了 `win` 的退出码，`ui.sh` → `ui-run.ps1` → `runi.ps1` 也不把计划任务的结果传回来（Codex 复审 N1：让 `win` 输出异常 JSON 并返回 7，`cdp.sh` 仍返回 0）；`log.sh:5-19` 截断 context（240 字符）和 error（120 字符），丢掉 `level` 与 `actionId`，静默跳过坏 JSON；`cdp.mjs:25-32` 取第一个页面，`ui.ps1:49-58` 取前台或第一个 mdpro 窗口，不能按窗口标签定位；`ui.ps1:159` 出错后继续，`cdp.mjs:93-103` 打印求值异常后仍退出 0 |
 | 快捷键矩阵 | brief `docs/pending/20261014-brief-shortcuts-matrix.md`（未跟踪，只在主检出）：Settings 页 49 项，路由 M/H/P/C，对照 CM-M/CM-H/CM-P/CM-C，模式 W/S，用例 F1–F7、E1–E11、P1–P17、T1–T8、V1–V6；brief 明说「没有绑定」就是没兑现 Settings 页的承诺（`:54-58`）。macOS 记录 86 例 + 8 次对照；Windows 记录与 v0.3.4 Windows 重跑。两版输出不同：v0.3.4 保留 `-` 列表标记，v0.3.3 产出 `*`（`docs/test/20261015-v034-windows-device-check.md:28,68-72`） |
 | ADR-0034 | Proposed：一条本地 `app` lane 跑真机旅程，作为发版清单的一项而非强制门禁；被测的是 release profile 的 bundle；判据是状态和日志，不看像素；每条入口路由一条旅程；首批旅程为 D29 的三条（Finder 路由、单实例路由、双窗口里脏的那个赢）、D20 G1、ADR-0032 的偏好往返（决定 1、3、5–7） |
@@ -424,7 +424,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
 - **Acceptance**：每批一个 ledger 区域（遵守 rule 70 的批次规则）。每批结束时，基线里的身份减少；新旅程在两个平台上各有一次聚合结论为 PASS 的运行，或者写明 `N/A`。Windows 表里的行由 `Unknown` 改为有判定的状态时，在同一个提交里改 ledger，并引用运行清单。
 
 ### WI-E2E-8 存活报告与工具
-- **Acceptance**：`journeys:check --freshness` 按 §4.6 的匹配规则输出，并进 release-gate skill；`gui-acceptance`、`remote-windows-device-test` 和 delegator 的 brief 模板改为「读旅程文件执行，产出运行清单」；与用户定存活警告是否升级为阻塞。
+- **Acceptance**：`journeys:check --freshness` 按 §4.6 的匹配规则输出，并进 release-gate skill；`macos-device-test`、`remote-windows-device-test` 和 delegator 的 brief 模板改为「读旅程文件执行，产出运行清单」；与用户定存活警告是否升级为阻塞。
 
 ### WI-E2E-9 阶段 B 执行器
 - **Acceptance**
@@ -441,7 +441,7 @@ ADR-0047 的语义投影是为 spike 的十条旅程写的，它的白名单没�
   3. 「写入后立即读回」先自检，自检不过就记 `BLOCKED`，不能把读不到当成被测应用的问题。
   4. 两个平台各用两个粘贴用例演示：PJ-12 的 HTML，和 PJ-09 的一张图片（6 MB PNG 或 GIF）。产出运行清单。
 - **Tests (first)**：放 `tests/tooling/`（[ADR-0098](../adr/0098-launcher-tooling-and-perf-tests-move-into-their-own-folders-under-tests.md)）：辅助脚本的参数与输出契约、`ui.ps1` 新步骤的源码守卫；macOS 按类型往返的测试只在 darwin 上跑，其他平台跳过并写明原因。
-- **Touched**：`scripts/device/`、`tests/tooling/`、`.claude/skills/remote-windows-device-test/`、`.claude/skills/gui-acceptance/` 的说明。
+- **Touched**：`scripts/device/`、`tests/tooling/`、`.claude/skills/remote-windows-device-test/`、`.claude/skills/macos-device-test/` 的说明。
 - **Risks**：从网页复制的形态因来源而异，所以 fixture 必须写明 HTML 的原文；macOS 上剪贴板的读写受隐私设置影响，辅助脚本要报出拒绝，而不是悄悄返回空值；6 MB 图片要经 ssh 传到 Windows 桌面会话，这段时间计入运行时间。
 
 ### WI-E2E-11 只在验证构建里生效的更新源覆盖

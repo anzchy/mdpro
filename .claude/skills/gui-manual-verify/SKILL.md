@@ -1,11 +1,11 @@
 ---
 name: gui-manual-verify
-description: Run human-in-the-loop device acceptance for mdpro — Claude plans, prepares, instructs, observes and judges; the user performs the timing-sensitive or privileged actions. Use when the criteria involve MCP/curl with the server token, confirm dialogs with a 60 s timeout, typing immediately after an async event, or anything else that races Claude's tool latency. Use gui-acceptance instead when Claude can drive every step alone.
+description: Run human-in-the-loop device acceptance for mdpro — Claude plans, prepares, instructs, observes and judges; the user performs the timing-sensitive or privileged actions. Use when the criteria involve MCP/curl with the server token, confirm dialogs with a 60 s timeout, typing immediately after an async event, or anything else that races Claude's tool latency. Use macos-device-test instead when Claude can drive every step alone.
 ---
 
 # GUI Manual Verify (human in the loop)
 
-The sibling of [`gui-acceptance`](../gui-acceptance/SKILL.md). Same goal —
+The sibling of [`macos-device-test`](../macos-device-test/SKILL.md). Same goal —
 empirical acceptance on the shipping `.app` — but the user's hands do the parts
 Claude cannot do in time or must not do at all. Claude keeps everything else:
 the plan, the fixtures, the launch, the log window, the zoom, and the verdict.
@@ -18,7 +18,7 @@ The D37 / ADR-0042 device runs are the worked reference.
 
 | Criterion involves… | Lane |
 |---|---|
-| Layout, scroll, clicks, visuals only | `gui-acceptance` |
+| Layout, scroll, clicks, visuals only | `macos-device-test` |
 | A gated MCP write/insert/table route (confirm prompt, 60 s timeout) | **this skill** |
 | Any curl that needs the server token | **this skill** |
 | Typing within ~1-2 s of an async event (write applied, reload, focus change) | **this skill** |
@@ -26,7 +26,7 @@ The D37 / ADR-0042 device runs are the worked reference.
 | Standing config changes (`claude mcp add`, Settings toggles that persist) | **this skill** — the user runs them |
 
 If an item needs neither the token nor fast reaction, push it back to
-`gui-acceptance`; the human loop is slower and costs the user's attention.
+`macos-device-test`; the human loop is slower and costs the user's attention.
 
 ---
 
@@ -58,7 +58,7 @@ the instruction blocks you send are not.
 
 ## 3. Setup
 
-Do not duplicate — follow `gui-acceptance`:
+Do not duplicate — follow `macos-device-test`:
 
 - §2 build a bundle (`pnpm tauri build --bundles app`; never `tauri dev`).
 - §3 the three stale-binary traps (installed copy, bundle older than source,
@@ -71,7 +71,7 @@ What differs here:
 - **Build exit 1 can be benign.** `pnpm tauri build --bundles app` may exit 1
   on a missing `TAURI_SIGNING_PRIVATE_KEY` (updater artifact) *after* the
   `.app` is written. Accept it only if the `.app` mtime postdates every source
-  under test (gui-acceptance §3 trap 2 script).
+  under test (macos-device-test §3 trap 2 script).
 - **Confirm a cold launch:** `file.open.external` has `appReady:false`, the
   window label is `main`, and `/usr/bin/pgrep -fl mdpro` shows the
   `target/release/bundle` path.
@@ -190,7 +190,7 @@ request time.** Design every step around that.
 
 ## 7. Fixtures
 
-- **Originals in `tests/manual-fixtures/`, runs on a scratchpad copy** (same as gui-acceptance §5).
+- **Originals in `tests/manual-fixtures/`, runs on a scratchpad copy** (same as macos-device-test §5).
 - **Self-verifying:** each paragraph labelled ("Third paragraph REJECT ME."),
   so a zoom answers "what changed" without counting.
 - **Rewrite tests:** replacement text shares no prefix or suffix with the old
@@ -251,7 +251,7 @@ Real rows from the D37 run (2026-10-01, release build of `66cb742`):
 
 ## 10. Recording
 
-Same rules as gui-acceptance §10 and CLAUDE.md:
+Same rules as macos-device-test §10 and CLAUDE.md:
 
 - Sequencing-doc row and `docs/feature-ledger.md` row are updated **in the
   commit that closes the item**; `pnpm ledger:check` passes.
@@ -268,7 +268,7 @@ Same rules as gui-acceptance §10 and CLAUDE.md:
 
 ```
 [ ] Item genuinely needs a human (token, 60 s prompt, fast typing, concurrency) (§1)
-[ ] Bundle built and fresh; exit 1 only from the signing key (§3, gui-acceptance §2-§3)
+[ ] Bundle built and fresh; exit 1 only from the signing key (§3, macos-device-test §2-§3)
 [ ] Cold launch confirmed: appReady:false, label main, pgrep bundle path (§3)
 [ ] User started the MCP server and pasted the guide §5 preamble; Claude read no token
 [ ] After any relaunch: user re-ran PORT/TOKEN/API; /api/status returns a version (§3)

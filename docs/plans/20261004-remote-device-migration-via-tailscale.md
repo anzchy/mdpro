@@ -48,7 +48,7 @@ Check each item over SSH. Prefix commands with `export PATH=/opt/homebrew/bin:$H
 
 ### 3.2 Claude Code and user-level skills
 
-The repo brings its own `.claude/` (rules, project skills such as `gui-acceptance`, `gui-manual-verify` and `remote-ssh`). User-level pieces must already exist on the remote:
+The repo brings its own `.claude/` (rules, project skills such as `macos-device-test`, `gui-manual-verify` and `remote-ssh`). User-level pieces must already exist on the remote:
 - Claude Code itself (`claude --version`).
 - gstack with `/browse` (`~/.claude/skills/gstack/browse/dist/browse`), and `plan-design-review`.
 - The plugins tdd-guardian, nlpm and cc-suite (`jq -r '.plugins|keys[]' ~/.claude/plugins/installed_plugins.json`).
@@ -115,7 +115,7 @@ ssh mac-mini 'export PATH=/opt/homebrew/bin:$HOME/.cargo/bin:$PATH; cd ~/Documen
   && pnpm install --frozen-lockfile && pnpm tauri build --bundles app'
 ```
 
-The release app is `src-tauri/target/release/bundle/macos/mdpro.app`. Before any device test, go through the three traps in [`gui-acceptance` §3](../../.claude/skills/gui-acceptance/SKILL.md):
+The release app is `src-tauri/target/release/bundle/macos/mdpro.app`. Before any device test, go through the three traps in [`macos-device-test` §3](../../.claude/skills/macos-device-test/SKILL.md):
 - launch by absolute path;
 - check that the bundle postdates the source;
 - check that a cold launch logs `appReady:false`.

@@ -304,7 +304,7 @@ scratchpad is wiped.
 
 ## Manual test fixtures
 
-Markdown documents for device checks (`/gui-acceptance`, `/gui-manual-verify`)
+Markdown documents for device checks (`/macos-device-test`, `/gui-manual-verify`)
 live in **`tests/manual-fixtures/`**, named `<id>-<slug>.md`, e.g.
 `d41-source-tab.md`. Not in a session scratchpad, where they vanish, and not in
 `tests/fixtures/`, which holds the unit tests' contract JSON. Vitest only

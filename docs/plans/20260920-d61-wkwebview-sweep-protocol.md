@@ -26,7 +26,7 @@ pnpm tauri build --bundles app
 `--bundles app` 跳过 DMG。若 `TAURI_SIGNING_PRIVATE_KEY` 报错退出 1，只影响 updater
 产物，`.app` 本身已生成，可继续。
 
-**验证 bundle 比源码新**（gui-acceptance §3 Trap 2）：比对 `mdpro.app` 的 mtime 与
+**验证 bundle 比源码新**（macos-device-test §3 Trap 2）：比对 `mdpro.app` 的 mtime 与
 `src/components/Editor/MilkdownEditor.tsx`、`src/App.tsx`、`src/utils/largeDocumentGuard.ts`。
 
 ---
@@ -130,9 +130,9 @@ ps -Ao pid,lstart,comm | grep -i mdpro | grep -v grep
   且必须先有 ADR-0016 承载判据变更的理由与代价。
 - **不要**把毫秒数变成阻塞门禁（E39/G0）。`perf_render_corpus.rs` 按设计不断言阈值，
   这条纪律对前端面同样成立。
-- **不要**把"没测到"写成 pass（gui-acceptance §8）。测不到的格子写 NOT VERIFIED 并注明拦路的东西。
+- **不要**把"没测到"写成 pass（macos-device-test §8）。测不到的格子写 NOT VERIFIED 并注明拦路的东西。
 - 菜单栏被第三方工具（iBar Pro）占用时**不要**去争，也不要给那个工具授权；
-  用键盘快捷键（`⌃2` / `⌃4` / `⌘⇧L`）(gui-acceptance §9)。
+  用键盘快捷键（`⌃2` / `⌃4` / `⌘⇧L`）(macos-device-test §9)。
 
 ---
 

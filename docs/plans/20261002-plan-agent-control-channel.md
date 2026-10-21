@@ -119,7 +119,7 @@ Codex 的 21 条各自落在哪里：
 - ADR-0034 的首批旅程和 `pnpm test:app`（Q12）。
 - 进 CI、成为提交或发布的门禁（ADR-0047 决定 1、ADR-0034 决定 1）。
 - 以耗时、FPS、内存为阈值的断言（E39）。等待命令的超时是「等不到就放弃」，不是性能断言。
-- 原生菜单栏、打开和保存面板、退出提示、Finder 的自动化。这些留给 `gui-acceptance` 或人（决定 2）。
+- 原生菜单栏、打开和保存面板、退出提示、Finder 的自动化。这些留给 `macos-device-test` 或人（决定 2）。
 - 物理按键和 IME 的结论（决定 8）。
 
 ## 2. Constraints & Dependencies（约束与依赖）
@@ -240,7 +240,7 @@ Codex 的 21 条各自落在哪里：
 |---|---|---|
 | `cli` | 经控制通道的驱动输入或探针 | 在编辑器里打字、点 webview 里的按钮、读脏标记 |
 | `launcher` | 启动器起外部进程 | 冷启动、带路径起第二个进程、`open --env … -a` |
-| `native` | `gui-acceptance`（computer-use）或人 | 原生菜单、打开和保存面板、退出提示 |
+| `native` | `macos-device-test`（computer-use）或人 | 原生菜单、打开和保存面板、退出提示 |
 | `human` | 只能是人 | 物理按键、IME、绘制是否正确 |
 
 ### 4.2 边界情况
@@ -745,10 +745,10 @@ ADR-0047 已定的不重复。下面是计划层面的选择，都能被你在 0
 
 - **Goal**：让 agent 知道某个功能该怎么驱动、看什么证据；清掉指向空处的旧引用。
 - **Acceptance**
-  1. 新 skill（pstack 的结构：`SKILL.md` + `references/features/`），说明四类步骤各由谁做，何时用 CLI、何时交给 `gui-acceptance`、何时必须由人做。
+  1. 新 skill（pstack 的结构：`SKILL.md` + `references/features/`），说明四类步骤各由谁做，何时用 CLI、何时交给 `macos-device-test`、何时必须由人做。
   2. Feature Map 首批覆盖全部旅程涉及的功能，每条对应一个 ledger 行，只写驱动步骤和证据，不写状态（Q7）。
   3. `test-runner`、`fix`、`feature-workflow` 里的「Tauri MCP E2E」改为指向该 skill；`mcp-dev` skill 的过时内容更正或标注。
-  4. `gui-acceptance`、`gui-manual-verify` 各加一段，说明与 CLI 的分工。
+  4. `macos-device-test`、`gui-manual-verify` 各加一段，说明与 CLI 的分工。
   5. CLAUDE.md 加一小节指向该 skill。
   6. 用一个真实的小工作项试跑一次，把过程记在 `docs/test/`。
 - **Tests (first)**：无代码；第 6 条是它的验收。
