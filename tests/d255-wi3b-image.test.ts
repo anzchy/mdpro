@@ -107,6 +107,48 @@ it("AC-7 inserts a picked, copied image in Source and cancels cleanly", async ()
   expect(ipc).toHaveBeenCalledWith("copy_external_image", expect.objectContaining({ documentPath: "/x/d1.md", sourcePath: "/tmp/picture.png" }));
 });
 
+it.each(["source", "wysiwyg"] as const)("Fix 1 inserts the returned renamed asset path in %s", async (mode) => {
+  const renamed = { relativePath: "./assets/picture-1.png", absolutePath: "/x/assets/picture-1.png", markdownSyntax: "![](./assets/picture-1.png)" };
+  ipc.mockImplementation(async (command: string) => command === "pick_image" ? "/tmp/picture.png" : renamed);
+  if (mode === "source") {
+    const editor = mountSource();
+    expect(start()).toEqual({ status: "opened" });
+    await settle();
+    expect(editor.state.doc.toString()).toBe(`alpha${renamed.markdownSyntax}`);
+  } else {
+    const editor = await mountWysiwyg();
+    expect(start()).toEqual({ status: "opened" });
+    await settle();
+    expect(editor.editor.action((ctx) => ctx.get(serializerCtx)(editor.view.state.doc))).toContain(renamed.relativePath);
+  }
+});
+
+it("Fix 1 shows a serialized copy error message in the toast", async () => {
+  const editor = mountSource();
+  ipc.mockImplementation(async (command: string) => {
+    if (command === "pick_image") return "/tmp/picture.png";
+    if (command === "copy_external_image") throw { IoError: { message: "disk write failed" } };
+    return null;
+  });
+  expect(start()).toEqual({ status: "opened" });
+  await settle();
+  expect(editor.state.doc.toString()).toBe("alpha");
+  expect(useToastStore.getState().message).toBe("Failed to insert image: disk write failed");
+});
+
+it("Fix 1 preserves the serialized ImageError InvalidPath message", async () => {
+  const editor = mountSource();
+  ipc.mockImplementation(async (command: string) => {
+    if (command === "pick_image") return "/tmp/picture.png";
+    if (command === "copy_external_image") throw { InvalidPath: { message: "asset folder must be within the document directory" } };
+    return null;
+  });
+  expect(start()).toEqual({ status: "opened" });
+  await settle();
+  expect(editor.state.doc.toString()).toBe("alpha");
+  expect(useToastStore.getState().message).toBe("Failed to insert image: invalid path: asset folder must be within the document directory");
+});
+
 it("AC-7 picker cancel and copy rejection leave Source unchanged and unlock the next click", async () => {
   const editor = mountSource();
   const pick = deferred<string | null>();

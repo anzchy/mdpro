@@ -29,8 +29,8 @@ afterEach(async () => {
   rig = null;
 });
 
-async function mount(source: string) {
-  rig = await mountScriptedMilkdownRig(source, { heights: source.includes("\n\n") ? [30, 30] : [30] });
+async function mount(source: string, blocks?: number) {
+  rig = await mountScriptedMilkdownRig(source, { heights: Array(blocks ?? (source.includes("\n\n") ? 2 : 1)).fill(30) });
   unregister = useMilkdownEditorStore.getState().registerEditor(() => rig?.editor ?? null);
   return rig;
 }
@@ -73,6 +73,29 @@ it.each(["<u>", "<u>x\n\ny</u>", "<U>x</U>", '<u class="a">x</u>', "`<u>x</u>`"]
     expect(markNames()).not.toContain("underline");
   },
 );
+
+it.each([
+  ["<u>\n\npara\n\n</u>", 3],
+  ["<u>\n\n```\ncode\n```\n\n</u>", 3],
+  ["<u>\n\np1\n\np2\n\n</u>", 4],
+] as const)("AC-5 preserves root HTML blocks through the editor composition: %s", async (source, blocks) => {
+  await mount(source, blocks);
+  expect(serialized()).toBe(`${source}\n`);
+  if (source.includes("```")) {
+    const view = rig!.view;
+    let codePos = -1;
+    view.state.doc.descendants((node, pos) => {
+      if (node.type.name === "code_block") codePos = pos;
+    });
+    expect(codePos).toBeGreaterThanOrEqual(0);
+    const textPos = codePos + 1;
+    const codeText = view.state.doc.nodeAt(textPos);
+    expect(codeText?.marks.some((mark) => mark.type.name === "underline")).toBe(false);
+    view.dispatch(view.state.tr.insertText("X", textPos + 1));
+    expect(view.state.doc.nodeAt(textPos)?.text).toContain("X");
+    expect(view.state.doc.nodeAt(textPos)?.marks.some((mark) => mark.type.name === "underline")).toBe(false);
+  }
+});
 
 it("AC-5 keeps a document without underline byte-identical", async () => {
   await mount("ordinary **bold** text");

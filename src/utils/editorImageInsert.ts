@@ -10,6 +10,7 @@ import { EditorView as SourceEditorView, type EditorView as SourceView } from "@
 import { isolateHistory } from "@codemirror/commands";
 import { closeHistory } from "@milkdown/kit/prose/history";
 import { copyExternalImage, pickImage } from "../services/imageService";
+import { ipcErrorMessage } from "./ipcErrorMessage";
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useEditorStore } from "../stores/editorStore";
@@ -30,6 +31,16 @@ function logCompletion(actionId: string, status: "success" | "cancel" | "fail", 
     level: status === "fail" ? "error" : "info", event: "ui.menu.select", status, actionId,
     context: { controlId: "editor.format.image", stage: "complete", ...(reason ? { reason } : {}) },
   });
+}
+
+function imageErrorMessage(error: unknown): string {
+  if (typeof error === "object" && error !== null && "InvalidPath" in error) {
+    const payload = error.InvalidPath;
+    if (typeof payload === "object" && payload !== null && "message" in payload && typeof payload.message === "string") {
+      return `invalid path: ${payload.message}`;
+    }
+  }
+  return ipcErrorMessage(error);
 }
 
 /** Open Image synchronously, then validate identity again after each awaited boundary. */
@@ -78,7 +89,7 @@ export function startEditorImageInsert(target: Target, token: MenuTargetToken, a
       logCompletion(actionId, "success");
     } catch (error) {
       if (!current()) { logCompletion(actionId, "cancel", "stale"); return; }
-      const message = error instanceof Error ? error.message : String(error);
+      const message = imageErrorMessage(error);
       useToastStore.getState().showToast(`Failed to insert image: ${message}`);
       logCompletion(actionId, "fail", "copy_or_pick_error");
     } finally {

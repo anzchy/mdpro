@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::fs::OpenOptions;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
@@ -499,12 +501,62 @@ pub async fn copy_external_image(
         })?
         .to_string();
 
-    let target_path = target_dir.join(&filename);
-    fs::copy(source, &target_path).map_err(|e| ImageError::IoError {
+    const MAX_NAME_COLLISIONS: usize = 1024;
+    let stem = Path::new(&filename)
+        .file_stem()
+        .and_then(|part| part.to_str())
+        .ok_or(ImageError::InvalidPath {
+            message: "cannot get safe filename stem".to_string(),
+        })?;
+    let extension = Path::new(&filename)
+        .extension()
+        .and_then(|part| part.to_str())
+        .ok_or(ImageError::InvalidPath {
+            message: "cannot get safe filename extension".to_string(),
+        })?;
+    let mut input = fs::File::open(source).map_err(|e| ImageError::IoError {
         message: e.to_string(),
     })?;
-
-    let relative_path = format!("{}/{}", asset_dir, filename);
+    let mut allocated = None;
+    for index in 0..=MAX_NAME_COLLISIONS {
+        let name = if index == 0 {
+            filename.clone()
+        } else {
+            format!("{stem}-{index}.{extension}")
+        };
+        let path = target_dir.join(&name);
+        let mut output = match OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(ImageError::IoError {
+                    message: error.to_string(),
+                });
+            }
+        };
+        let result = path.canonicalize().and_then(|canonical| {
+            if !canonical.starts_with(&target_dir) {
+                return Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    "allocated image path escapes the asset directory",
+                ));
+            }
+            io::copy(&mut input, &mut output).map(|_| ())
+        });
+        if let Err(error) = result {
+            drop(output);
+            let _ = fs::remove_file(&path);
+            return Err(ImageError::IoError {
+                message: error.to_string(),
+            });
+        }
+        allocated = Some((name, path));
+        break;
+    }
+    let (name, target_path) = allocated.ok_or(ImageError::IoError {
+        message: "no unused image filename available".to_string(),
+    })?;
+    let relative_path = format!("{}/{}", asset_dir, name);
 
     logger::log_event(LogEntryPayload {
         level: LogLevel::Info,
@@ -553,6 +605,10 @@ pub async fn set_image_config(config: ImageConfig) -> Result<bool, ImageError> {
 
     Ok(true)
 }
+
+#[cfg(test)]
+#[path = "image_copy_tests.rs"]
+mod copy_tests;
 
 #[cfg(test)]
 mod tests {

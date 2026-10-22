@@ -19,6 +19,7 @@ import { findSettingsConflicts } from "../src/commands/settingsConflicts";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import { V2_DEFAULTS } from "./support/bindingV2Defaults";
 import legacyImageCases from "./fixtures/legacy-image-shortcut-cases.json";
+import { collectionCases } from "./support/collectionCases";
 
 interface LogPayload {
   event: string;
@@ -154,7 +155,8 @@ describe("M1A-WI-10 v1 defaults show no conflict and save an unrelated rebind", 
   });
 });
 
-it.each(legacyImageCases)("D255-WI-3b Image read-time parity: $platform stored $stored", async ({ platform, stored, expected }) => {
+for (const { platform, stored, expected } of collectionCases("legacy image Settings parity", legacyImageCases)) {
+it(`D255-WI-3b Image read-time parity: ${platform} stored ${stored}`, async () => {
   const uiPlatform = platform === "macos" ? "MacIntel" : platform === "windows" ? "Win32" : "Linux";
   await open({ platform: uiPlatform, store: { formatImage: stored } });
   const row = screen.getByText("Image", { selector: ".shortcut-label" }).closest(".shortcut-row");
@@ -165,6 +167,7 @@ it.each(legacyImageCases)("D255-WI-3b Image read-time parity: $platform stored $
   expect(fake.state.store.formatImage).toBe(stored);
   expect(fake.state.writes).toEqual([]);
 });
+}
 
 describe("M1A-WI-10 refused Saves", () => {
   it("⌘Z for Save names Undo, marks the row, keeps the dialog and the store", async () => {
