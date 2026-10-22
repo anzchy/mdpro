@@ -369,8 +369,8 @@ Paste as Plain Text|menu.edit.paste_as_plain_text|off|-
 Select All|edit.selectAll|on|Cmd+A
 —
 Selection ▸
-Select Line|menu.edit.select_line|off|-
-Select Word|menu.edit.select_word|off|-
+Select Line|menu.edit.select_line|on|Cmd+L
+Select Word|menu.edit.select_word|on|Cmd+D
 Delete Word|menu.edit.delete_word|off|-
 —
 Find ▸
@@ -387,8 +387,8 @@ Heading 5|menu.paragraph.heading5|on|Cmd+5
 Heading 6|menu.paragraph.heading6|on|Cmd+6
 Paragraph|menu.paragraph.paragraph|on|Cmd+0
 —
-Increase Heading|menu.paragraph.increase_heading|off|-
-Decrease Heading|menu.paragraph.decrease_heading|off|-
+Increase Heading|menu.paragraph.increase_heading|on|Cmd+=
+Decrease Heading|menu.paragraph.decrease_heading|on|Cmd+-
 —
 Table...|menu.format.insert_table|on|Cmd+Alt+T
 Code Fences|menu.paragraph.code_fences|on|Cmd+Alt+C
@@ -403,15 +403,15 @@ Outdent|menu.paragraph.outdent|on|Cmd+[
 [Format]
 Bold|menu.format.strong|on|Cmd+B
 Italic|menu.format.emphasis|on|Cmd+I
-Underline|menu.format.underline|off|-
+Underline|menu.format.underline|on|Cmd+U
 Code|menu.format.code|on|Cmd+Shift+`
 Strikethrough|menu.format.strike|on|Ctrl+Shift+`
 Highlight Selection|menu.format.highlight|on|Cmd+Shift+H
 —
 Link...|menu.format.hyperlink|on|Cmd+K
-Image...|menu.format.image|off|-
+Image...|menu.format.image|on|Cmd+Ctrl+I
 —
-Clear Format|menu.format.clear_format|off|-
+Clear Format|menu.format.clear_format|on|Cmd+\\
 [View]
 Source|menu.view.source|on|Ctrl+2
 WYSIWYG|menu.view.wysiwyg|on|Ctrl+4
@@ -554,13 +554,13 @@ Outdent|menu.paragraph.outdent|on|Cmd+[
 [Format]
 Bold|menu.format.strong|on|Cmd+B
 Italic|menu.format.emphasis|on|Cmd+I
-Underline|menu.format.underline|off|-
+Underline|menu.format.underline|on|Cmd+U
 Code|menu.format.code|on|Cmd+Shift+`
 Strikethrough|menu.format.strike|on|Ctrl+Shift+`
 Highlight Selection|menu.format.highlight|on|Cmd+Shift+H
 —
 Link...|menu.format.hyperlink|on|Cmd+K
-Image...|menu.format.image|off|-
+Image...|menu.format.image|on|Cmd+Ctrl+I
 —
 Clear Format|menu.format.clear_format|off|-
 [View]

@@ -53,7 +53,7 @@ describe("M4 macOS command-table tree", () => {
     expect(rowById("paragraph.table")?.key.macos).toMatchObject({ defaults: { v1: "Cmd+Option+T" } });
     expect(rowById("paragraph.table")?.availability.macos.v1).toBe("W");
     expect(rowById("paragraph.quote")?.availability.macos.v1).toBe("none");
-    expect(rowById("edit.selectLine")?.availability.macos.v1).toBe("S");
+    expect(rowById("edit.selectLine")?.availability.macos.v1).toBe("both");
     expect(rowById("format.strong")?.availability.macos.v1).toBe("both");
   });
 
