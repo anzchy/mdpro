@@ -20,6 +20,9 @@ use crate::services::window_restore::test_home::{
 use serde_json::{json, Value};
 use std::path::Path;
 
+#[path = "../host_shortcut_expectations_tests.rs"]
+mod host_shortcut_expectations;
+
 const RESOLVE_EVENT: &str = "preferences.shortcuts.applied.resolve";
 const GET_EVENT: &str = "preferences.shortcuts.applied.get";
 const PREFS_CONTRACT: &str = concat!(
@@ -78,12 +81,16 @@ fn default_bindings() -> Value {
         .as_object()
         .expect("defaults object")
         .clone();
-    Value::Object(
+    let mut bindings = Value::Object(
         chords
             .into_iter()
             .map(|(k, c)| (k, json!({ "state": "bound", "chord": c })))
             .collect(),
-    )
+    );
+    if !host_shortcut_expectations::host_has_default_image_shortcut() {
+        bindings["formatImage"] = json!({ "state": "unassigned" });
+    }
+    bindings
 }
 
 fn as_value(s: &AppliedShortcuts) -> Value {
@@ -189,9 +196,10 @@ fn a9_startup_and_command_logs_carry_counts_only() {
     assert_eq!(with_status(&resolve, "start").len(), 1, "{resolve:?}");
     let ok = with_status(&resolve, "success");
     assert_eq!(ok.len(), 1, "{resolve:?}");
+    let image_bound = usize::from(host_shortcut_expectations::host_has_default_image_shortcut());
     assert_eq!(
         ok[0]["context"],
-        json!({ "source": "loaded", "boundCount": 56, "unassignedCount": 1, "systemCount": 1 })
+        json!({ "source": "loaded", "boundCount": 55 + image_bound, "unassignedCount": 2 - image_bound, "systemCount": 1 })
     );
     assert_eq!(with_status(&resolve, "fail").len(), 0);
 
@@ -200,7 +208,7 @@ fn a9_startup_and_command_logs_carry_counts_only() {
     let got = with_status(&get, "success");
     assert_eq!(got.len(), 2, "{get:?}");
     for rec in &got {
-        assert_eq!(rec["context"], json!({ "boundCount": 56 }));
+        assert_eq!(rec["context"], json!({ "boundCount": 55 + image_bound }));
     }
 
     assert_no_leak(&resolve, &h);

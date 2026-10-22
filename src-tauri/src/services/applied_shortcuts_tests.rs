@@ -17,6 +17,9 @@ use crate::models::{SYSTEM_BINDING, UNASSIGNED_BINDING};
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
 
+#[path = "../host_shortcut_expectations_tests.rs"]
+mod host_shortcut_expectations;
+
 const PREFS_CONTRACT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../tests/fixtures/preferences-contract.json"
@@ -96,7 +99,7 @@ fn default_chords() -> Map<String, Value> {
 /// The pointwise rule, as the spec states it.
 fn expected_binding(field: &str, stored: &str, default: &str) -> Value {
     if field == "formatImage"
-        && !cfg!(target_os = "macos")
+        && !host_shortcut_expectations::host_has_default_image_shortcut()
         && (stored == "Cmd+Ctrl+I" || stored.is_empty())
     {
         return json!({ "state": "unassigned" });
@@ -170,9 +173,10 @@ fn a1_defaults_resolve_to_the_contract_chords() {
     assert_eq!(chords.len(), FIELD_COUNT);
     assert_eq!(keys(&bindings), keys(&chords));
     for (k, chord) in &chords {
+        let stored = chord.as_str().expect("contract chord");
         assert_eq!(
             bindings[k],
-            json!({ "state": "bound", "chord": chord }),
+            expected_binding(k, stored, stored),
             "field {k}"
         );
     }
@@ -199,9 +203,10 @@ fn a2_sentinels_and_a_custom_chord() {
         .collect();
     assert_eq!(others.len(), FIELD_COUNT - 3);
     for (k, chord) in others {
+        let stored = chord.as_str().expect("contract chord");
         assert_eq!(
             bindings[k],
-            json!({ "state": "bound", "chord": chord }),
+            expected_binding(k, stored, stored),
             "field {k}"
         );
     }
@@ -248,9 +253,15 @@ fn a7_a8_the_rust_half_of_the_applied_contract() {
         bindings: resolve_applied(&stored),
     };
 
+    let mut expected = fixture["applied"].clone();
+    let stored_image = fixture["stored"]["formatImage"]
+        .as_str()
+        .expect("stored image chord");
+    expected["bindings"]["formatImage"] =
+        expected_binding("formatImage", stored_image, stored_image);
     assert_eq!(
         serde_json::to_value(&snapshot).expect("snapshot serialize"),
-        fixture["applied"]
+        expected
     );
 
     let obj_keys = |v: &Value| -> BTreeSet<String> {
