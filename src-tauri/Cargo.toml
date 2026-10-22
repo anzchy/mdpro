@@ -73,6 +73,9 @@ objc2-app-kit = { version = "0.3", features = [
 # confirmation broker's 60 s deadline tests. A feature on the existing tokio
 # dependency, not a new crate.
 [features]
+# D294 bounded device comparison. Explicit opt-in only; release builds retain
+# the acknowledged main-thread hide unless this diagnostic is requested.
+d294-diag-no-hide = []
 # ADR-0047 WI-002: the agent-verification launch guard. Default off; only the
 # verify build turns it on, and a feature-off build carries no guard code.
 verify-run = []
