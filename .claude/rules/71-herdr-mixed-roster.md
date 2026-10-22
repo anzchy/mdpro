@@ -33,8 +33,8 @@ When the delegator is not herdr-delegator, this file does not apply.
 |---|---|---|---|---|
 | Delegator | `herdr-delegator` | Claude Opus, herdr pane of that name, main checkout | — | — |
 | Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol`, herdr pane, one `mdpro-wt/` worktree per item | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
-| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | `herdr agent prompt`, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` | `<item>-r<round>.md` in that folder, then idle |
-| Auditor, Fable half (PRs only) | `fable-auditor` | Claude Fable session (`ListAgents`), under `.claude/agents/mdpro-fable-auditor.md`'s blind and read-only clauses | `SendMessage` | `~/.mdpro-redesign/herdr-spike/fable-auditor/<item>-r<round>.md`, then a one-line `SendMessage` |
+| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | `/new` reset, then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
+| Auditor, Fable half (PRs only) | `mdpro-fable-auditor` subagent | Fable, a fresh named subagent of the delegator per request: never a fork, never resumed, under the agent definition's phase-aware read barrier (§ Fresh context) | `Agent` | its result; the delegator writes it verbatim to `~/.mdpro-redesign/herdr-spike/fable-auditor/<item>-r<round>.md` |
 | `/security-review` runner | a fork of herdr-delegator | Opus | `Agent` (`fork`) | `~/.mdpro-redesign/herdr-spike/delegator/secrev-<item>.md` |
 | Landing verifier, ADR and plan reviewer, number registrar | subagents of herdr-delegator | Opus (`model: "opus"`) | `Agent` | their result |
 | Real-device tester, Mac mini and Windows | `claude-imple-1` | Claude Opus session (`ListAgents`), MacBook; reaches the Mac mini and `win-desktop` over Tailscale SSH (`remote-ssh`, `remote-windows-device-test`) | a device brief from the delegator, by `SendMessage` | `~/.mdpro-redesign/device/<batch>-report.md`, then a one-line `SendMessage` |
@@ -132,9 +132,59 @@ alias here.
   2. `herdr agent start <name> --kind codex --pane <id> -- -m <model>`;
   3. close the old pane;
   4. the first prompt points at the brief.
-- **Challenge and confirm with gpt-auditor.** Send a `herdr agent prompt` to the same pane, with the
-  finding and the files to read. If the agent was restarted since, the prompt names its earlier
-  report file instead of relying on its thread.
+- **Challenge and confirm with gpt-auditor.** Every request, these included, follows § Fresh
+  context: a `/new` reset, then a prompt pointing at a self-contained request file. Nothing relies
+  on the pane's thread.
+
+## Fresh context
+
+**Every audit request and every fix round after the first starts from a fresh context** ([ADR-0131](../../docs/adr/0131-every-audit-request-and-every-fix-round-starts-from-a-fresh-context.md);
+user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context replaces the thread.
+
+- **Reset a Codex pane** before every gpt-auditor request (first audit, confirm, challenge, ADR or
+  plan review) and every implementor fix that needs a new session:
+  1. confirm the pane is `idle` or `done` (`herdr agent get`), and record `agent_session.value`;
+  2. `herdr pane send-text <pane> '/new'`, then `herdr agent send-keys <name> enter`. Never use
+     `prompt --wait` for `/new`, which starts no turn;
+  3. the reset counts only when `agent_session.value` changed. If it did not change, follow
+     § Restart (a new pane). A result produced before a confirmed reset is void;
+  4. then `herdr agent prompt … --wait`, in the background, pointing at the request file.
+- **A request file is self-contained.** A confirm or challenge names:
+  - the fix range;
+  - the open findings by id, with their text;
+  - the earlier report files;
+  - **the text of every counter-proof it must answer.**
+
+  Its scope is ADR-0121 decision 4 as written: the fix diff, every open finding and unfixed
+  instance of its class, and any Critical or High a commit in `base..sha` introduced, exposed or
+  worsened. Before sending a confirm, check the request against the merged verdict's open list.
+- **The Fable half** is a new `Agent` call to `mdpro-fable-auditor` for every request: Fable model
+  for PRs, `model: "opus"` in `plan` mode. Never a fork, which would inherit the Codex verdict, and
+  never resumed with `SendMessage`.
+- **Read barrier, by phase, for both auditors:**
+
+  | Phase | May read | Must not read |
+  |---|---|---|
+  | Round one (`audit`, `plan` round one) | the range, the brief, the handoff, `REVIEW.md` | any other auditor's verdict, PR comments, `herdr-spike/delegator/` |
+  | `confirm`, `plan` confirm | the files the request names: completed earlier rounds of both auditors, the merged verdict, counter-proofs | the other auditor's current-round report |
+  | `challenge` | the one challenged finding and its evidence, as quoted | anything else from the other auditor |
+- **Implementor fixes** are numbered by the ADR-0120 round they answer. Fix 1, which answers the
+  blind audit, stays in the item's session only when both of these hold:
+  - the fix brief names one or two findings, each with its regression test;
+  - the Codex status line shows at least 50 % context left.
+
+  Every other fix (fix 2, and any post-cap fix under ADR-0129) gets a new session, seeded only with
+  the brief, the last handoff, the merged verdict and the fix brief.
+- **A session with under 40 % context left** writes a progress note and is reset or restarted from
+  the brief and that note. The delegator reads the status line with `herdr agent read <name>
+  --source recent-unwrapped` at each wake.
+- **Every handoff names the approaches it rejected, and why.** A fix session knows only what the
+  files say.
+- **The delegator** asks the user to type `/compact` at a quiet point: no landing in flight, every
+  wait recorded in `heartbeat.json`. The compaction instructions keep the open findings, SHAs,
+  number reservations and armed waits.
+- **Cost record.** The first ten requests after 2026-10-22 record their duration and their input,
+  cached and output tokens in `docs/audit/audit-log.md` § Fresh-context cost.
 
 ## Briefs and self-acceptance
 
@@ -227,7 +277,8 @@ before any audit starts.
 
 - **PRs.** In one turn the delegator sends:
   - gpt-auditor its request;
-  - fable-auditor its request, on the same range and the same dimensions;
+  - a fresh `mdpro-fable-auditor` subagent its request (§ Fresh context), on the same range and the
+    same dimensions;
   - and, on the High tier, a fork that runs `/security-review` on the range's diff, the job
     ADR-0121 gave mdpro-codex-audit.
 

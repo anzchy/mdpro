@@ -50,7 +50,7 @@ tmux name is only an alias; as of 2026-10-20 they are:
 | Role | Alias |
 |---|---|
 | mdpro-implementor-\* | `gpt-imple-1`, a herdr agent (took over from `mdpro-a3`, retired by the user 2026-10-18: 「retire @mdpro-a3 whose job now is taken by impl-1」); `gpt-imple-2`, a herdr agent (added 2026-10-18: 「add gpt-imple-2 too」). `mdpro-a6` and `mdpro-design` ended with the 2026-10-18 reboot |
-| mdpro-auditor-\* | under herdr, `gpt-auditor` (Codex) and `fable-auditor` (Fable), rule 71; `mdpro-codex-audit` ended with the 2026-10-18 reboot |
+| mdpro-auditor-\* | under herdr, `gpt-auditor` (Codex) and a fresh `mdpro-fable-auditor` subagent per request (Fable), rule 71 and ADR-0131 (the `fable-auditor` session retired 2026-10-22); `mdpro-codex-audit` ended with the 2026-10-18 reboot |
 | mdpro-device-harness | `adr047-verify` (renamed from `mdpro-85` by the user, 2026-10-11) |
 | real-device-tester | tmux session `dtrack` |
 

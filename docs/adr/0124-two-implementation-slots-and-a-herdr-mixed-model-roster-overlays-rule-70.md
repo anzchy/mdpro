@@ -2,6 +2,8 @@
 
 ## Status
 
+Partially superseded 2026-10-22 by [ADR-0131](0131-every-audit-request-and-every-fix-round-starts-from-a-fresh-context.md): decision 3's clause "fable-auditor (a Fable session …)" (Fable is a fresh subagent per request again); decision 4 is extended with the per-request `/new` reset.
+
 Accepted, 2026-10-20. Decided by the user, recorded by herdr-delegator. The user's words:
 「Accept (Recommended)」, and on the Codex guard files 「AGENTS.md + .codex/rules (Recommended)」.
 

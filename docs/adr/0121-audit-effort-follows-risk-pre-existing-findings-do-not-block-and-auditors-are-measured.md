@@ -2,6 +2,8 @@
 
 ## Status
 
+Applied 2026-10-22 by [ADR-0131](0131-every-audit-request-and-every-fix-round-starts-from-a-fresh-context.md): its auditor-change escape replay ran on zero escapes ("insufficient evidence"), and the user decided without recall numbers. Nothing in this ADR is superseded.
+
 Accepted, 2026-10-18. Decided by the user, recorded by mdpro-delegator. The user's words, on the
 draft with the revisions below: 「Accept with revisions (Recommended)」. Reviewed before acceptance
 by Codex `review-plan` and by Opus (`mdpro-fable-auditor`, plan mode) over three drafts. Codex's

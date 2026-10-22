@@ -82,3 +82,10 @@ Decision 8). The delegator records each one when it is granted, whatever the rou
 | F508-1 | #508 | High | Codex; Fable confirmed | a late or stale settings read/write overrides a newer confirmed value (1a: timeout rollback after a late success; 1b: an older read applied after newer writes) | `src/components/common/settings/settingsWriterRegistry.ts`; r5 remainder `AdvancedSettings.tsx:50-53`, `loggingService.ts:138-141` | 1a fixed `aecb0165`; 1b partial, deferred D293 (user: 「Land now, defer as a D item」) |
 | F508-2 | #508 | High | Codex; Fable confirmed | a remounted Image page's queued write resets sibling leaves to defaults | `settingsWriterRegistry.ts`, Image settings page | fixed `aecb0165` |
 | F508-3 | #508 | High | Codex; Fable confirmed | a whole-group write from one window overwrites another window's newer save | `settingsWriterRegistry.ts`, `src-tauri/src/commands/preferences.rs` | fixed `aecb0165` |
+
+## Fresh-context cost
+
+The first ten audit requests after ADR-0131 (2026-10-22), one row each: how long a fresh-context request costs. Codex rows take tokens from the session's final usage line; Fable rows from the subagent's usage.
+
+| # | Date | Item · round | Auditor | Reset check (session id changed?) | Duration | Input tokens | Cached | Output |
+|---|---|---|---|---|---|---|---|---|
