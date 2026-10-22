@@ -34,6 +34,7 @@ import {
   resolveMilkdownScroller,
   restoreMilkdownScrollAnchor,
 } from "../src/utils/scrollAnchor/milkdown";
+import { collectionCases } from "./support/collectionCases";
 
 const mounted: Editor[] = [];
 
@@ -91,7 +92,7 @@ const FIXTURES: Record<string, string> = {
 };
 
 describe("Milkdown ⇄ Lezer block correspondence", () => {
-  for (const [name, markdown] of Object.entries(FIXTURES)) {
+  for (const [name, markdown] of collectionCases("tests/scroll-anchor-correspondence.test.ts:94", Object.entries(FIXTURES))) {
     it(`${name}: top-level block count and heading count agree`, async () => {
       const view = await mount(markdown);
       expect(view.state.doc.childCount).toBe(enumerateSourceBlocks(markdown).length);

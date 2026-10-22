@@ -30,6 +30,7 @@ import { loggingService } from "../src/services/loggingService";
 import { preferencesService } from "../src/services/preferencesService";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { makePreferences } from "./support/preferenceFixtures";
+import { collectionCases } from "./support/collectionCases";
 
 const ALL_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 
@@ -68,7 +69,7 @@ beforeEach(() => {
 });
 
 describe("WI-2-A — applies every backend response verbatim", () => {
-  it.each(ALL_SETTINGS)(
+  it.each(collectionCases("tests/logging-hydrate-settings.test.ts:71", ALL_SETTINGS))(
     "hydrates enabled=$enabled level=$level into both the return value and the store",
     async (v) => {
       seedSentinelFor(v);
@@ -172,7 +173,7 @@ describe("WI-2-D — IPC failure fails closed without rejecting", () => {
 });
 
 describe("WI-2-E — hydration is idempotent", () => {
-  it.each(ALL_SETTINGS)(
+  it.each(collectionCases("tests/logging-hydrate-settings.test.ts:175", ALL_SETTINGS))(
     "a second hydrate of enabled=$enabled level=$level changes nothing",
     async (v) => {
       seedSentinelFor(v);

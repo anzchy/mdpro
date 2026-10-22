@@ -37,6 +37,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { bus, win } from "./support/menuEventsHarness";
 import { useFileOpenEvent } from "../src/hooks/useFileOpenEvent";
 import type { ViewMode } from "../src/types/editor";
+import { collectionCases } from "./support/collectionCases";
 
 const EVT = "file:open";
 
@@ -164,7 +165,7 @@ describe("useFileOpenEvent — failure and teardown", () => {
 const LATCH_ROWS = [0, 1, 2, 3].flatMap((k1) => [0, 1, 2, 3].map((k2) => ({ k1, k2 })));
 
 describe("useFileOpenEvent — HK-L11 latch law: min(1, k) switches per event, to the current default (S4)", () => {
-  it.each(LATCH_ROWS)("k1=$k1, k2=$k2", async ({ k1, k2 }) => {
+  it.each(collectionCases("tests/useFileOpenEvent.test.ts:167", LATCH_ROWS))("k1=$k1, k2=$k2", async ({ k1, k2 }) => {
     const h = mount("wysiwyg");
     await flush();
 
@@ -197,7 +198,7 @@ const L10_ROWS = Object.entries(SCRIPTS).flatMap(([name, steps]) =>
 );
 
 describe("useFileOpenEvent — HK-L10 subscription conservation (S5)", () => {
-  it.each(L10_ROWS)("$name, $order drain", async ({ steps, order }) => {
+  it.each(collectionCases("tests/useFileOpenEvent.test.ts:200", L10_ROWS))("$name, $order drain", async ({ steps, order }) => {
     bus.state.autoResolve = false;
     let mode: ViewMode = "wysiwyg";
     let mounted = true;

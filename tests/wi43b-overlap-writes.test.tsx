@@ -28,6 +28,7 @@ import { mcpService, type McpInstallation } from "../src/services/mcpService";
 import { preferencesService } from "../src/services/preferencesService";
 import { MCP_LOADED, installBoundary } from "./support/settingsRowSites";
 import { SAVE_SITES, renderStatePage, stubAppliedShortcuts } from "./support/settingsStatePages";
+import { collectionCases } from "./support/collectionCases";
 
 afterEach(() => {
   cleanup();
@@ -58,7 +59,7 @@ function hold(fn: (...args: never[]) => Promise<unknown>): Held[] {
 }
 
 describe("F508-2: a control changed twice, both writes rejected, ends at its saved value", () => {
-  it.each(SAVE_SITES.map((s) => [s.page, s.name, s] as const))("%s › %s", async (_page, name, site) => {
+  it.each(collectionCases("tests/wi43b-overlap-writes.test.tsx:61", SAVE_SITES.map((s) => [s.page, s.name, s] as const)))("%s › %s", async (_page, name, site) => {
     const user = userEvent.setup();
     installBoundary();
     const held = hold(preferencesService.setPreferences);

@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import { afterAll, describe, expect, it } from "vitest";
 import { bashInput, makeDetachedRepo, makeRepo, makeRoot, runHook } from "../support/roleGuardHarness";
+import { collectionCases } from "../support/collectionCases";
 
 const root = makeRoot("role-guard-d180-");
 afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -69,7 +70,7 @@ const PREFIXED_BLOCKED: string[] = [
 ];
 
 describe("D180 role-guard: implementor may not move a protected branch by name", () => {
-  it.each(BLOCKED)("denies %s", (command) => {
+  it.each(collectionCases("tests/tooling/d180-role-guard-ref-moves.test.ts:72", BLOCKED))("denies %s", (command) => {
     const r = impl(command);
     expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/master|release\/0\.3|frontend-backend-redesign/);

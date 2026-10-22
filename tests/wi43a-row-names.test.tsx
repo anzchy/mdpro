@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@tauri-apps/api/core", async () => (await import("./support/tauriCoreMock")).createTauriCoreMock());
 
 import { LOADED, PANEL_IDS, ROWS, firstTitle, installBoundary, renderPanel } from "./support/settingsRowSites";
+import { collectionCases } from "./support/collectionCases";
 
 afterEach(() => {
   cleanup();
@@ -40,7 +41,7 @@ const PANEL_FILES = [
 const read = (rel: string) => readFileSync(join(__dirname, "..", "src", rel), "utf8");
 
 describe("WI-4.3a: every settings control is named by its row title", () => {
-  it.each(ROWS.map((r) => [r.panel, r.title, r] as const))("%s › %s", async (_panel, title, row) => {
+  it.each(collectionCases("tests/wi43a-row-names.test.tsx:43", ROWS.map((r) => [r.panel, r.title, r] as const)))("%s › %s", async (_panel, title, row) => {
     await renderPanel(row.panel, installBoundary(), firstTitle(row.panel));
     const heading = screen.getByRole("heading", { level: 4, name: title });
     const control = screen.getByRole(row.role, { name: title });
@@ -51,7 +52,7 @@ describe("WI-4.3a: every settings control is named by its row title", () => {
 });
 
 describe("WI-4.3a: one row markup in every panel", () => {
-  it.each(PANEL_IDS)("%s", async (panel) => {
+  it.each(collectionCases("tests/wi43a-row-names.test.tsx:54", PANEL_IDS))("%s", async (panel) => {
     const { container } = await renderPanel(panel, installBoundary(), firstTitle(panel));
     const rows = [...container.querySelectorAll(".settings-row")];
     expect(rows).toHaveLength(ROWS.filter((r) => r.panel === panel).length);

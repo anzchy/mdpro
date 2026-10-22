@@ -45,6 +45,7 @@ vi.mock("../src/services/loggingService", () => ({
 import { createHeldInvoke } from "./helpers/heldInvoke";
 import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
 import { createRig, type Rig } from "./support/d188EmptyParagraphRig";
+import { collectionCases } from "./support/collectionCases";
 
 let rig: Rig;
 
@@ -77,7 +78,7 @@ async function runRow(row: Row): Promise<void> {
 
 function rows(title: string, list: Row[]): void {
   describe(title, () => {
-    for (const row of list) {
+    for (const row of collectionCases("tests/d188-empty-paragraph-read.test.tsx:80", list)) {
       it(`${row.id}: ${JSON.stringify(row.file)} → ${row.reopens}`, async () => {
         await runRow(row);
       });

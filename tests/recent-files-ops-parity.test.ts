@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/recent-files-ops.json";
 import { MAX_RECENT_FILES, mergePending, pushRecent } from "../src/utils/recentFiles";
+import { collectionCases } from "./support/collectionCases";
 
 interface PushRow { name: string; list: string[]; path: string; expected: string[] }
 interface MergeRow { name: string; stored: string[]; pendingNewestFirst: string[]; expected: string[] }
@@ -35,11 +36,11 @@ describe("OP-02 TS matches every shared fixture row", () => {
     expect(fixture.maxRecentFiles).toBe(MAX_RECENT_FILES);
   });
 
-  it.each(push.map((row) => [row.name, row] as const))("push row %s", (name, row) => {
+  it.each(collectionCases("tests/recent-files-ops-parity.test.ts:38", push.map((row) => [row.name, row] as const)))("push row %s", (name, row) => {
     expect(pushRecent(row.list, row.path), name).toEqual(row.expected);
   });
 
-  it.each(merge.map((row) => [row.name, row] as const))("merge row %s", (name, row) => {
+  it.each(collectionCases("tests/recent-files-ops-parity.test.ts:42", merge.map((row) => [row.name, row] as const)))("merge row %s", (name, row) => {
     expect(mergePending(row.stored, row.pendingNewestFirst), name).toEqual(row.expected);
   });
 

@@ -53,6 +53,7 @@ import {
   ROWS,
   statuses,
 } from "./support/menuEventsDomain";
+import { collectionCases } from "./support/collectionCases";
 
 beforeEach(() => {
   resetMenuHarness();
@@ -68,7 +69,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("useMenuEvents — ui.menu.select carries windowLabel (WI-2)", () => {
-  it.each(ROWS)("B1b row $n: $action logs the exact context with windowLabel (RED before WI-2)", async (row) => {
+  it.each(collectionCases("tests/use-menu-events-logging.test.ts:71", ROWS))("B1b row $n: $action logs the exact context with windowLabel (RED before WI-2)", async (row) => {
     win.label = "mdpro-5";
     const h = mountHook(makeHandlers(0));
     await flush();

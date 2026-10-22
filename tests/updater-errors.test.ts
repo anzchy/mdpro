@@ -28,6 +28,7 @@
 import { describe, it, expect } from "vitest";
 import { classifyCheckRejection, isUpdatesDisabledError } from "../src/components/common/settings/updaterErrors";
 import { MALFORMED_METADATA_TEXTS, PLATFORM_NOT_IN_MANIFEST_TEXTS } from "./support/updaterErrorTexts";
+import { collectionCases } from "./support/collectionCases";
 
 /** tauri-plugin-updater 2.9.0 `Error::EmptyEndpoints` Display text. */
 const REAL_EMPTY_ENDPOINTS = "Updater does not have any endpoints set.";
@@ -221,7 +222,7 @@ describe("isUpdatesDisabledError", () => {
     expect(matches).toEqual([]);
   });
 
-  it.each(MALFORMED)("U13: malformed release metadata %j is a failure, not disabled", (m) => {
+  it.each(collectionCases("tests/updater-errors.test.ts:224", MALFORMED))("U13: malformed release metadata %j is a failure, not disabled", (m) => {
     expect(isUpdatesDisabledError(m)).toBe(false);
   });
 

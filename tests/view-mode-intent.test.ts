@@ -31,6 +31,7 @@ import { useLoggingStore } from "../src/stores/loggingStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import type { ViewMode } from "../src/types/editor";
 import { allCommandSequences, checkViewModeLaws } from "./support/viewModeCommandSequences";
+import { collectionCases } from "./support/collectionCases";
 
 interface LoggedPayload {
   event: string;
@@ -234,7 +235,7 @@ describe("VMI-07 the user intent keeps the flush-on-leaving-WYSIWYG", () => {
     expect(rows.filter((r) => r.flush)).toHaveLength(4);
   });
 
-  it.each(rows)("from $from, $action, $intent intent: flush=$flush", ({ from, action, intent, flush }) => {
+  it.each(collectionCases("tests/view-mode-intent.test.ts:237", rows))("from $from, $action, $intent intent: flush=$flush", ({ from, action, intent, flush }) => {
     useEditorStore.setState({ viewMode: from });
     const store = useEditorStore.getState();
     if (action === "set-wysiwyg") store.setViewMode("wysiwyg", intent);

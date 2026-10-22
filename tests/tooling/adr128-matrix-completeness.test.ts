@@ -18,7 +18,11 @@ const report = (results: Array<{ title: string; status: string }>) => ({ success
 const inventory = (tag: string, title = "required") => ({ schemaVersion: 1, tests: [{ id: id(title), prerequisite: tag }], exclusions: [] });
 function child(args: string[], env: NodeJS.ProcessEnv = process.env) {
   return new Promise<{ status: number | null; stdout: string }>(done => {
-    execFile(process.execPath, args, { cwd: root, env, encoding: "utf8" }, (error, stdout) => {
+    const profile = args[0]?.endsWith("/runner-profile.mjs");
+    const emptyHome = profile ? fs.mkdtempSync(path.join(os.tmpdir(), "adr128-profile-empty-")) : null;
+    const childEnv = emptyHome ? { ...env, HOME: emptyHome, PATH: "" } : env;
+    execFile(process.execPath, args, { cwd: root, env: childEnv, encoding: "utf8" }, (error, stdout) => {
+      if (emptyHome) fs.rmSync(emptyHome, { recursive: true, force: true });
       done({ status: error ? (typeof error.code === "number" ? error.code : null) : 0, stdout });
     });
   });

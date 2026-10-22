@@ -80,6 +80,14 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(options, "if-no-files-found")).toBe("error");
   });
 
+  it("includes the hidden JSON report in the upload action's selected files", () => {
+    const upload = steps(job(TEXT, "frontend")).find((step) => scalar(step, "uses") === "actions/upload-artifact@v4");
+    const options = entry(upload ?? null, "with")?.body ?? null;
+    expect(scalar(options, "path")).toBe(".ci-vitest-results.json");
+    expect(scalar(options, "include-hidden-files")).toBe("true");
+    expect(scalar(options, "if-no-files-found")).toBe("error");
+  });
+
   it("rust-test runs cargo test and no longer runs cargo audit", () => {
     const r = runs("rust-test");
     expect(r).toContain("cargo test --manifest-path src-tauri/Cargo.toml");

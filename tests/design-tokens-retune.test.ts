@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations, tokenBlock } from "./support/cssTokenScan";
 import { readAppCssFile } from "../src/test/appCss";
 import { contrast, resolveColor, themeTokens, type Rgba, type Theme } from "./support/contrast";
+import { collectionCases } from "./support/collectionCases";
 
 const ROOT = join(__dirname, "..");
 const lightCss = readAppCssFile("themes/light.css");
@@ -87,7 +88,7 @@ describe("theme retune (WI-3.1)", () => {
 
   for (const theme of ["light", "dark"] as const) {
     const block = theme === "light" ? light : dark;
-    for (const [name, value] of Object.entries(RETUNED[theme])) {
+    for (const [name, value] of collectionCases("tests/design-tokens-retune.test.ts:90", Object.entries(RETUNED[theme]))) {
       it(`${theme}: ${name} is the proposal value`, () => {
         expect(block.get(name)).toBe(value);
       });

@@ -17,6 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { __clipCells, TableMap } from "@milkdown/kit/prose/tables";
 import { cell, problemsOf, row, schema } from "./support/upstreamTableSchema";
+import { collectionCases } from "./support/collectionCases";
 
 type Cells = Parameters<typeof __clipCells>[0];
 
@@ -66,8 +67,8 @@ describe("D162-WI-3 upstream (a) — clipCells keeps a clipped span's remaining 
     ["left", leftSpan],
     ["right", rightSpan],
   ] as const) {
-    for (let height = 2; height <= 6; height += 1) {
-      for (let newHeight = 1; newHeight < height; newHeight += 1) {
+  for (const height of [2, 3, 4, 5, 6]) {
+      for (const newHeight of collectionCases("clip height", Array.from({ length: height - 1 }, (_, i) => i + 1))) {
         it(`${name} span of ${height} clipped to ${newHeight}: the span keeps ${newHeight} rows, the table is sound`, () => {
           const out = __clipCells(make(height), 2, newHeight);
           const a = out.rows[0].child(name === "left" ? 0 : 1);
@@ -79,7 +80,7 @@ describe("D162-WI-3 upstream (a) — clipCells keeps a clipped span's remaining 
     }
   }
 
-  for (let newHeight = 3; newHeight <= 7; newHeight += 1) {
+  for (const newHeight of [3, 4, 5, 6, 7]) {
     it(`a repeated 2-row span over ${newHeight} rows ends by the last row`, () => {
       const out = __clipCells(shortSpan(), 2, newHeight);
       expectSound(out, 2, newHeight);

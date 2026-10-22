@@ -22,4 +22,27 @@ describe("ADR128 collected registration under aliases", () => {
       expect(findings(`import { it as ${alias} } from "vitest"; ${gated}`).length, `seed ${seed}`).toBeGreaterThan(0);
     }
   });
+  it.each([
+    'const maybe = plugin ? it : () => {}; maybe("lost", () => {});',
+    'const check = it; if (plugin) check("lost", () => {});',
+    'let register = it; if (!plugin) register = () => {}; register("lost", () => {});',
+    'const first = describe; let second = first; if (!plugin) second = () => {}; second("lost", () => {});',
+  ])("rejects conditional registration aliases: %s", (source) => {
+    expect(findings(source), source).not.toEqual([]);
+  });
+  it("rejects generated namespace and chained guards", () => {
+    for (let seed = 1; seed <= 32; seed++) {
+      const name = `v${seed}`;
+      const call = seed % 2 ? `${name}.it` : `${name}.describe`;
+      const chain = seed % 4 < 2 ? `${call}.skipIf(false).each([1])` : `${call}.each([1]).runIf(true)`;
+      const source = `import * as ${name} from "vitest"; if (plugin) ${chain}("lost", () => {});`;
+      expect(findings(source), `seed ${seed}`).not.toEqual([]);
+    }
+  });
+  it("rejects an early return in an aliased describe callback", () => {
+    expect(findings('import { describe as suite, it } from "vitest"; suite("s", () => { if (!plugin) return; it("lost", () => {}); });')).not.toEqual([]);
+  });
+  it("rejects an early return in a namespace describe alias", () => {
+    expect(findings('import * as v from "vitest"; const suite = v.describe; suite("s", () => { if (!plugin) return; it("lost", () => {}); });')).not.toEqual([]);
+  });
 });

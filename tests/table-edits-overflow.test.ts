@@ -20,6 +20,7 @@ import type { TableActionId, TableContext } from "../src/plugins/milkdown/table/
 import { frozenApplyEdit } from "./support/frozenTableEdits";
 import { ALL_ACTION_IDS, ctxAt } from "./support/tableEditsOverflowLaws";
 import { oracleCells } from "./support/tableOverflowArb";
+import { collectionCases } from "./support/collectionCases";
 
 const T2 = "| a | b |\n|---|---|\n| 1 | 2 | Z |\n| 3 | 4 |\n";
 const T0 = "| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n";
@@ -156,7 +157,7 @@ describe("E-18: an escaped pipe in overflow survives every edit as one cell", ()
       "| a   | b   |      |\n| --- | --- | ---- |\n| 1   | 2   | a\\|b |",
     );
   });
-  it.each(REWRITING)("%s keeps exactly one `a\\|b` cell", (id) => {
+  it.each(collectionCases("tests/table-edits-overflow.test.ts:159", REWRITING))("%s keeps exactly one `a\\|b` cell", (id) => {
     const [r, c] = ctxFor(id);
     const out = run("| a | b |\n|---|---|\n| 1 | 2 | a\\|b |\n| 3 | 4 |\n", r, c, id);
     const cells = out.source.split("\n").filter((_, i) => i !== 1).flatMap(oracleCells);
@@ -178,7 +179,7 @@ describe("E-20: a CRLF table keeps its overflow and the rewrite has no \\r", () 
   it("reformat gives the LF-joined widened table", () => {
     expect(run(CRLF, 1, 0, "reformat_table").source).toBe(lines(H, D, R1, R2));
   });
-  it.each(REWRITING)("%s keeps Z and writes no \\r", (id) => {
+  it.each(collectionCases("tests/table-edits-overflow.test.ts:181", REWRITING))("%s keeps Z and writes no \\r", (id) => {
     const [r, c] = ctxFor(id);
     const out = run(CRLF, r, c, id).source;
     expect(out.includes("\r")).toBe(false);

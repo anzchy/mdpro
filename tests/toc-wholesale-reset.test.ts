@@ -91,6 +91,7 @@ import {
   EDIT_SYNC_DELAY_MS,
 } from "../src/plugins/milkdown/editSync/controller";
 import type { Document } from "../src/types/document";
+import { collectionCases } from "./support/collectionCases";
 
 // --- heading fixtures -----------------------------------------------------
 
@@ -661,7 +662,7 @@ function driverRows(): DriverRow[] {
 }
 
 describe("W1 — the wholesale/ordinary partition, behaviourally", () => {
-  for (const row of driverRows()) {
+  for (const row of collectionCases("tests/toc-wholesale-reset.test.ts:664", driverRows())) {
     it(`${row.mustReset ? "resets" : "preserves"}: ${row.path}`, async () => {
       seedDocumentStore();
       const { collapsed, before } = seedCollapsed(GUIDE_INTRO, DOC_ID, 1);

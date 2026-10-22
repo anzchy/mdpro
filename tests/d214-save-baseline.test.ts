@@ -32,6 +32,7 @@ import {
   assessWindowUnsaved,
   decideCloseRequest,
 } from "../src/utils/dataLossGuards";
+import { collectionCases } from "./support/collectionCases";
 
 const PATH = "/tmp/doc-a.md";
 const SAVED_AT = 1_760_000_000_000;
@@ -77,7 +78,7 @@ describe("A1 a failed settle flush leaves the document without a baseline", () =
     },
   } as const;
 
-  it.each(Object.keys(FAILURES) as Array<keyof typeof FAILURES>)(
+  it.each(collectionCases("tests/d214-save-baseline.test.ts:80", Object.keys(FAILURES) as Array<keyof typeof FAILURES>))(
     "flusher %s on save-settle only: dirty, no baseline, close prompts, until a clean point",
     (mode) => {
       const reasons: string[] = [];

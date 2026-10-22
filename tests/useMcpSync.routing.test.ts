@@ -163,7 +163,7 @@ describe("a path change syncs immediately", () => {
     { name: "path→other path", from: "/old" },
     { name: "null→path", from: null },
   ];
-  for (let i = 0; i < 3; i++) {
+  for (const i of [0, 1, 2]) {
     for (const t of transitions) {
       it(`path freshness: doc ${i}, ${t.name}`, async () => {
         const ids = ["d0", "d1", "d2"];

@@ -29,6 +29,7 @@ import {
 } from "./support/bindingSweep";
 import { committedSweepTail, serializeSweepTail, withSweep } from "./support/bindingSweepFile";
 import { V2_DEFAULTS, V2_UNAVAILABLE } from "./support/bindingV2Defaults";
+import { collectionCases } from "./support/collectionCases";
 
 const FIXTURE_PATH = resolve(__dirname, "fixtures/binding-owner-cases.json");
 const TEXT = readFileSync(FIXTURE_PATH, "utf8");
@@ -70,7 +71,7 @@ const normDefault = (field: string, p: Platform, v: number): string | null => {
 };
 
 describe("shared cases (TS side)", () => {
-  it.each(CASES.map((c) => [c.name, c] as const))("%s", (_name, c) => {
+  it.each(collectionCases("tests/binding-conflicts.test.ts:73", CASES.map((c) => [c.name, c] as const)))("%s", (_name, c) => {
     const state = stateOf(c);
     for (const [field, want] of Object.entries(c.expect)) {
       expect({ field, got: state.resolutions[field] }).toEqual({ field, got: want });
@@ -120,7 +121,7 @@ describe("baseline ownership of the probe chords (stored = {})", () => {
 });
 
 describe("all defaults at v2, every platform", () => {
-  it.each(PLATFORMS)("%s: defaults bound, sentinels as such, unavailable rows reserve; nothing flagged", (p) => {
+  it.each(collectionCases("tests/binding-conflicts.test.ts:123", PLATFORMS))("%s: defaults bound, sentinels as such, unavailable rows reserve; nothing flagged", (p) => {
     const res = resolveBindings(p, 2, {});
     expect(Object.keys(res).sort()).toEqual([...Object.keys(V2_DEFAULTS)].sort());
     for (const [field, [mac, off]] of Object.entries(V2_DEFAULTS)) {

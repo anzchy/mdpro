@@ -47,6 +47,7 @@ import {
   offsetsOf,
 } from "./support/tableOffsetDomain";
 import { D12_FIXTURES, recordingSource } from "./support/tableSpanOracle";
+import { collectionCases } from "./support/collectionCases";
 
 // Passthrough counter over the REAL `parseRowCells` — observes, replaces nothing.
 const rowCells = vi.hoisted(() => ({ calls: 0, lastLength: -1 }));
@@ -109,7 +110,7 @@ describe("CAO-1 every-offset equivalence over both corpora and both adapters", (
 });
 
 describe("CAO-2 named fixture sweep (Finding 1 included)", () => {
-  it.each(FIXTURE_DOCS.map((d) => [d.id, d] as const))("%s: the CAO-1 relation at every offset", (_id, doc) => {
+  it.each(collectionCases("tests/table-cell-at-offset.test.ts:113", FIXTURE_DOCS.map((d) => [d.id, d] as const)))("%s: the CAO-1 relation at every offset", (_id, doc) => {
     const { mismatches } = equivalenceSweep([doc]);
     expect(mismatches).toEqual([]);
   });
@@ -137,7 +138,7 @@ describe("CAO-3 Finding-1 non-vacuity (exact values at line-start offsets)", () 
   ];
 
   for (const [label, doc, o, expected] of probes) {
-    for (const [name, make] of ADAPTERS) {
+    for (const [name, make] of collectionCases("tests/table-cell-at-offset.test.ts:140", ADAPTERS)) {
       it(`${label} (${name})`, () => {
         const span = locateTableAtOffset(make(doc), o);
         expect(cellAtOffset(make(doc), span, o)).toEqual(expected);
@@ -145,7 +146,7 @@ describe("CAO-3 Finding-1 non-vacuity (exact values at line-start offsets)", () 
     }
   }
 
-  for (const [name, make] of ADAPTERS) {
+  for (const [name, make] of collectionCases("tests/table-cell-at-offset.test.ts:148", ADAPTERS)) {
     it(`NEP@24 (${name}): the span is non-null even though the cell is null`, () => {
       expect(locateTableAtOffset(make(NEP), 24)).toMatchObject({ headerLine: 0, lastLine: 3 });
     });
@@ -226,7 +227,7 @@ describe("CAO-5 cost is invariant under R; one row parsed", () => {
   ];
 
   for (const probe of probes) {
-    for (const [name, make] of ADAPTERS) {
+    for (const [name, make] of collectionCases("tests/table-cell-at-offset.test.ts:229", ADAPTERS)) {
       it(`${probe.label} (${name}): equal counts at R=2,000 and R=50,000`, () => {
         const counts: Array<Record<string, number>> = [];
         for (const R of [2_000, 50_000]) {
@@ -276,7 +277,7 @@ describe("CAO-5 cost is invariant under R; one row parsed", () => {
 describe("CAO-6 wrapper identity: cellAtOffset = cellAtResolvedLine after lineIndexAt (K = 3)", () => {
   // The CAO-1-domain sweep of this law (~5.5 s under coverage) runs in the slow
   // tier: table-cell-at-offset.slow.test.ts (ADR-0050).
-  for (const [name, make] of ADAPTERS) {
+  for (const [name, make] of collectionCases("tests/table-cell-at-offset.test.ts:279", ADAPTERS)) {
     it(`a resolved index of -1 with a non-null span is null with 0 line calls (${name})`, () => {
       const doc = D12_FIXTURES.P2;
       const span = locateTableAtOffset(make(doc), 22);

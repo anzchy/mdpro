@@ -45,6 +45,7 @@ import { createHeldInvoke } from "./helpers/heldInvoke";
 import { installIntersectionObserverDouble } from "./helpers/intersectionObserverDouble";
 import { createRig, type Rig } from "./support/d188EmptyParagraphRig";
 import { definitions } from "./support/d194LinkDefinitionRig";
+import { collectionCases } from "./support/collectionCases";
 
 let rig: Rig;
 
@@ -82,7 +83,7 @@ async function runRow(row: Row): Promise<void> {
 
 function rows(title: string, list: Row[]): void {
   describe(title, () => {
-    for (const row of list) {
+    for (const row of collectionCases("tests/d194-link-definitions-roundtrip.test.tsx:85", list)) {
       it(`${row.id}: ${JSON.stringify(row.file)}`, async () => {
         await runRow(row);
       });

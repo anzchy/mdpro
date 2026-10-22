@@ -16,6 +16,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations } from "./support/cssTokenScan";
+import { collectionCases } from "./support/collectionCases";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
@@ -50,7 +51,7 @@ describe("transition parser fixtures", () => {
 });
 
 describe("only transform and opacity animate (DR12)", () => {
-  for (const file of inScope) {
+  for (const file of collectionCases("tests/motion-dr12.test.ts:53", inScope)) {
     const offenders = parseDeclarations(read(file))
       .filter((d) => d.property === "transition" || d.property === "transition-property")
       .filter((d) =>

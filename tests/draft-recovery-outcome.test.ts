@@ -11,6 +11,7 @@ import {
   draftRecoveryOutcome,
   type DraftActionOutcome,
 } from "../src/utils/draftRecoveryOutcome";
+import { collectionCases } from "./support/collectionCases";
 
 const RESULT = { content: "C", originalPath: "/tmp/a.md", title: "T" };
 
@@ -114,7 +115,7 @@ describe("f8: invariants over the whole domain", () => {
     ["d1", "other-id"].map((id) => [`${input.action}/${input.outcome.kind}/${id}`, id, input] as const),
   );
 
-  it.each(cases)("%s", (_label, id, input) => {
+  it.each(collectionCases("tests/draft-recovery-outcome.test.ts:117", cases))("%s", (_label, id, input) => {
     const out = draftRecoveryOutcome(id, input);
     expect(out.dropRow).not.toBe(Boolean(out.toast));
     if (out.upsert) {

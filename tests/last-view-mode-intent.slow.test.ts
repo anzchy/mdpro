@@ -30,6 +30,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
 import { answer } from "./support/lastViewModeHarness";
 import { checkLastViewModeLaw } from "./support/lastViewModeLaw";
 import { setOnlySequences } from "./support/viewModeCommandSequences";
+import { collectionCases } from "./support/collectionCases";
 
 beforeEach(() => {
   invokeMock.mockReset();
@@ -55,7 +56,7 @@ describe("LVI-09s erasure and closed-form law, every set-only sequence of length
     [0, 1, 2, 3].map((first) => ({ length, first, head: sequences[first]?.[0] })),
   );
 
-  it.each(chunks)("holds for every sequence of length $length starting with command #$first", async ({ length, head }) => {
+  it.each(collectionCases("tests/last-view-mode-intent.slow.test.ts:58", chunks))("holds for every sequence of length $length starting with command #$first", async ({ length, head }) => {
     expect(head).toBeDefined();
     const chunk = sequences.filter(
       (s) => s.length === length && s[0].intent === head?.intent && s[0].mode === head?.mode,

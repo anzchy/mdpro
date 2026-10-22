@@ -14,6 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { classifyPaths, PROSE_PREFIXES, PROSE_ROOT_FILES } from "../../scripts/ci/change-scope.mjs";
+import { collectionCases } from "../support/collectionCases";
 
 const SCRIPT = path.resolve(__dirname, "..", "..", "scripts", "ci", "change-scope.mjs");
 
@@ -22,7 +23,7 @@ describe("ADR95-WI-1 classifyPaths", () => {
     expect(classifyPaths([])).toBe("code");
   });
 
-  it.each([...PROSE_PREFIXES.map((p) => `${p}x.md`), ...PROSE_ROOT_FILES])("answers prose for %s alone", (p) => {
+  it.each(collectionCases("tests/tooling/ci-change-scope.test.ts:25", [...PROSE_PREFIXES.map((p) => `${p}x.md`), ...PROSE_ROOT_FILES]))("answers prose for %s alone", (p) => {
     expect(classifyPaths([p])).toBe("prose");
   });
 

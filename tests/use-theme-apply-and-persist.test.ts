@@ -139,6 +139,7 @@ import { useLoggingStore } from "../src/stores/loggingStore";
 import { useThemeStore } from "../src/stores/themeStore";
 import type { ThemeMode } from "../src/stores/themeStore";
 import { useToastStore } from "../src/stores/toastStore";
+import { collectionCases } from "./support/collectionCases";
 
 const MODES: ThemeMode[] = ["light", "dark", "system"];
 
@@ -262,9 +263,9 @@ describe("useTheme — WI-3: hydration applies the theme without persisting it",
   );
 
   it.each(
-    MODES.flatMap((first) =>
+    collectionCases("tests/use-theme-apply-and-persist.test.ts:264", MODES.flatMap((first) =>
       MODES.map((second) => [first, second, first === second] as const),
-    ),
+    )),
   )(
     "WI3-A: applyThemeMode(%s) then (%s) ends at the last applied value and writes nothing (idempotence row: %s)",
     async (first, second, isIdempotenceRow) => {

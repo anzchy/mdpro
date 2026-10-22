@@ -18,6 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { collectionCases } from "../support/collectionCases";
 
 const SCRIPT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../scripts/heavy-lock.sh");
 const POLL_MS = 5;
@@ -61,7 +62,7 @@ afterEach(() => {
   for (const d of tmpDirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
 });
 
-describe.each(SHELLS)("D75(b) heavy-lock signal handling under %s", (shell) => {
+describe.each(collectionCases("tests/tooling/heavy-lock-signal.test.ts:64", SHELLS))("D75(b) heavy-lock signal handling under %s", (shell) => {
   it.each(["SIGINT", "SIGTERM"] as const)(
     "%s: the grandchild is gone before the lock dir is removed",
     async (signal) => {

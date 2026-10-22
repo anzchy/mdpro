@@ -39,6 +39,7 @@ import { computeBuildId } from "../../scripts/control/buildId.mjs";
 import { NO_UPDATER_CONFIG, buildLayout, sidecarCommand, tauriCommand } from "../../scripts/control/buildSteps.mjs";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { DEFAULT_EXCLUDES, computeSourceTree } from "../../scripts/control/sourceTree.mjs";
+import { collectionCases } from "../support/collectionCases";
 
 type Manifest = { buildId: string; bundle: string; features: string[]; sidecarSha256: string };
 
@@ -206,7 +207,7 @@ describe("WI-2 commands, arguments and layout", () => {
     ["--features", "a", "--features", "verify-run"],
   ];
   const T04_PROFILES = [["--profile", "release"], ["--profile", "verify"], []];
-  it.each(T04_ARGV.flatMap((argv) => T04_PROFILES.map((p) => ({ argv: [...argv, ...p] }))))(
+  it.each(collectionCases("tests/control/control-build-verify-profile.test.ts:209", T04_ARGV.flatMap((argv) => T04_PROFILES.map((p) => ({ argv: [...argv, ...p] })))))(
     "WI2-T04 parseBuildArgs rejects a user verify-run: $argv",
     ({ argv }) => {
       let e: unknown = null;

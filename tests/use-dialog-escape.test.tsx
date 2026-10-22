@@ -38,6 +38,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
 
 import { useDialogEscape } from "../src/hooks/useDialogEscape";
 import { useLoggingStore } from "../src/stores/loggingStore";
+import { collectionCases } from "./support/collectionCases";
 
 // ---------------------------------------------------------------------------
 // Harness
@@ -322,7 +323,7 @@ describe("useDialogEscape (D34 WI-1)", () => {
     const permutations = ["ABC", "ACB", "BAC", "BCA", "CAB", "CBA"];
     const targets = ["body", "outside", "editor", "A-btn", "B-btn", "C-btn"];
     const runs = permutations.flatMap((p) => targets.map((t) => [p, t] as const));
-    it.each(runs)("order %s, focus %s", async (p, target) => {
+    it.each(collectionCases("tests/use-dialog-escape.test.tsx:325", runs))("order %s, focus %s", async (p, target) => {
       const user = userEvent.setup();
       const before = (
         <>

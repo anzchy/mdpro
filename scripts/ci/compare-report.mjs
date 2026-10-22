@@ -44,9 +44,11 @@ export function parseReport(value, root) {
 }
 
 export function profileFor(name) {
-  if (name === "ubuntu") return new Set();
-  if (name === "macos") return new Set(["macos"]);
-  throw Error(`Unknown runner profile: ${name}`);
+  if (!/^(ubuntu|macos)(\+rustfmt)?$/.test(name)) throw Error(`Unknown runner profile: ${name}`);
+  const available = new Set();
+  if (name.startsWith("macos")) available.add("macos");
+  if (name.endsWith("+rustfmt")) available.add("rustfmt");
+  return available;
 }
 
 export function compare(mode, report, inventory, profile, root) {
@@ -81,9 +83,9 @@ export function compare(mode, report, inventory, profile, root) {
 }
 
 /** Every non-excluded collected test must have passed on CI or locally. */
-export function proveParity(ciReport, localReport, inventory, ciRoot, localRoot = ciRoot) {
+export function proveParity(ciReport, localReport, inventory, ciRoot, localRoot = ciRoot, ciProfile = "ubuntu") {
   const list = parseInventory(inventory);
-  compare("ci", ciReport, list, "ubuntu", ciRoot);
+  compare("ci", ciReport, list, ciProfile, ciRoot);
   compare("verify", localReport, list, "macos", localRoot);
   const excluded = new Set(list.exclusions.map((item) => key(item.id)));
   const ci = parseReport(ciReport, ciRoot), local = parseReport(localReport, localRoot);
@@ -96,13 +98,13 @@ export function proveParity(ciReport, localReport, inventory, ciRoot, localRoot 
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
-  const [mode, reportPath, inventoryPath = "tests/ci-inventory.json", profile = "ubuntu", root = process.cwd(), localRoot = root] = process.argv.slice(2);
+  const [mode, reportPath, inventoryPath = "tests/ci-inventory.json", profile = "ubuntu", root = process.cwd(), localRoot = root, ciProfile = "ubuntu"] = process.argv.slice(2);
   try {
     if (mode === "parity") {
       const ci = JSON.parse(fs.readFileSync(reportPath, "utf8"));
       const local = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
       const inventory = JSON.parse(fs.readFileSync(profile, "utf8"));
-      const result = proveParity(ci, local, inventory, root, localRoot);
+      const result = proveParity(ci, local, inventory, root, localRoot, ciProfile);
       process.stdout.write(`PARITY PASS (${result.executed}/${result.required} required IDs executed)\n`);
     } else {
       if (!["ci", "verify"].includes(mode)) throw Error("Expected ci, verify or parity mode");

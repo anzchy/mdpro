@@ -24,6 +24,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { acquireLock, readLock, releaseLock, releaseOrphanLock } from "../../scripts/control/lock.mjs";
 import { A, B, C, N1, N2, N3, cleanupParents, freshParent, lockFile, outcome, recordBytes, tombsIn } from "../support/lockSchedules";
 import { atDeath, cleanupQuitFixtures, diesOn, launched, PID } from "../support/quitHarness";
+import { collectionCases } from "../support/collectionCases";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -71,7 +72,7 @@ function controlMismatch(call: (parent: string) => string): string | { error: st
 
 describe("D82-WI-9 S-1: a non-EEXIST restore failure names the tomb", () => {
   const CASES = FNS.flatMap((f) => ["EPERM", "EIO"].map((code) => ({ ...f, code })));
-  it.each(CASES)("$fn, link $code: throws `lock displaced: kept <tomb> ($code)`, B stays in the tomb, .lock absent", ({ call, code }) => {
+  it.each(collectionCases("tests/control/control-launcher-lock-tomb-faults.test.ts:74", CASES))("$fn, link $code: throws `lock displaced: kept <tomb> ($code)`, B stays in the tomb, .lock absent", ({ call, code }) => {
     const parent = freshParent();
     acquireLock(parent, { run: A, nonce: N1 });
     const lock = lockFile(parent);

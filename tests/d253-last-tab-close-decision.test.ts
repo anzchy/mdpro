@@ -12,6 +12,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { decideAfterTabClose, type TabCloseTrigger } from "../src/utils/lastTabClose";
+import { collectionCases } from "./support/collectionCases";
 
 const LABELS = ["main", "doc-1", "window-x"] as const;
 const REMAINING = [0, 1, 2] as const;
@@ -36,7 +37,7 @@ describe("decideAfterTabClose", () => {
     expect(rows).toHaveLength(18);
   });
 
-  it.each(rows)(
+  it.each(collectionCases("tests/d253-last-tab-close-decision.test.ts:39", rows))(
     "$windowLabel, $remainingDocuments left, $trigger → $expected",
     ({ windowLabel, remainingDocuments, trigger, expected }) => {
       expect(decideAfterTabClose({ windowLabel, remainingDocuments, trigger })).toBe(expected);

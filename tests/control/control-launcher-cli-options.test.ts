@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import * as cli from "../../scripts/control/launcherCli.mjs";
 import { int, mulberry32, pick, str } from "../support/seededRandom";
+import { collectionCases } from "../support/collectionCases";
 
 type Parse = (argv: string[]) => Record<string, unknown>;
 const L = cli.parseLaunchArgs as Parse;
@@ -42,7 +43,7 @@ describe("D82-WI-4 CLI-M3-1 a flag followed by an option-looking token", () => {
     ]),
   );
 
-  it.each(rows)("parseLaunchArgs($argv) → `$flag needs a value`", ({ argv, flag }) => {
+  it.each(collectionCases("tests/control/control-launcher-cli-options.test.ts:45", rows))("parseLaunchArgs($argv) → `$flag needs a value`", ({ argv, flag }) => {
     expect(outcome(L, argv)).toEqual({ name: "UsageError", reason: `${flag} needs a value` });
   });
 

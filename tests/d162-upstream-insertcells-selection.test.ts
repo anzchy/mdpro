@@ -22,6 +22,7 @@ import type { Node as PmNode } from "@milkdown/kit/prose/model";
 import { EditorState, type Transaction } from "@milkdown/kit/prose/state";
 import { __insertCells, CellSelection, TableMap } from "@milkdown/kit/prose/tables";
 import { cell, hostTable, row, schema, slotsOutside } from "./support/upstreamTableSchema";
+import { collectionCases } from "./support/collectionCases";
 
 type Cells = Parameters<typeof __insertCells>[4];
 
@@ -74,10 +75,10 @@ describe("D162-WI-3 upstream (b) — insertCells selects exactly the inserted re
     expect(selectedRect(tr.selection as CellSelection)).toEqual({ left: 1, top: 1, right: 3, bottom: 3 });
   });
 
-  for (const [name, make] of Object.entries(SHAPES)) {
+  for (const [name, make] of collectionCases("tests/d162-upstream-insertcells-selection.test.ts:77", Object.entries(SHAPES))) {
     const { width, height } = make();
-    for (let top = 0; top < HEIGHT; top += 1) {
-      for (let left = 0; left <= WIDTH - width; left += 1) {
+    for (const top of collectionCases("insert top", Array.from({ length: HEIGHT }, (_, i) => i))) {
+      for (const left of collectionCases("insert left", Array.from({ length: WIDTH - width + 1 }, (_, i) => i))) {
         it(`${name} at (${top}, ${left}): one dispatch, exact selection, sound, outside kept`, () => {
           const host = hostTable(WIDTH, HEIGHT);
           const rect = { left, top, right: left + width, bottom: top + height };

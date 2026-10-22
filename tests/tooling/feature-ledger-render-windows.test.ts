@@ -23,6 +23,7 @@ import { buildHtml } from "../../scripts/ledger/render.mjs";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { LEDGER_CSS } from "../../scripts/ledger/template.mjs";
 import { INVENTORY_HEAD, diff, inventory, ledger } from "../support/ledgerWindowsDiff";
+import { collectionCases } from "../support/collectionCases";
 
 const FIXED_NOW = new Date(2026, 9, 13, 12, 0);
 const html = (md: string): string => renderMarkdown(md).html;
@@ -73,7 +74,7 @@ describe("the Windows cell renders as the macOS badge for the same state", () =>
     expect(diffTableHtml(html(ALL_VALUES))).not.toBe("");
   });
 
-  it.each(CASES.filter(([, w]) => w !== "N/A"))("%s → Windows %s uses the macOS badge class", (cap, state) => {
+  it.each(collectionCases("tests/tooling/feature-ledger-render-windows.test.ts:76", CASES.filter(([, w]) => w !== "N/A")))("%s → Windows %s uses the macOS badge class", (cap, state) => {
     const expected = macBadgeClass(state);
     expect(expected).toBe(`badge badge-${state.toLowerCase()}`);
     const row = bodyRows(diffTableHtml(html(ALL_VALUES))).find((r) => r[0] === cap);

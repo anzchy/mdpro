@@ -36,6 +36,7 @@ vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: vi.fn() }));
 import { AboutSettings } from "../src/components/common/settings/AboutSettings";
 import { useUpdaterStore } from "../src/stores/updaterStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
+import { collectionCases } from "./support/collectionCases";
 
 const REAL_RELEASE_NOT_FOUND = "Could not fetch a valid release JSON from the remote";
 const ERROR_COPY = "Couldn't get update information. Try again later.";
@@ -127,7 +128,7 @@ describe("D85 — ReleaseNotFound is uncertain, not updates-disabled", () => {
   });
 
   // Characterization (green before D85): copy-agnostic on purpose.
-  it.each([...MALFORMED_METADATA_TEXTS])(
+  it.each(collectionCases("tests/d85-about-settings-release-not-found.test.tsx:130", [...MALFORMED_METADATA_TEXTS]))(
     "D2: malformed release metadata %j is an error with Check Again, never disabled",
     async (text) => {
       mockCheck.mockRejectedValue(new Error(text));

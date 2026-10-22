@@ -39,6 +39,7 @@ import { collectFacts } from "../../scripts/control/doctor.mjs";
 import { run as launchRun } from "../../scripts/control/launch.mjs";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { acquireLock } from "../../scripts/control/lock.mjs";
+import { collectionCases } from "../support/collectionCases";
 
 const MUTEX = ".lock.mutex";
 const BREAK = ".lock.mutex.break";
@@ -109,7 +110,7 @@ describe("D174-WI-2 doctor verdict: which leftovers block", () => {
     expect({ verdict: last(r.lines), exit: r.exit }).toEqual({ verdict: "verdict: pass", exit: 0 });
   });
 
-  it.each(BLOCKING.filter(runnable))("LV-02 $row fails no run lock, names the file, verdict fail", async (s) => {
+  it.each(collectionCases("tests/control/control-launcher-doctor-leftovers-verdict.test.ts:112", BLOCKING.filter(runnable)))("LV-02 $row fails no run lock, names the file, verdict fail", async (s) => {
     const e = env();
     seed(e, s);
     const r = await passingDoctor(e);
@@ -121,7 +122,7 @@ describe("D174-WI-2 doctor verdict: which leftovers block", () => {
     expect({ verdict: last(r.lines), exit: r.exit }).toEqual({ verdict: "verdict: fail", exit: 1 });
   });
 
-  it.each(NON_BLOCKING.filter(runnable))("LV-03 $row is reported but passes", async (s) => {
+  it.each(collectionCases("tests/control/control-launcher-doctor-leftovers-verdict.test.ts:124", NON_BLOCKING.filter(runnable)))("LV-03 $row is reported but passes", async (s) => {
     const e = env();
     seed(e, s);
     const r = await passingDoctor(e);

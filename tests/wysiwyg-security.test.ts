@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import { sanitizePastedHtml } from "../src/components/Editor/MilkdownEditor";
 import { isSafeHref } from "../src/services/linkSafety";
 import { ALLOWED_URI_SCHEMES } from "../src/services/sanitizerPolicy";
+import { collectionCases } from "./support/collectionCases";
 
 // ---------------------------------------------------------------------------
 // sanitizePastedHtml — issue #7
@@ -254,7 +255,7 @@ describe("isSafeHref", () => {
     ftp: "ftp://ftp.example.com/pub",
   };
 
-  it.each(ALLOWED_URI_SCHEMES)("W2-09: permits allowlisted scheme %s", (scheme) => {
+  it.each(collectionCases("tests/wysiwyg-security.test.ts:257", ALLOWED_URI_SCHEMES))("W2-09: permits allowlisted scheme %s", (scheme) => {
     const sample = SCHEME_SAMPLE_URLS[scheme];
     expect(sample, `no sample URL for allowlisted scheme "${scheme}"`).toBeDefined();
     expect(isSafeHref(sample ?? "")).toBe(true);

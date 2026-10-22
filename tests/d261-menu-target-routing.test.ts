@@ -45,6 +45,7 @@ import {
 } from "./support/menuEventsDomain";
 import { applyGenEvent, newView, seedStores, type GenEvent, type Shadow } from "./support/editorGenerationDomain";
 import { genSequence, mulberry32 } from "./support/seededSequences";
+import { collectionCases } from "./support/collectionCases";
 
 let shadow: Shadow;
 
@@ -94,7 +95,7 @@ describe("two windows: only the addressed one acts (S1)", () => {
 describe("a wrong or missing target fails closed (S4: every row × every bad target)", () => {
   const BAD_TARGETS: unknown[] = ["B", "", undefined, null, "a", "A ", " A"];
 
-  it.each(ROWS.map((row) => [`${row.n}: ${row.action}`, row] as const))("%s", async (_label, row) => {
+  it.each(collectionCases("tests/d261-menu-target-routing.test.ts:97", ROWS.map((row) => [`${row.n}: ${row.action}`, row] as const)))("%s", async (_label, row) => {
     const h = await mountAs("A", 1);
     for (const target of BAD_TARGETS) {
       const before = uiMenuLines().length;
@@ -215,7 +216,7 @@ describe("focus changing after the click has no effect (S3)", () => {
 });
 
 describe("the receipt-time token reaches every handler (S4: every row)", () => {
-  it.each(ROWS.map((row) => [`${row.n}: ${row.action}`, row] as const))("%s", async (_label, row) => {
+  it.each(collectionCases("tests/d261-menu-target-routing.test.ts:218", ROWS.map((row) => [`${row.n}: ${row.action}`, row] as const)))("%s", async (_label, row) => {
     const g = getEditorGeneration();
     const h = await mountAs("A", 1);
     bus.emitTo("A", EVT, { ...payloadOf(row), target: "A" });

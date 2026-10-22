@@ -18,6 +18,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseDeclarations } from "./support/cssTokenScan";
+import { collectionCases } from "./support/collectionCases";
 
 const SRC = join(__dirname, "..", "src");
 const S = "styles/sections/";
@@ -98,7 +99,7 @@ describe("elevated surfaces add no separate border (DESIGN.md:123)", () => {
     expect(unreset).toEqual([]);
   });
 
-  for (const file of files) {
+  for (const file of collectionCases("tests/colors-wi32.test.ts:101", files)) {
     it(file, () => {
       const decls = parseDeclarations(read(file));
       const elevated = new Set(

@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchMenuAction, type MenuHandlers } from "../src/hooks/menuActionTable";
 import { HANDLER_KEYS, ROWS, payloadOf, type HandlerKey, type Row } from "./support/menuActionRows";
 import { genSequence, mulberry32, seededShuffle } from "./support/seededSequences";
+import { collectionCases } from "./support/collectionCases";
 
 vi.mock("@tauri-apps/api/core", async () =>
   (await import("./support/tauriCoreMock")).createTauriCoreMock(),
@@ -84,7 +85,7 @@ afterEach(() => {
 const rowLabel = (row: Row) => `${row.n}: ${row.action}${row.value ? `=${row.value}` : ""}`;
 
 describe("dispatchMenuAction: each row reaches its one handler (S2)", () => {
-  it.each(ROWS.map((row) => [rowLabel(row), row] as const))("%s", (_label, row) => {
+  it.each(collectionCases("tests/menu-action-table.test.ts:87", ROWS.map((row) => [rowLabel(row), row] as const)))("%s", (_label, row) => {
     dispatchMenuAction(payloadOf(row), makeHandlers(0), logMenuSelect);
     expect(calls).toEqual([{ gen: 0, key: row.key, args: [...row.args, "id-1"] }]);
     expect(selects).toEqual([[row.controlId, row.extra]]);
@@ -132,7 +133,7 @@ describe("dispatchMenuAction: unknown and malformed payloads reach nothing (S3)"
 });
 
 describe("dispatchMenuAction: a missing handler (S2)", () => {
-  it.each(ROWS.map((row) => [rowLabel(row), row] as const))("%s", (_label, row) => {
+  it.each(collectionCases("tests/menu-action-table.test.ts:135", ROWS.map((row) => [rowLabel(row), row] as const)))("%s", (_label, row) => {
     dispatchMenuAction(payloadOf(row), makeHandlers(0, row.key), logMenuSelect);
     expect(calls).toEqual([]);
     // Characterization: Open Recent logs its select line even without a handler.
@@ -149,7 +150,7 @@ describe("dispatchMenuAction: a modal is open (S2)", () => {
     document.body.appendChild(modal);
   });
 
-  it.each(ROWS.map((row) => [rowLabel(row), row] as const))("%s", (_label, row) => {
+  it.each(collectionCases("tests/menu-action-table.test.ts:152", ROWS.map((row) => [rowLabel(row), row] as const)))("%s", (_label, row) => {
     dispatchMenuAction(payloadOf(row), makeHandlers(0), logMenuSelect);
     if (REFUSED_WHILE_MODAL.has(row.action)) {
       expect(calls).toEqual([]);

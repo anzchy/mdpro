@@ -43,6 +43,7 @@ import {
   runSchedule,
   tombsIn,
 } from "../support/lockSchedules";
+import { collectionCases } from "../support/collectionCases";
 
 const children: ChildProcess[] = [];
 const fixtures: Fixture[] = [];
@@ -101,7 +102,7 @@ function mainRelease(p: string, w: World, fn: Fn, shots: Shot[]) {
 }
 
 describe("D105-WI-2 EX-1 an in-protocol acquire never lands inside a release", () => {
-  it.each(Object.keys(CALL) as Fn[])("EX-1 %s: A released, S1 finds it absent and B acquires, S2 is refused by B; one holder, no residue", (fn) => {
+  it.each(collectionCases("tests/control/control-launcher-lock-exclusive.test.ts:104", Object.keys(CALL) as Fn[]))("EX-1 %s: A released, S1 finds it absent and B acquires, S2 is refused by B; one holder, no residue", (fn) => {
     const p = freshParent();
     acquireLock(p, { run: A, nonce: N1 });
     const w = world();

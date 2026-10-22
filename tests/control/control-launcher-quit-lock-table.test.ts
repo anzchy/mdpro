@@ -22,6 +22,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { last, logLines, NONCE, sha256 } from "../support/launchHarness";
 import { B, C, N2, N3, recordBytes } from "../support/lockSchedules";
 import { cleanupQuitFixtures, diesOn, launched, owned, PID, type Q, type Timeline } from "../support/quitHarness";
+import { collectionCases } from "../support/collectionCases";
 
 const DF = "verdict: driver failure — ";
 const STILL_ALIVE = `pid ${PID} still alive after SIGKILL`;
@@ -55,7 +56,7 @@ function put(q: Q, state: Held, rBytes: string): string | null {
 describe("D82 gap 1: quit reports a stolen lock only when R held it at start and X holds it at the failed stop", () => {
   const cells = HELD.flatMap((start) => HELD.map((atFail) => ({ start, atFail })));
 
-  it.each(cells)("lock $start at start, $atFail when the stop fails", async ({ start, atFail }) => {
+  it.each(collectionCases("tests/control/control-launcher-quit-lock-table.test.ts:58", cells))("lock $start at start, $atFail when the stop fails", async ({ start, atFail }) => {
     const q = await launched();
     const name = q.fx.name;
     const rBytes = String(q.lockState());

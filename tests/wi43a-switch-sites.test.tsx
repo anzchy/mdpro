@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@tauri-apps/api/core", async () => (await import("./support/tauriCoreMock")).createTauriCoreMock());
 
 import { SWITCH_SITES, installBoundary, renderPanel } from "./support/settingsRowSites";
+import { collectionCases } from "./support/collectionCases";
 
 afterEach(() => {
   cleanup();
@@ -29,7 +30,7 @@ describe("WI-4.3a: each replaced checkbox writes what it wrote before", () => {
     expect(SWITCH_SITES).toHaveLength(9);
   });
 
-  it.each(SWITCH_SITES.map((s) => [s.panel, s.title, s] as const))(
+  it.each(collectionCases("tests/wi43a-switch-sites.test.tsx:32", SWITCH_SITES.map((s) => [s.panel, s.title, s] as const)))(
     "%s › %s",
     async (_panel, title, site) => {
       const user = userEvent.setup();

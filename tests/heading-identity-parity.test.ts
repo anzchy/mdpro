@@ -69,6 +69,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parseHeadingsFromContent } from "../src/services/tocService";
 import { exportService } from "../src/services/exportService";
 import { invoke } from "@tauri-apps/api/core";
+import { collectionCases } from "./support/collectionCases";
 
 vi.mock("@tauri-apps/api/core", async () => ({ ...(await import("./support/tauriCoreMock")).createTauriCoreMock(), invoke: vi.fn() }));
 const invokeMock = vi.mocked(invoke);
@@ -168,7 +169,7 @@ describe("heading identity corpus — JS faces of the three LIVE slug generators
     expect(fixtures.cases.length).toBeGreaterThan(0);
   });
 
-  for (const c of fixtures.cases) {
+  for (const c of collectionCases("tests/heading-identity-parity.test.ts:171", fixtures.cases)) {
     it(`toc slugs for "${c.name}"`, () => {
       const actual = parseHeadingsFromContent(c.markdown).map((h) => h.id);
       assertFace(c, "toc", actual, c.expectedSlugs);

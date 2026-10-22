@@ -53,6 +53,7 @@ import {
   ROWS,
 } from "./support/menuEventsDomain";
 import { useLoggingStore } from "../src/stores/loggingStore";
+import { collectionCases } from "./support/collectionCases";
 
 beforeEach(() => {
   resetMenuHarness();
@@ -263,7 +264,7 @@ describe("useMenuEvents — subscription lifecycle (D31)", () => {
 // ---------------------------------------------------------------------------
 
 describe("useMenuEvents — action → handler dispatch", () => {
-  it.each(ROWS)("B1 row $n: $action reaches $key with exact args and controlId", async (row) => {
+  it.each(collectionCases("tests/use-menu-events-subscription.test.ts:266", ROWS))("B1 row $n: $action reaches $key with exact args and controlId", async (row) => {
     win.label = "mdpro-5";
     const h = mountHook(makeHandlers(0));
     await flush();
@@ -303,7 +304,7 @@ describe("useMenuEvents — action → handler dispatch", () => {
     h.unmount();
   });
 
-  it.each(ROWS.filter((r) => r.action !== "file.open_recent"))(
+  it.each(collectionCases("tests/use-menu-events-subscription.test.ts:306", ROWS.filter((r) => r.action !== "file.open_recent")))(
     "B3 row $n: $action with $key absent writes no log line",
     async (row) => {
       const h = mountHook(makeHandlers(0, row.key));

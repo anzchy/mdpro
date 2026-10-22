@@ -35,6 +35,7 @@ import {
   setServerEnabled,
   type McpStatus,
 } from "../src/services/mcpService";
+import { collectionCases } from "./support/collectionCases";
 
 const fixture = JSON.parse(
   readFileSync(resolve(__dirname, "fixtures/mcp-status-contract.json"), "utf8"),
@@ -87,7 +88,7 @@ describe("U-2 rejections narrow over the fixture domain plus junk", () => {
     expect(fixture.switchError).toContain("status_unavailable");
   });
 
-  it.each(fixture.switchError.map((e) => [e]))("U-2 %s narrows to itself", async (member) => {
+  it.each(collectionCases("tests/mcp-service-switch.test.ts:90", fixture.switchError.map((e) => [e])))("U-2 %s narrows to itself", async (member) => {
     invokeMock.mockRejectedValue(member);
     const caught = await setServerEnabled(true).then(
       () => null,

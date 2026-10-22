@@ -26,6 +26,7 @@ import { loggingService } from "../src/services/loggingService";
 import { caretAfter, destroyParityEditors, docOf, mountParityEditor, serialize, tableShapes, viewOf } from "./support/raggedTableD64";
 import { cellPosOf, selectCells } from "./support/tableDropDriver";
 import { allSlots, cellRects, crossing, HSPAN, seedSpan, selectionRect, tableOf, untouchedSlots, VSPAN } from "./support/d162PasteTargets";
+import { collectionCases } from "./support/collectionCases";
 
 let escaped: unknown[];
 const onError = (event: ErrorEvent) => {
@@ -93,8 +94,8 @@ function expectLanded(e: Editor, event: Event, text: readonly string[]): void {
 const GRID = [2, 3, 4].flatMap((cols) => [2, 3, 4, 5].map((rows) => ({ cols, rows })));
 
 describe("D162-WI-3 — an overlong rowspan pasted over a CellSelection lands", () => {
-  for (const [name, shape] of Object.entries(SHAPES)) {
-    for (const { cols, rows } of GRID) {
+  for (const [name, shape] of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:96", Object.entries(SHAPES))) {
+    for (const { cols, rows } of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:97", GRID)) {
       it(`${name} over ${cols} × ${rows}: handled, lands, selects exactly the target`, async () => {
         const e = await mountParityEditor(HOST);
         const view = viewOf(e);
@@ -115,7 +116,7 @@ describe("D162-WI-3 — an overlong rowspan pasted over a CellSelection lands", 
 });
 
 describe("D162-WI-3 — an overlong rowspan pasted at the caret lands", () => {
-  for (const [name, shape] of Object.entries(SHAPES)) {
+  for (const [name, shape] of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:118", Object.entries(SHAPES))) {
     it(`${name} at the caret in the bottom-right cell: handled, lands`, async () => {
       const e = await mountParityEditor(HOST);
       caretAfter(e, needle(4, COLS - 1));
@@ -165,8 +166,8 @@ const TARGETS: Record<string, Target> = {
 };
 
 describe("D162-WI-3 — an overlong rowspan over interior, bottom and right selections", () => {
-  for (const [name, shape] of Object.entries(SHAPES)) {
-    for (const [where, rect] of Object.entries(TARGETS)) {
+  for (const [name, shape] of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:168", Object.entries(SHAPES))) {
+    for (const [where, rect] of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:169", Object.entries(TARGETS))) {
       it(`${name} over the ${where} selection: lands inside it, selects it, leaves the rest`, async () => {
         const { e, kept, event } = await pasteOver(HOST, rect, shape.html);
         expectLanded(e, event, shape.text);
@@ -180,7 +181,7 @@ describe("D162-WI-3 — an overlong rowspan over interior, bottom and right sele
 });
 
 describe("D162-WI-3 — the table need not open the document", () => {
-  for (const [name, shape] of Object.entries(SHAPES)) {
+  for (const [name, shape] of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:183", Object.entries(SHAPES))) {
     it(`${name} over the right selection of a table after a paragraph: lands, selects it, leaves the rest`, async () => {
       const rect = TARGETS.right;
       const { e, kept, event } = await pasteOver(`Intro paragraph.\n\n${HOST}`, rect, shape.html);
@@ -221,7 +222,7 @@ const HOST_SPANS = [
 ] as const;
 
 describe("D162-WI-3 — a paste at the caret splits host spans that cross its rect", () => {
-  for (const [name, shape] of Object.entries({ SHORT, SHORT_RIGHT })) for (const span of HOST_SPANS) {
+  for (const [name, shape] of collectionCases("tests/d162-overlong-rowspan-paste.test.ts:224", Object.entries({ SHORT, SHORT_RIGHT }))) for (const span of HOST_SPANS) {
     it(`${name} beside a host span crossing the ${span.edge} edge: split, the paste selected, the rest kept`, async () => {
       const e = await mountParityEditor(HOST);
       const view = viewOf(e);

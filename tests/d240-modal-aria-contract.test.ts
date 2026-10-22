@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { collectionCases } from "./support/collectionCases";
 
 const SRC = path.resolve(__dirname, "..", "src");
 
@@ -66,14 +67,14 @@ describe("D240 every modal is visible to the aria-modal check", () => {
     }
   });
 
-  it.each(files.filter((f) => dialogTags(f.text).length > 0).map((f) => [f.file, f.text]))(
+  it.each(collectionCases("tests/d240-modal-aria-contract.test.ts:69", files.filter((f) => dialogTags(f.text).length > 0).map((f) => [f.file, f.text])))(
     "M2 %s: every role=\"dialog\" tag carries aria-modal=\"true\"",
     (_file, text) => {
       for (const tag of dialogTags(text)) expect(tag).toContain('aria-modal="true"');
     },
   );
 
-  it.each(files.filter((f) => f.text.includes("dialog-backdrop")).map((f) => [f.file, f.text]))(
+  it.each(collectionCases("tests/d240-modal-aria-contract.test.ts:76", files.filter((f) => f.text.includes("dialog-backdrop")).map((f) => [f.file, f.text])))(
     "M3 %s: each dialog-backdrop has a role=\"dialog\" aria-modal card",
     (_file, text) => {
       const backdrops = text.split('className="dialog-backdrop"').length - 1;

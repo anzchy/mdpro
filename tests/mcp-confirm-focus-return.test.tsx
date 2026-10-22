@@ -50,6 +50,7 @@ import { McpWriteConfirm } from "../src/components/common/McpWriteConfirm";
 import { McpWriteConfirmDialog } from "../src/components/common/McpWriteConfirmDialog";
 import { loggingService } from "../src/services/loggingService";
 import type { ConfirmRequest } from "../src/utils/mcpConfirmModel";
+import { collectionCases } from "./support/collectionCases";
 
 const FOCUS_RETURN_EVENT = "ui.mcp_confirm.focus_return";
 const logUi = loggingService.logUiEvent as Mock;
@@ -139,7 +140,7 @@ describe("McpWriteConfirmDialog focus return (WI-6)", () => {
 
   const kinds = Object.keys(PRIORS) as PriorKind[];
   const paths: Path[] = ["Approve", "Reject", "Escape", "backdrop"];
-  it.each(kinds.flatMap((k) => paths.map((p) => [k, p] as const)))(
+  it.each(collectionCases("tests/mcp-confirm-focus-return.test.tsx:142", kinds.flatMap((k) => paths.map((p) => [k, p] as const))))(
     "CF-4 round-trip: prior %s × %s",
     async (kind, path) => {
       const prior = await openWith(kind);

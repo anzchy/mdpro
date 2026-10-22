@@ -5,6 +5,7 @@ import { tmpdir, homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { createOwnerChildRunner } from "./d302Child";
+import { collectionCases } from "../support/collectionCases";
 
 declare global {
   namespace NodeJS {
@@ -118,7 +119,7 @@ const sources: Record<string, string> = {
 };
 
 describe.skipIf(!hasPlugin)("fix1 WI-1 phase evidence through the real entry and plugin", () => {
-  it.each(Object.entries(sources))("refuses %s failure alone and beside a body failure", async (_name, source) => {
+  it.each(collectionCases("tests/tooling/unit-red-phase.test.ts:121", Object.entries(sources)))("refuses %s failure alone and beside a body failure", async (_name, source) => {
     for (const bodyFailure of ["0", "1"]) {
       const root = await project(source);
       const red = await invoke(root, "record", { PHASE_FAIL: "1", BODY_FAIL: bodyFailure });

@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, parseDeclarations } from "./support/cssTokenScan";
 import { contrast, over, resolveColor, rgbaEquals, rootTokens, themeTokens, toHex, type Rgba } from "./support/contrast";
+import { collectionCases } from "./support/collectionCases";
 
 const SRC = join(__dirname, "..", "src");
 const SEC = "styles/sections";
@@ -71,7 +72,7 @@ const SETTINGS_FILLS: Row[] = [
 ];
 
 function checkRows(rows: Row[]) {
-  it.each(rows.map((r) => [`${r.selector} { ${r.property} }`, r] as const))("%s keeps its colour", (_, r) => {
+  it.each(collectionCases("tests/d278-parity-values.test.ts:74", rows.map((r) => [`${r.selector} { ${r.property} }`, r] as const)))("%s keeps its colour", (_, r) => {
     const raw = valueOf(r.file, r.selector, r.property);
     const colour = r.colour ? r.colour(raw) : raw;
     for (const frame of Object.keys(FRAMES) as Frame[]) {
@@ -136,7 +137,7 @@ describe("D278-WI-4: text on the Settings fills (characterisation)", () => {
     ),
   );
 
-  it.each(cases)("%s, %s: %s reaches 4.5:1", (_, frame, text, layers) => {
+  it.each(collectionCases("tests/d278-parity-values.test.ts:139", cases))("%s, %s: %s reaches 4.5:1", (_, frame, text, layers) => {
     expect(reaches(text, [...layers], frame, 4.5)).toBe(true);
   });
 

@@ -60,6 +60,7 @@ import { installIntersectionObserverDouble } from "./helpers/intersectionObserve
 import {
   makeDoc, mountAndWait, resetStores as resetEditorStores, sleep, typeHistoryless,
 } from "./helpers/milkdownEditorHarness";
+import { collectionCases } from "./support/collectionCases";
 
 const SENTINELS = [
   "BASE", "BASE+W", "BASE+EDIT", "BASE+PENDING", "DISK", "MCP-WRITE", "DECODED", "B-EDIT",
@@ -239,7 +240,7 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
     expect(docs().filter((d) => d.id === "doc-a").length).toBe(1);
   });
 
-  for (const [entry, { cmd, run }] of Object.entries(DECODE_ENTRIES)) {
+  for (const [entry, { cmd, run }] of collectionCases("tests/d20-reopen-dirty-hook.test.tsx:242", Object.entries(DECODE_ENTRIES))) {
     it(`D-3 [${entry}] decode failure on a dirty open path: focused, no EncodingDialog`, async () => {
       seed([doc("doc-a", "BASE", A_PATH, true), doc("doc-b", "B-EDIT", null, false)]);
       const pre = structuredClone(byId("doc-a"));
@@ -332,7 +333,7 @@ describe("D — the open entry points never replace a buffer dirty at landing", 
     expect(byId("doc-b")).toEqual(preB);
   });
 
-  for (const [entry, { cmd, run }] of Object.entries(ENTRIES)) {
+  for (const [entry, { cmd, run }] of collectionCases("tests/d20-reopen-dirty-hook.test.tsx:335", Object.entries(ENTRIES))) {
     it(`D-8 [${entry}] a clean reopen replaces the content`, async () => {
       const decoded = decodedA();
       held.reply(cmd, () => ({ document: decoded }));

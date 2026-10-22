@@ -69,6 +69,7 @@ import { useDocumentStore } from "../src/stores/documentStore";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import type { Document } from "../src/types/document";
 import { createAppDialogsHarness, HARNESS_DIALOG_IDS, type HarnessDialogId } from "./support/appDialogsHarness";
+import { collectionCases } from "./support/collectionCases";
 
 const fx = JSON.parse(readFileSync(resolve(__dirname, "fixtures/mcp-confirm-contract.json"), "utf8")) as {
   events: { request: string; resolved: string };
@@ -153,7 +154,7 @@ afterEach(() => {
 });
 
 describe("D165 — tab-changing actions are refused while an App-level modal is open", () => {
-  it.each(HARNESS_DIALOG_IDS)("menu Close (⌘W accelerator) with %s open: no tab closes, one refusal logged", async (id: HarnessDialogId) => {
+  it.each(collectionCases("tests/d165-modal-blocks-tab-actions.test.tsx:156", HARNESS_DIALOG_IDS))("menu Close (⌘W accelerator) with %s open: no tab closes, one refusal logged", async (id: HarnessDialogId) => {
     const h = mount();
     await settle();
     await h.open(id);

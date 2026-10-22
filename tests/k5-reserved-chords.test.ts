@@ -8,6 +8,7 @@ import { normaliseStored } from "../src/commands/chord";
 import type { Platform } from "../src/commands/commandTable.types";
 import { K3_EXCEPTIONS, RESERVED_CHORDS } from "../src/commands/reservedChords";
 import { PLATFORMS, tableBindings, type Version } from "./support/tableBindings";
+import { collectionCases } from "./support/collectionCases";
 
 interface K5Result {
   violations: string[];
@@ -57,7 +58,7 @@ describe("K5: the reserved list", () => {
 });
 
 describe("K5 on v2", () => {
-  it.each(PLATFORMS)("%s: no v2 default or fixed second key is reserved", (p) => {
+  it.each(collectionCases("tests/k5-reserved-chords.test.ts:60", PLATFORMS))("%s: no v2 default or fixed second key is reserved", (p) => {
     const r = k5("v2", p);
     expect(r.violations).toEqual([]);
     expect(r.checked).toBeGreaterThanOrEqual(55);

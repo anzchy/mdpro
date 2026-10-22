@@ -23,6 +23,7 @@ import { collectFacts } from "../../scripts/control/doctor.mjs";
 import { runsParent } from "../../scripts/control/runDir.mjs";
 import { fakeProcFacts, makeHome } from "../support/launcherFakes";
 import { A, N1, SECRETS, cleanupParents, freshParent, lockFile, runSchedule, thrown } from "../support/lockSchedules";
+import { collectionCases } from "../support/collectionCases";
 
 const releaseA = (parent: string) => releaseLock(parent, { run: A, nonce: N1 });
 const orphanA = (parent: string) => releaseOrphanLock(parent, A);
@@ -82,7 +83,7 @@ describe("D82-WI-1 K-H1-8 corrupt or directory locks are never moved aside", () 
     { row: '{"run":5}', make: (p) => fs.writeFileSync(lockFile(p), '{"run":5}', { mode: 0o600 }) },
   ];
   const ROWS = BODIES.flatMap((b) => FNS.map((f) => ({ ...b, ...f })));
-  it.each(ROWS)("K-H1-8 $row via $fn: lock unreadable, .lock untouched, zero renames of .lock", ({ make, call }) => {
+  it.each(collectionCases("tests/control/control-launcher-lock-release-guards.test.ts:85", ROWS))("K-H1-8 $row via $fn: lock unreadable, .lock untouched, zero renames of .lock", ({ make, call }) => {
     const parent = freshParent();
     make(parent);
     const st = fs.lstatSync(lockFile(parent));

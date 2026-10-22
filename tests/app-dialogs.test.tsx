@@ -76,6 +76,7 @@ import {
   draft,
   type HarnessDialogId,
 } from "./support/appDialogsHarness";
+import { collectionCases } from "./support/collectionCases";
 
 const fx = JSON.parse(
   readFileSync(resolve(__dirname, "fixtures/mcp-confirm-contract.json"), "utf8"),
@@ -109,7 +110,7 @@ beforeEach(() => {
 });
 
 describe("AppDialogs (D42 WI-3)", () => {
-  it.each(HARNESS_DIALOG_IDS)("3.1: the %s slot renders its dialog iff its input says open", async (id) => {
+  it.each(collectionCases("tests/app-dialogs.test.tsx:112", HARNESS_DIALOG_IDS))("3.1: the %s slot renders its dialog iff its input says open", async (id) => {
     const h = makeHarness();
     render(<h.Harness />);
     await settle();

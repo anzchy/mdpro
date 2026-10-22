@@ -20,6 +20,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseDeclarations, tokenBlock } from "./support/cssTokenScan";
 import { resolveColor, rootTokens, themeTokens } from "./support/contrast";
+import { collectionCases } from "./support/collectionCases";
 
 const root = join(__dirname, "..");
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
@@ -48,7 +49,7 @@ const CONTROLS: [file: string, selector: string][] = [
 ];
 
 describe("D227 tokens carry the ruled values", () => {
-  for (const [name, values] of Object.entries(RULED)) {
+  for (const [name, values] of collectionCases("tests/contrast-d227.test.ts:51", Object.entries(RULED))) {
     it(`${name} in both theme files`, () => {
       expect(themeTokens("light").get(name)).toBe(values.light);
       expect(themeTokens("dark").get(name)).toBe(values.dark);
@@ -124,7 +125,7 @@ describe("the D227 tokens are documented", () => {
   const design = read("design/DESIGN.md");
   const tokens = design.slice(design.indexOf("## Tokens"), design.indexOf("## Layout"));
 
-  for (const name of Object.keys(RULED)) {
+  for (const name of collectionCases("tests/contrast-d227.test.ts:127", Object.keys(RULED))) {
     it(`${name} has a rule 31 entry and a DESIGN.md § Tokens row`, () => {
       expect(rule31).toContain(`\`${name}\``);
       expect(tokens).toMatch(new RegExp(`^\\| \`${name}\` \\|`, "m"));

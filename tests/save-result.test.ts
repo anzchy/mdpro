@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveSaveResult, type SaveResultInput, type SaveResolution } from "../src/utils/saveResult";
 import type { Document } from "../src/types/document";
+import { collectionCases } from "./support/collectionCases";
 
 const SAVED_AT = 1_758_000_000_000;
 
@@ -214,7 +215,7 @@ describe("resolveSaveResult — W2-law (exhaustive S5)", () => {
     expect(DOMAIN.length).toBe(44);
   });
 
-  it.each(DOMAIN.map((r) => [r.label, r] as const))("laws hold on %s", (_label, row) => {
+  it.each(collectionCases("tests/save-result.test.ts:217", DOMAIN.map((r) => [r.label, r] as const)))("laws hold on %s", (_label, row) => {
     const { input } = row;
     const r = resolveSaveResult(input);
     const current = input.current;
@@ -280,7 +281,7 @@ describe("resolveSaveResult — W2-law (exhaustive S5)", () => {
 describe("resolveSaveResult — W2-idem (S5)", () => {
   const presentRows = DOMAIN.filter((r) => r.input.current !== undefined);
 
-  it.each(presentRows.map((r) => [r.label, r] as const))(
+  it.each(collectionCases("tests/save-result.test.ts:283", presentRows.map((r) => [r.label, r] as const)))(
     "resolving next again gives the same next on %s",
     (_label, row) => {
       const r1 = resolveSaveResult(row.input);
@@ -368,7 +369,7 @@ describe("D214 R1 — savedContent laws over the exhaustive baseline domain (S5)
     expect(BASELINE_DOMAIN.length).toBe(34);
   });
 
-  it.each(BASELINE_DOMAIN.map((r) => [r.label, r] as const))("laws hold on %s", (_label, row) => {
+  it.each(collectionCases("tests/save-result.test.ts:371", BASELINE_DOMAIN.map((r) => [r.label, r] as const)))("laws hold on %s", (_label, row) => {
     const { input } = row;
     const r = resolveSaveResult(input);
     const current = input.current;

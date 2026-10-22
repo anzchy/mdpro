@@ -22,6 +22,7 @@ import { describe, expect, it } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { sanitizeExportFragment } from "../src/services/sanitizerPolicy";
+import { collectionCases } from "./support/collectionCases";
 
 interface Case {
   name: string;
@@ -57,9 +58,9 @@ describe("render fixtures — JS sanitizer contract", () => {
   // markup needles) must SURVIVE the JS sanitizer. This is what genuinely
   // exercises the JS sanitizer surface — that it does not strip the legitimate
   // math / footnote / autolink markup the Rust renderer produces.
-  for (const c of (fixtures.cases as Case[]).filter(
+  for (const c of collectionCases("tests/render-golden.test.ts:60", (fixtures.cases as Case[]).filter(
     (x) => (x.mustContain ?? []).some(isHtmlMarkupNeedle),
-  )) {
+  ))) {
     it(`preserves Rust-surface markup for "${c.name}" through the JS sanitizer`, () => {
       // Feed the expected Rust-emitted HTML needles (joined into a fragment)
       // through the sanitizer and assert each markup needle survives intact.
@@ -75,9 +76,9 @@ describe("render fixtures — JS sanitizer contract", () => {
 
   // NEGATIVE: every fixture carrying a script / javascript-href payload must be
   // neutralized by the JS sanitizer.
-  for (const c of (fixtures.cases as Case[]).filter(
+  for (const c of collectionCases("tests/render-golden.test.ts:78", (fixtures.cases as Case[]).filter(
     (x) => x.mustNotContain && x.mustNotContain.length > 0,
-  )) {
+  ))) {
     it(`neutralizes payloads for "${c.name}" on the JS sanitizer`, () => {
       // The security-relevant fixtures embed raw HTML payloads in their
       // markdown; sanitize that as if it were rendered HTML and assert the

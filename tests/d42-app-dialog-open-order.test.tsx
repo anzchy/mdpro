@@ -107,6 +107,7 @@ import {
   type DriverStep,
 } from "./support/d42DialogDriver";
 import type { OracleDialogId } from "./support/dialogOpenOrderOracle";
+import { collectionCases } from "./support/collectionCases";
 
 const fx = JSON.parse(
   readFileSync(resolve(__dirname, "fixtures/mcp-confirm-contract.json"), "utf8"),
@@ -689,7 +690,7 @@ const PAIRS: Array<[HarnessDialogId, HarnessDialogId]> = HARNESS_DIALOG_IDS.flat
 );
 
 describe("D42: exhaustive pairs", () => {
-  it.each(PAIRS)(
+  it.each(collectionCases("tests/d42-app-dialog-open-order.test.tsx:692", PAIRS))(
     "4.10 / 4.8 (ii) / 4.14: open %s then %s — DOM order is the oracle, nothing open moves, stack lines project",
     async (x, y) => {
       if (x === "settings" || y === "settings") vi.mocked(isTauri).mockReturnValue(true);
@@ -751,7 +752,7 @@ describe("D42: exhaustive pairs", () => {
 
   const ON_STACK: ReadonlySet<HarnessDialogId> = new Set(["confirm", "mcp", "reload", "recreate", "encoding"]);
 
-  it.each(PAIRS)("4.11: open %s then %s, focus in the top one — Escape affects only the top", async (x, y) => {
+  it.each(collectionCases("tests/d42-app-dialog-open-order.test.tsx:754", PAIRS))("4.11: open %s then %s, focus in the top one — Escape affects only the top", async (x, y) => {
     if (x === "settings" || y === "settings") vi.mocked(isTauri).mockReturnValue(true);
     const user = userEvent.setup();
     const h = makeHarness();

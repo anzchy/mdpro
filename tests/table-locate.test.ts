@@ -42,6 +42,7 @@ import {
   offsetsOf,
 } from "./support/tableOffsetDomain";
 import { D12_FIXTURES, recordingSource, spanOfModel } from "./support/tableSpanOracle";
+import { collectionCases } from "./support/collectionCases";
 
 // Passthrough counter over the REAL `parseRowCells` — observes, replaces nothing.
 const rowCells = vi.hoisted(() => ({ calls: 0 }));
@@ -131,7 +132,7 @@ describe("LOC-3 locate stays within 2R+5 line() calls and never slices", () => {
   }
 
   for (const R of [100, 2_000]) {
-    for (const [name, make] of ADAPTERS) {
+    for (const [name, make] of collectionCases("tests/table-locate.test.ts:134", ADAPTERS)) {
       it(`R=${R} (${name}): <= 2R+5 line(), 0 slice, 0 iterLines, 0 rows built`, () => {
         const doc = docOf(R);
         const middleBodyLine = 2 + Math.floor(R / 2);
@@ -199,7 +200,7 @@ describe("LOC-5 guard order (-1, length+1, length+2, empty, NaN)", () => {
   });
 
   for (const [label, doc, o, lineIndexAtCalls] of cases) {
-    for (const [name, make] of ADAPTERS) {
+    for (const [name, make] of collectionCases("tests/table-locate.test.ts:202", ADAPTERS)) {
       it(`${label} (${name}): null from both, guards before any line read`, () => {
         const recL = recordingSource(make(doc));
         const recP = recordingSource(make(doc));
@@ -215,7 +216,7 @@ describe("LOC-5 guard order (-1, length+1, length+2, empty, NaN)", () => {
 });
 
 describe("LOC-6 delimiterIsCandidate and setext", () => {
-  for (const [name, make] of ADAPTERS) {
+  for (const [name, make] of collectionCases("tests/table-locate.test.ts:218", ADAPTERS)) {
     it(`PIPELESS (${name}): pipe-less :-: gives delimiterIsCandidate false; offset 12 is null`, () => {
       const doc = D12_FIXTURES.PIPELESS;
       expect(locateTableAtOffset(make(doc), 2)).toEqual({

@@ -23,6 +23,7 @@ import {
 } from "../src/services/draftService";
 import { useLoggingStore } from "../src/stores/loggingStore";
 import { createHeldInvoke, type HeldInvoke } from "./helpers/heldInvoke";
+import { collectionCases } from "./support/collectionCases";
 
 let held: HeldInvoke;
 
@@ -122,7 +123,7 @@ describe("f4: total and redacted — one outcome-only log per call", () => {
     });
   }
 
-  it.each(runs)("%s", async (_label, action, reply) => {
+  it.each(collectionCases("tests/draft-service.test.ts:125", runs))("%s", async (_label, action, reply) => {
     const cmd = action === "recover" ? "recover_draft" : "discard_recovery_draft";
     held.reply(cmd, reply);
     const call = action === "recover" ? recoverDraft(SENTINEL_ID) : discardRecoveryDraft(SENTINEL_ID);

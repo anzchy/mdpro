@@ -33,6 +33,7 @@ import {
 } from "../support/lockLeftovers";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { acquireLock } from "../../scripts/control/lock.mjs";
+import { collectionCases } from "../support/collectionCases";
 
 const MUTEX = ".lock.mutex";
 const BREAK = ".lock.mutex.break";
@@ -79,7 +80,7 @@ const STUCK: Stuck[] = [
 const runnable = (s: Stuck) => canEperm || !s.eperm;
 
 describe("D179-WI-2 a break file on its own blocks nothing", () => {
-  it.each(STUCK.filter(runnable))("LB-01 a break file with $row and no .lock.mutex: [info] line, no blocks, verdict pass, acquire succeeds", async (s) => {
+  it.each(collectionCases("tests/control/control-launcher-doctor-leftovers-break.test.ts:82", STUCK.filter(runnable)))("LB-01 a break file with $row and no .lock.mutex: [info] line, no blocks, verdict pass, acquire succeeds", async (s) => {
     const e = env();
     s.seed(e);
     const r = await passingDoctor(e);
@@ -93,7 +94,7 @@ describe("D179-WI-2 a break file on its own blocks nothing", () => {
 });
 
 describe("D179-WI-2 a break file beside a dead mutex blocks launches", () => {
-  it.each(STUCK.filter(runnable))("LB-02 a break file with $row beside a dead-holder mutex: only the break file is named, acquire refuses on it", async (s) => {
+  it.each(collectionCases("tests/control/control-launcher-doctor-leftovers-break.test.ts:96", STUCK.filter(runnable)))("LB-02 a break file with $row beside a dead-holder mutex: only the break file is named, acquire refuses on it", async (s) => {
     const e = env();
     s.seed(e);
     put(e, MUTEX, holderBody(dead));

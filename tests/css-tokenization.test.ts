@@ -40,6 +40,7 @@ import {
 } from "./support/cssTokenScan";
 import { validateTokenFile } from "./support/tokenFileGrammar";
 import { resolveColor, themeTokens, toHex } from "./support/contrast";
+import { collectionCases } from "./support/collectionCases";
 
 const ROOT = join(__dirname, "..");
 const SRC = join(ROOT, "src");
@@ -376,7 +377,7 @@ describe("app CSS is tokenized (A5)", () => {
     expect(inScope.length).toBeGreaterThanOrEqual(20);
   });
 
-  for (const file of inScope) {
+  for (const file of collectionCases("tests/css-tokenization.test.ts:379", inScope)) {
     it(`${file}: every literal is allowed, excepted or deferred`, () => {
       const unlisted = findingsOf(file).filter((x) => !listed.has(keyOf({ ...x, file })));
       expect(unlisted.map((x) => describeFinding(file, x))).toEqual([]);

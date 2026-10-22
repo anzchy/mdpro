@@ -22,6 +22,7 @@ import { installBoundary } from "./support/settingsRowSites";
 import {
   LOAD_FAILED, LOAD_PAGES, SAVE_SITES, SECRET, renderStatePage, stubAppliedShortcuts,
 } from "./support/settingsStatePages";
+import { collectionCases } from "./support/collectionCases";
 
 afterEach(() => {
   cleanup();
@@ -35,7 +36,7 @@ async function settle(): Promise<void> {
 }
 
 describe("WI-4.3b: a pending load shows one busy Loading… line", () => {
-  it.each(LOAD_PAGES)("%s", (page) => {
+  it.each(collectionCases("tests/wi43b-settings-states.test.tsx:38", LOAD_PAGES))("%s", (page) => {
     installBoundary();
     stubAppliedShortcuts();
     vi.mocked(preferencesService.getPreferences).mockImplementation(() => new Promise(() => {}));
@@ -48,7 +49,7 @@ describe("WI-4.3b: a pending load shows one busy Loading… line", () => {
 });
 
 describe("WI-4.3b: a rejected load shows the shared failure line, not the raw message", () => {
-  it.each(LOAD_PAGES)("%s", async (page) => {
+  it.each(collectionCases("tests/wi43b-settings-states.test.tsx:51", LOAD_PAGES))("%s", async (page) => {
     installBoundary();
     stubAppliedShortcuts();
     vi.mocked(preferencesService.getPreferences).mockRejectedValue(new Error(SECRET));
@@ -60,7 +61,7 @@ describe("WI-4.3b: a rejected load shows the shared failure line, not the raw me
 });
 
 describe("WI-4.3b: a rejected save leaves no inline error and rolls the control back", () => {
-  it.each(SAVE_SITES.map((s) => [s.page, s.name, s] as const))("%s › %s", async (_page, name, site) => {
+  it.each(collectionCases("tests/wi43b-settings-states.test.tsx:63", SAVE_SITES.map((s) => [s.page, s.name, s] as const)))("%s › %s", async (_page, name, site) => {
     const user = userEvent.setup();
     installBoundary();
     vi.mocked(preferencesService.setPreferences).mockRejectedValue(new Error(SECRET));

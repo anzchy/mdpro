@@ -36,6 +36,7 @@ import {
 } from "../../scripts/release/gate.mjs";
 // @ts-expect-error -- plain ESM script, no .d.ts by design
 import { main as verifyReleaseMain } from "../../scripts/release/verify-release.mjs";
+import { collectionCases } from "../support/collectionCases";
 
 type Gh = { status: number; stdout: Buffer | string; stderr: string };
 const SHA = "0123456789abcdef0123456789abcdef01234567";
@@ -57,7 +58,7 @@ describe("decide (G1′, G2, G3)", () => {
     expect(rows).toHaveLength(24);
   });
 
-  it.each(rows)("G1′ %j", ({ mode, verifyOk, sourceOk, publishedForTag }) => {
+  it.each(collectionCases("tests/tooling/release-gate.test.ts:60", rows))("G1′ %j", ({ mode, verifyOk, sourceOk, publishedForTag }) => {
     const r = decide({ mode, verifyOk, source: sourceOk ? GREEN : RED, publishedForTag });
     const green = verifyOk && sourceOk && !publishedForTag && mode !== "build-only";
     expect(r.createDraft).toBe(green);
@@ -461,7 +462,7 @@ describe("static scan (G6)", () => {
     expect(sources).toEqual(expect.arrayContaining(["gate.mjs", "verify-release.mjs", "verify-assets.mjs"]));
   });
 
-  it.each(sources)("G6 %s has no --draft=false and no `release edit`", (f) => {
+  it.each(collectionCases("tests/tooling/release-gate.test.ts:464", sources))("G6 %s has no --draft=false and no `release edit`", (f) => {
     const text = fs.readFileSync(path.join(dir, f), "utf8");
     expect(text).not.toContain("--draft=false");
     expect(text).not.toMatch(/release\s+edit/);
