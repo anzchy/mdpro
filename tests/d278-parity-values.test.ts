@@ -255,7 +255,7 @@ const STATE_ROWS: Row[] = [
   { file: `${SEC}/settings-rows.css`, selector: ".toggle-slider:before", property: "background-color", expect: same([255, 255, 255, 1]) },
   { file: `${SEC}/settings-rows.css`, selector: ".toggle-switch input:focus-visible + .toggle-slider", property: "outline", colour: after("2px solid "), expect: ACCENT },
   { file: `${SEC}/settings-pages.css`, selector: ".settings-select:focus-visible", property: "border-color", expect: ACCENT },
-  { file: `${SEC}/settings-pages.css`, selector: ".settings-select:focus-visible", property: "box-shadow", colour: after("0 0 0 2px "), expect: ACCENT_SOFT },
+  { file: `${SEC}/settings-pages.css`, selector: ".settings-select:focus-visible", property: "outline", colour: after("2px solid "), expect: ACCENT },
   { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value:hover", property: "border-color", expect: ACCENT },
   { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value.is-editing", property: "background", expect: ACCENT_SOFT },
   { file: `${SEC}/settings-shell.css`, selector: ".shortcut-value.is-editing", property: "border-color", expect: ACCENT },

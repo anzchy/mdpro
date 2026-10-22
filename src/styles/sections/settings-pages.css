@@ -117,12 +117,12 @@
   min-width: 140px;
 }
 
-/* D258: rule 33 pattern 1, as the text inputs; the ring replaces the outline.
-   On :focus-visible (rule 33 hard rule 6), so a mouse click paints no ring. */
+/* D258: WebKit did not paint the text-input box-shadow on this native select.
+   Rule 33 pattern 2 supplies a contrasting ring without removing native appearance. */
 .settings-select:focus-visible {
-  outline: none;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 .settings-form-hint {
