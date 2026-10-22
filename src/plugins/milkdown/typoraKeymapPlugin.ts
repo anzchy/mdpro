@@ -3,7 +3,7 @@
  *
  * Purpose: register Typora-style heading, paragraph, mark, link, table and
  * code-block keys in Milkdown. Shared command factories live in
- * `typoraCommandFactories.ts`; the link modal flow lives in
+ * `typoraCommandFactories.ts` and `typoraTableNavigationCommands.ts`; the link modal flow lives in
  * `typoraLinkCommand.ts` for menu and keyboard use (M3b).
  *
  * Historical issue #31: the editor once loaded only `.use(gfm)`, so the
@@ -37,17 +37,8 @@
 import { $useKeymap } from "@milkdown/kit/utils";
 import { commandsCtx } from "@milkdown/kit/core";
 import { toggleInlineCodeCommand } from "@milkdown/kit/preset/commonmark";
-import {
-  toggleStrikethroughCommand,
-  goToNextTableCellCommand,
-  goToPrevTableCellCommand,
-  addRowAfterCommand,
-  exitTable,
-} from "@milkdown/kit/preset/gfm";
-import { isInTable } from "@milkdown/kit/prose/tables";
+import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
 import type { Command } from "@milkdown/kit/prose/state";
-
-type EditorStateLike = Parameters<Command>[0];
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
@@ -58,6 +49,11 @@ import {
   makeParagraphCommand,
 } from "./typoraCommandFactories";
 import { makeTyporaLinkPendingCallback } from "./typoraLinkCommand";
+import {
+  makeTableExitCommand,
+  makeTableShiftTabCommand,
+  makeTableTabCommand,
+} from "./typoraTableNavigationCommands";
 import { wysiwygV1Entries } from "./wysiwygKeymapEntries";
 
 export { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
@@ -75,33 +71,6 @@ type CommandEntry = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   command: (ctx: MilkdownCtx) => any;
 };
-
-/**
- * Gate for the table-tab / table-shift-tab / table-escape handlers.
- *
- * Returns `true` only when the cursor is inside a table cell AND we are not
- * inside a fenced code block AND no IME composition is active. The order
- * matters: code_block check wins over isInTable so a code block embedded
- * in a table cell still gets its Tab indentation behavior (preserves the
- * d170f9c regression test).
- */
-function isTableTabHandlerEligible(
-  state: EditorStateLike,
-  view: Parameters<Command>[2],
-): boolean {
-  // IME guard — never consume a keystroke that the IME owns.
-  if (view?.composing) return false;
-
-  // Code-block guard — walk up from the selection; if we hit a code block
-  // before any table, the code-block handler downstream owns the key.
-  const { $from } = state.selection;
-  for (let depth = $from.depth; depth > 0; depth -= 1) {
-    const nodeName = $from.node(depth).type.name;
-    if (nodeName === "code_block") return false;
-  }
-
-  return isInTable(state);
-}
 
 /**
  * The strikethrough chord for a platform. macOS: ⌃⇧`. Windows / Linux:
@@ -129,41 +98,15 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
   // composition so CJK input owns the keystroke.
   tableTab: {
     shortcuts: "Tab",
-    command: (ctx) => {
-      const commands = ctx.get(commandsCtx);
-      return (state: Parameters<Command>[0], _dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
-        if (!isTableTabHandlerEligible(state, view)) return false;
-        const moved = commands.call(goToNextTableCellCommand.key);
-        if (moved) return true;
-        // Last cell of last row — append a new row, then move into it (Typora).
-        // Audit fix M12: chain with && so a failed addRow doesn't claim
-        // the keystroke as handled when nothing actually changed.
-        return (
-          commands.call(addRowAfterCommand.key) &&
-          commands.call(goToNextTableCellCommand.key)
-        );
-      };
-    },
+    command: makeTableTabCommand,
   },
   tableShiftTab: {
     shortcuts: "Shift-Tab",
-    command: (ctx) => {
-      const commands = ctx.get(commandsCtx);
-      return (state: Parameters<Command>[0], _dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
-        if (!isTableTabHandlerEligible(state, view)) return false;
-        return commands.call(goToPrevTableCellCommand.key);
-      };
-    },
+    command: makeTableShiftTabCommand,
   },
   tableExit: {
     shortcuts: "Escape",
-    command: (ctx) => {
-      const commands = ctx.get(commandsCtx);
-      return (state: Parameters<Command>[0], _dispatch: Parameters<Command>[1], view: Parameters<Command>[2]) => {
-        if (!isTableTabHandlerEligible(state, view)) return false;
-        return commands.call(exitTable.key);
-      };
-    },
+    command: makeTableExitCommand,
   },
   codeBlockIndent: {
     shortcuts: "Tab",

@@ -10,7 +10,7 @@
  *   - Tab during IME composition is a no-op (CJK input safety).
  *   - Tab on the last cell of the last row appends a new row.
  *
- * Strategy: source inspection (mirrors tests/typora-keymap-missing-bindings.test.ts).
+ * Strategy: keymap config and command-module source inspection.
  */
 
 import { describe, expect, it } from "vitest";
@@ -20,7 +20,7 @@ import { TYPORA_KEYMAP_CONFIG } from "../src/plugins/milkdown/typoraKeymapPlugin
 
 const ROOT = path.resolve(__dirname, "..");
 const src = fs.readFileSync(
-  path.join(ROOT, "src/plugins/milkdown/typoraKeymapPlugin.ts"),
+  path.join(ROOT, "src/plugins/milkdown/typoraTableNavigationCommands.ts"),
   "utf-8",
 );
 
