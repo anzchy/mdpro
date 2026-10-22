@@ -34,6 +34,7 @@ The first draft of this file counted whole rollouts, including tokens spent befo
 
 | Landing | Implementor | Since | Input | Not cached | Largest request |
 |---|---|---|---|---|---|
+| D258 `b5be763e` (PR #526) | gpt-imple-3, `gpt-5.6-sol` medium, cap 250k | whole item, its own sessions | 16.2M (+2.1M Astra adversary and reviewer) | 0.21M | 198k |
 
 ## Script
 
