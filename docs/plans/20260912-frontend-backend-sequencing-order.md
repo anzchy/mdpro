@@ -431,7 +431,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 
 | 菜单工作项 | 状态 | 证据 |
 |---|---|---|
-| <a id="m4"></a>**M4** | 🔄 WI-1–7 实现与最终自动化门禁已绿；预落地 High 级审计与真机菜单栏批次待验 | WI-1 c17ead3e、WI-2/3 e1cc7d11（rebase 后 SHA）；WI-4–7 见本行所在提交。测试矩阵、独立攻击、内部评审及 Amendment 13 裁定见 M4 handoff；原生 AppKit 菜单与描述树一致性留给真机批次。 |
+| <a id="m4"></a>**M4** | ✅ 已落地 `2a9fa451`（PR #527，2026-10-22）；真机菜单栏批次待验（`真机未验`） | WI-1 c17ead3e、WI-2/3 e1cc7d11、WI-4–7 2a9fa451。High 级审计 r1：Codex C0 H0 M0 L2、Fable C0 H0 M7 L6、`/security-review` C0 H0 M0 L1，合并 C0 H0。verifier ISSUES 仅为收据，用户追认为 G527-1（「Accept retroactively (Recommended)」）。待真机：macOS 原生 AppKit 菜单树与描述树一致；Windows 上 `rebuild_offmac_root` 的菜单（Fable M，无门禁覆盖）。 |
 
 | ID | 级别 | 状态 | 缺陷 | 证据与提交 |
 |---|---|---|---|---|
@@ -740,6 +740,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 | <a id="d305"></a>**D305** | MUST | ⏳ **已登记，未开工；排在 gpt-imple-2 的 D255 之后**（2026-10-22，herdr-delegator 登记；用户原话：「Register, queue after D255 (Recommended)」；首次：D294 Phase B 真机，claude-imple-1 驱动 dtrack，`277f329d`，Mac mini） | **在窗口关闭提示里选 Discard 后，被丢弃文档的草稿仍留在磁盘上**，下次启动时 Recovery 又把它端出来：提示等待期间 30 s 草稿定时器写了 `draft.write`，Discard 关窗并正常退出后草稿仍在，`file.draft.cleanup` 记为 `{"deleted":0,"skippedLive":0}`。与 W-1b 观察 2、D291 发现 1 同族，但走的是关窗路径。证据：`~/.mdpro-redesign/device/D294-phaseB-report.md` 发现 2，mini 上的副本 `scratch/D294B/leftover-draft-29e9e8f2.json` | 窗口级 Discard 要删掉它丢弃的每个文档的草稿，并取消该文档待写的草稿定时器；回归测试覆盖提示等待期间草稿已写入的情况。修复后真机复测。receipt 用 `D305-WI-*` |
 | <a id="d306"></a>**D306** | SHOULD | ⏳ **已登记为间歇性测试（D196 规则），未开工；排在 gpt-imple-1 的 M4 之后**（2026-10-22，herdr-delegator 登记；首次：gpt-imple-2 的 D294-R 全量门禁，基于 `d78e77d6`，日志 `~/.mdpro-redesign/herdr-spike/gpt-imple-2/D294-R-coverage.md`） | **`tests/tooling/d302-owner-descendant.test.ts` 的 “reaps a SIGTERM-resistant grandchild before fixture removal” 偶发失败**：清理时孙进程状态为 `?E`，macOS 的 `E` 表示进程正在退出，测试却把它当成仍存活（竞态）。D294-R 的改动不碰该文件，Amendment 1 允许的一次重跑通过 | 把正在退出的进程（`E` / zombie）视为已回收，或在断言前等待其退出；加回归测试复现 `?E` 状态。修复前按 D196 允许一次 `gh run rerun --failed`，第二次红即阻断。receipt 用 `D306-WI-*` |
 | <a id="d307"></a>**D307** | SHOULD | 📝 **已登记，未开工**（2026-10-22，herdr-delegator 登记；来源：D255-WI-3b 独立 reviewer R4/R5，Amendment 9 把 AC-1 收窄） | **WYSIWYG 列表项第一段（或唯一一段）里，标题级别命令（⌘1–⌘6 等）不生效**：`list_item` 的 schema 要求首个子节点是段落，`setBlockType` 因而拒绝，命令返回 `no_change`、文档不变。列表项第二段起可以改成标题 | 列表项第一段可设为标题，或明确定为不支持并在菜单上给出说明；若改 schema，所有者是 `src/plugins/milkdown/emptyParagraph/edgeSerializer.ts`，需覆盖序列化往返。receipt 用 `D307-WI-*` |
+| <a id="d308"></a>**D308** | SHOULD | 📝 **已登记，未开工**（2026-10-22，herdr-delegator 登记；来源：ADR-0132 Consequences、D296 复查） | **应用不显示构建 SHA**：`buildId` 恒为 `"unknown"`，每轮真机都只能靠 worktree 和日志确认装的是哪个构建；D294 的发布检查点与 D296 是否为旧构建残留都因此无法直接判定 | 关于窗口或日志里能读到构建的提交 SHA（发布构建与本地构建均有）；有测试固定其来源。receipt 用 `D308-WI-*` |
 
 <a id="d24-5b-audit"></a>**D24 · 第 5b 步的 `setPreferences` 调用方审计（2026-09-27，`8b9d8d3`）。** 检测器一翻，每个启动期可达的写入方都会真的落盘；下表逐个列出它为什么不会在水合之前把默认值写出去。行号是 `8b9d8d3` 时的快照。
 
