@@ -422,6 +422,82 @@ pub async fn upload_images_batch(
     })
 }
 
+fn create_checked_image_copy<A, B>(
+    input: &mut fs::File,
+    target_dir: &Path,
+    path: &Path,
+    after_create: A,
+    before_copy: B,
+) -> io::Result<()>
+where
+    A: FnOnce(&Path),
+    B: FnOnce(&Path),
+{
+    let mut output = OpenOptions::new().write(true).create_new(true).open(path)?;
+    after_create(path);
+    let canonical = match path.canonicalize() {
+        Ok(canonical) if canonical.starts_with(target_dir) => canonical,
+        Ok(_) => {
+            log_copy_cleanup_skipped("containment mismatch");
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "allocated image path escapes the asset directory",
+            ));
+        }
+        Err(error) => {
+            log_copy_cleanup_skipped("allocated path no longer resolves");
+            return Err(error);
+        }
+    };
+    debug_assert!(canonical.starts_with(target_dir));
+    before_copy(path);
+    if let Err(error) = io::copy(input, &mut output) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let own_identity = output
+                .metadata()
+                .map(|metadata| (metadata.dev(), metadata.ino()));
+            drop(output);
+            match (own_identity, fs::symlink_metadata(path)) {
+                (Ok((dev, ino)), Ok(current))
+                    if current.file_type().is_file()
+                        && current.dev() == dev
+                        && current.ino() == ino =>
+                {
+                    if fs::remove_file(path).is_err() {
+                        log_copy_cleanup_skipped("owned partial file could not be removed");
+                    }
+                }
+                _ => log_copy_cleanup_skipped("partial file identity changed or path disappeared"),
+            }
+            return Err(error);
+        }
+        #[cfg(not(unix))]
+        {
+            drop(output);
+            log_copy_cleanup_skipped("file identity cannot be proved on this platform");
+            return Err(io::Error::new(
+                error.kind(),
+                format!("{error}; partial image file was left in place because ownership could not be proved"),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn log_copy_cleanup_skipped(reason: &str) {
+    logger::log_event(LogEntryPayload {
+        level: LogLevel::Warn,
+        event: "image.copy_external".to_string(),
+        status: LogStatus::Fail,
+        action_id: None,
+        context: Some(serde_json::json!({ "cleanup_skipped": reason })),
+        duration_ms: None,
+        error: Some(reason.to_string()),
+    });
+}
+
 /// Copy an external image to the asset folder
 #[tauri::command]
 pub async fn copy_external_image(
@@ -525,30 +601,14 @@ pub async fn copy_external_image(
             format!("{stem}-{index}.{extension}")
         };
         let path = target_dir.join(&name);
-        let mut output = match OpenOptions::new().write(true).create_new(true).open(&path) {
-            Ok(file) => file,
+        match create_checked_image_copy(&mut input, &target_dir, &path, |_| {}, |_| {}) {
+            Ok(()) => {}
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
             Err(error) => {
                 return Err(ImageError::IoError {
                     message: error.to_string(),
                 });
             }
-        };
-        let result = path.canonicalize().and_then(|canonical| {
-            if !canonical.starts_with(&target_dir) {
-                return Err(io::Error::new(
-                    io::ErrorKind::PermissionDenied,
-                    "allocated image path escapes the asset directory",
-                ));
-            }
-            io::copy(&mut input, &mut output).map(|_| ())
-        });
-        if let Err(error) = result {
-            drop(output);
-            let _ = fs::remove_file(&path);
-            return Err(ImageError::IoError {
-                message: error.to_string(),
-            });
         }
         allocated = Some((name, path));
         break;

@@ -156,3 +156,61 @@ async fn copy_external_image_removes_partial_file_after_copy_failure() {
     assert!(!doc.parent().unwrap().join("assets/photo.png").exists());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn copy_external_image_ancestor_swap_never_unlinks_outside_victim() {
+    use std::os::unix::fs::symlink;
+    let (root, doc, external) = copy_fixture();
+    let source = external.join("source.png");
+    fs::write(&source, b"source").unwrap();
+    let outside = root.join("outside");
+    fs::create_dir(&outside).unwrap();
+    let victim = outside.join("photo.png");
+    fs::write(&victim, b"VICTIM").unwrap();
+    let assets = doc.parent().unwrap().join("assets");
+    fs::create_dir(&assets).unwrap();
+    let canonical_assets = assets.canonicalize().unwrap();
+    let path = canonical_assets.join("photo.png");
+    let mut input = fs::File::open(&source).unwrap();
+    let result = create_checked_image_copy(
+        &mut input,
+        &canonical_assets,
+        &path,
+        |_| {
+            fs::rename(&assets, doc.parent().unwrap().join("assets-old")).unwrap();
+            symlink(&outside, &assets).unwrap();
+        },
+        |_| {},
+    );
+    assert!(result.is_err());
+    assert_eq!(fs::read(&victim).unwrap_or_default(), b"VICTIM");
+    assert_eq!(fs::read_dir(&outside).unwrap().count(), 1);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn copy_external_image_replaced_entry_survives_copy_failure() {
+    let (root, doc, external) = copy_fixture();
+    let unreadable_source = external.join("source.png");
+    fs::create_dir(&unreadable_source).unwrap();
+    let assets = doc.parent().unwrap().join("assets");
+    fs::create_dir(&assets).unwrap();
+    let canonical_assets = assets.canonicalize().unwrap();
+    let path = canonical_assets.join("photo.png");
+    let mut input = fs::File::open(&unreadable_source).unwrap();
+    let result = create_checked_image_copy(
+        &mut input,
+        &canonical_assets,
+        &path,
+        |_| {},
+        |created| {
+            fs::rename(created, assets.join("created-old.png")).unwrap();
+            fs::write(created, b"VICTIM").unwrap();
+        },
+    );
+    assert!(result.is_err());
+    assert_eq!(fs::read(&path).unwrap_or_default(), b"VICTIM");
+    fs::remove_dir_all(root).unwrap();
+}
