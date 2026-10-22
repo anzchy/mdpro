@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("@tauri-apps/api/window", async () => (await import("./support/menuEventsHarness")).windowModuleMock());
-const imageResponses = vi.hoisted(() => ({ enabled: false }));
+const imageResponses = vi.hoisted(() => ({ enabled: false, picker: null as Promise<string | null> | null }));
 vi.mock("@tauri-apps/api/core", async () => {
   const harness = await import("./support/menuEventsHarness");
   return {
     ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
     invoke: (command: string, args?: { payload?: Record<string, unknown> }) => {
-      if (imageResponses.enabled && command === "pick_image") return Promise.resolve("/tmp/picture.png");
+      if (imageResponses.enabled && command === "pick_image") return imageResponses.picker ?? Promise.resolve("/tmp/picture.png");
       if (imageResponses.enabled && command === "copy_external_image") return Promise.resolve({ relativePath: "assets/picture.png", absolutePath: "/x/assets/picture.png", markdownSyntax: "![](assets/picture.png)" });
       return harness.invokeCapturingLogs(command, args);
     },
@@ -34,6 +34,7 @@ let unregister: (() => void) | null = null;
 
 beforeEach(() => {
   imageResponses.enabled = false;
+  imageResponses.picker = null;
   seedStores();
   useDocumentStore.setState({ documents: [doc("d1", "alpha")], activeDocumentId: "d1" });
   logs.length = 0;
@@ -223,6 +224,26 @@ it("AC-12 WYSIWYG Image completes successfully through the dispatcher", async ()
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(editor.editor.action((ctx) => ctx.get(serializerCtx)(editor.view.state.doc))).toContain("![](assets/picture.png)");
   expect(outcomes("format.image")).toEqual(["start", "success"]);
+});
+
+it("AC-7 replaced WYSIWYG editor logs one stale terminal outcome without inserting", async () => {
+  const oldEditor = await mountWysiwyg("alpha");
+  let releasePicker!: (path: string) => void;
+  imageResponses.enabled = true;
+  imageResponses.picker = new Promise<string>((resolve) => { releasePicker = resolve; });
+  expect(click("format.image")).toBe(true);
+  unregister?.();
+  const replacement = await mountWysiwyg("other");
+  releasePicker("/tmp/picture.png");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const entries = logs.filter((entry) => entry.payload.event === "ui.menu.select"
+    && entry.payload.context?.controlId === "editor.format.image");
+  expect(entries.map((entry) => [entry.payload.status, entry.payload.context?.stage, entry.payload.context?.reason]))
+    .toEqual([["start", "opened", undefined], ["cancel", "complete", "stale"]]);
+  expect(new Set(entries.map((entry) => entry.payload.actionId)).size).toBe(1);
+  expect(oldEditor.editor.action((ctx) => ctx.get(serializerCtx)(oldEditor.view.state.doc))).toBe("alpha\n");
+  expect(replacement.editor.action((ctx) => ctx.get(serializerCtx)(replacement.view.state.doc))).toBe("other\n");
+  await oldEditor.destroy();
 });
 
 it("AC-12 W read-only and composing guards refuse a heading change", async () => {

@@ -248,6 +248,24 @@ it("AC-2 finds the next occurrence from an existing selection", async () => {
   expect(run("edit.selectWord")).toEqual({ status: "refused", reason: "no_change" });
 });
 
+it("AC-2 Select Word then undo restores the prior selection and document edit", async () => {
+  await mount("alpha beta");
+  const view = rig!.view;
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 3)));
+  const priorDocument = view.state.doc;
+  const priorSelection = view.state.selection;
+  const priorMarkdown = markdown();
+  view.dispatch(view.state.tr.insertText("!", view.state.doc.content.size - 1));
+  expect(markdown()).toBe("alpha beta!\n");
+  expect(run("edit.selectWord")).toEqual({ status: "applied" });
+  expect(view.state.selection.eq(priorSelection)).toBe(false);
+  expect(view.state.doc.textBetween(view.state.selection.from, view.state.selection.to)).toBe("alpha");
+  expect(undo(view.state, view.dispatch, view)).toBe(true);
+  expect(view.state.selection.eq(priorSelection)).toBe(true);
+  expect(view.state.doc.eq(priorDocument)).toBe(true);
+  expect(markdown()).toBe(priorMarkdown);
+});
+
 it.each([
   ["alpha beta", "alpha beta"],
   ["## alpha beta", "alpha beta"],

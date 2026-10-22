@@ -228,6 +228,20 @@ it("AC-7/R8 undoes only the latest of two adjacent WYSIWYG images", async () => 
   expect(output()).toBe("alpha\n");
 });
 
+it("AC-7 WYSIWYG Image undo restores the exact prior selection and document", async () => {
+  const editor = await mountWysiwyg();
+  const view = editor.view;
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 2, 4)));
+  const priorDocument = view.state.doc;
+  const priorSelection = view.state.selection;
+  expect(start()).toEqual({ status: "opened" });
+  await settle();
+  expect(view.state.doc.eq(priorDocument)).toBe(false);
+  expect(wysiwygUndo(view.state, view.dispatch, view)).toBe(true);
+  expect(view.state.doc.eq(priorDocument)).toBe(true);
+  expect(view.state.selection.eq(priorSelection)).toBe(true);
+});
+
 it.each(["close", "mode", "destroy"]) ("AC-7 %s during picker await cannot copy or insert", async (change) => {
   const editor = mountSource();
   const pick = deferred<string>();
