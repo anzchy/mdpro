@@ -2,6 +2,8 @@
 
 ## Status
 
+Partially superseded 2026-10-22 by [ADR-0133](0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md): decision 1 points 4 (the 50 % condition), 5, 6 and 7; decision 2 steps 2 and 3 (the in-pane `/new` and the session-id check, so step 1's session-id record is dropped); decision 7's fallback becomes the rule. Every reset is a new pane with explicit launch flags and a 250k compaction cap.
+
 Accepted, 2026-10-22. Decided by the user, recorded by herdr-delegator. The user's words: 「Accept (Recommended)」. That answer was given on a question that stated the ADR-0121 escape replay result, "insufficient evidence" (zero escapes), so it is also the user's decision without recall numbers.
 
 Proposed 2026-10-22 by herdr-delegator. The user had asked how the long-running implementors and

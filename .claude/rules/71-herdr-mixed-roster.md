@@ -32,8 +32,9 @@ When the delegator is not herdr-delegator, this file does not apply.
 | Role | Name | Runs as | Gets work by | Reports by |
 |---|---|---|---|---|
 | Delegator | `herdr-delegator` | Claude Opus, herdr pane of that name, main checkout | — | — |
-| Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol`, herdr pane, one `mdpro-wt/` worktree per item | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
-| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | `/new` reset, then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
+| Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, herdr pane, one `mdpro-wt/` worktree per item | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
+| Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, herdr pane, one `mdpro-wt/` worktree per item; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
+| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
 | Auditor, Fable half (PRs only) | `mdpro-fable-auditor` subagent | Fable, a fresh named subagent of the delegator per request: never a fork, never resumed, under the agent definition's phase-aware read barrier (§ Fresh context) | `Agent` | its result; the delegator writes it verbatim to `~/.mdpro-redesign/herdr-spike/fable-auditor/<item>-r<round>.md` |
 | `/security-review` runner | a fork of herdr-delegator | Opus | `Agent` (`fork`) | `~/.mdpro-redesign/herdr-spike/delegator/secrev-<item>.md` |
 | Landing verifier, ADR and plan reviewer, number registrar | subagents of herdr-delegator | Opus (`model: "opus"`) | `Agent` | their result |
@@ -126,14 +127,27 @@ alias here.
   also keeps the heavy lock.
   **Record the red before the production change it tests.** A receipt that carries
   `implementation-already-present` is named in the handoff (M3a, 2026-10-20).
-- **Restart.** A Codex conversation does not survive a restart or a move to another worktree.
-  Codex writes only inside its start directory, so a new item means a new pane in its worktree:
-  1. `herdr pane split <pane> --cwd <worktree> --env MDPRO_ROLE=implementor`;
-  2. `herdr agent start <name> --kind codex --pane <id> -- -m <model>`;
-  3. close the old pane;
-  4. the first prompt points at the brief.
+- **Restart, and every reset, is a new pane** ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)
+  decision 4). A Codex conversation does not survive a restart or a move to another worktree, and
+  Codex writes only inside its start directory. herdr names are unique among live agents, so the
+  old pane closes **before** the new start:
+  1. confirm the agent is `idle` or `done` (`herdr agent get`);
+  2. `herdr pane split <old> --direction down --cwd <worktree> --no-focus`, adding `--env
+     MDPRO_ROLE=implementor` for an implementor;
+  3. `herdr pane close <old>`, which releases the name;
+  4. `herdr agent start <name> --kind codex --pane <new> -- -m <model> -c
+     model_reasoning_effort=<effort> -c model_auto_compact_token_limit=250000`. On
+     `agent_pane_busy`, the new shell is not ready yet: wait a few seconds and retry;
+  5. **the reset counts** when the `agent_started` result's `argv` shows those flags and the status
+     line reads `<model> <effort> · Context 0% used` before the prompt. Otherwise it is void and
+     repeated;
+  6. the first prompt points at the brief or the request file.
+
+  Models: implementors `gpt-6-sol` medium; gpt-imple-3 `gpt-5.6-sol` medium; gpt-auditor
+  `gpt-6-astra` high. `~/.codex/config.toml` is never edited for this. The new pane id goes into
+  the heartbeat assignment.
 - **Challenge and confirm with gpt-auditor.** Every request, these included, follows § Fresh
-  context: a `/new` reset, then a prompt pointing at a self-contained request file. Nothing relies
+  context: a new-pane reset, then a prompt pointing at a self-contained request file. Nothing relies
   on the pane's thread.
 
 ## Fresh context
@@ -142,25 +156,9 @@ alias here.
 user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context replaces the thread.
 
 - **Reset a Codex pane** before every gpt-auditor request (first audit, confirm, challenge, ADR or
-  plan review) and every implementor fix that needs a new session:
-  1. confirm the pane is `idle` or `done` (`herdr agent get`), and record `agent_session.value`;
-  2. `herdr pane send-text <pane> '/new'`, then `herdr agent send-keys <name> enter`. Never use
-     `prompt --wait` for `/new`, which starts no turn. Codex then asks where the new
-     conversation runs: answer `enter` for "Use current Git worktree";
-  3. **restore the model.** `/new` falls back to the `~/.codex/config.toml` default, `gpt-6-sol`
-     at medium effort. For gpt-auditor, run `/model`, select GPT-6-Astra (`up`, `enter`), then
-     High (`down`), and press **`s`** to set it for this session only. Never press `enter` there:
-     that rewrites the global default. The status line must read `GPT-6-Astra high · Context 0%
-     used` before the request is sent;
-  4. then `herdr agent prompt … --wait`, in the background, pointing at the request file;
-  5. **the reset counts only when `agent_session.value` has changed after that turn.** herdr
-     updates the id when the first turn starts, not at `/new`. If the id did not change, the
-     result is void: follow § Restart (a new pane) and resend.
-     A pane whose `agent_session` is `null`, as on implementor panes, cannot use the id
-     check: it passes instead when the status line reads `Context 0% used` before the prompt.
-
-  Probe passed 2026-10-22 (ADR-0131 decision 7): the id went from `01a16229…` to `01a1622c…`, and
-  the reply to "what was your previous request" was "none".
+  plan review) and every implementor fix that needs a new session, by § Restart: a new pane with
+  the full launch line. The in-pane `/new` reset and its session-id check are superseded (ADR-0133
+  decision 4): `/new` drops the launch flags, and herdr can report another project's session id.
 - **A request file is self-contained.** A confirm or challenge names:
   - the fix range;
   - the open findings by id, with their text;
@@ -183,13 +181,16 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
 - **Implementor fixes** are numbered by the ADR-0120 round they answer. Fix 1, which answers the
   blind audit, stays in the item's session only when both of these hold:
   - the fix brief names one or two findings, each with its regression test;
-  - the Codex status line shows at least 50 % context left.
+  - the Codex status line shows at most 12 % used (half the 250k cap on the 1M window; ADR-0133
+    decision 5).
 
   Every other fix (fix 2, and any post-cap fix under ADR-0129) gets a new session, seeded only with
   the brief, the last handoff, the merged verdict and the fix brief.
-- **A session with under 40 % context left** writes a progress note and is reset or restarted from
-  the brief and that note. The delegator reads the status line with `herdr agent read <name>
-  --source recent-unwrapped` at each wake.
+- **At any stop or handoff, a session showing 20 % or more used, or one that has compacted,**
+  writes a progress note and restarts by § Restart from the brief and that note (ADR-0133
+  decision 5). A session counts as compacted when its pane shows Codex's compaction notice, or when
+  its used percentage has fallen since the previous wake. The delegator reads the status line with
+  `herdr agent read <name> --source recent-unwrapped` at each wake.
 - **Every handoff names the approaches it rejected, and why.** A fix session knows only what the
   files say.
 - **The delegator** asks the user to type `/compact` at a quiet point: no landing in flight, every
@@ -309,3 +310,12 @@ before any audit starts.
 
 **One unlanded implementation item per session, and two machine-wide**, as rule 70 says (ADR-0124,
 superseding ADR-0119's four). Items that were already over the cap finish first. Prep needs no slot.
+
+**Plus one Low-tier slot, held by gpt-imple-3 only** ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)
+decision 2; user decision, 2026-10-22: 「3rd slot, Low tier only (Recommended)」):
+- **Its scope.** The delegator states the ADR-0121 tier in every grant to gpt-imple-3. A Low-tier
+  item granted to gpt-imple-1 or gpt-imple-2 uses a general slot.
+- **A higher-tier path found mid-item.** The item stops with `<item>-blocked.md` and keeps the slot
+  until it is handed to a general slot. Its worktree, branch and receipts move with it.
+- **A tier an auditor raises.** The item finishes in place, as over the cap, and gpt-imple-3 takes
+  no new item until it lands.

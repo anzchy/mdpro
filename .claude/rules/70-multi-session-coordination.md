@@ -49,7 +49,7 @@ tmux name is only an alias; as of 2026-10-20 they are:
 
 | Role | Alias |
 |---|---|
-| mdpro-implementor-\* | `gpt-imple-1`, a herdr agent (took over from `mdpro-a3`, retired by the user 2026-10-18: 「retire @mdpro-a3 whose job now is taken by impl-1」); `gpt-imple-2`, a herdr agent (added 2026-10-18: 「add gpt-imple-2 too」). `mdpro-a6` and `mdpro-design` ended with the 2026-10-18 reboot |
+| mdpro-implementor-\* | `gpt-imple-1`, a herdr agent (took over from `mdpro-a3`, retired by the user 2026-10-18: 「retire @mdpro-a3 whose job now is taken by impl-1」); `gpt-imple-2`, a herdr agent (added 2026-10-18: 「add gpt-imple-2 too」). `gpt-imple-3`, a herdr agent on `gpt-5.6-sol` for Low-tier items only (added 2026-10-22: 「3rd slot, Low tier only (Recommended)」, ADR-0133). `mdpro-a6` and `mdpro-design` ended with the 2026-10-18 reboot |
 | mdpro-auditor-\* | under herdr, `gpt-auditor` (Codex) and a fresh `mdpro-fable-auditor` subagent per request (Fable), rule 71 and ADR-0131 (the `fable-auditor` session retired 2026-10-22); `mdpro-codex-audit` ended with the 2026-10-18 reboot |
 | mdpro-device-harness | `adr047-verify` (renamed from `mdpro-85` by the user, 2026-10-11) |
 | real-device-tester | tmux session `dtrack` |
@@ -132,6 +132,9 @@ handoff. Each item is tagged `prep` or `impl`.
   superseding ADR-0119's four, with or without herdr; user decision, 2026-10-18: 「decrease slot
   (parallel implementor to 2)」, accepted 2026-10-20). Items already over the cap finish first.
   Dirty, committed, waiting and fix work all count; the auditor's audits do not.
+  Under herdr-delegator, one more slot holds a Low-tier item for gpt-imple-3 only
+  ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md);
+  rule 71 § Slots).
 - **Precedence**: audit fixes on your own work, then the current priority
   item, then a pull.
 - **Landing order is unchanged.** Among eligible items the user's priority
