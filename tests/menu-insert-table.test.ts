@@ -1,5 +1,5 @@
 /**
- * Purpose: keep Format → Insert Table's command-table description, native
+ * Purpose: keep Insert Table's platform-specific command-table description, native
  * builder wiring and frontend action observable across the M4 extraction.
  * The native key equivalent itself remains a macOS device check.
  */
@@ -24,11 +24,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("Format → Insert Table", () => {
+describe("Insert Table menu", () => {
   it("retains the v1 item, id, mode and key in the generated layout", () => {
     const row = layout.rows.find((entry: { id: string }) => entry.id === "paragraph.table");
     expect(row.menuId).toBe("menu.format.insert_table");
-    expect(row.menu.macos).toEqual(["Format", "Insert Table"]);
+    expect(row.menu.macos).toEqual(["Paragraph", "Table..."]);
+    expect(row.menu.windows).toEqual(["Format", "Insert Table"]);
+    expect(row.menu.linux).toEqual(["Format", "Insert Table"]);
     expect(row.key.macos.defaults.v1).toBe("Cmd+Option+T");
     expect(row.availability.macos.v1).toBe("W");
     // The Rust behavior case `m4_wi2_insert_table_descriptor...` checks the
@@ -36,6 +38,7 @@ describe("Format → Insert Table", () => {
     // the native builder and route it consumes.
     expect(menuRs).toMatch(/const\s+MENU_FORMAT_INSERT_TABLE:\s*&str\s*=\s*"menu\.format\.insert_table"/);
     expect(paragraphRs).toMatch(/MENU_FORMAT_INSERT_TABLE[\s\S]*"Insert Table"[\s\S]*"CmdOrCtrl\+Alt\+T"/);
+    expect(paragraphRs).toMatch(/SubmenuBuilder::new\(app,\s*"Paragraph"\)[\s\S]*MENU_FORMAT_INSERT_TABLE/);
     expect(formatRs).toMatch(/SubmenuBuilder::new\(app,\s*"Format"\)[\s\S]*format_insert_table/);
     expect(menuRs).toMatch(/MENU_FORMAT_INSERT_TABLE\s*=>\s*emit_menu_action\(app,\s*"paragraph\.table",\s*None\)/);
   });
@@ -62,7 +65,9 @@ describe("Format → Insert Table", () => {
     expect(hook).not.toMatch(/\]\s*,?\s*\[\s*handlers\.\w+|\},\s*\[\s*(?:\s*handlers\.\w+\s*,?)+\s*\]/);
   });
 
-  it("documents the current v1 shortcut under Format", () => {
+  it("documents the current v1 shortcut and each platform's menu path", () => {
     expect(shortcutDocs).toMatch(/Cmd\s*\+\s*Option\s*\+\s*T[\s\S]{0,80}Insert Table/i);
+    expect(shortcutDocs).toMatch(/macOS:\s*Paragraph\s*→\s*Table/);
+    expect(shortcutDocs).toMatch(/Windows\/Linux:\s*Format\s*→\s*Insert Table/);
   });
 });

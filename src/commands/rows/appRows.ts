@@ -35,7 +35,7 @@ const themeItem = (name: string, label: string): CommandRow =>
   fixed({
     id: `theme.${name}`,
     menuId: `menu.theme.${name}`,
-    menu: ["Theme", label],
+    menu: macOff<MenuPath>(["Themes", label], ["Theme", label]),
     key: NO_KEY,
     route: "frontend",
   });
@@ -86,9 +86,17 @@ export const APP_ROWS: readonly CommandRow[] = [
   fixed({
     id: "help.mdproHelp",
     menuId: "menu.help.placeholder",
-    menu: ["Help", "mdpro Help"],
+    menu: macOff<MenuPath>(NO_MENU, ["Help", "mdpro Help"]),
     key: NO_KEY,
     route: "unavailable",
     availability: "none",
+  }),
+  fixed({
+    id: "help.keyboardShortcuts",
+    menuId: "menu.help.keyboard_shortcuts",
+    menu: macOff<MenuPath>(["Help", "Keyboard Shortcuts…"], NO_MENU),
+    key: NO_KEY,
+    route: macOff("frontend", "unavailable"),
+    availability: macOff("both", "none"),
   }),
 ];

@@ -176,3 +176,7 @@ mod tests;
 #[cfg(test)]
 #[path = "menu_availability_m4_integration_tests.rs"]
 mod m4_integration_tests;
+
+#[cfg(test)]
+#[path = "menu_availability_m4_logging_tests.rs"]
+mod m4_logging_tests;

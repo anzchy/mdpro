@@ -65,7 +65,7 @@ fn pref_fields_and_v1_defaults_equal_keyboard_shortcuts_default() {
 fn command_ids_are_unique() {
     let rows = &layout().rows;
     let ids: BTreeSet<&str> = rows.iter().map(|r| r.id.as_str()).collect();
-    assert_eq!(rows.len(), 78);
+    assert_eq!(rows.len(), 79);
     assert_eq!(ids.len(), rows.len());
 }
 

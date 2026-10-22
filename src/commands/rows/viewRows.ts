@@ -6,7 +6,7 @@
  *
  * @coordinates-with src/commands/commandTable.ts — assembles the rows
  */
-import type { CommandRow, OwnershipContext } from "../commandTable.types";
+import type { CommandRow, OwnershipContext, MenuPath} from "../commandTable.types";
 import { configurable, macOff } from "../rowBuilders";
 
 const BOTH: readonly OwnershipContext[] = ["editorW", "editorS", "tableW", "tableS"];
@@ -59,6 +59,8 @@ export const VIEW_ROWS: readonly CommandRow[] = [
   }),
   configurable({
     id: "view.switchDocuments",
+    menuId: "menu.view.switch_documents",
+    menu: macOff<MenuPath>(["View", "Switch Documents"], "none"),
     field: "viewSwitchDocuments",
     v1: "Cmd+`",
     v2: macOff("Ctrl+Tab", "Cmd+Tab"),

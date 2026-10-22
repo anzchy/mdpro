@@ -1,4 +1,4 @@
-//! M1A-WI-7: the layout's menu ids are exactly today's `MENU_*` constants.
+//! M1A-WI-7/M4: every native custom id in the layout has one declared route.
 //! Matrix: .claude/tdd-guardian/tests-20261016-223726.md § M1A-WI-7,
 //! "Unit: menu_layout_parity_tests.rs". A child of `menu.rs`, so it names
 //! the constants themselves rather than their string values.
@@ -33,10 +33,46 @@ fn layout_menu_ids_with_a_menu_path_equal_the_menu_constants() {
         MENU_THEME_SYSTEM,
         MENU_APP_STOP_WAITING_QUIT,
         MENU_APP_QUIT,
+        MENU_HELP_KEYBOARD_SHORTCUTS,
+        "menu.file.save_as",
+        "menu.edit.copy_as_markdown",
+        "menu.edit.paste_as_plain_text",
+        "menu.edit.select_line",
+        "menu.edit.select_word",
+        "menu.edit.delete_word",
+        "menu.edit.find",
+        "menu.edit.replace",
+        "menu.edit.find_next",
+        "menu.edit.find_previous",
+        "menu.paragraph.heading1",
+        "menu.paragraph.heading2",
+        "menu.paragraph.heading3",
+        "menu.paragraph.heading4",
+        "menu.paragraph.heading5",
+        "menu.paragraph.heading6",
+        "menu.paragraph.paragraph",
+        "menu.paragraph.increase_heading",
+        "menu.paragraph.decrease_heading",
+        "menu.paragraph.code_fences",
+        "menu.paragraph.math_block",
+        "menu.paragraph.quote",
+        "menu.paragraph.ordered_list",
+        "menu.paragraph.unordered_list",
+        "menu.paragraph.indent",
+        "menu.paragraph.outdent",
+        "menu.format.strong",
+        "menu.format.emphasis",
+        "menu.format.underline",
+        "menu.format.code",
+        "menu.format.strike",
+        "menu.format.hyperlink",
+        "menu.format.image",
+        "menu.format.clear_format",
+        "menu.view.switch_documents",
     ]
     .into_iter()
     .collect();
-    assert_eq!(expected.len(), 18);
+    assert_eq!(expected.len(), 54);
 
     let layout = menu_layout().expect("the committed menu_layout.json parses");
     let with_path: BTreeSet<&str> = layout

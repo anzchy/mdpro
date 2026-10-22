@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known issues
 
 - On macOS, closing a secondary window can occasionally make mdpro quit unexpectedly (seen in 2 of 46 closes in device testing at the smallest window width). Unsaved edits that no automatic draft holds are lost. Drafts cover each window's active tab at the interval set in Settings (30 seconds by default), so recent edits, edits in background tabs, and everything unsaved when autosave is off can be lost. Targeted for 0.3.7 (D294).
+
 ### Changed
 
-- The existing macOS custom menu items now take their labels and shortcuts from the command table and the run's applied shortcuts. A disabled or conflicting item has no native shortcut; mode-limited clicks recheck the target window before dispatch (M4 WI-1–3; menu-tree expansion pending).
+- The macOS menu bar now follows the command table's Edit, Paragraph, Format, View and Themes tree. Selection and Find are nested under Edit; Insert Table moves to Paragraph; unavailable items remain visible and keyless. Custom shortcuts come from the run's applied set, and editor clicks recheck the target window's mode. Themes has one checked item, Help opens Settings › Keyboard Shortcuts, Settings… replaces Preferences…, and Window gains Bring All to Front. Native menu appearance and clicks await the M4 device batch (M4 WI-1–7).
 
 ### Fixed
 

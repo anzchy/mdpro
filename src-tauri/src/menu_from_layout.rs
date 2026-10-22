@@ -5,7 +5,7 @@
 //! @coordinates-with src-tauri/src/menu.rs
 //! @coordinates-with src-tauri/src/services/binding_conflicts.rs
 
-use crate::menu_layout::{menu_layout, KeyKind, MenuLayout, MenuPath, Platform};
+use crate::menu_layout::{menu_layout, Availability, KeyKind, MenuLayout, MenuPath, Platform};
 use crate::models::{KeyboardShortcuts, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::applied_shortcuts::{
     resolve_applied, AppliedBinding, AppliedShortcuts, AppliedShortcutsState, AppliedSource,
@@ -13,6 +13,7 @@ use crate::services::applied_shortcuts::{
 use crate::services::binding_conflicts::{resolve_with, Resolution, SuppressReason};
 use crate::services::logger;
 use serde_json::json;
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use tauri::menu::{CheckMenuItem, MenuItem};
 use tauri::{AppHandle, Manager, Wry};
@@ -26,6 +27,38 @@ pub(super) struct MenuItemSpec {
     pub path: Vec<String>,
     pub enabled: bool,
     pub accelerator: Option<String>,
+}
+
+/// Resolve only editor-owned macOS menu ids. A disabled row still resolves so
+/// the click-time availability guard can record its refusal.
+pub(super) fn editor_action_for_menu_id(layout: &MenuLayout, menu_id: &str) -> Option<String> {
+    layout.rows.iter().find_map(|row| {
+        if row.menu_id.as_deref() != Some(menu_id)
+            || !matches!(row.menu.macos, MenuPath::Path(_))
+            || matches!(row.id.as_str(), "paragraph.table" | "format.highlight")
+            || !matches!(
+                row.id.split('.').next(),
+                Some("edit" | "paragraph" | "format")
+            )
+        {
+            return None;
+        }
+        Some(format!("editor.{}", row.id))
+    })
+}
+
+/// Known disabled non-editor items must still reach the click-time refusal.
+pub(super) fn unavailable_action_for_menu_id(layout: &MenuLayout, menu_id: &str) -> Option<String> {
+    layout.rows.iter().find_map(|row| {
+        if row.menu_id.as_deref() == Some(menu_id)
+            && matches!(row.menu.macos, MenuPath::Path(_))
+            && row.availability.macos.v1 == Availability::None
+        {
+            Some(row.id.clone())
+        } else {
+            None
+        }
+    })
 }
 
 pub(super) fn specs_for_app(
@@ -56,6 +89,16 @@ pub(super) fn menu_layout_for(
     applied: &AppliedShortcuts,
     mode: Option<ViewMode>,
 ) -> Vec<MenuItemSpec> {
+    menu_layout_for_with_logger(layout, applied, mode, logger::log_event)
+}
+
+/// Builds descriptors and emits its summary through the supplied log boundary.
+fn menu_layout_for_with_logger(
+    layout: &MenuLayout,
+    applied: &AppliedShortcuts,
+    mode: Option<ViewMode>,
+    log: impl Fn(LogEntryPayload),
+) -> Vec<MenuItemSpec> {
     let stored: BTreeMap<String, String> = applied
         .bindings
         .iter()
@@ -78,7 +121,8 @@ pub(super) fn menu_layout_for(
     .resolutions;
     let reserved: BTreeSet<&str> = layout.reserved.macos.iter().map(String::as_str).collect();
     let v2 = applied.keyboard_shortcuts_version >= 2;
-    layout
+    let dropped = Cell::new(0usize);
+    let specs: Vec<MenuItemSpec> = layout
         .rows
         .iter()
         .filter_map(|row| {
@@ -96,22 +140,30 @@ pub(super) fn menu_layout_for(
                                 reason: SuppressReason::Unparseable,
                                 ..
                             }) => {
-                                log_dropped_accelerator(&row.id, "unparseable");
+                                dropped.set(dropped.get() + 1);
+                                log_dropped_accelerator(&row.id, "unparseable", &log);
+                                None
+                            }
+                            Some(Resolution::Suppressed { .. }) => {
+                                dropped.set(dropped.get() + 1);
                                 None
                             }
                             _ => None,
                         })
                 }
             };
-            let accelerator = chord
-                .filter(|chord| !reserved.contains(chord.as_str()))
-                .and_then(|chord| {
-                    let native = native_accelerator(&chord);
-                    if native.is_none() {
-                        log_dropped_accelerator(&row.id, "native_unparseable");
-                    }
-                    native
-                });
+            let accelerator = chord.and_then(|chord| {
+                if reserved.contains(chord.as_str()) {
+                    dropped.set(dropped.get() + 1);
+                    return None;
+                }
+                let native = native_accelerator(&chord);
+                if native.is_none() {
+                    dropped.set(dropped.get() + 1);
+                    log_dropped_accelerator(&row.id, "native_unparseable", &log);
+                }
+                native
+            });
             let enabled = allows(row.availability.macos.v1, mode);
             Some(MenuItemSpec {
                 command_id: row.id.clone(),
@@ -121,7 +173,22 @@ pub(super) fn menu_layout_for(
                 accelerator: accelerator.filter(|_| enabled),
             })
         })
-        .collect()
+        .collect();
+    log(LogEntryPayload {
+        level: LogLevel::Info,
+        event: "ui.menu.build".into(),
+        status: LogStatus::Success,
+        action_id: Some(uuid::Uuid::new_v4().to_string()),
+        context: Some(json!({
+            "itemCount": specs.len(),
+            "disabledCount": specs.iter().filter(|item| !item.enabled).count(),
+            "droppedAccelerators": dropped.get(),
+            "version": applied.keyboard_shortcuts_version,
+        })),
+        duration_ms: None,
+        error: None,
+    });
+    specs
 }
 
 fn required<'a>(specs: &'a [MenuItemSpec], menu_id: &str) -> tauri::Result<&'a MenuItemSpec> {
@@ -248,8 +315,8 @@ fn native_accelerator(chord: &str) -> Option<String> {
     Some(format!("{}+{}", modifiers.replace("Option", "Alt"), key))
 }
 
-fn log_dropped_accelerator(command_id: &str, reason: &str) {
-    logger::log_event(LogEntryPayload {
+fn log_dropped_accelerator(command_id: &str, reason: &str, log: &impl Fn(LogEntryPayload)) {
+    log(LogEntryPayload {
         level: LogLevel::Warn,
         event: "ui.menu.accelerator".into(),
         status: LogStatus::Cancel,
@@ -271,3 +338,11 @@ mod review_tests;
 #[cfg(test)]
 #[path = "menu_from_layout_tree_tests.rs"]
 mod tree_tests;
+
+#[cfg(test)]
+#[path = "menu_from_layout_logging_tests.rs"]
+mod logging_tests;
+
+#[cfg(test)]
+#[path = "menu_from_layout_unavailable_tests.rs"]
+mod unavailable_tests;

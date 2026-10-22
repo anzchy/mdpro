@@ -12,9 +12,11 @@
 //!   lose each other's updates.
 //! - The sync mutex is separate from the **data mutex** the menu-click handler
 //!   (`menu.rs` `handle_menu_event`) reads, so a menu event fired during
-//!   `set_menu` cannot deadlock. No menu event handler calls `publish_op`.
-//! - View modes are keyed by the injected caller window. The focused label
-//!   comes from `MenuFocus`; a missing focus or report fails closed.
+//!   `set_menu` cannot deadlock. The Themes click handler requests a rebuild
+//!   after its event emission, never while the sync lock is held.
+//! - View modes are keyed by the injected caller window. A validated theme
+//!   report updates the app-wide mode only from the focused window; an omitted
+//!   or background report cannot replace the active tick.
 //! - `publish_op` logs `menu.recent_files.sync` with `{op, count, outcome}`
 //!   only, never paths; a `seed` with `stored: None` logs a warn with
 //!   `outcome: "hydration_failed"` (the line a device run can see while
@@ -33,6 +35,7 @@ use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
 use serde_json::{json, Value};
 use std::path::Path;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Mutex;
 use std::time::Instant;
 use tauri::menu::{MenuItem, Submenu, SubmenuBuilder};
@@ -47,6 +50,34 @@ pub struct MenuState {
     recent_files: Mutex<Vec<String>>,
     modes: Mutex<MenuModes>,
     sync: Mutex<SyncState>,
+    /// Written only while `sync` is held; read by `build_menu` during install.
+    theme_mode: AtomicU8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ThemeMode {
+    System = 0,
+    Light = 1,
+    Dark = 2,
+}
+
+impl ThemeMode {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "system" => Some(Self::System),
+            "light" => Some(Self::Light),
+            "dark" => Some(Self::Dark),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
 }
 
 /// Guarded by `MenuState::sync`, never by the data mutex.
@@ -62,6 +93,28 @@ pub struct ModeReport {
 }
 
 impl MenuState {
+    /// Apply a validated theme report and install the menu under the same
+    /// sync transaction; omission preserves the remembered mode.
+    pub fn publish_op_with_theme(
+        &self,
+        op: RecentOp,
+        report: Option<ModeReport>,
+        theme_mode: Option<&str>,
+        install: impl FnOnce(&[String], Option<&str>, &str) -> Result<(), String>,
+    ) -> Result<Vec<String>, String> {
+        self.publish_op_inner(op, report, theme_mode, |list, mode| {
+            install(list, mode, self.theme_mode().as_str())
+        })
+    }
+
+    pub fn theme_mode(&self) -> ThemeMode {
+        match self.theme_mode.load(Ordering::SeqCst) {
+            1 => ThemeMode::Light,
+            2 => ThemeMode::Dark,
+            _ => ThemeMode::System,
+        }
+    }
+
     pub fn set_focused(&self, label: Option<String>) {
         let mut sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
         sync.focused = label;
@@ -114,6 +167,16 @@ impl MenuState {
         report: Option<ModeReport>,
         install: impl FnOnce(&[String], Option<&str>) -> Result<(), String>,
     ) -> Result<Vec<String>, String> {
+        self.publish_op_inner(op, report, None, install)
+    }
+
+    fn publish_op_inner(
+        &self,
+        op: RecentOp,
+        report: Option<ModeReport>,
+        theme_mode: Option<&str>,
+        install: impl FnOnce(&[String], Option<&str>) -> Result<(), String>,
+    ) -> Result<Vec<String>, String> {
         let started = Instant::now();
         let kind = op_kind(&op);
         log_sync(
@@ -140,6 +203,7 @@ impl MenuState {
 
         // Poison only means another sync panicked; the mode map is intact.
         let sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
+        let reporter = report.as_ref().map(|report| report.window.clone());
         if let Some(report) = report {
             if let Err(reason) = self
                 .modes
@@ -155,6 +219,29 @@ impl MenuState {
                     None,
                 );
                 return Err(reason.to_string());
+            }
+        }
+        if let Some(raw) = theme_mode {
+            if let Some(valid) = ThemeMode::parse(raw) {
+                if sync.focused.is_none() || sync.focused.as_deref() == reporter.as_deref() {
+                    self.theme_mode.store(valid as u8, Ordering::SeqCst);
+                } else {
+                    log_sync(
+                        LogLevel::Info,
+                        LogStatus::Cancel,
+                        json!({ "op": kind }),
+                        Some("background_theme_report"),
+                        None,
+                    );
+                }
+            } else {
+                log_sync(
+                    LogLevel::Warn,
+                    LogStatus::Fail,
+                    json!({ "op": kind }),
+                    Some("invalid_theme_mode"),
+                    None,
+                );
             }
         }
         let current = match self.recent_files.lock() {

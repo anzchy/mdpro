@@ -31,6 +31,7 @@ export type WireOp =
 export interface SyncArgs {
   op: WireOp;
   viewMode: string | null;
+  themeMode?: "light" | "dark" | "system";
 }
 
 const isStringArray = (v: unknown): v is string[] =>
@@ -45,10 +46,12 @@ const sameKeys = (o: object, keys: string[]) => {
 /** Throws `bad op shape` unless `args` is exactly the pinned wire shape. */
 export function assertWireShape(args: unknown): SyncArgs {
   const bad = () => new Error("bad op shape");
-  if (typeof args !== "object" || args === null || !sameKeys(args, ["op", "viewMode"])) {
+  if (typeof args !== "object" || args === null) {
     throw bad();
   }
-  const { op, viewMode } = args as { op: unknown; viewMode: unknown };
+  const { op, viewMode, themeMode } = args as { op: unknown; viewMode: unknown; themeMode?: unknown };
+  if (!sameKeys(args, themeMode === undefined ? ["op", "viewMode"] : ["op", "viewMode", "themeMode"])) throw bad();
+  if (themeMode !== undefined && !["light", "dark", "system"].includes(String(themeMode))) throw bad();
   if (typeof op !== "object" || op === null) throw bad();
   const o = op as Record<string, unknown>;
   if (o.kind === "seed") {
@@ -81,6 +84,8 @@ export interface SessionFake {
   session: string[];
   menuViewMode: string | null;
   installModes: (string | null)[];
+  menuThemeMode: "light" | "dark" | "system";
+  installThemes: ("light" | "dark" | "system")[];
   /** Every accepted args object, in arrival order. */
   calls: SyncArgs[];
   /** The last reply handed back. */
@@ -95,13 +100,17 @@ export function createSessionFake(
     session: [],
     menuViewMode: null,
     installModes: [],
+    menuThemeMode: "system",
+    installThemes: [],
     calls: [],
     lastAnswer: undefined,
     handle(raw: unknown) {
       const args = assertWireShape(raw);
       fake.calls.push(args);
       if (args.viewMode !== null) fake.menuViewMode = args.viewMode;
+      if (args.themeMode !== undefined) fake.menuThemeMode = args.themeMode;
       fake.installModes.push(fake.menuViewMode);
+      fake.installThemes.push(fake.menuThemeMode);
       fake.session = applyOp(fake.session, args.op);
       fake.lastAnswer = options.answer ? options.answer(args) : [...fake.session];
       return fake.lastAnswer;

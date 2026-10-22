@@ -72,7 +72,7 @@ export interface MenuHandlers {
   onViewModeChange?: (mode: ViewMode, actionId?: string, token?: MenuTargetToken) => void;
   onCycleViewMode?: Plain;
   onThemeModeChange?: (mode: UserPreferences["themeMode"], actionId?: string, token?: MenuTargetToken) => void;
-  onOpenPreferences?: Plain;
+  onOpenPreferences?: (actionId: string, page?: "keyboard-shortcuts", token?: MenuTargetToken) => void;
 }
 
 /** Writes one `ui.menu.select` line and returns its actionId. */
@@ -138,7 +138,22 @@ export function dispatchMenuAction(
       handlers.onExportHtml?.(logMenuSelect("menu.file.export_html"), ...t);
       break;
     case "file.preferences":
-      runModalAction("file.preferences", "menu.file.preferences", handlers.onOpenPreferences);
+      runModalAction(
+        "file.preferences",
+        value === "keyboard-shortcuts" ? "menu.help.keyboard_shortcuts" : "menu.file.preferences",
+        handlers.onOpenPreferences
+          ? (actionId, ...rest) => {
+              if (value === "keyboard-shortcuts") {
+                handlers.onOpenPreferences?.(actionId, "keyboard-shortcuts", ...rest);
+              } else if (rest.length > 0) {
+                // Ordinary Settings retains D261's (actionId, token) shape.
+                (handlers.onOpenPreferences as Plain)?.(actionId, ...rest);
+              } else {
+                handlers.onOpenPreferences?.(actionId);
+              }
+            }
+          : undefined,
+      );
       break;
     case "file.open_recent":
       if (value) {

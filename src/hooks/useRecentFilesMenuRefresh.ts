@@ -1,5 +1,6 @@
 /**
- * Purpose: report this window's mode when it changes or gains focus (M3a).
+ * Purpose: report this window's view mode and, when App opts in, its theme
+ * mode on change and focus. Reports are serialized to preserve tick order.
  * Rust owns the session list and binds the report to the injected caller.
  *
  * Pipeline: mode change / native focus → typed `syncRecentFilesMenu` refresh.
@@ -14,35 +15,67 @@
  * @coordinates-with src/services/recentFilesMenuService.ts
  * @coordinates-with src/App.tsx
  */
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { syncRecentFilesMenu } from "../services/recentFilesMenuService";
 import { loggingService } from "../services/loggingService";
 import type { ViewMode } from "../types/editor";
+import type { UserPreferences } from "../types/preferences";
+import { useThemeStore } from "../stores/themeStore";
 
-function reportMode(mode: ViewMode, source: "change" | "focus"): void {
-  if (!isTauri()) return;
-  const actionId = loggingService.generateActionId();
-  loggingService.logEventSync({
-    level: "info", event: "ui.menu.mode_report", status: "start",
-    actionId, context: { source, mode },
-  });
-  void syncRecentFilesMenu({ kind: "refresh" }, mode).then((list) => {
-    loggingService.logEventSync({
-      level: list ? "info" : "error", event: "ui.menu.mode_report",
-      status: list ? "success" : "fail", actionId,
-      context: { source, mode },
-    });
-  });
-}
+type ThemeMode = UserPreferences["themeMode"];
 
-export function useRecentFilesMenuRefresh(viewMode: ViewMode): void {
-  const latestMode = useRef(viewMode);
-  latestMode.current = viewMode;
+export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeMode): () => void {
+  const latestMode = useRef({ viewMode, themeMode });
+  latestMode.current = { viewMode, themeMode };
+  const includeTheme = useRef(themeMode !== undefined);
+  includeTheme.current = themeMode !== undefined;
+  const themeOnFocus = useRef(false);
+  const pending = useRef<{ mode: ViewMode; source: "change" | "focus"; withTheme: boolean }[]>([]);
+  const reporting = useRef(false);
+  const mounted = useRef(true);
   useEffect(() => {
-    reportMode(viewMode, "change");
-  }, [viewMode]);
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  const reportMode = useCallback((mode: ViewMode, source: "change" | "focus", withTheme: boolean) => {
+    if (!isTauri()) return;
+    const send = async (next: { mode: ViewMode; source: "change" | "focus"; withTheme: boolean }): Promise<void> => {
+      if (!mounted.current) {
+        reporting.current = false;
+        pending.current = [];
+        return;
+      }
+      // The first report starts now, preserving the old mount/seed order.
+      // Later reports wait for its install and read the current theme then.
+      const confirmedMode = next.withTheme ? useThemeStore.getState().mode : undefined;
+      const actionId = loggingService.generateActionId();
+      loggingService.logEventSync({
+        level: "info", event: "ui.menu.mode_report", status: "start",
+        actionId, context: { source: next.source, mode: next.mode },
+      });
+      const list = await syncRecentFilesMenu({ kind: "refresh" }, next.mode, confirmedMode);
+      loggingService.logEventSync({
+        level: list ? "info" : "error", event: "ui.menu.mode_report",
+        status: list ? "success" : "fail", actionId,
+        context: { source: next.source, mode: next.mode },
+      });
+      const following = pending.current.shift();
+      if (following) void send(following);
+      else reporting.current = false;
+    };
+    const next = { mode, source, withTheme };
+    if (reporting.current) pending.current.push(next);
+    else {
+      reporting.current = true;
+      void send(next);
+    }
+  }, []);
+  useEffect(() => {
+    reportMode(viewMode, "change", includeTheme.current);
+  }, [viewMode, themeMode, reportMode]);
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -57,7 +90,7 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode): void {
     try {
       void getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (!focused || disposed) return;
-        reportMode(latestMode.current, "focus");
+        reportMode(latestMode.current.viewMode, "focus", includeTheme.current || themeOnFocus.current);
       }).then((fn) => {
         if (disposed) fn();
         else unlisten = fn;
@@ -66,5 +99,9 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode): void {
       logFailure();
     }
     return () => { disposed = true; unlisten?.(); };
-  }, []);
+  }, [reportMode]);
+  return useCallback(() => {
+    themeOnFocus.current = true;
+    reportMode(latestMode.current.viewMode, "change", true);
+  }, [reportMode]);
 }

@@ -9,6 +9,16 @@ use tauri::menu::{CheckMenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder};
 use tauri::{AppHandle, Wry};
 
 use super::menu_recent::build_recent_submenu;
+use super::menu_recent::ThemeMode;
+
+/// Checked-state vector for Light, Dark, System, reasserted after a click.
+fn theme_checks(mode: ThemeMode) -> [bool; 3] {
+    [
+        mode == ThemeMode::Light,
+        mode == ThemeMode::Dark,
+        mode == ThemeMode::System,
+    ]
+}
 use super::{
     menu_from_layout, MENU_THEME_DARK, MENU_THEME_LIGHT, MENU_THEME_SYSTEM, MENU_VIEW_CYCLE,
     MENU_VIEW_SOURCE, MENU_VIEW_TOGGLE_SIDEBAR, MENU_VIEW_WYSIWYG,
@@ -72,6 +82,30 @@ pub(super) fn file_menu(
         Some("CmdOrCtrl+W"),
     )?;
     let recent = build_recent_submenu(app, recent_files)?;
+    if let Some(specs) = specs {
+        let save_as = menu_from_layout::menu_item_or(
+            app,
+            Some(specs),
+            "menu.file.save_as",
+            "",
+            false,
+            None::<&str>,
+        )?;
+        return SubmenuBuilder::new(app, "File")
+            .item(&new)
+            .item(&new_window)
+            .separator()
+            .item(&open)
+            .item(&recent)
+            .separator()
+            .item(&close)
+            .separator()
+            .item(&save)
+            .item(&save_as)
+            .separator()
+            .item(&export)
+            .build();
+    }
     SubmenuBuilder::new(app, "File")
         .item(&new)
         .item(&new_window)
@@ -157,6 +191,25 @@ pub(super) fn view_menu(
         Some("CmdOrCtrl+Shift+L"),
     )?;
 
+    if let Some(specs) = specs {
+        let switch_documents = menu_from_layout::menu_item_or(
+            app,
+            Some(specs),
+            "menu.view.switch_documents",
+            "",
+            false,
+            None::<&str>,
+        )?;
+        return SubmenuBuilder::new(app, "View")
+            .item(&view_source)
+            .item(&view_wysiwyg)
+            .item(&view_cycle)
+            .separator()
+            .item(&view_toggle_sidebar)
+            .item(&switch_documents)
+            .build();
+    }
+
     SubmenuBuilder::new(app, "View")
         .item(&view_cycle)
         .separator()
@@ -170,7 +223,31 @@ pub(super) fn view_menu(
 pub(super) fn theme_menu(
     app: &AppHandle<Wry>,
     specs: Option<&[menu_from_layout::MenuItemSpec]>,
+    mode: ThemeMode,
 ) -> tauri::Result<Submenu<Wry>> {
+    if let Some(specs) = specs {
+        let [light, dark, system] = theme_checks(mode);
+        return SubmenuBuilder::new(app, "Themes")
+            .item(&menu_from_layout::check_item(
+                app,
+                specs,
+                MENU_THEME_LIGHT,
+                light,
+            )?)
+            .item(&menu_from_layout::check_item(
+                app,
+                specs,
+                MENU_THEME_DARK,
+                dark,
+            )?)
+            .item(&menu_from_layout::check_item(
+                app,
+                specs,
+                MENU_THEME_SYSTEM,
+                system,
+            )?)
+            .build();
+    }
     let theme_light =
         menu_from_layout::menu_item_or(app, specs, MENU_THEME_LIGHT, "Light", true, None::<&str>)?;
     let theme_dark =
@@ -191,6 +268,15 @@ pub(super) fn theme_menu(
 }
 
 pub(super) fn window_menu(app: &AppHandle<Wry>) -> tauri::Result<Submenu<Wry>> {
+    if cfg!(target_os = "macos") {
+        return SubmenuBuilder::new(app, "Window")
+            .item(&PredefinedMenuItem::minimize(app, None)?)
+            .item(&PredefinedMenuItem::maximize(app, None)?)
+            .separator()
+            .item(&PredefinedMenuItem::close_window(app, None)?)
+            .item(&PredefinedMenuItem::bring_all_to_front(app, None)?)
+            .build();
+    }
     SubmenuBuilder::new(app, "Window")
         .item(&PredefinedMenuItem::minimize(app, None)?)
         .item(&PredefinedMenuItem::maximize(app, None)?)
@@ -203,6 +289,18 @@ pub(super) fn help_menu(
     app: &AppHandle<Wry>,
     specs: Option<&[menu_from_layout::MenuItemSpec]>,
 ) -> tauri::Result<Submenu<Wry>> {
+    if let Some(specs) = specs {
+        return SubmenuBuilder::new(app, "Help")
+            .item(&menu_from_layout::menu_item_or(
+                app,
+                Some(specs),
+                "menu.help.keyboard_shortcuts",
+                "",
+                true,
+                None::<&str>,
+            )?)
+            .build();
+    }
     SubmenuBuilder::new(app, "Help")
         .item(&menu_from_layout::menu_item_or(
             app,

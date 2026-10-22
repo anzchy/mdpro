@@ -13,8 +13,8 @@
  *   resolves `null` without invoking, a rejection resolves `null`, and a reply
  *   that is not a `string[]` resolves `null` (IPC trust boundary). `null`
  *   means "keep your local list".
- * - The `viewMode` key is always sent, `null` included, so the wire shape is
- *   fixed: `{ op, viewMode }`.
+ * - The `viewMode` key is always sent, `null` included. `themeMode` is optional:
+ *   omission means no change to Rust's remembered theme.
  * - A rejection logs one fail-level `ui.recent_files.menu_sync` record whose
  *   context is the op kind only. The error message is not forwarded: it can
  *   carry a path.
@@ -26,6 +26,7 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { loggingService } from "./loggingService";
 import type { ViewMode } from "../types/editor";
+import type { UserPreferences } from "../types/preferences";
 
 /** A change to the session's Recent Files list, as sent over IPC. */
 export type RecentOp =
@@ -47,10 +48,13 @@ const isStringArray = (value: unknown): value is string[] =>
 export async function syncRecentFilesMenu(
   op: RecentOp,
   viewMode: ViewMode | null,
+  themeMode?: UserPreferences["themeMode"],
 ): Promise<string[] | null> {
   if (!isTauri()) return null;
   try {
-    const reply: unknown = await invoke(COMMAND, { op, viewMode });
+    const reply: unknown = await invoke(COMMAND, {
+      op, viewMode, ...(themeMode === undefined ? {} : { themeMode }),
+    });
     return isStringArray(reply) ? reply : null;
   } catch {
     loggingService.logEventSync({

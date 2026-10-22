@@ -23,13 +23,40 @@ fn m4_wi2_insert_table_descriptor_preserves_the_current_native_contract() {
     let items = menu_layout_for(menu_layout().unwrap(), &defaults(), Some(ViewMode::Wysiwyg));
     let table = item(&items, "paragraph.table");
     assert_eq!(table.menu_id.as_deref(), Some("menu.format.insert_table"));
-    assert_eq!(table.path, ["Format", "Insert Table"]);
+    assert_eq!(table.path, ["Paragraph", "Table..."]);
     assert!(table.enabled);
     assert_eq!(table.accelerator.as_deref(), Some("Cmd+Alt+T"));
     let source_items = menu_layout_for(menu_layout().unwrap(), &defaults(), Some(ViewMode::Source));
     let source_table = item(&source_items, "paragraph.table");
     assert!(!source_table.enabled);
     assert_eq!(source_table.accelerator, None);
+}
+
+#[test]
+fn m4_amendment12_one_layout_row_mutation_changes_only_its_descriptor() {
+    let layout = menu_layout().unwrap();
+    let original = menu_layout_for(layout, &defaults(), Some(ViewMode::Wysiwyg));
+    let mut changed = layout.clone();
+    let row = changed
+        .rows
+        .iter_mut()
+        .find(|row| row.id == "format.strong")
+        .unwrap();
+    row.menu.macos = MenuPath::Path(vec!["Format".into(), "Bold variant".into()]);
+    row.menu_id = Some("menu.format.bold_variant".into());
+    let updated = menu_layout_for(&changed, &defaults(), Some(ViewMode::Wysiwyg));
+    let before = item(&original, "format.strong");
+    let after = item(&updated, "format.strong");
+    assert_eq!(before.path, ["Format", "Bold"]);
+    assert_eq!(after.path, ["Format", "Bold variant"]);
+    assert_eq!(after.menu_id.as_deref(), Some("menu.format.bold_variant"));
+    assert_eq!(after.enabled, before.enabled);
+    assert_eq!(after.accelerator, before.accelerator);
+    for (before, after) in original.iter().zip(updated.iter()) {
+        if before.command_id != "format.strong" {
+            assert_eq!(after, before, "{} changed unexpectedly", before.command_id);
+        }
+    }
 }
 
 #[test]
@@ -63,7 +90,24 @@ fn m4_wi2_each_eligible_pair_uses_one_full_snapshot_resolution() {
                     },
                 );
             }
-            let rendered = menu_layout_for(layout, &applied, Some(ViewMode::Wysiwyg));
+            let mode = if [first, second].iter().all(|row| {
+                matches!(
+                    row.availability.macos.v1,
+                    Availability::Both | Availability::W
+                )
+            }) {
+                ViewMode::Wysiwyg
+            } else if [first, second].iter().all(|row| {
+                matches!(
+                    row.availability.macos.v1,
+                    Availability::Both | Availability::S
+                )
+            }) {
+                ViewMode::Source
+            } else {
+                continue;
+            };
+            let rendered = menu_layout_for(layout, &applied, Some(mode));
             for row in [first, second] {
                 assert_eq!(
                     item(&rendered, &row.id).accelerator,
@@ -77,7 +121,7 @@ fn m4_wi2_each_eligible_pair_uses_one_full_snapshot_resolution() {
                 first.pref_field.as_ref().unwrap().clone(),
                 AppliedBinding::Unassigned,
             );
-            let after = menu_layout_for(layout, &applied, Some(ViewMode::Wysiwyg));
+            let after = menu_layout_for(layout, &applied, Some(mode));
             assert_eq!(item(&after, &first.id).accelerator, None);
             assert_eq!(
                 item(&after, &second.id).accelerator.as_deref(),
@@ -147,8 +191,14 @@ fn m4_wi2_one_malformed_applied_chord_logs_one_enum_only_drop() {
 
 #[test]
 fn m4_wi1_extracted_edit_and_format_keep_the_baseline_order_and_properties() {
-    let edit = include_str!("menu_edit.rs");
-    let format = include_str!("menu_format.rs");
+    let edit = include_str!("menu_edit.rs")
+        .split("    SubmenuBuilder::new(app, \"Edit\")")
+        .last()
+        .unwrap();
+    let format = include_str!("menu_format.rs")
+        .split("    let format_highlight")
+        .last()
+        .unwrap();
     let paragraph = include_str!("menu_paragraph.rs");
     let root = include_str!("menu.rs");
     let ordered = |source: &str, tokens: &[&str]| {
@@ -184,8 +234,8 @@ fn m4_wi1_extracted_edit_and_format_keep_the_baseline_order_and_properties() {
             "menu.append(&app_menu)",
             "menu.append(&file_menu)",
             "menu.append(&edit_menu)",
-            "menu.append(&view_menu)",
             "menu.append(&format_menu)",
+            "menu.append(&view_menu)",
             "menu.append(&theme_menu)",
             "menu.append(&window_menu)",
             "menu.append(&help_menu)",
@@ -209,7 +259,7 @@ fn m4_wi1_extracted_edit_and_format_keep_the_baseline_order_and_properties() {
         .iter()
         .find(|item| item.command_id == "format.highlight")
         .unwrap();
-    assert_eq!(table.path, ["Format", "Insert Table"]);
+    assert_eq!(table.path, ["Paragraph", "Table..."]);
     assert_eq!(
         table.menu_id.as_deref(),
         Some(super::super::MENU_FORMAT_INSERT_TABLE)
@@ -223,4 +273,67 @@ fn m4_wi1_extracted_edit_and_format_keep_the_baseline_order_and_properties() {
     assert_eq!(highlight.accelerator.as_deref(), Some("Cmd+Shift+H"));
     assert!(paragraph.contains("CmdOrCtrl+Alt+T"));
     assert!(format.contains("CmdOrCtrl+Shift+H"));
+}
+
+#[test]
+fn m4_wi5_new_editor_menu_ids_are_guarded_and_targeted_once() {
+    let layout = menu_layout().unwrap();
+    let mut checked = 0;
+    for row in layout.rows.iter().filter(|row| {
+        matches!(row.menu.macos, MenuPath::Path(_))
+            && row.menu_id.is_some()
+            && matches!(
+                row.id.split('.').next(),
+                Some("edit" | "paragraph" | "format")
+            )
+            && !matches!(row.id.as_str(), "paragraph.table" | "format.highlight")
+    }) {
+        let action = format!("editor.{}", row.id);
+        assert_eq!(
+            editor_action_for_menu_id(layout, row.menu_id.as_deref().unwrap()),
+            Some(action.clone()),
+            "{} must resolve from the native id",
+            row.id
+        );
+        let mut targets = Vec::new();
+        let mode = if row.availability.macos.v1 == Availability::S {
+            ViewMode::Source
+        } else {
+            ViewMode::Wysiwyg
+        };
+        let result = super::super::menu_availability::dispatch_if_allowed(
+            layout,
+            &action,
+            "window-a",
+            Some("window-a"),
+            Some(mode),
+            |target| {
+                targets.push(target.to_string());
+                Ok(())
+            },
+        );
+        if row.availability.macos.v1 == Availability::None {
+            assert!(result.is_err(), "{} must be refused", row.id);
+            assert!(targets.is_empty(), "{} emitted while unavailable", row.id);
+        } else {
+            assert!(result.is_ok(), "{} must be allowed", row.id);
+            assert_eq!(targets, ["window-a"], "{} must target once", row.id);
+        }
+        checked += 1;
+    }
+    assert!(checked > 20, "new menu coverage is vacuous: {checked}");
+    assert_eq!(editor_action_for_menu_id(layout, "menu.unknown"), None);
+    assert_eq!(
+        editor_action_for_menu_id(layout, "menu.format.insert_table"),
+        None
+    );
+    assert_eq!(
+        editor_action_for_menu_id(layout, "menu.format.highlight"),
+        None
+    );
+    let root = include_str!("menu.rs");
+    assert!(
+        root.contains("menu_from_layout::editor_action_for_menu_id"),
+        "the native click handler must resolve new table ids to editor actions"
+    );
 }

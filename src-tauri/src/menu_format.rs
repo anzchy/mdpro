@@ -14,6 +14,22 @@ pub(super) fn format_menu(
     table_enabled: bool,
     specs: Option<&[menu_from_layout::MenuItemSpec]>,
 ) -> tauri::Result<Submenu<Wry>> {
+    if let Some(specs) = specs {
+        let item = |id| menu_from_layout::menu_item_or(app, Some(specs), id, "", false, None);
+        return SubmenuBuilder::new(app, "Format")
+            .item(&item("menu.format.strong")?)
+            .item(&item("menu.format.emphasis")?)
+            .item(&item("menu.format.underline")?)
+            .item(&item("menu.format.code")?)
+            .item(&item("menu.format.strike")?)
+            .item(&item(MENU_FORMAT_HIGHLIGHT)?)
+            .separator()
+            .item(&item("menu.format.hyperlink")?)
+            .item(&item("menu.format.image")?)
+            .separator()
+            .item(&item("menu.format.clear_format")?)
+            .build();
+    }
     let format_highlight = menu_from_layout::menu_item_or(
         app,
         specs,

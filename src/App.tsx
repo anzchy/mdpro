@@ -57,6 +57,7 @@ import { useDocumentStore } from "./stores/documentStore";
 import { isSourceTablesWithheld, useEditorStore, userViewModeCommands } from "./stores/editorStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useToastStore } from "./stores/toastStore";
+import { useThemeStore } from "./stores/themeStore";
 import { dispatchTableActionFromKeyboard } from "./plugins/milkdown/table/contextMenu";
 import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableContextMenu";
 import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
@@ -105,7 +106,7 @@ function App() {
   // Sole writer of showSidebar outside the store; buffers pre-hydration toggles (ADR-0031 5b, WI-5).
   const sidebarPreference = useSidebarPreference();
   const sidebarWidth = useEditorStore((s) => s.sidebarWidth);
-  const { resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
+  const { mode: themeMode, resolvedTheme, applyThemeMode, setThemeMode } = useTheme();
   const [highlightRequest, setHighlightRequest] = useState<HighlightRequest | undefined>(undefined);
   const [pendingClose, setPendingClose] = useState<PendingClose>(null);
   // Decision 1A: autoSaveInterval lives in editorStore so GeneralSettings can update it reactively.
@@ -118,6 +119,7 @@ function App() {
   const showToast = useToastStore((s) => s.showToast);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsInitialPage, setSettingsInitialPage] = useState<"general" | "keyboard-shortcuts">("general");
   const [recreateRequest, setRecreateRequest] = useState<RecreateRequest | null>(null);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
   const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
@@ -198,7 +200,8 @@ function App() {
 
   // The Open Recent menu holds the session list Rust owns (D43); this window
   // only sends a refresh on a view-mode change, never its own list.
-  useRecentFilesMenuRefresh(viewMode);
+  const reportThemeToMenu = useRecentFilesMenuRefresh(viewMode);
+  useEffect(() => { reportThemeToMenu(); }, [themeMode, reportThemeToMenu]);
 
   // Keep window title static — filename removed per #374
   useEffect(() => {
@@ -437,7 +440,8 @@ function App() {
     }
   }, [activeDocument, activeDocumentTitle, resolvedTheme, showToast]);
 
-  const handleOpenSettings = useCallback((_actionId?: string) => {
+  const handleOpenSettings = useCallback((_actionId?: string, pageOrToken?: unknown) => {
+    setSettingsInitialPage(pageOrToken === "keyboard-shortcuts" ? "keyboard-shortcuts" : "general");
     setSettingsOpen(true);
   }, []);
 
@@ -815,7 +819,9 @@ function App() {
     onInsertTable: (_actionId, token) => triggerTableInsert(token),
     onViewModeChange: userViewModeCommands.set,
     onCycleViewMode: userViewModeCommands.cycle,
-    onThemeModeChange: (mode) => void setThemeMode(mode),
+    onThemeModeChange: (mode) => {
+      if (useThemeStore.getState().mode !== mode) void setThemeMode(mode);
+    },
     onOpenPreferences: handleOpenSettings,
   });
 
@@ -946,6 +952,7 @@ function App() {
         onConfirmClose={handleConfirmClose}
         onCancelClose={handleCancelClose}
         settingsOpen={settingsOpen}
+        settingsInitialPage={settingsInitialPage}
         onSettingsClose={() => setSettingsOpen(false)}
       />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />

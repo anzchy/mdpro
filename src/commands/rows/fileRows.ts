@@ -5,8 +5,8 @@
  *
  * @coordinates-with src/commands/commandTable.ts — assembles the rows
  */
-import type { CommandRow } from "../commandTable.types";
-import { configurable } from "../rowBuilders";
+import type { CommandRow, MenuPath} from "../commandTable.types";
+import { configurable, macOff } from "../rowBuilders";
 
 export const FILE_ROWS: readonly CommandRow[] = [
   configurable({
@@ -55,6 +55,8 @@ export const FILE_ROWS: readonly CommandRow[] = [
   }),
   configurable({
     id: "file.saveAs",
+    menuId: "menu.file.save_as",
+    menu: macOff<MenuPath>(["File", "Save As..."], "none"),
     field: "fileSaveAs",
     v1: "Cmd+Shift+S",
     v2: "Cmd+Shift+S",
@@ -74,7 +76,7 @@ export const FILE_ROWS: readonly CommandRow[] = [
     id: "file.preferences",
     field: "filePreferences",
     menuId: "menu.file.preferences",
-    menu: ["mdpro", "Preferences..."],
+    menu: macOff<MenuPath>(["mdpro", "Settings..."], ["mdpro", "Preferences..."]),
     v1: "Cmd+,",
     v2: "Cmd+,",
     availability: ["both", "both"],

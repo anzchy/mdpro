@@ -10,8 +10,9 @@
  * - One MCP write at a time: `beginMcpWrite` grants a lease used both by the
  *   whole-group `setPreferences` writes and by the live server switch
  *   (ADR-0040, `useMcpServerSwitch`).
- * - Every open lands on General, reset during render: the dialog stays mounted
- *   while closed, and a stale About would mount and re-run its check (D166).
+ * - Ordinary opens land on General; Help may request Keyboard Shortcuts.
+ *   Reset during render because the mounted dialog otherwise flashes its
+ *   stale page (including About's update check) on reopen (D166).
  * - No footer (D260): the header × and Esc are the dialog's own close
  *   controls. Each rail row is its label plus a decorative outline glyph.
  *
@@ -41,6 +42,7 @@ import { SettingsRailIcon, type SettingsPageId } from "./settings/SettingsRailIc
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
+  initialPage?: "general" | "keyboard-shortcuts";
 }
 
 interface NavItem {
@@ -75,11 +77,17 @@ function logMcpSave(status: "cancel" | "fail", context: Record<string, string>):
   });
 }
 
-export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
-  const [activePage, setActivePage] = useState<SettingsPageId>("general");
+export function SettingsDialog({ open, onClose, initialPage = "general" }: SettingsDialogProps) {
+  const [activePage, setActivePage] = useState<SettingsPageId>(initialPage);
   const [seenOpen, setSeenOpen] = useState(open);
   // Reset before any page mounts; the open effect ran one render late (D166).
-  if (seenOpen !== open) { setSeenOpen(open); if (open) setActivePage("general"); }
+  if (seenOpen !== open) {
+    setSeenOpen(open);
+    if (open) {
+      if (initialPage === "general") setActivePage("general");
+      else setActivePage(initialPage);
+    }
+  }
   // The `mcp` group loaded in THIS open; null until it loads (F3, ADR-0039).
   // Never seeded from the default config: the backend replaces the group
   // wholesale, so a pre-hydration toggle would write defaults over disk.

@@ -78,10 +78,10 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     expect(r.refusing.get("fileSave")).toMatchObject({ kind: "takesDefault", with: ["file.new"], names: ["New"] });
   });
 
-  it("u8 Save = ⌘K is refused as hard, naming Hyperlink (Milkdown Mod-k implements it)", () => {
+  it("u8 Save = ⌘K is refused as hard, naming Link (Milkdown Mod-k implements it)", () => {
     const r = findSettingsConflicts("macos", 1, { fileSave: "Cmd+K" });
     expect(keysOf(r)).toEqual(["fileSave"]);
-    expect(r.refusing.get("fileSave")).toMatchObject({ kind: "hard", with: ["format.hyperlink"], names: ["Hyperlink"] });
+    expect(r.refusing.get("fileSave")).toMatchObject({ kind: "hard", with: ["format.hyperlink"], names: ["Link"] });
   });
 
   it("u9 Save = ⇧⌘S, the default of unavailable Save As, is allowed (Decision 5)", () => {

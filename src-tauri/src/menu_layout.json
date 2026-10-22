@@ -548,8 +548,12 @@
     {
       "id": "edit.copyAsMarkdown",
       "prefField": "editCopyAsMarkdown",
+      "menuId": "menu.edit.copy_as_markdown",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Copy as Markdown"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -697,8 +701,13 @@
     {
       "id": "edit.deleteWord",
       "prefField": "editDeleteWord",
+      "menuId": "menu.edit.delete_word",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Selection",
+          "Delete Word"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -766,8 +775,13 @@
     {
       "id": "edit.find",
       "prefField": "editFind",
+      "menuId": "menu.edit.find",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Find",
+          "Find..."
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -834,8 +848,13 @@
     {
       "id": "edit.findNext",
       "prefField": "editFindNext",
+      "menuId": "menu.edit.find_next",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Find",
+          "Find Next"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -907,8 +926,13 @@
     {
       "id": "edit.findPrevious",
       "prefField": "editFindPrevious",
+      "menuId": "menu.edit.find_previous",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Find",
+          "Find Previous"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -1198,8 +1222,12 @@
     {
       "id": "edit.pasteAsPlainText",
       "prefField": "editPasteAsPlainText",
+      "menuId": "menu.edit.paste_as_plain_text",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Paste as Plain Text"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -1347,8 +1375,13 @@
     {
       "id": "edit.replace",
       "prefField": "editReplace",
+      "menuId": "menu.edit.replace",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Find",
+          "Replace..."
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -1496,8 +1529,13 @@
     {
       "id": "edit.selectLine",
       "prefField": "editSelectLine",
+      "menuId": "menu.edit.select_line",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Selection",
+          "Select Line"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -1565,8 +1603,13 @@
     {
       "id": "edit.selectWord",
       "prefField": "editSelectWord",
+      "menuId": "menu.edit.select_word",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Edit",
+          "Selection",
+          "Select Word"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2180,7 +2223,7 @@
       "menu": {
         "macos": [
           "mdpro",
-          "Preferences..."
+          "Settings..."
         ],
         "windows": [
           "mdpro",
@@ -2334,8 +2377,12 @@
     {
       "id": "file.saveAs",
       "prefField": "fileSaveAs",
+      "menuId": "menu.file.save_as",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "File",
+          "Save As..."
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2403,8 +2450,12 @@
     {
       "id": "format.clearFormat",
       "prefField": "formatClearFormat",
+      "menuId": "menu.format.clear_format",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Clear Format"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2472,8 +2523,12 @@
     {
       "id": "format.code",
       "prefField": "formatCode",
+      "menuId": "menu.format.code",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Code"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2541,8 +2596,12 @@
     {
       "id": "format.emphasis",
       "prefField": "formatEmphasis",
+      "menuId": "menu.format.emphasis",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Italic"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2689,8 +2748,12 @@
     {
       "id": "format.hyperlink",
       "prefField": "formatHyperlink",
+      "menuId": "menu.format.hyperlink",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Link..."
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2758,8 +2821,12 @@
     {
       "id": "format.image",
       "prefField": "formatImage",
+      "menuId": "menu.format.image",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Image..."
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2827,8 +2894,12 @@
     {
       "id": "format.strike",
       "prefField": "formatStrike",
+      "menuId": "menu.format.strike",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Strikethrough"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2896,8 +2967,12 @@
     {
       "id": "format.strong",
       "prefField": "formatStrong",
+      "menuId": "menu.format.strong",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Bold"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -2965,8 +3040,12 @@
     {
       "id": "format.underline",
       "prefField": "formatUnderline",
+      "menuId": "menu.format.underline",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Format",
+          "Underline"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3032,13 +3111,85 @@
       }
     },
     {
-      "id": "help.mdproHelp",
-      "menuId": "menu.help.placeholder",
+      "id": "help.keyboardShortcuts",
+      "menuId": "menu.help.keyboard_shortcuts",
       "menu": {
         "macos": [
           "Help",
-          "mdpro Help"
+          "Keyboard Shortcuts…"
         ],
+        "windows": "none",
+        "linux": "none"
+      },
+      "key": {
+        "macos": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "windows": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        },
+        "linux": {
+          "kind": "fixed",
+          "defaults": {
+            "v1": null,
+            "v2": null
+          },
+          "secondaries": {
+            "v1": [],
+            "v2": []
+          }
+        }
+      },
+      "contexts": [
+        "editorW",
+        "editorS",
+        "tableW",
+        "tableS",
+        "modal",
+        "recorder",
+        "nativeFocus"
+      ],
+      "availability": {
+        "macos": {
+          "v1": "both",
+          "v2": "both"
+        },
+        "windows": {
+          "v1": "none",
+          "v2": "none"
+        },
+        "linux": {
+          "v1": "none",
+          "v2": "none"
+        }
+      },
+      "route": {
+        "macos": "frontend",
+        "windows": "unavailable",
+        "linux": "unavailable"
+      }
+    },
+    {
+      "id": "help.mdproHelp",
+      "menuId": "menu.help.placeholder",
+      "menu": {
+        "macos": "none",
         "windows": [
           "Help",
           "mdpro Help"
@@ -3115,8 +3266,12 @@
     {
       "id": "paragraph.codeFences",
       "prefField": "paragraphCodeFences",
+      "menuId": "menu.paragraph.code_fences",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Code Fences"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3184,8 +3339,12 @@
     {
       "id": "paragraph.decreaseHeading",
       "prefField": "paragraphDecreaseHeading",
+      "menuId": "menu.paragraph.decrease_heading",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Decrease Heading"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3251,8 +3410,12 @@
     {
       "id": "paragraph.heading1",
       "prefField": "paragraphHeading1",
+      "menuId": "menu.paragraph.heading1",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Heading 1"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3320,8 +3483,12 @@
     {
       "id": "paragraph.heading2",
       "prefField": "paragraphHeading2",
+      "menuId": "menu.paragraph.heading2",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Heading 2"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3389,8 +3556,12 @@
     {
       "id": "paragraph.heading3",
       "prefField": "paragraphHeading3",
+      "menuId": "menu.paragraph.heading3",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Heading 3"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3458,8 +3629,12 @@
     {
       "id": "paragraph.heading4",
       "prefField": "paragraphHeading4",
+      "menuId": "menu.paragraph.heading4",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Heading 4"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3527,8 +3702,12 @@
     {
       "id": "paragraph.heading5",
       "prefField": "paragraphHeading5",
+      "menuId": "menu.paragraph.heading5",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Heading 5"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3596,8 +3775,12 @@
     {
       "id": "paragraph.heading6",
       "prefField": "paragraphHeading6",
+      "menuId": "menu.paragraph.heading6",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Heading 6"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3665,8 +3848,12 @@
     {
       "id": "paragraph.increaseHeading",
       "prefField": "paragraphIncreaseHeading",
+      "menuId": "menu.paragraph.increase_heading",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Increase Heading"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3732,8 +3919,12 @@
     {
       "id": "paragraph.indent",
       "prefField": "paragraphIndent",
+      "menuId": "menu.paragraph.indent",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Indent"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3801,8 +3992,12 @@
     {
       "id": "paragraph.mathBlock",
       "prefField": "paragraphMathBlock",
+      "menuId": "menu.paragraph.math_block",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Math Block"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3868,8 +4063,12 @@
     {
       "id": "paragraph.orderedList",
       "prefField": "paragraphOrderedList",
+      "menuId": "menu.paragraph.ordered_list",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Ordered List"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -3937,8 +4136,12 @@
     {
       "id": "paragraph.outdent",
       "prefField": "paragraphOutdent",
+      "menuId": "menu.paragraph.outdent",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Outdent"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -4006,8 +4209,12 @@
     {
       "id": "paragraph.paragraph",
       "prefField": "paragraphParagraph",
+      "menuId": "menu.paragraph.paragraph",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Paragraph"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -4075,8 +4282,12 @@
     {
       "id": "paragraph.quote",
       "prefField": "paragraphQuote",
+      "menuId": "menu.paragraph.quote",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Quote"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -4147,8 +4358,8 @@
       "menuId": "menu.format.insert_table",
       "menu": {
         "macos": [
-          "Format",
-          "Insert Table"
+          "Paragraph",
+          "Table..."
         ],
         "windows": [
           "Format",
@@ -4221,8 +4432,12 @@
     {
       "id": "paragraph.unorderedList",
       "prefField": "paragraphUnorderedList",
+      "menuId": "menu.paragraph.unordered_list",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "Paragraph",
+          "Unordered List"
+        ],
         "windows": "none",
         "linux": "none"
       },
@@ -4694,7 +4909,7 @@
       "menuId": "menu.theme.dark",
       "menu": {
         "macos": [
-          "Theme",
+          "Themes",
           "Dark"
         ],
         "windows": [
@@ -4775,7 +4990,7 @@
       "menuId": "menu.theme.light",
       "menu": {
         "macos": [
-          "Theme",
+          "Themes",
           "Light"
         ],
         "windows": [
@@ -4856,7 +5071,7 @@
       "menuId": "menu.theme.system",
       "menu": {
         "macos": [
-          "Theme",
+          "Themes",
           "System"
         ],
         "windows": [
@@ -5252,8 +5467,12 @@
     {
       "id": "view.switchDocuments",
       "prefField": "viewSwitchDocuments",
+      "menuId": "menu.view.switch_documents",
       "menu": {
-        "macos": "none",
+        "macos": [
+          "View",
+          "Switch Documents"
+        ],
         "windows": "none",
         "linux": "none"
       },

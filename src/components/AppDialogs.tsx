@@ -92,6 +92,7 @@ export interface AppDialogsProps {
   onConfirmClose: () => void;
   onCancelClose: () => void;
   settingsOpen: boolean;
+  settingsInitialPage?: "general" | "keyboard-shortcuts";
   onSettingsClose: () => void;
 }
 
@@ -120,6 +121,7 @@ export function AppDialogs({
   onConfirmClose,
   onCancelClose,
   settingsOpen,
+  settingsInitialPage = "general",
   onSettingsClose,
 }: AppDialogsProps) {
   const [mcpRequestId, setMcpRequestId] = useState<string | null>(null);
@@ -190,7 +192,7 @@ export function AppDialogs({
           />
         );
       case "settings":
-        return <SettingsDialog open={settingsOpen} onClose={onSettingsClose} />;
+        return <SettingsDialog open={settingsOpen} onClose={onSettingsClose} initialPage={settingsInitialPage} />;
       case "mcp":
         // ADR-0042: this window's MCP write-confirmation prompt. Every window
         // renders App, so each owns its prompt.

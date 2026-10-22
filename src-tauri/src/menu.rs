@@ -4,9 +4,11 @@
 //! Key decisions:
 //! - Each `menu:action` goes to one window, `emit_to` the target `route`
 //!   resolves in `menu_target.rs` (D261); nothing broadcasts it.
-//! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`;
-//!   Edit and Format builders live in `menu_edit.rs` and `menu_format.rs`,
-//!   while View, Theme, Window and Help live in `menu_submenus.rs`.
+//! - The pure platform root/item plan lives in `menu_construction_plan.rs`;
+//!   `menu_plan_builder.rs` renders the macOS tree and applies the same plan
+//!   to the existing off-Mac native items. Item specs derive from the layout
+//!   through `menu_from_layout.rs`.
+//! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`.
 //!   `MenuState::publish_op` merges a window's op under a sync lock and
 //!   publishes only once the menu built from it has installed (audit row 18);
 //!   the click handler below reads the list through the data mutex only.
@@ -27,13 +29,15 @@
 //! @coordinates-with src/menu_from_layout.rs
 //! @coordinates-with src/menu_recent.rs
 //! @coordinates-with src/menu_recent_merge.rs
+//! @coordinates-with src/menu_construction_plan.rs
+//! @coordinates-with src/menu_plan_builder.rs
 //! @coordinates-with src/commands/menu.rs
 //! @coordinates-with src-tauri/src/services/quit_guard/driver_escape.rs
 
 use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
-use crate::menu_layout::menu_layout;
+use crate::menu_layout::{menu_layout, Platform};
 use crate::services::logger;
 use crate::services::quit_guard::{self, effects::AppQuitGuard};
 
@@ -57,6 +61,7 @@ const MENU_FORMAT_INSERT_TABLE: &str = "menu.format.insert_table";
 const MENU_THEME_LIGHT: &str = "menu.theme.light";
 const MENU_THEME_DARK: &str = "menu.theme.dark";
 const MENU_THEME_SYSTEM: &str = "menu.theme.system";
+const MENU_HELP_KEYBOARD_SHORTCUTS: &str = "menu.help.keyboard_shortcuts";
 
 /// "Stop Waiting and Quit…" — the stuck-quit escape hatch (ADR-0036). Routed
 /// in Rust only; it never reaches the frontend as a `menu:action`.
@@ -93,6 +98,12 @@ mod menu_paragraph;
 
 #[path = "menu_from_layout.rs"]
 mod menu_from_layout;
+
+#[path = "menu_construction_plan.rs"]
+mod menu_construction_plan;
+
+#[path = "menu_plan_builder.rs"]
+mod menu_plan_builder;
 
 #[path = "menu_about.rs"]
 mod menu_about;
@@ -149,9 +160,72 @@ pub fn build_menu(
     recent_files: &[String],
     active_view_mode: Option<&str>,
 ) -> tauri::Result<Menu<Wry>> {
-    let menu = Menu::new(app)?;
     let mac_specs = menu_from_layout::specs_for_app(app, active_view_mode)?;
     let specs = mac_specs.as_deref();
+    if let Some(specs) = specs {
+        let layout = menu_layout()
+            .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+        let plan = menu_construction_plan::construction_plan(layout, Platform::Macos);
+        let theme_mode = app
+            .try_state::<MenuState>()
+            .map(|state| state.theme_mode())
+            .unwrap_or(menu_recent::ThemeMode::System);
+        let menu = Menu::new(app)?;
+        let build = |root| {
+            menu_plan_builder::build_macos_root(
+                app,
+                root,
+                specs,
+                recent_files,
+                active_view_mode,
+                theme_mode,
+            )
+        };
+        for root in &plan {
+            match root.title.as_str() {
+                "mdpro" => {
+                    let app_menu = build(root)?;
+                    menu.append(&app_menu)?;
+                }
+                "File" => {
+                    let file_menu = build(root)?;
+                    menu.append(&file_menu)?;
+                }
+                "Edit" => {
+                    let edit_menu = build(root)?;
+                    menu.append(&edit_menu)?;
+                }
+                "Paragraph" => {
+                    let paragraph_menu = build(root)?;
+                    let paragraph_menu = &paragraph_menu;
+                    menu.append(paragraph_menu)?;
+                }
+                "Format" => {
+                    let format_menu = build(root)?;
+                    menu.append(&format_menu)?;
+                }
+                "View" => {
+                    let view_menu = build(root)?;
+                    menu.append(&view_menu)?;
+                }
+                "Themes" => {
+                    let theme_menu = build(root)?;
+                    menu.append(&theme_menu)?;
+                }
+                "Window" => {
+                    let window_menu = build(root)?;
+                    menu.append(&window_menu)?;
+                }
+                "Help" => {
+                    let help_menu = build(root)?;
+                    menu.append(&help_menu)?;
+                }
+                _ => unreachable!("closed macOS root order"),
+            }
+        }
+        return Ok(menu);
+    }
+    let menu = Menu::new(app)?;
     let app_name = app.package_info().name.clone();
     let about_metadata = about_metadata_for(
         std::env::consts::OS,
@@ -210,28 +284,56 @@ pub fn build_menu(
 
     let file_menu = menu_submenus::file_menu(app, recent_files, specs)?;
 
-    let edit_menu = menu_edit::edit_menu(app)?;
+    let edit_menu = menu_edit::edit_menu(app, specs)?;
     let view_menu = menu_submenus::view_menu(app, active_view_mode, specs)?;
     let format_menu = menu_format::format_menu(app, active_view_mode == Some("wysiwyg"), specs)?;
 
-    let theme_menu = menu_submenus::theme_menu(app, specs)?;
+    let theme_mode = app
+        .try_state::<MenuState>()
+        .map(|state| state.theme_mode())
+        .unwrap_or(menu_recent::ThemeMode::System);
+    let theme_menu = menu_submenus::theme_menu(app, specs, theme_mode)?;
     let window_menu = menu_submenus::window_menu(app)?;
     let help_menu = menu_submenus::help_menu(app, specs)?;
 
-    menu.append(&app_menu)?;
-    menu.append(&file_menu)?;
-    menu.append(&edit_menu)?;
-    menu.append(&view_menu)?;
-    menu.append(&format_menu)?;
-    menu.append(&theme_menu)?;
-    menu.append(&window_menu)?;
-    menu.append(&help_menu)?;
+    let platform = if cfg!(target_os = "windows") {
+        Platform::Windows
+    } else {
+        Platform::Linux
+    };
+    let layout = menu_layout()
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+    for root in menu_construction_plan::construction_plan(layout, platform) {
+        let existing = match root.title.as_str() {
+            "mdpro" => &app_menu,
+            "File" => &file_menu,
+            "Edit" => &edit_menu,
+            "Format" => &format_menu,
+            "View" => &view_menu,
+            "Theme" => &theme_menu,
+            "Window" => &window_menu,
+            "Help" => &help_menu,
+            _ => unreachable!("closed root order"),
+        };
+        let built = menu_plan_builder::rebuild_offmac_root(app, existing, &root, layout)?;
+        menu.append(&built)?;
+    }
 
     Ok(menu)
 }
 
 pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
     let id = event.id().as_ref();
+    if let Ok(layout) = menu_layout() {
+        if let Some(action) = menu_from_layout::editor_action_for_menu_id(layout, id) {
+            emit_menu_action(app, &action, None);
+            return;
+        }
+        if let Some(action) = menu_from_layout::unavailable_action_for_menu_id(layout, id) {
+            emit_menu_action(app, &action, None);
+            return;
+        }
+    }
     match id {
         MENU_APP_STOP_WAITING_QUIT => {
             quit_guard::deliver_escape(app.try_state::<AppQuitGuard>().as_deref())
@@ -250,9 +352,23 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
         MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
         MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
-        MENU_THEME_LIGHT => emit_menu_action(app, "theme.light", None),
-        MENU_THEME_DARK => emit_menu_action(app, "theme.dark", None),
-        MENU_THEME_SYSTEM => emit_menu_action(app, "theme.system", None),
+        MENU_THEME_LIGHT => {
+            emit_menu_action(app, "theme.light", None);
+            refresh_menu_for_focus(app);
+        }
+        MENU_THEME_DARK => {
+            emit_menu_action(app, "theme.dark", None);
+            refresh_menu_for_focus(app);
+        }
+        MENU_THEME_SYSTEM => {
+            emit_menu_action(app, "theme.system", None);
+            refresh_menu_for_focus(app);
+        }
+        MENU_HELP_KEYBOARD_SHORTCUTS => emit_menu_action(
+            app,
+            "file.preferences",
+            Some("keyboard-shortcuts".to_string()),
+        ),
         _ => {
             if let Some(index) = id.strip_prefix(MENU_FILE_RECENT_PREFIX) {
                 if let Ok(idx) = index.parse::<usize>() {
@@ -289,6 +405,9 @@ mod tests;
 #[cfg(test)]
 #[path = "menu_layout_parity_tests.rs"]
 mod menu_layout_parity_tests;
+#[cfg(test)]
+#[path = "menu_route_m4_success_tests.rs"]
+mod menu_route_m4_success_tests;
 #[cfg(test)]
 #[path = "menu_quit_tests.rs"]
 mod quit_tests;

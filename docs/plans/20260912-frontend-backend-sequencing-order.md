@@ -431,7 +431,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 
 | 菜单工作项 | 状态 | 证据 |
 |---|---|---|
-| <a id="m4"></a>**M4** | 🔄 WI-1–3 的 Rust 提取、应用绑定解析与按窗口可用性已通过本阶段门禁；WI-4 起等待 D255-WI-3a 落地并由 delegator rebase，整项与真机菜单栏检查未完成 | WI-1 `2193ca1d`；WI-2/3 为本行所在提交；收据 `M4-WI-2`、`M4-WI-3`、`M4-WI-2-R1`、`M4-WI-2-R2`，均 assertion RED → SEPARATION-HELD。原生 AppKit 菜单与描述树一致性留给真机批次，按 M4 brief Amendment 3。 |
+| <a id="m4"></a>**M4** | 🔄 WI-1–7 实现与最终自动化门禁已绿；预落地 High 级审计与真机菜单栏批次待验 | WI-1 c17ead3e、WI-2/3 e1cc7d11（rebase 后 SHA）；WI-4–7 见本行所在提交。测试矩阵、独立攻击、内部评审及 Amendment 13 裁定见 M4 handoff；原生 AppKit 菜单与描述树一致性留给真机批次。 |
 
 | ID | 级别 | 状态 | 缺陷 | 证据与提交 |
 |---|---|---|---|---|

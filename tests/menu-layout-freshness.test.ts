@@ -84,7 +84,7 @@ describe("R1-7a: decode(committed) recovers the inputs", () => {
     const reserved = Object.fromEntries(PLATFORMS.map((p) => [p, [...RESERVED_CHORDS[p]].sort(byCodeUnit)]));
     expect(decoded.reserved).toStrictEqual(reserved);
     expect(decoded.editorOwned).toStrictEqual([...EDITOR_OWNED_CHORDS].sort(compareInventory));
-    expect(decoded.table).toHaveLength(78);
+    expect(decoded.table).toHaveLength(79);
     expect(decoded.editorOwned).toHaveLength(EDITOR_OWNED_CHORDS.length);
   });
 });

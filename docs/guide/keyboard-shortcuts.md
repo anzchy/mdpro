@@ -105,7 +105,7 @@ These shortcuts work in source mode.
 
 | Shortcut | Action |
 |----------|--------|
-| Cmd + Option + T | Insert Table — opens the rows × cols picker (also via Format → Insert Table menu) |
+| Cmd + Option + T | Insert Table — opens the rows × cols picker (macOS: Paragraph → Table…; Windows/Linux: Format → Insert Table) |
 
 ### Table actions (cursor inside a table)
 
