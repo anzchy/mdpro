@@ -1,8 +1,8 @@
 /**
  * Purpose: the bookkeeping `useWindowCloseGuard` needs to close the D253
- * close-race (ADR-0112, merged review): where an allow latch came from, what a
- * Discard consented to, and the enum-only log line. Extracted to keep the hook
- * under 300 lines.
+ * close-race (ADR-0112, merged review): allow-latch origin, Discard consent,
+ * enum-only logs, and D294 native close staging/restoration. Extracted to keep
+ * the hook near 300 lines.
  *
  * Key decisions:
  * - **A latch carries its origin.** `clean-save` means "allow if still clean":
@@ -30,15 +30,22 @@
  *   arrived during the caller's awaits), then calls `close()`. In Tauri v2 that
  *   emits CloseRequested, so the guard's handler decides; `destroy()` would
  *   skip the flush, the save and the prompt.
+ * - **Native staging is a reversible await.** After Rust hides and waits,
+ *   the hook rechecks attempt ownership and consent before final close. A
+ *   stale or vetoed stage restores visibility unless a newer clean stage owns
+ *   the window; a prompt restore is awaited before presenting the prompt.
  *
  * @module src/hooks/windowCloseAttempt
  * @coordinates-with src/hooks/useWindowCloseGuard.ts — the only caller
  * @coordinates-with src/utils/dataLossGuards.ts — `assessWindowUnsaved`, `windowCloseDecisionAfterFlush`
+ * @coordinates-with src/services/windowCloseService.ts — one native command
+ *   for hide/wait and restore, with no frontend window permission change
  */
 import { editorViewCtx, type Editor } from "@milkdown/kit/core";
 import { loggingService } from "../services/loggingService";
 import { useDocumentStore } from "../stores/documentStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
+import { windowCloseService } from "../services/windowCloseService";
 import { assessWindowUnsaved, windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
 
 /** What a Discard agreed to throw away. */
@@ -130,6 +137,39 @@ export function logCloseCancelled(notified: boolean): void {
     actionId: loggingService.generateActionId(),
     context: { notified },
   });
+}
+
+/** Native staging is cancelable by the caller's live attempt/consent checks. */
+export async function stageSecondaryClose(
+  windowLabel: string,
+  isCurrent: () => boolean,
+  isSafe: () => boolean,
+  shouldRestoreIfSuperseded: () => boolean,
+): Promise<"ready" | "superseded" | "veto" | "failed"> {
+  try {
+    await windowCloseService.stage(windowLabel);
+    if (!isCurrent()) {
+      if (shouldRestoreIfSuperseded()) await windowCloseService.restore(windowLabel);
+      return "superseded";
+    }
+    if (!isSafe()) {
+      await windowCloseService.restore(windowLabel);
+      return "veto";
+    }
+    return "ready";
+  } catch {
+    if (isCurrent() || shouldRestoreIfSuperseded()) {
+      try { await windowCloseService.restore(windowLabel); } catch { /* The native fail line names show. */ }
+    }
+    logCloseRequested("fail", { windowLabel, action: "close_order_failed" });
+    return "failed";
+  }
+}
+
+/** A new prompt must be visible even if an older native stage is still pending. */
+export async function restoreSecondaryClose(windowLabel: string): Promise<void> {
+  try { await windowCloseService.restore(windowLabel); }
+  catch { logCloseRequested("fail", { windowLabel, action: "close_order_restore_failed" }); }
 }
 
 /**

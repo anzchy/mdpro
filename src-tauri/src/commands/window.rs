@@ -13,6 +13,20 @@ use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use uuid::Uuid;
 
+#[path = "window_close_order.rs"]
+mod close_order;
+
+/// Native staging for an approved secondary-window close. The injected
+/// webview window is the caller identity; no frontend hide/show grant is used.
+#[tauri::command]
+pub async fn window_close_order(
+    window: tauri::WebviewWindow,
+    window_label: String,
+    operation: String,
+) -> Result<(), String> {
+    close_order::run_close_order(window, window_label, operation).await
+}
+
 /// The pure geometry rules (validation, clamp, resolve) live in
 /// `services/window_geometry.rs`, shared with `services/window_restore.rs`.
 use crate::services::window_geometry::sanitize_geometry;

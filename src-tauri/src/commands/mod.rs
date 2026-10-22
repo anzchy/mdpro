@@ -57,6 +57,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         window::create_window,
         window::save_window_geometry,
         window::get_window_geometry,
+        window::window_close_order,
         // TOC commands
         toc::get_document_headings,
         // Image commands

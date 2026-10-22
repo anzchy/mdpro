@@ -1,108 +1,36 @@
 /**
  * Purpose: own the OS window-close guard for one mdpro window — the
  * `onCloseRequested` subscription, the window-state / per-file geometry save,
- * and the confirm latch. Extracted from App.tsx (D16 WI-6), where the same
- * effect leaked close handlers on every edit.
+ * and the confirm latch.
  *
- * Pipeline: OS close request or `requestWindowClose` → (no latch: a new
- * attempt) `windowCloseDecisionAfterFlush` (the ONE shared exit rule, ADR-0025)
- * → `prompt` prevents the close and raises `pendingClose` for App's
- * ConfirmDialog | `save-and-close` persists window state, re-decides, latches
- * `clean-save` and closes → the re-entered pass with a latch takes the final
- * decision (`decideLatchedPass`): `allow` lets the close through, `prompt`
- * prompts again.
+ * Pipeline: close request → shared flush/decision → prompt or save → Rust
+ * stage for a secondary window → guarded re-entry and final consent check.
  *
  * Key decisions:
- * - **Subscribe exactly once.** The effect has empty deps and reads everything
- *   it needs through `getState()` at fire time. It used to depend on
- *   `saveWindowState` → `activeDocument` → `documents`, so every keystroke tore
- *   the listener down and re-subscribed it.
- * - **A cancelled flag, not a bare `unlisten` variable.** `unlisten` is only
- *   assigned after `await import(...)` and `await onCloseRequested(...)` settle.
- *   A cleanup that runs before then used to leave the handler registered
- *   forever; with several live handlers a latched Discard is consumed by the
- *   first and the second prompts again. The flag makes the late resolution
- *   unlisten itself.
- * - **The save body lives in `saveWindowStateOnClose.ts`** (extracted for
- *   the 300-line limit); this hook exposes it as `saveWindowState`.
- * - **The active document is read inside `saveWindowState`, at call time**
- *   (rule 50 §1). Reading it from the render closure while the effect no longer
- *   re-subscribes would freeze it at subscription time, and the per-file
- *   geometry would be written against whichever document was open then rather
- *   than the one open at close.
- * - **Reference frame of the stored record (ADR-0031 decision D-c, settled
- *   here).** Both records this hook writes are `(outer position, inner size)`
- *   in **logical points**.
- *   * Settled by reading `node_modules/@tauri-apps/api/window.d.ts` — the
- *     vendored Tauri v2 typings, which beat recollection. `innerSize()` is
- *     "the physical size of the window's **client area**"; `outerPosition()`
- *     is "the position of the top-left hand corner of **the window**";
- *     `setSize()` "resizes the window with a new **inner** size";
- *     `setPosition()` "sets the window **outer** position". `setOuterSize`
- *     does not exist.
- *   * **The inner/outer pairing was therefore never wrong.** Save reads
- *     (inner size, outer position); restore writes (inner size, outer
- *     position). The two frames already matched, and the Rust builder
- *     (`window.rs` — `.position()` outer, `.inner_size()` inner) matches too.
- *   * **The only defect was the unit axis**: the getters return
- *     `PhysicalSize`/`PhysicalPosition`, and both restore paths applied the
- *     stored numbers as `LogicalSize`/`LogicalPosition`. On a 2x display that
- *     doubled the window on every close/reopen cycle, which is why every
- *     `windowStates` entry on disk is exactly 2x `1200x800 @ 100,100`.
- *   * Hence the single `scaleFactor()` divide below, feeding **both** writes.
- *     Converting one payload and not the other would make the two records
- *     disagree, which is what the WI3-C law forbids.
- * - **A failed `save_window_state` is all-or-nothing (WI3-K, branch ii).** The
- *   two records must agree, so they are not allowed to half-exist: if the
- *   global window state cannot be written, the per-file geometry is not
- *   written either. This was already the de-facto behaviour of the `await`
- *   ordering; WI-3 makes it a decision and gives it the `status: "fail"` log
- *   entry rule 20 requires, replacing a bare `catch {}`. That entry carries
- *   only a stage enum (`geometry_read_failed` / `save_rejected` /
- *   `geometry_save_rejected`), never the rejection text (ADR-0031 step 5b). WI-1 is what makes
- *   this path reachable at all — before it, `save_window_state` swallowed a
- *   load failure and returned `Ok`. It is scoped to `main` (see next item).
- * - **Only `main` writes the global `windowState` (ADR-0037 Decision 3).**
- *   `ownsGlobalWindowState` decides after `scaleFactor()`. Other windows log
- *   an enum-only `skipped`/`not_main` entry and still write per-file geometry.
- * - **A cancelled window prompt calls `onCloseCancelled` (D29, ADR-0033
- *   Decision 4).** Rust dropped this window's routing entry on
- *   `CloseRequested`; App passes `useMcpSync().forceSync` to re-register it.
- *   The callback is held in a ref so a new identity never re-runs the
- *   subscribe-once effect, and it fires only when a window prompt was pending —
- *   read through a ref, because App also calls `cancelClose` for a ⌘W document
- *   prompt and `cancelClose` is created once.
- * - **`requestWindowClose` re-enters the guard (D253, ADR-0112)**: it re-checks
- *   emptiness, then `close()`, which in Tauri v2 emits CloseRequested
- *   (`window.d.ts`; `window.js` destroys only if not prevented). Never `destroy()`.
- * - **What the guard guarantees against the close race (D253, audit b180).**
- *   (1) Clean-save re-decision: the save-and-close path re-decides after the
- *   save, and its `clean-save` latch allows only if the latched pass still finds
- *   nothing unsaved (`dirty_after_state_save`). (2) One attempt generation: each
- *   unlatched pass and each `cancelClose` bumps it; a continuation resuming after
- *   a save with a stale one does nothing (`superseded`). (3) Consent frozen for
- *   the prompt's lifetime: snapshotted when the prompt goes up, never replaced
- *   by a repeat request. (4) Revision-checked Discard: allowed only while the
- *   dirty set is within the consent, by content, and, over a failing flush, by
- *   the editor doc's identity (`dirty_after_discard`). `dataLossGuards.ts` is
- *   untouched: the shared rule is called with no latch and `windowCloseAttempt.ts`
- *   applies the origin, so the quit path cannot change.
- *
+ * - Subscribe once; read stores with `getState()` and use `cancelled` to
+ *   dispose a listener registered after effect cleanup.
+ * - Save reads the active document at call time. `saveWindowStateOnClose`
+ *   owns logical-point geometry, all-or-nothing writes, and main-only global
+ *   state (ADR-0031/0037).
+ * - A cancelled window prompt calls the ref-held `onCloseCancelled` to
+ *   re-register routing (D29), unlike a document-only ⌘W prompt.
+ * - `requestWindowClose` rechecks emptiness, then calls `close()` to re-enter
+ *   the guard; never bypass it with `destroy()` (D253, ADR-0112).
+ * - Re-decide after save and staging. Attempt generations reject stale
+ *   continuations; Discard consent stays frozen to its prompt's dirty content
+ *   and editor revision (D253). D294 restores visibility after a veto or
+ *   supersession and preserves a new clean tab after last-tab close. The
+ *   shared `dataLossGuards.ts` and quit path are unchanged.
  * @module src/hooks/useWindowCloseGuard
- * @coordinates-with src/App.tsx — renders the ConfirmDialog for `pendingClose`
- *   and routes its confirm/cancel back to `confirmClose` / `cancelClose`;
- *   calls `requestWindowClose` when a user close empties a secondary window
- *   (via `src/utils/lastTabClose.ts`); passes `useMcpSync().forceSync` as
- *   `onCloseCancelled`
- * @coordinates-with src/hooks/useMcpSync.ts — `forceSync`, the re-registration
+ * @coordinates-with src/App.tsx — dialog, last-tab close and cancel routing
  * @coordinates-with src/utils/dataLossGuards.ts — `windowCloseDecisionAfterFlush`
- * @coordinates-with src/hooks/windowCloseAttempt.ts — latch origin, Discard
- *   consent, the latched pass's decision, the log lines
- * @coordinates-with src/hooks/saveWindowStateOnClose.ts — the save body:
- *   global state (main only), per-file geometry, stage-typed fail log
+ * @coordinates-with src/hooks/windowCloseAttempt.ts — consent and staging
+ * @coordinates-with src/hooks/saveWindowStateOnClose.ts — state-save body
+ * @coordinates-with src-tauri/src/commands/window_close_order.rs — native stage
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
+import { useDocumentStore } from "../stores/documentStore";
 import { saveWindowStateOnClose } from "./saveWindowStateOnClose";
 import {
   type CloseLatch,
@@ -114,6 +42,8 @@ import {
   promptActionFor,
   requestGuardedClose,
   snapshotDiscardConsent,
+  stageSecondaryClose,
+  restoreSecondaryClose,
 } from "./windowCloseAttempt";
 
 /** `"window"` while the unsaved-changes dialog for an OS close request is open. */
@@ -165,6 +95,8 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
   const consentRef = useRef<DiscardConsent | null>(null);
   // The active close attempt. A continuation whose generation is stale does nothing.
   const attemptRef = useRef(0);
+  const stagePendingRef = useRef<number | null>(null);
+  const beganEmptyRef = useRef(false);
   const appWindowRef = useRef<{ label: string; close: () => Promise<void> | void } | null>(null);
 
   // Body lives in `saveWindowStateOnClose.ts`; the identity is stable.
@@ -205,6 +137,7 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
           const latch = latchRef.current;
           setLatch(null);
           const attempt = latch ? attemptRef.current : ++attemptRef.current;
+          if (!latch) beganEmptyRef.current = useDocumentStore.getState().documents.length === 0;
           // D15/D16: flush pending WYSIWYG edits, then decide on the fresh
           // any-tab-modified state through the one shared exit rule. A latch
           // only lets the close through if this pass still agrees (D253).
@@ -212,15 +145,30 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
           logCloseRequested("start", { windowLabel, decision, allowWindowClose: latch !== null, latch: latch?.kind ?? "none" });
 
           if (decision === "allow") {
+            if (latch?.kind === "clean-save" && beganEmptyRef.current
+              && useDocumentStore.getState().documents.length > 0) {
+              event.preventDefault();
+              stagePendingRef.current = null;
+              await restoreSecondaryClose(windowLabel);
+              logCloseRequested("cancel", { windowLabel, action: "new_document_after_stage" });
+              return;
+            }
+            stagePendingRef.current = null;
             logCloseRequested("success", { windowLabel, action: "allowed_close" });
             return;
           }
           // Prevent close in all other cases until we finish async work.
           event.preventDefault();
           if (decision === "prompt") {
+            if (stagePendingRef.current !== null) {
+              stagePendingRef.current = null;
+              await restoreSecondaryClose(windowLabel);
+            }
+            if (attempt !== attemptRef.current) return;
             raisePrompt(windowLabel, promptActionFor(latch));
             return;
           }
+          const wasEmpty = useDocumentStore.getState().documents.length === 0;
           // No unsaved changes — save state, then re-decide before latching:
           // a dirty document may have arrived during the save (D253).
           await saveWindowState();
@@ -232,8 +180,38 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
             raisePrompt(windowLabel, "dirty_after_state_save");
             return;
           }
+          if (windowLabel !== "main") {
+            stagePendingRef.current = attempt;
+            const staged = await stageSecondaryClose(
+              windowLabel,
+              () => attempt === attemptRef.current,
+              () => windowCloseDecisionAfterFlush({ allowWindowClose: false }) !== "prompt"
+                && (!wasEmpty || useDocumentStore.getState().documents.length === 0),
+              () => pendingCloseRef.current === "window" || stagePendingRef.current === null,
+            );
+            if (attempt !== attemptRef.current && staged === "ready") {
+              const shouldRestore = stagePendingRef.current === attempt || pendingCloseRef.current === "window";
+              if (stagePendingRef.current === attempt) stagePendingRef.current = null;
+              if (shouldRestore) await restoreSecondaryClose(windowLabel);
+              return;
+            }
+            if (staged !== "ready") {
+              if (stagePendingRef.current === attempt) stagePendingRef.current = null;
+              if (staged === "veto" && attempt === attemptRef.current
+                && windowCloseDecisionAfterFlush({ allowWindowClose: false }) === "prompt") {
+                raisePrompt(windowLabel, "dirty_after_state_save");
+              }
+              return;
+            }
+          }
           setLatch({ kind: "clean-save" });
-          void currentWindow.close();
+          void Promise.resolve(currentWindow.close()).catch(async () => {
+            if (attempt !== attemptRef.current) return;
+            setLatch(null);
+            if (stagePendingRef.current === attempt) stagePendingRef.current = null;
+            if (windowLabel !== "main") await restoreSecondaryClose(windowLabel);
+            logCloseRequested("fail", { windowLabel, action: "close_rejected" });
+          });
           logCloseRequested("success", { windowLabel, action: "no_unsaved_closing" });
         });
         if (cancelled) {
@@ -263,8 +241,36 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
       return; // a cancel or a new request voided this Discard while saving
     }
     allowWindowCloseRef.current = true;
+    const windowLabel = appWindowRef.current?.label;
+    if (windowLabel && windowLabel !== "main") {
+      stagePendingRef.current = attempt;
+      const staged = await stageSecondaryClose(
+        windowLabel,
+        () => attempt === attemptRef.current,
+        () => decideLatchedPass({ kind: "discard", consent }) === "allow",
+        () => pendingCloseRef.current === "window" || stagePendingRef.current === null,
+      );
+      if (attempt !== attemptRef.current && staged === "ready") {
+        const shouldRestore = stagePendingRef.current === attempt || pendingCloseRef.current === "window";
+        if (stagePendingRef.current === attempt) stagePendingRef.current = null;
+        if (shouldRestore) await restoreSecondaryClose(windowLabel);
+        return;
+      }
+      if (staged !== "ready") {
+        if (stagePendingRef.current === attempt) stagePendingRef.current = null;
+        if (staged === "veto" && attempt === attemptRef.current) raisePrompt(windowLabel, "dirty_after_discard");
+        return;
+      }
+    }
     latchRef.current = { kind: "discard", consent };
-    appWindowRef.current?.close();
+    try { await appWindowRef.current?.close(); }
+    catch {
+      if (attempt !== attemptRef.current) return;
+      setLatch(null);
+      if (stagePendingRef.current === attempt) stagePendingRef.current = null;
+      if (windowLabel && windowLabel !== "main") await restoreSecondaryClose(windowLabel);
+      logCloseRequested("fail", { windowLabel: windowLabel ?? "unknown", action: "close_rejected" });
+    }
   }, [saveWindowState, setPendingClose]);
 
   const cancelClose = useCallback(() => {
@@ -272,6 +278,11 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
     // Supersede any attempt in flight. The latch is left alone: a latched pass
     // re-decides (clean-save) or checks its consent (discard) anyway.
     attemptRef.current += 1;
+    if (stagePendingRef.current !== null) {
+      stagePendingRef.current = null;
+      const label = appWindowRef.current?.label;
+      if (label && label !== "main") void restoreSecondaryClose(label);
+    }
     setPendingClose(null);
     if (!wasWindowPrompt) return;
     const callback = onCloseCancelledRef.current;
