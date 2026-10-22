@@ -145,10 +145,20 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
   plan review) and every implementor fix that needs a new session:
   1. confirm the pane is `idle` or `done` (`herdr agent get`), and record `agent_session.value`;
   2. `herdr pane send-text <pane> '/new'`, then `herdr agent send-keys <name> enter`. Never use
-     `prompt --wait` for `/new`, which starts no turn;
-  3. the reset counts only when `agent_session.value` changed. If it did not change, follow
-     § Restart (a new pane). A result produced before a confirmed reset is void;
-  4. then `herdr agent prompt … --wait`, in the background, pointing at the request file.
+     `prompt --wait` for `/new`, which starts no turn. Codex then asks where the new
+     conversation runs: answer `enter` for "Use current Git worktree";
+  3. **restore the model.** `/new` falls back to the `~/.codex/config.toml` default, `gpt-6-sol`
+     at medium effort. For gpt-auditor, run `/model`, select GPT-6-Astra (`up`, `enter`), then
+     High (`down`), and press **`s`** to set it for this session only. Never press `enter` there:
+     that rewrites the global default. The status line must read `GPT-6-Astra high · Context 0%
+     used` before the request is sent;
+  4. then `herdr agent prompt … --wait`, in the background, pointing at the request file;
+  5. **the reset counts only when `agent_session.value` has changed after that turn.** herdr
+     updates the id when the first turn starts, not at `/new`. If the id did not change, the
+     result is void: follow § Restart (a new pane) and resend.
+
+  Probe passed 2026-10-22 (ADR-0131 decision 7): the id went from `01a16229…` to `01a1622c…`, and
+  the reply to "what was your previous request" was "none".
 - **A request file is self-contained.** A confirm or challenge names:
   - the fix range;
   - the open findings by id, with their text;
