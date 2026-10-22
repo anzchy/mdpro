@@ -11,6 +11,7 @@ import * as cmc from "@codemirror/commands";
 import { findNext, findPrevious, openSearchPanel, selectNextOccurrence } from "@codemirror/search";
 import * as heading from "../../src/plugins/codemirror/headingPlugin";
 import { insertLinkCommand } from "../../src/plugins/codemirror/linkPlugin";
+import { sourceFormatRunners } from "../../src/plugins/codemirror/sourceFormatPlugin";
 
 export const IMPLEMENTS_BY_IDENTITY: Readonly<Record<string, readonly unknown[]>> = {
   "edit.undo": [cmc.undo],
@@ -34,6 +35,16 @@ export const IMPLEMENTS_BY_IDENTITY: Readonly<Record<string, readonly unknown[]>
   "edit.jumpToTop": [cmc.cursorDocStart],
   "edit.jumpToBottom": [cmc.cursorDocEnd],
   "edit.selectAll": [cmc.selectAll],
+  "format.strong": [sourceFormatRunners.strong],
+  "format.emphasis": [sourceFormatRunners.emphasis],
+  "format.code": [sourceFormatRunners.code],
+  "format.strike": [sourceFormatRunners.strike],
+  "paragraph.codeFences": [sourceFormatRunners.codeFences],
+  "paragraph.mathBlock": [sourceFormatRunners.mathBlock],
+  "paragraph.orderedList": [sourceFormatRunners.orderedList],
+  "paragraph.unorderedList": [sourceFormatRunners.unorderedList],
+  "edit.selectLine": [sourceFormatRunners.selectLine],
+  "edit.deleteWord": [sourceFormatRunners.deleteWord],
 };
 
 export interface CitedImplements {

@@ -16,14 +16,14 @@ export const FORMAT_ROWS: readonly CommandRow[] = [
     field: "formatStrong",
     v1: "Cmd+B",
     v2: "Cmd+B",
-    availability: ["W", "W"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "format.emphasis",
     field: "formatEmphasis",
     v1: "Cmd+I",
     v2: "Cmd+I",
-    availability: ["W", "W"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "format.underline",
@@ -38,14 +38,14 @@ export const FORMAT_ROWS: readonly CommandRow[] = [
     field: "formatCode",
     v1: "Cmd+Shift+`",
     v2: "Cmd+Shift+`",
-    availability: ["W", "W"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "format.strike",
     field: "formatStrike",
     v1: "Ctrl+Shift+`",
     v2: "Cmd+Shift+X",
-    availability: ["W", "W"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "format.hyperlink",

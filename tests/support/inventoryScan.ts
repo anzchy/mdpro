@@ -30,6 +30,7 @@ import {
 } from "../../src/plugins/codemirror/headingPlugin";
 import { insertLinkCommand } from "../../src/plugins/codemirror/linkPlugin";
 import { sourceTableTabKeymap } from "../../src/plugins/codemirror/sourceTableTabNav";
+import { sourceFormatKeymap, sourceFormatRunners } from "../../src/plugins/codemirror/sourceFormatPlugin";
 
 const REPO = resolve(__dirname, "../..");
 const FIELD: Record<Platform, "mac" | "win" | "linux"> = { macos: "mac", windows: "win", linux: "linux" };
@@ -70,6 +71,7 @@ const MDPRO_RUNS: ReadonlyArray<readonly [string, readonly Command[]]> = [
   ["mdpro:linkPlugin", [insertLinkCommand]],
   ["mdpro:Editor.undoRedo", [undo, redo]],
   ["mdpro:Editor.viewModeKeymap", [toggleLineComment]],
+  ["mdpro:sourceFormatPlugin", Object.values(sourceFormatRunners)],
 ];
 
 /** mdpro's inline closures (R1-10b), identified by their key. */
@@ -92,7 +94,12 @@ export function composedCodeMirror(bindings: readonly KeyBinding[]): { found: Fo
     if (b.any && !b.key && !b.mac && !b.win && !b.linux) anyOnly++;
     const source = classify(b);
     for (const platform of ["macos", "windows", "linux"] as const) {
-      const key = b[FIELD[platform]] ?? b.key;
+      // This plugin builds today's v1 keymap at mount time for the host OS.
+      // Resolve the other platform's key from the same runner; the inventory
+      // remains an independent literal list checked below.
+      const key = source === "mdpro:sourceFormatPlugin"
+        ? sourceFormatKeymap(platform === "macos").find((entry) => entry.run === b.run)?.key
+        : b[FIELD[platform]] ?? b.key;
       if (!key) continue;
       found.push({ source, key, platform, fn: b.run, index });
       if (b.shift) found.push({ source, key: `Shift-${key}`, platform, fn: b.shift, index });

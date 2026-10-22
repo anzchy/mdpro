@@ -15,6 +15,7 @@ import {
   collisions,
   describe1,
   explanation,
+  isLiveCollision,
   oneOwnerViolations,
 } from "./support/tableBindings";
 
@@ -85,12 +86,27 @@ describe("v2 × today's inventory cross-check", () => {
 describe("R2-D: latent notes stay honest", () => {
   const latentRows = EDITOR_OWNED_CHORDS.filter((r) => r.latent !== undefined);
 
-  it("covers D267, D268 and D270", () => {
-    expect([...new Set(latentRows.map((r) => r.latent))].sort()).toEqual(["D267", "D268", "D270"]);
+  it("D267 v2-only Ctrl+Shift+K is latent for M1b", () => {
+    const d267 = latentRows.filter((r) => r.latent === "D267");
+    const hits = collisions("v2", d267).filter((c) => c.rowId === "paragraph.codeFences");
+    expect(hits.map((c) => [c.platform, explanation(c)])).toEqual([
+      ["windows", "latent(D267:M1b)"], ["linux", "latent(D267:M1b)"],
+    ]);
+  });
+
+  it("a live v1 Code Fences collision remains unexplained", () => {
+    const synthetic = { ...latentRows.find((r) => r.latent === "D267")!, key: "Mod-Alt-c", platforms: ["macos"] as const };
+    const hits = collisions("v1", [synthetic]).filter((c) => c.rowId === "paragraph.codeFences");
+    expect(hits).toHaveLength(1);
+    expect(hits.map(explanation)).toEqual([null]);
+  });
+
+  it("covers D267 and D270; D268 is shadowed by Source Italic", () => {
+    expect([...new Set(latentRows.map((r) => r.latent))].sort()).toEqual(["D267", "D270"]);
   });
 
   it("no latent row collides with an available, bound v2 row in a shared context", () => {
-    const live = collisions("v2", latentRows).filter((c) => c.binding.available);
+    const live = collisions("v2", latentRows).filter(isLiveCollision);
     expect(live.map(describe1)).toEqual([]);
   });
 

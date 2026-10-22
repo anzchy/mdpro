@@ -13,6 +13,7 @@ import { normaliseStored } from "./chord";
 import type { CommandId, OwnershipContext, Platform } from "./commandTable.types";
 import { CODEMIRROR_ROWS } from "./inventory/codemirrorRows";
 import { MILKDOWN_ROWS } from "./inventory/milkdownRows";
+import { MAC, OFF, impl, row } from "./inventory/rowKit";
 
 export type InventoryEditor = "W" | "S";
 
@@ -20,7 +21,7 @@ export type InventoryEditor = "W" | "S";
 export type RemovalId = "C11" | "C12" | "C17" | "D264" | "D269" | "D271" | "D272" | "K4";
 
 /** A registered defect whose collision is not live on v2 (matrix SD16). */
-export type LatentId = "D267" | "D268" | "D270";
+export type LatentId = "D267" | "D270";
 
 export type Disposition =
   | { readonly kind: "implements"; readonly command: CommandId }
@@ -71,4 +72,24 @@ export function keymapNameToStored(name: string, platform: Platform): string | n
   return normaliseStored([...mods, key].join("+"), platform);
 }
 
-export const EDITOR_OWNED_CHORDS: readonly EditorOwnedRow[] = [...CODEMIRROR_ROWS, ...MILKDOWN_ROWS];
+export const SOURCE_FORMAT_BINDINGS: readonly EditorOwnedRow[] = [
+  ...([
+    ["Mod-b", "Ctrl-b", "format.strong"],
+    ["Mod-i", "Ctrl-i", "format.emphasis"],
+    ["Mod-Shift-`", "Ctrl-Shift-`", "format.code"],
+    ["Ctrl-Shift-`", "Alt-Shift-5", "format.strike"],
+    ["Mod-Alt-c", "Ctrl-Alt-c", "paragraph.codeFences"],
+    ["Mod-Alt-b", "Ctrl-Alt-b", "paragraph.mathBlock"],
+    ["Mod-Alt-o", "Ctrl-Alt-o", "paragraph.orderedList"],
+    ["Mod-Alt-u", "Ctrl-Alt-u", "paragraph.unorderedList"],
+    ["Mod-l", "Ctrl-l", "edit.selectLine"],
+    ["Mod-Shift-d", "Ctrl-Shift-d", "edit.deleteWord"],
+  ] as const).flatMap(([macKey, offKey, id]) => [
+    row("S", "mdpro:sourceFormatPlugin", macKey, impl(id), { platforms: MAC }),
+    row("S", "mdpro:sourceFormatPlugin", offKey, impl(id), { platforms: OFF }),
+  ]),
+];
+
+export const EDITOR_OWNED_CHORDS: readonly EditorOwnedRow[] = [
+  ...CODEMIRROR_ROWS, ...SOURCE_FORMAT_BINDINGS, ...MILKDOWN_ROWS,
+];

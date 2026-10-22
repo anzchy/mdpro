@@ -1,5 +1,6 @@
 import { pluginRegistry } from "./core/pluginRegistry";
 import { highlightPlugin } from "./codemirror/highlightPlugin";
+import { sourceFormatPlugin } from "./codemirror/sourceFormatPlugin";
 import { headingPlugin } from "./codemirror/headingPlugin";
 import { linkPlugin } from "./codemirror/linkPlugin";
 import { wysiwygDecorationsPlugin } from "./codemirror/wysiwygDecorationsPlugin";
@@ -11,6 +12,7 @@ import { typoraKeymapPlugin } from "./milkdown/typoraKeymapPlugin";
 import { imagePastePlugin } from "./milkdown/imagePastePlugin";
 
 pluginRegistry.register(highlightPlugin);
+pluginRegistry.register(sourceFormatPlugin);
 pluginRegistry.register(headingPlugin);
 pluginRegistry.register(linkPlugin);
 pluginRegistry.register(wysiwygDecorationsPlugin);

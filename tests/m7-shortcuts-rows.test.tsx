@@ -146,7 +146,8 @@ describe("M7 row states", () => {
 
   it("r2 WYSIWYG only / Source only: the key button works and the capability line sits under the name", async () => {
     const { user } = await open();
-    expect(row("Bold").querySelector(".shortcut-capability")?.textContent).toBe("WYSIWYG only");
+    expect(row("Table").querySelector(".shortcut-capability")?.textContent).toBe("WYSIWYG only");
+    expect(row("Bold").querySelector(".shortcut-capability")).toBeNull();
     expect(row("Find").querySelector(".shortcut-capability")?.textContent).toBe("Source only");
     expect(row("Save").querySelector(".shortcut-capability")).toBeNull();
     await record(user, "Find", "{Meta>}{Shift>}j{/Shift}{/Meta}");

@@ -67,7 +67,7 @@ const context = oneOf<OwnershipContext>([
   "editorW", "editorS", "tableW", "tableS", "modal", "recorder", "nativeFocus",
 ]);
 const editor = oneOf<InventoryEditor>(["W", "S"]);
-const latent = oneOf<LatentId>(["D267", "D268", "D270"]);
+const latent = oneOf<LatentId>(["D267", "D270"]);
 const removal = oneOf<RemovalId>(["C11", "C12", "C17", "D264", "D269", "D271", "D272", "K4"]);
 
 function perPlatform<T>(v: unknown, at: string, item: (x: unknown, at: string) => T): PerPlatform<T> {

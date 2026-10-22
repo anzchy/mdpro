@@ -1,5 +1,5 @@
 /** Source editor adapters for M3b's menu command dispatcher. */
-import { cursorDocEnd, cursorDocStart, indentLess, indentMore } from "@codemirror/commands";
+import { cursorDocEnd, cursorDocStart, indentLess, indentMore, selectLine } from "@codemirror/commands";
 import { findNext, findPrevious, openSearchPanel, selectNextOccurrence } from "@codemirror/search";
 import type { EditorView } from "@codemirror/view";
 import {
@@ -8,6 +8,10 @@ import {
   makeHeadingCommand,
 } from "../plugins/codemirror/headingPlugin";
 import { highlightCommand } from "../plugins/codemirror/highlightPlugin";
+import {
+  codeCommand, codeFencesCommand, deleteWordCommand, emphasisCommand, mathBlockCommand, orderedListCommand,
+  quoteCommand, strikeCommand, strongCommand, unorderedListCommand,
+} from "../plugins/codemirror/sourceFormatCommands";
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
 import { dispatchSourceTableAction } from "../plugins/codemirror/sourceTableContextMenu";
 import type { TableActionId } from "../plugins/milkdown/table/actionDescriptors";
@@ -69,6 +73,28 @@ export function runSourceEditorMenuCommand(
   }
 
   switch (id) {
+    case "format.strong":
+      return runEffect(view, strongCommand);
+    case "format.emphasis":
+      return runEffect(view, emphasisCommand);
+    case "format.code":
+      return runEffect(view, codeCommand);
+    case "format.strike":
+      return runEffect(view, strikeCommand);
+    case "paragraph.codeFences":
+      return runEffect(view, codeFencesCommand);
+    case "paragraph.orderedList":
+      return runEffect(view, orderedListCommand);
+    case "paragraph.unorderedList":
+      return runEffect(view, unorderedListCommand);
+    case "paragraph.quote":
+      return runEffect(view, quoteCommand);
+    case "paragraph.mathBlock":
+      return runEffect(view, mathBlockCommand);
+    case "edit.selectLine":
+      return runEffect(view, selectLine);
+    case "edit.deleteWord":
+      return runEffect(view, deleteWordCommand);
     case "paragraph.paragraph":
       return runEffect(view, makeHeadingCommand(0));
     case "paragraph.increaseHeading":

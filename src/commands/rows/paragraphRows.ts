@@ -62,14 +62,14 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     field: "paragraphCodeFences",
     v1: "Cmd+Option+C",
     v2: macOff("Cmd+Option+C", "Cmd+Shift+K"),
-    availability: ["W", "W"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "paragraph.mathBlock",
     field: "paragraphMathBlock",
     v1: "Cmd+Option+B",
     v2: "Cmd+Option+Shift+M",
-    availability: ["none", "none"],
+    availability: ["S", "S"],
     // § 5.8 row 3: built in Source only.
     contexts: ["editorS", "tableS"],
   }),
@@ -78,7 +78,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     field: "paragraphQuote",
     v1: "Cmd+Option+Q",
     v2: macOff("Cmd+Shift+B", "Cmd+Shift+Q"),
-    availability: ["none", "W"],
+    availability: ["none", "both"],
     contexts: BOTH,
   }),
   configurable({
@@ -86,7 +86,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     field: "paragraphOrderedList",
     v1: "Cmd+Option+O",
     v2: macOff("Cmd+Option+O", "Cmd+Shift+["),
-    availability: ["none", "W"],
+    availability: ["S", "both"],
     contexts: BOTH,
   }),
   configurable({
@@ -94,7 +94,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     field: "paragraphUnorderedList",
     v1: "Cmd+Option+U",
     v2: macOff("Cmd+Option+U", "Cmd+Shift+]"),
-    availability: ["none", "W"],
+    availability: ["S", "both"],
     contexts: BOTH,
   }),
   configurable({

@@ -23,7 +23,6 @@ export type Version = "v1" | "v2";
 /** The field each latent defect waits on (matrix R2-D, R3-2). */
 export const LATENT_FIELD: Readonly<Record<LatentId, string>> = {
   D267: "paragraphCodeFences",
-  D268: "formatEmphasis",
   D270: "formatUnderline",
 };
 
@@ -93,6 +92,14 @@ export interface Collision {
 
 export const ownerId = (r: EditorOwnedRow): string => `editor:${r.source}:${r.key}`;
 
+/** A collision is live only when the command's v1 key owns this chord today. */
+export function isLiveCollision(c: Collision): boolean {
+  const row = c.binding.row;
+  const key = row.key[c.platform].defaults.v1;
+  return row.availability[c.platform].v1 !== "none"
+    && key !== null && normaliseStored(key, c.platform) === c.chord;
+}
+
 /** Inventory × table collisions: equal chord on a platform, intersecting contexts. */
 export function collisions(version: Version, inventory: readonly EditorOwnedRow[]): Collision[] {
   const out = new Map<string, Collision>();
@@ -124,8 +131,9 @@ export function explanation(c: Collision): string | null {
       return `shadowed(${d.by})`;
     case "editorOwned": {
       const latent = c.row.latent;
-      if (latent === undefined || c.binding.available) return null;
-      return c.binding.row.prefField === LATENT_FIELD[latent] ? `latent(${latent})` : null;
+      if (latent === undefined || c.binding.row.prefField !== LATENT_FIELD[latent]) return null;
+      if (isLiveCollision(c)) return null;
+      return c.binding.available ? `latent(${latent}:M1b)` : `latent(${latent})`;
     }
   }
 }

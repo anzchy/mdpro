@@ -1,6 +1,7 @@
 import type { MdproPluginConfig } from "./pluginTypes";
 
 export const defaultPluginConfig: MdproPluginConfig = {
+  "source-format": { enabled: true },
   "highlight": {
     enabled: true,
     options: {

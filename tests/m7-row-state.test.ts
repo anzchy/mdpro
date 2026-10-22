@@ -53,7 +53,7 @@ describe("M7 row states", () => {
   });
 
   it("s3 W and S rows carry their capability line; both-mode rows carry none", () => {
-    expect(rowStateOf(input(field("formatStrong")))).toMatchObject({ kind: "configurable", capability: "WYSIWYG only" });
+    expect(rowStateOf(input(field("formatStrong")))).toMatchObject({ kind: "configurable", capability: null });
     expect(rowStateOf(input(field("editFind")))).toMatchObject({ kind: "configurable", capability: "Source only" });
     expect(rowStateOf(input(field("fileSave")))).toMatchObject({ kind: "configurable", capability: null });
   });

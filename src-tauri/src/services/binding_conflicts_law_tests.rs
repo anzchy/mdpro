@@ -96,6 +96,51 @@ fn law_one(p: Platform, v: u32, stored: &Map, s: &BindingState, out: &mut Vec<St
         });
         for ctx in available_contexts(row, p, v) {
             let got = s.owner_of(ctx, chord);
+            // M1b owns D267's v2-only key. It is latent while today's Source
+            // Code Fences still binds its distinct v1 chord.
+            let v1_default = key_of(row, p).defaults.v1.as_deref().unwrap_or_default();
+            let d267_v2_only = v >= 2
+                && at_default
+                && row.id == "paragraph.codeFences"
+                && normalise_stored(v1_default, cp).as_deref() != Some(chord.as_str())
+                && layout().editor_owned.iter().any(|r| {
+                    let owner = format!("editor:{}:{}", r.source, r.key);
+                    r.latent.as_deref() == Some("D267")
+                        && r.platforms.contains(&p)
+                        && r.contexts.contains(&ctx)
+                        && got.as_deref() == Some(owner.as_str())
+                        && super::owners::keymap_name_to_stored(&r.key, cp).as_deref()
+                            == Some(chord.as_str())
+                });
+            if d267_v2_only {
+                continue;
+            }
+            // An implements binding present in today's v1 keymap is live.
+            // A wrong owner must fail even on an otherwise default chord.
+            let live_v1_winner = v < 2
+                && at_default
+                && layout().editor_owned.iter().any(|r| {
+                    r.platforms.contains(&p)
+                        && r.contexts.contains(&ctx)
+                        && matches!(&r.disposition, Disposition::Implements { command } if command == &row.id)
+                        && super::owners::keymap_name_to_stored(&r.key, cp).as_deref()
+                            == Some(chord.as_str())
+                });
+            let live_v1_winner_loaded = s.hard.get(chord).is_some_and(|owners| {
+                owners.iter().any(|owner| {
+                    owner.id == row.id
+                        && owner.except.as_deref() == Some(row.id.as_str())
+                        && owner.contexts.contains(&ctx)
+                })
+            });
+            let recognized_v1_owner =
+                got.as_deref() == Some(row.id.as_str()) || got.as_deref().is_some_and(exempt);
+            if live_v1_winner && (!live_v1_winner_loaded || !recognized_v1_owner) {
+                out.push(format!(
+                    "{p:?}@{v} {stored:?}: {field} {chord} in {ctx:?} -> {got:?}"
+                ));
+                continue;
+            }
             if got.as_deref() == Some(row.id.as_str())
                 || (at_default && (v < 2 || got.as_deref().is_some_and(exempt)))
             {
@@ -120,6 +165,85 @@ fn law_one_at_most_one_owner_over_the_single_custom_sweep() {
         violations.iter().take(10).collect::<Vec<_>>(),
         Vec::<&String>::new()
     );
+}
+
+#[test]
+fn d255_live_v1_italic_collision_is_still_a_law_violation() {
+    // Remove only this WI's winner from a cloned layout. The live v1 Mod-i
+    // default then owns Source Italic's chord; the law must catch it.
+    let mut without_source_italic = layout().clone();
+    without_source_italic
+        .editor_owned
+        .retain(|r| !(r.source == "mdpro:sourceFormatPlugin" && r.key == "Mod-i"));
+    let stored = Map::new();
+    let state = resolve_with(
+        &without_source_italic,
+        Platform::Macos,
+        1,
+        &stored,
+        &BTreeMap::new(),
+    );
+    let mut violations = Vec::new();
+    law_one(Platform::Macos, 1, &stored, &state, &mut violations);
+    assert!(violations
+        .iter()
+        .any(|v| v.contains("formatEmphasis Cmd+I in EditorS")));
+}
+
+#[test]
+fn d255_live_v1_italic_rejects_an_unrelated_winning_owner() {
+    let stored = Map::new();
+    let mut state = resolve(Platform::Macos, 1, &stored);
+    let mut hard = (*state.hard).clone();
+    hard.entry("Cmd+I".into())
+        .or_default()
+        .push(super::owners::HardOwner {
+            id: "intruder".into(),
+            reason: SuppressReason::Fixed,
+            precedence: 0,
+            contexts: vec![OwnershipContext::EditorS],
+            except: None,
+        });
+    state.hard = Arc::new(hard);
+    let mut violations = Vec::new();
+    law_one(Platform::Macos, 1, &stored, &state, &mut violations);
+    assert!(violations
+        .iter()
+        .any(|v| v.contains("formatEmphasis Cmd+I in EditorS")));
+}
+
+#[test]
+fn d255_d267_v2_only_chord_stays_latent_for_m1b() {
+    let row = config_rows()
+        .into_iter()
+        .find(|r| r.id == "paragraph.codeFences")
+        .expect("Code Fences row");
+    assert_eq!(
+        key_of(row, Platform::Windows).defaults.v1.as_deref(),
+        Some("Cmd+Option+C")
+    );
+    assert_eq!(
+        key_of(row, Platform::Windows).defaults.v2.as_deref(),
+        Some("Cmd+Shift+K")
+    );
+    let d267 = layout()
+        .editor_owned
+        .iter()
+        .find(|r| r.source == "codemirror:defaultKeymap" && r.key == "Shift-Mod-k")
+        .expect("D267 inventory row");
+    assert_eq!(d267.latent.as_deref(), Some("D267"));
+    let stored = Map::new();
+    let mut violations = Vec::new();
+    law_one(
+        Platform::Windows,
+        2,
+        &stored,
+        &resolve(Platform::Windows, 2, &stored),
+        &mut violations,
+    );
+    assert!(violations
+        .iter()
+        .all(|v| !v.contains("paragraphCodeFences Cmd+Shift+K")));
 }
 
 #[test]

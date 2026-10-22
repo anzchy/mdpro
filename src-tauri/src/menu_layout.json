@@ -745,22 +745,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -1544,22 +1544,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -2514,20 +2514,22 @@
       },
       "contexts": [
         "editorW",
-        "tableW"
+        "editorS",
+        "tableW",
+        "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -2581,20 +2583,22 @@
       },
       "contexts": [
         "editorW",
-        "tableW"
+        "editorS",
+        "tableW",
+        "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -2865,20 +2869,22 @@
       },
       "contexts": [
         "editorW",
-        "tableW"
+        "editorS",
+        "tableW",
+        "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -2932,20 +2938,22 @@
       },
       "contexts": [
         "editorW",
-        "tableW"
+        "editorS",
+        "tableW",
+        "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -3149,20 +3157,22 @@
       },
       "contexts": [
         "editorW",
-        "tableW"
+        "editorS",
+        "tableW",
+        "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "W",
-          "v2": "W"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -3837,22 +3847,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "S",
+          "v2": "S"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -3906,22 +3916,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "W"
+          "v1": "S",
+          "v2": "both"
         },
         "windows": {
-          "v1": "none",
-          "v2": "W"
+          "v1": "S",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "W"
+          "v1": "S",
+          "v2": "both"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -4114,15 +4124,15 @@
       "availability": {
         "macos": {
           "v1": "none",
-          "v2": "W"
+          "v2": "both"
         },
         "windows": {
           "v1": "none",
-          "v2": "W"
+          "v2": "both"
         },
         "linux": {
           "v1": "none",
-          "v2": "W"
+          "v2": "both"
         }
       },
       "route": {
@@ -4259,22 +4269,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "W"
+          "v1": "S",
+          "v2": "both"
         },
         "windows": {
-          "v1": "none",
-          "v2": "W"
+          "v1": "S",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "W"
+          "v1": "S",
+          "v2": "both"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -6520,9 +6530,9 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "editorOwned"
-      },
-      "latent": "D268"
+        "kind": "shadowed",
+        "by": "mdpro:sourceFormatPlugin"
+      }
     },
     {
       "editor": "S",
@@ -7814,6 +7824,336 @@
       "disposition": {
         "kind": "implements",
         "command": "format.hyperlink"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Alt-Shift-5",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strike"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Alt-b",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.mathBlock"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Alt-c",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.codeFences"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Alt-o",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.orderedList"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Alt-u",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.unorderedList"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Shift-`",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strike"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Shift-`",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.code"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-Shift-d",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.deleteWord"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-b",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strong"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-i",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.emphasis"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-l",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectLine"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Alt-b",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.mathBlock"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Alt-c",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.codeFences"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Alt-o",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.orderedList"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Alt-u",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.unorderedList"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Shift-`",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.code"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Shift-d",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.deleteWord"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-b",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.strong"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-i",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.emphasis"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-l",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectLine"
       }
     },
     {

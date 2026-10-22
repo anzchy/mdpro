@@ -29,7 +29,8 @@ const DEFAULT_KEYMAP: readonly EditorOwnedRow[] = [
   s("defaultKeymap", "Mod-Alt-ArrowUp", remove("C17")), s("defaultKeymap", "Mod-Alt-ArrowDown", remove("C17")),
   s("defaultKeymap", "Mod-Enter"),
   s("defaultKeymap", "Alt-l", owned, off), s("defaultKeymap", "Ctrl-l", owned, mac),
-  s("defaultKeymap", "Mod-i", owned, { latent: "D268" }),
+  // D268: Source Italic's v1 Mod-i wins in the high-precedence source-format keymap.
+  s("defaultKeymap", "Mod-i", shadowedBy("mdpro:sourceFormatPlugin")),
   s("defaultKeymap", "Mod-[", impl("paragraph.outdent")), s("defaultKeymap", "Mod-]", impl("paragraph.indent")),
   s("defaultKeymap", "Mod-Alt-\\", owned, mac), s("defaultKeymap", "Mod-Alt-\\", remove("D264"), off),
   s("defaultKeymap", "Shift-Mod-k", owned, { latent: "D267" }),

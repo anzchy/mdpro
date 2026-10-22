@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { buildMenuLayout, serializeMenuLayout } from "../src/commands/buildMenuLayout";
 import { COMMAND_TABLE } from "../src/commands/commandTable";
 import type { CommandRow, PerPlatform, Platform } from "../src/commands/commandTable.types";
-import { EDITOR_OWNED_CHORDS, type EditorOwnedRow } from "../src/commands/editorOwnedChords";
+import { EDITOR_OWNED_CHORDS, SOURCE_FORMAT_BINDINGS, type EditorOwnedRow } from "../src/commands/editorOwnedChords";
 import { CODEMIRROR_ROWS } from "../src/commands/inventory/codemirrorRows";
 import { MILKDOWN_ROWS } from "../src/commands/inventory/milkdownRows";
 import { RESERVED_CHORDS } from "../src/commands/reservedChords";
@@ -40,7 +40,7 @@ describe("input permutation leaves the bytes unchanged (S6)", () => {
 
   it("the row files still assemble into the table", () => {
     expect(ROW_FILES.flat()).toStrictEqual([...COMMAND_TABLE]);
-    expect([...CODEMIRROR_ROWS, ...MILKDOWN_ROWS]).toStrictEqual([...EDITOR_OWNED_CHORDS]);
+    expect([...CODEMIRROR_ROWS, ...SOURCE_FORMAT_BINDINGS, ...MILKDOWN_ROWS]).toStrictEqual([...EDITOR_OWNED_CHORDS]);
     expect(first.length).toBeGreaterThan(1000);
   });
 
@@ -50,7 +50,7 @@ describe("input permutation leaves the bytes unchanged (S6)", () => {
 
   it("(b) each row file reversed", () => {
     expect(bytes(ROW_FILES.flatMap(rev), RESERVED_CHORDS, EDITOR_OWNED_CHORDS)).toBe(first);
-    expect(bytes(COMMAND_TABLE, RESERVED_CHORDS, [...rev(CODEMIRROR_ROWS), ...rev(MILKDOWN_ROWS)])).toBe(first);
+    expect(bytes(COMMAND_TABLE, RESERVED_CHORDS, [...rev(CODEMIRROR_ROWS), ...rev(SOURCE_FORMAT_BINDINGS), ...rev(MILKDOWN_ROWS)])).toBe(first);
   });
 
   it("(c) all rows reversed", () => {
@@ -78,7 +78,7 @@ const ENUMS: Readonly<Record<string, readonly string[]>> = {
   contexts: ["editorW", "editorS", "tableW", "tableS", "modal", "recorder", "nativeFocus"],
   platforms: ["macos", "windows", "linux"],
   editor: ["W", "S"],
-  latent: ["D267", "D268", "D270"],
+  latent: ["D267", "D270"],
   keyKind: ["configurable", "fixed"],
   dispositionKind: ["implements", "editorOwned", "removeInM1b", "shadowed"],
   removalId: ["C11", "C12", "C17", "D264", "D269", "D271", "D272", "K4"],

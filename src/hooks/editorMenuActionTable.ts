@@ -12,6 +12,7 @@ import { assertNever } from "../commands/assertNever";
 import { rowByEditorWireAction } from "../commands/commandTable";
 import { loggingService } from "../services/loggingService";
 import { useEditorStore } from "../stores/editorStore";
+import { useToastStore } from "../stores/toastStore";
 import { isMacPlatform, isWindowsPlatform } from "../utils/platformLabels";
 import { runEditorMenuCommand, type EditorMenuResult } from "../utils/editorMenuCommands";
 import { isModalOpen } from "../utils/modalTabActionGuard";
@@ -74,6 +75,10 @@ export function dispatchEditorMenuAction(action: string, token?: MenuTargetToken
   else if (!isTokenCurrent(token)) reason = "stale";
   else if (isModalOpen()) reason = "modal_open";
   if (reason) {
+    if (reason === "wrong_mode") {
+      const required = row.availability[platform].v1 === "S" ? "Source" : "WYSIWYG";
+      useToastStore.getState().showToast(`Available in ${required} mode only`);
+    }
     logOutcome(actionId, row.id, reason);
     return true;
   }

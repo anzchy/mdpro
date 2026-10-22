@@ -33,7 +33,7 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     field: "editSelectLine",
     v1: "Cmd+L",
     v2: "Cmd+L",
-    availability: ["none", "none"],
+    availability: ["S", "S"],
     contexts: BOTH,
   }),
   configurable({
@@ -48,7 +48,7 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     field: "editDeleteWord",
     v1: "Cmd+Shift+D",
     v2: "<unassigned>",
-    availability: ["none", "none"],
+    availability: ["S", "S"],
     contexts: BOTH,
   }),
   configurable({

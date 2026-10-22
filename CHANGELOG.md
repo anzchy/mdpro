@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Source mode now supports Bold, Italic, Inline Code, Strikethrough, Code Fences, Math Block, Ordered and Unordered Lists, Select Line, and Delete Word through its v1 shortcuts and editor commands. Quote is implemented but remains hidden until v2 keys are enabled (D255-WI-3a; device check pending).
+
 - Stage secondary-window teardown in native code after close consent to reduce exposure to pending WebKit scroll updates (D294; device verification pending).
 - A tabless window no longer mounts an editable WYSIWYG or Source editor, so typing without an active document cannot disappear on close (D297; device check pending).
 - A failed recovery of a legacy two-file draft now leaves its metadata unrecovered and its text available at the next launch. If placing a claimed draft throws, Recovery clears “Recovering…”, keeps the row, and offers a retry instead of trapping the dialog (D299 fix round 1).

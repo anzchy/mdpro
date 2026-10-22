@@ -210,7 +210,7 @@ describe("inventory integrity", () => {
       if (r.latent !== undefined) expect(r.disposition.kind).toBe("editorOwned");
     }
     expect([...removal].sort()).toEqual(["C11", "C12", "C17", "D264", "D269", "D271", "D272", "K4"]);
-    expect([...new Set(INV.flatMap((r) => (r.latent ? [r.latent] : [])))].sort()).toEqual(["D267", "D268", "D270"]);
+    expect([...new Set(INV.flatMap((r) => (r.latent ? [r.latent] : [])))].sort()).toEqual(["D267", "D270"]);
   });
 
   it("contexts follow the editor, and table-only handlers act only in tableW", () => {
@@ -236,7 +236,7 @@ describe("inventory integrity", () => {
 
 describe("R1-10b / R2-4b: every other implements pair is cited and checked", () => {
   it("the cited list equals the inventory's other implements rows", () => {
-    const covered = new Set(["codemirror:", "mdpro:headingPlugin", "mdpro:linkPlugin", "mdpro:Editor.undoRedo"]);
+    const covered = new Set(["codemirror:", "mdpro:headingPlugin", "mdpro:linkPlugin", "mdpro:Editor.undoRedo", "mdpro:sourceFormatPlugin"]);
     const others = INV.filter((r) => r.disposition.kind === "implements" &&
       !(r.editor === "S" && [...covered].some((c) => r.source.startsWith(c))));
     const got = [...new Set(others.map((r) => `${r.source}|${r.key}|${r.disposition.kind === "implements" ? r.disposition.command : ""}`))];

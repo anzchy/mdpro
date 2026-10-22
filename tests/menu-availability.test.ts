@@ -22,13 +22,13 @@ beforeEach(() => {
 const cancellations = () => logs.filter(({ payload }) =>
   payload.event === "ui.menu.select" && payload.status === "cancel");
 
-it("AC-4: v1 quote and lists refuse despite their v2 W capability", async () => {
+it("AC-4: v1 Quote and Source lists refuse in WYSIWYG despite v2 both capability", async () => {
   const hook = mountHook({});
   await flush();
-  for (const id of ["paragraph.quote", "paragraph.orderedList", "paragraph.unorderedList"] as const) {
+  for (const [id, v1] of [["paragraph.quote", "none"], ["paragraph.orderedList", "S"], ["paragraph.unorderedList", "S"]] as const) {
     const row = rowById(id)!;
-    expect(row.availability.macos.v1).toBe("none");
-    expect(row.availability.macos.v2).toBe("W");
+    expect(row.availability.macos.v1).toBe(v1);
+    expect(row.availability.macos.v2).toBe("both");
     bus.emitTo("main", "menu:action", { action: `editor.${id}`, target: "main" });
     await flush();
   }
@@ -52,7 +52,7 @@ it("AC-4/7: wrong mode, native route and missing editor each refuse once", async
   const hook = mountHook({});
   await flush();
   useEditorStore.setState({ viewMode: "source" });
-  bus.emitTo("main", "menu:action", { action: "editor.format.strong", target: "main" });
+  bus.emitTo("main", "menu:action", { action: "editor.paragraph.table", target: "main" });
   await flush();
   expect(cancellations().at(-1)?.payload.context?.reason).toBe("wrong_mode");
 
