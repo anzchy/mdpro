@@ -4,6 +4,22 @@
   "tests": [
     {
       "id": [
+        "tests/control/control-launcher-procfacts-scan-real.test.ts",
+        "D82-WI-6 the real verify scan",
+        "PF-M5-0 comm prints the spawned path string; with argv0 set it prints argv0"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
+        "tests/control/control-launcher-procfacts-scan-real.test.ts",
+        "D82-WI-6 the real verify scan",
+        "PF-M5-R2 a real verify-named executable in a spaced directory is in the scan"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
         "tests/control/control-launcher-procfacts-real.test.ts",
         "WI-R2 procFacts: the real boundary",
         "PF-R3 a running binary whose file was deleted: exe unknown"

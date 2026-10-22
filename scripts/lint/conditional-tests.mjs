@@ -40,16 +40,29 @@ function unwrapValue(node) {
   return node;
 }
 
-function registrationName(node, names, namespaces) {
-  if (!ts.isCallExpression(node)) return null;
-  let target = unwrap(node.expression);
-  while (ts.isCallExpression(target) && ts.isPropertyAccessExpression(target.expression) && ["skipIf", "runIf", "each"].includes(target.expression.name.text)) {
-    target = unwrap(target.expression.expression);
-  }
-  while (ts.isPropertyAccessExpression(target) && ["skipIf", "runIf", "each"].includes(target.name.text)) target = unwrap(target.expression);
-  if (ts.isIdentifier(target) && names.has(target.text)) return target.text;
-  if (ts.isPropertyAccessExpression(target) && ts.isIdentifier(target.expression) && namespaces.has(target.expression.text) && ["it", "test", "describe"].includes(target.name.text)) return target.name.text;
+const registrationRoots = new Set(["it", "test", "describe", "suite", "bench"]);
+const allowedModifiers = new Set(["skipIf", "runIf", "each", "concurrent", "sequential", "only", "fails", "shuffle", "extend", "skip", "todo"]);
+function accessName(node) {
+  if (ts.isPropertyAccessExpression(node)) return node.name.text;
+  if (ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression)) return node.argumentExpression.text;
   return null;
+}
+function registrationRoot(node, names, namespaces) {
+  node = unwrapValue(node);
+  if (ts.isIdentifier(node)) return names.has(node.text) ? node.text : null;
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.CommaToken) return registrationRoot(node.right, names, namespaces);
+  if (ts.isCallExpression(node)) return registrationRoot(node.expression, names, namespaces);
+  if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+    const member = accessName(node);
+    const base = node.expression;
+    if (ts.isIdentifier(base) && namespaces.has(base.text) && member && registrationRoots.has(member)) return member;
+    if (ts.isIdentifier(base) && member && names.has(`${base.text}.${member}`)) return `${base.text}.${member}`;
+    return registrationRoot(base, names, namespaces);
+  }
+  return null;
+}
+function registrationName(node, names, namespaces) {
+  return ts.isCallExpression(node) ? registrationRoot(node.expression, names, namespaces) : null;
 }
 
 function isConditional(node) {
@@ -61,9 +74,31 @@ function isConditional(node) {
 export function checkConditionalTests(source, file = "fixture.test.ts") {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const findings = [];
-  const names = new Set(["it", "test", "describe"]), describeNames = new Set(["describe"]);
+  const names = new Set(registrationRoots), describeNames = new Set(["describe", "suite"]);
   const namespaces = new Set(), importedCalls = new Set(), guardedCollections = new Set(), unstableAliases = new Set(), unstableData = new Set();
-  const initializers = new Map();
+  // Look up a constant in the scope containing its use. A same-named binding in
+  // another function must never prove a runtime collection nonempty.
+  function constInitializer(identifier) {
+    function binds(name) {
+      if (ts.isIdentifier(name)) return name.text === identifier.text;
+      if (ts.isObjectBindingPattern(name) || ts.isArrayBindingPattern(name)) return name.elements.some((element) => ts.isBindingElement(element) && binds(element.name));
+      return false;
+    }
+    for (let scope = identifier.parent; scope; scope = scope.parent) {
+      if (!ts.isBlock(scope) && !ts.isSourceFile(scope)) continue;
+      for (const statement of scope.statements) {
+        if (!ts.isVariableStatement(statement)) continue;
+        for (const declaration of statement.declarationList.declarations) {
+          if (!binds(declaration.name)) continue;
+          return ts.isIdentifier(declaration.name) && statement.declarationList.flags & ts.NodeFlags.Const ? declaration : null;
+        }
+      }
+      if (ts.isBlock(scope) && (ts.isFunctionDeclaration(scope.parent) || ts.isFunctionExpression(scope.parent) || ts.isArrowFunction(scope.parent))) {
+        if (scope.parent.parameters.some((parameter) => binds(parameter.name))) return null;
+      }
+    }
+    return null;
+  }
   function importMayRegister(specifier, owner, seen = new Set()) {
     const base = path.resolve(path.dirname(owner), specifier);
     const target = [base, `${base}.ts`, `${base}.tsx`, `${base}.mjs`, path.join(base, "index.ts")].find((candidate) => fs.statSync(candidate, { throwIfNoEntry: false })?.isFile());
@@ -78,7 +113,7 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
       if (moduleName === "vitest") {
         const bindings = statement.importClause?.namedBindings;
         if (bindings && ts.isNamespaceImport(bindings)) return true;
-        if (bindings && ts.isNamedImports(bindings) && bindings.elements.some((item) => ["it", "test", "describe"].includes(item.propertyName?.text ?? item.name.text))) return true;
+        if (bindings && ts.isNamedImports(bindings) && bindings.elements.some((item) => registrationRoots.has(item.propertyName?.text ?? item.name.text))) return true;
       }
       if (moduleName.startsWith(".") && importMayRegister(moduleName, target, seen)) return true;
     }
@@ -99,31 +134,25 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
     if (statement.moduleSpecifier.text !== "vitest") continue;
     const bindings = statement.importClause?.namedBindings;
     if (bindings && ts.isNamedImports(bindings)) for (const item of bindings.elements) {
-      if (names.has(item.propertyName?.text ?? item.name.text)) names.add(item.name.text);
-      if ((item.propertyName?.text ?? item.name.text) === "describe") describeNames.add(item.name.text);
+      if (registrationRoots.has(item.propertyName?.text ?? item.name.text)) names.add(item.name.text);
+      if (["describe", "suite"].includes(item.propertyName?.text ?? item.name.text)) describeNames.add(item.name.text);
     }
     if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
   }
   const at = (node, message) => findings.push(`${file}:${tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1}: ${message}`);
-  function collectInitializers(node) {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer &&
-        ts.isVariableDeclarationList(node.parent) && (node.parent.flags & ts.NodeFlags.Const)) initializers.set(node.name.text, node.initializer);
-    ts.forEachChild(node, collectInitializers);
-  }
-  collectInitializers(tree);
   function definitelyNonEmpty(node, seen = new Set()) {
     node = unwrapValue(node);
     if (ts.isArrayLiteralExpression(node)) return node.elements.some((item) => !ts.isSpreadElement(item) || definitelyNonEmpty(item.expression, seen));
-    if (ts.isIdentifier(node) && initializers.has(node.text) && !seen.has(node.text) && !unstableData.has(node.text)) {
-      return definitelyNonEmpty(initializers.get(node.text), new Set([...seen, node.text]));
+    if (ts.isIdentifier(node) && !unstableData.has(node.text)) {
+      const declaration = constInitializer(node);
+      if (declaration?.initializer && !seen.has(declaration)) return definitelyNonEmpty(declaration.initializer, new Set([...seen, declaration]));
     }
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ["map", "entries"].includes(node.expression.name.text)) return definitelyNonEmpty(node.expression.expression, seen);
     return false;
   }
   function referencesRegistration(node) {
     node = unwrap(node);
-    if (ts.isIdentifier(node)) return names.has(node.text);
-    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) return namespaces.has(node.expression.text) && ["it", "test", "describe"].includes(node.name.text);
+    if (registrationRoot(node, names, namespaces)) return true;
     if (ts.isConditionalExpression(node)) return referencesRegistration(node.whenTrue) || referencesRegistration(node.whenFalse);
     return false;
   }
@@ -131,10 +160,26 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
   for (let changed = true; changed;) {
     changed = false;
     function collect(node) {
+      if (ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name) && node.initializer &&
+          (ts.isIdentifier(node.initializer) && namespaces.has(node.initializer.text) ||
+           ts.isAwaitExpression(node.initializer) && ts.isCallExpression(node.initializer.expression) && node.initializer.expression.expression.kind === ts.SyntaxKind.ImportKeyword && node.initializer.expression.arguments[0]?.text === "vitest")) {
+        for (const element of node.name.elements) {
+          const imported = element.propertyName?.text ?? element.name.text;
+          if (ts.isIdentifier(element.name) && registrationRoots.has(imported) && !names.has(element.name.text)) { names.add(element.name.text); changed = true; }
+          if (ts.isIdentifier(element.name) && ["describe", "suite"].includes(imported)) describeNames.add(element.name.text);
+        }
+      }
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && ts.isObjectLiteralExpression(node.initializer)) {
+        for (const property of node.initializer.properties) {
+          const member = property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : null;
+          const value = ts.isShorthandPropertyAssignment(property) ? property.name : ts.isPropertyAssignment(property) ? property.initializer : null;
+          if (member && value && referencesRegistration(value) && !names.has(`${node.name.text}.${member}`)) { names.add(`${node.name.text}.${member}`); changed = true; }
+        }
+      }
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && referencesRegistration(node.initializer)) {
         if (!names.has(node.name.text)) { names.add(node.name.text); changed = true; }
         if (ts.isIdentifier(node.initializer) && describeNames.has(node.initializer.text) ||
-            ts.isPropertyAccessExpression(node.initializer) && node.initializer.name.text === "describe" && ts.isIdentifier(node.initializer.expression) && namespaces.has(node.initializer.expression.text)) describeNames.add(node.name.text);
+            registrationRoot(node.initializer, names, namespaces) && ["describe", "suite"].includes(registrationRoot(node.initializer, names, namespaces))) describeNames.add(node.name.text);
         if (isConditional(node.initializer)) unstableAliases.add(node.name.text);
       }
       ts.forEachChild(node, collect);
@@ -199,19 +244,36 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
     if (ts.isForOfStatement(node) || ts.isForInStatement(node)) {
       const expression = unwrapValue(node.expression);
       if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression) && guardedCollections.has(expression.expression.text)) return false;
-      return !definitelyNonEmpty(expression);
+      return !definitelyNonEmpty(expression) || hasExitBeforeRegistration(node.statement);
     }
     if (ts.isForStatement(node)) return true;
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "forEach" && containsRegistration(node)) return !definitelyNonEmpty(node.expression.expression);
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "forEach" && (containsRegistration(node) || node.arguments.some((argument) => ts.isIdentifier(argument) && helpers.has(argument.text) || containsHelperCall(argument)))) return !definitelyNonEmpty(node.expression.expression);
     return ts.isForStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node);
+  }
+  function hasExitBeforeRegistration(body) {
+    const exits = [], registrations = [];
+    function scan(node) {
+      if (ts.isContinueStatement(node) || ts.isBreakStatement(node)) exits.push(node.getStart(tree));
+      if (registrationName(node, names, namespaces) || ts.isCallExpression(node) && ts.isIdentifier(node.expression) && helpers.has(node.expression.text)) registrations.push(node.getStart(tree));
+      ts.forEachChild(node, scan);
+    }
+    scan(body);
+    return exits.some((exit) => registrations.some((registration) => exit < registration));
   }
   function eachData(node) {
     let current = unwrap(node.expression);
-    while (ts.isCallExpression(current) && ts.isPropertyAccessExpression(current.expression) && ["each", "skipIf", "runIf"].includes(current.expression.name.text)) {
-      if (current.expression.name.text === "each" && current.arguments.some(conditionalData)) return true;
+    while (ts.isCallExpression(current) && (ts.isPropertyAccessExpression(current.expression) || ts.isElementAccessExpression(current.expression)) && allowedModifiers.has(accessName(current.expression))) {
+      if (accessName(current.expression) === "each" && current.arguments.some(conditionalData)) return true;
       current = unwrap(current.expression.expression);
     }
     return false;
+  }
+  function unsupportedRegistrationAccess(node) {
+    if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) return false;
+    const member = accessName(node);
+    if (ts.isIdentifier(node.expression) && namespaces.has(node.expression.text)) return !member || !registrationRoots.has(member);
+    if (!registrationRoot(node.expression, names, namespaces)) return false;
+    return !member || !allowedModifiers.has(member);
   }
   function returnBeforeRegistration(callback) {
     if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback) && !ts.isFunctionDeclaration(callback)) return;
@@ -219,11 +281,22 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
     function scan(node) {
       if (node !== callback && (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node))) return;
       if (ts.isReturnStatement(node)) returns.push(node.getStart(tree));
-      if (registrationName(node, names, namespaces)) registrations.push(node);
+      if (registrationName(node, names, namespaces) || ts.isCallExpression(node) && ts.isIdentifier(node.expression) && helpers.has(node.expression.text)) registrations.push(node);
       ts.forEachChild(node, scan);
     }
     scan(callback.body);
     for (const registration of registrations) if (returns.some((position) => position < registration.getStart(tree))) at(registration, "conditional registration after return");
+  }
+  function throwBeforeRegistration(block) {
+    const throws = [], registrations = [];
+    function scan(node) {
+      if (node !== block && (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node))) return;
+      if (ts.isThrowStatement(node)) throws.push(node.getStart(tree));
+      if (registrationName(node, names, namespaces) || ts.isCallExpression(node) && ts.isIdentifier(node.expression) && helpers.has(node.expression.text)) registrations.push(node);
+      ts.forEachChild(node, scan);
+    }
+    scan(block);
+    for (const registration of registrations) if (throws.some((position) => position < registration.getStart(tree))) at(registration, "conditional registration after throw");
   }
   function atCollectionCall(node) {
     for (let parent = node.parent; parent; parent = parent.parent) {
@@ -237,6 +310,7 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
   function visit(node, conditional = false, collection = true) {
     const gated = conditional || isConditional(node) || loopMayVanish(node);
     const registration = registrationName(node, names, namespaces);
+    if (unsupportedRegistrationAccess(node)) at(node, "unknown registration property");
     if (registration) {
       if (gated || unstableAliases.has(registration)) at(node, `conditional ${registration} registration`);
       if (eachData(node)) at(node, "conditional .each data");
@@ -244,7 +318,10 @@ export function checkConditionalTests(source, file = "fixture.test.ts") {
     }
     if (ts.isFunctionDeclaration(node) && node.name && helpers.has(node.name.text)) returnBeforeRegistration(node);
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && helpers.has(node.name.text) && node.initializer) returnBeforeRegistration(node.initializer);
+    if (collection && ts.isTryStatement(node)) throwBeforeRegistration(node.tryBlock);
     if (collection && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && helpers.has(node.expression.text) && gated) at(node, "conditional registration helper");
+    if (collection && ts.isCallExpression(node) && gated && node.arguments.some((argument) => referencesRegistration(argument))) at(node, "conditional registration argument");
+    if (collection && ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "forEach" && gated && node.arguments.some((argument) => ts.isIdentifier(argument) && helpers.has(argument.text) || containsHelperCall(argument))) at(node, "conditional registration loop");
     if (collection && gated && atCollectionCall(node) && ts.isCallExpression(node) &&
         (ts.isIdentifier(node.expression) && importedCalls.has(node.expression.text) ||
          ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression) && importedCalls.has(node.expression.expression.text))) at(node, "unresolved conditional registration helper");

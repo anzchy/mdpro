@@ -26,7 +26,7 @@ describe("ADR128 collection gate before parity", () => {
       fs.writeFileSync(local, JSON.stringify(report));
       fs.writeFileSync(inventory, JSON.stringify({ schemaVersion: 1, tests: [], exclusions: [] }));
       const compared = await run(process.execPath, [comparator, "ci", ci, inventory, "ubuntu", root], { cwd: repo });
-      const parity = await run(process.execPath, [comparator, "parity", ci, local, inventory, root, root], { cwd: repo });
+      const parity = await run(process.execPath, [comparator, "parity", ci, local, inventory, root, root, "ubuntu"], { cwd: repo });
       expect(compared.stdout).toContain("inventory PASS");
       expect(parity.stdout).toContain("PARITY PASS");
       const linted = await run(process.execPath, [lint, file], { cwd: repo }).then(
@@ -57,7 +57,7 @@ describe("ADR128 collection gate before parity", () => {
       for (const mode of ["ci", "parity"]) {
         const args = mode === "ci"
           ? [comparator, "ci", path.join(root, "ci.json"), inventory, "ubuntu", root]
-          : [comparator, "parity", path.join(root, "ci.json"), path.join(root, "local.json"), inventory, root, root];
+          : [comparator, "parity", path.join(root, "ci.json"), path.join(root, "local.json"), inventory, root, root, "ubuntu"];
         const checked = await run(process.execPath, args, { cwd: repo }).then(
           () => ({ status: 0, output: "" }),
           (error: { code: number; stderr: string }) => ({ status: error.code, output: error.stderr }),
@@ -86,7 +86,7 @@ describe("ADR128 collection gate before parity", () => {
       fs.writeFileSync(ci, JSON.stringify(report)); fs.writeFileSync(local, JSON.stringify(report));
       fs.writeFileSync(inventory, JSON.stringify({ schemaVersion: 1, tests: [], exclusions: [] }));
       expect((await run(process.execPath, [comparator, "ci", ci, inventory, "ubuntu", root], { cwd: repo })).stdout).toContain("inventory PASS");
-      expect((await run(process.execPath, [comparator, "parity", ci, local, inventory, root, root], { cwd: repo })).stdout).toContain("PARITY PASS");
+      expect((await run(process.execPath, [comparator, "parity", ci, local, inventory, root, root, "ubuntu"], { cwd: repo })).stdout).toContain("PARITY PASS");
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 });

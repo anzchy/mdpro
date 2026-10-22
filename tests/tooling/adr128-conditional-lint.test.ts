@@ -88,4 +88,95 @@ describe("ADR128 conditional registration lint", () => {
     fs.writeFileSync(path.join(root, "barrel.ts"), "export { registerCases } from './registration-helper';");
     expect(check("import { registerCases } from './barrel'; if (plugin) registerCases();").status).not.toBe(0);
   });
+  it.each([
+    "function register(){ it('lost',()=>{}); } describe('suite',()=>{ if(!plugin) return; register(); });",
+    "const rows=getRows(); function register(){ it('lost',()=>{}); } rows.forEach(register);",
+    "const rows=getRows(); function unrelated(){ const rows=[1]; } for(const row of rows) it('lost',()=>{});",
+    "for(const row of [1]){ if(!plugin) continue; it('lost',()=>{}); }",
+  ])("rejects Codex round-two vanishing form: %s", (source) => {
+    const result = check(source);
+    expect(result.status, source).not.toBe(0);
+    expect(result.stderr, source).toMatch(/registration|loop|return|continue/);
+  });
+  it("resolves nonempty array proofs through lexical binding under both shadowing orders", () => {
+    for (const outer of ["rows", "unrelatedRows"]) {
+      const runtimeInner = `const ${outer}=[1]; describe('suite',()=>{ const rows=getRows(); for(const row of rows) it('lost',()=>{}); });`;
+      const literalInner = `const ${outer}=getRows(); describe('suite',()=>{ const rows=[1]; for(const row of rows) it('collected',()=>{}); });`;
+      expect(check(runtimeInner).status, runtimeInner).not.toBe(0);
+      expect(check(literalInner).status, literalInner).toBe(0);
+    }
+  });
+  it("keeps a proven nonempty loop and unconditional helper collected", () => {
+    expect(check("const rows=[1]; for(const row of rows) it('collected',()=>{});").status).toBe(0);
+    expect(check("function register(){ it('collected',()=>{}); } describe('suite',()=>{ register(); });").status).toBe(0);
+  });
+  it.each([
+    "import {suite,it} from 'vitest'; suite('s',()=>{ if(!plugin) return; it('lost',()=>{}); });",
+    "if(plugin) it.concurrent('lost',()=>{});",
+    "if(plugin) it.sequential('lost',()=>{});",
+    "if(plugin) it.only('lost',()=>{});",
+    "if(plugin) it.fails('lost',()=>{});",
+    "if(plugin) it.shuffle('lost',()=>{});",
+    "if(plugin) describe.shuffle('lost',()=>{});",
+    "const t=test.extend({}); if(plugin)t('lost',()=>{});",
+    "const t=it.extend({}); if(plugin)t('lost',()=>{});",
+    "import * as v from 'vitest'; const {it:t}=v; if(plugin)t('lost',()=>{});",
+    "const {it:t}=await import('vitest'); if(plugin)t('lost',()=>{});",
+    "const api={it}; if(plugin)api.it('lost',()=>{});",
+    "if(plugin)it.call(undefined,'lost',()=>{});",
+    "if(plugin)it.apply(undefined,['lost',()=>{}]);",
+    "function register(fn){fn('lost',()=>{});} if(plugin)register(it);",
+    "if(plugin)[()=>it('lost',()=>{})][0]();",
+    "if(plugin)(0,it)('lost',()=>{});",
+    "try{if(!plugin)throw 0;it('lost',()=>{});}catch{}",
+    "if(plugin)it.mystery('lost',()=>{});",
+  ])("rejects Fable round-two registration form: %s", (source) => {
+    const result = check(source);
+    expect(result.status, source).not.toBe(0);
+    expect(result.stderr, source).toMatch(/registration|conditional|unknown|unsupported|helper/);
+  });
+  it.each([
+    "if(plugin)it['concurrent']('lost',()=>{});",
+    "if(plugin)it['call'](undefined,'lost',()=>{});",
+    "import * as v from 'vitest'; if(plugin)v['it']['concurrent']('lost',()=>{});",
+    "if(plugin)it['mystery']('lost',()=>{});",
+    "import {it} from 'vitest'; it('visible',()=>{}); const register=it.bind(undefined); if(plugin)register('lost',()=>{});",
+    "import {it} from 'vitest'; it('visible',()=>{}); const register=it['bind'](undefined); if(plugin)register('lost',()=>{});",
+    "it.mystery('lost',()=>{});",
+  ])("rejects bracket and unconditional unknown properties: %s", (source) => {
+    const result = check(source);
+    expect(result.status, source).not.toBe(0);
+    expect(result.stderr, source).toMatch(/registration|unknown|unsupported/);
+  });
+  it.each([
+    "const rows=[1]; describe('suite',()=>{ const {rows}={rows:[]}; for(const row of rows) it('lost',()=>{}); });",
+    "const rows=[1]; describe('suite',()=>{ const [rows]=[[]]; for(const row of rows) it('lost',()=>{}); });",
+  ])("rejects a destructured binding that shadows an outer nonempty proof: %s", (source) => {
+    const result = check(source);
+    expect(result.status, source).not.toBe(0);
+    expect(result.stderr, source).toMatch(/registration|loop/);
+  });
+  it("keeps destructuring rejection when the unrelated outer binding is renamed", () => {
+    for (const inner of ["const {rows}={rows:[]};", "const [rows]=[[]];"]) {
+      const source = `const unrelatedRows=[1]; describe('suite',()=>{ ${inner} for(const row of rows) it('lost',()=>{}); });`;
+      const result = check(source);
+      expect(result.status, source).not.toBe(0);
+      expect(result.stderr, source).toMatch(/registration|loop/);
+    }
+  });
+  it("applies the same data gate to dotted and bracket each access", () => {
+    for (const access of [".each", "['each']"]) {
+      expect(check(`it${access}([])('lost',()=>{});`).status, access).not.toBe(0);
+      expect(check(`const rows=getRows(); it${access}(rows)('lost',()=>{});`).status, access).not.toBe(0);
+      expect(check(`it${access}([1])('collected',()=>{});`).status, access).toBe(0);
+    }
+  });
+  it.each([
+    "const register=(it as typeof it).bind(undefined); if(plugin)register('lost',()=>{});",
+    "const register=it!.bind(undefined); if(plugin)register('lost',()=>{});",
+  ])("rejects TypeScript-wrapped unknown registration property: %s", (source) => {
+    const result = check(source);
+    expect(result.status, source).not.toBe(0);
+    expect(result.stderr, source).toMatch(/registration|unknown/);
+  });
 });

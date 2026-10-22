@@ -57,33 +57,36 @@ export function compare(mode, report, inventory, profile, root) {
   const reported = new Map(results.map((result) => [key(result.id), result]));
   const required = new Map(list.tests.map((item) => [key(item.id), item]));
   const excluded = new Set(list.exclusions.map((item) => key(item.id)));
+  const findings = [];
   const repeated = new Map();
   for (const result of results) repeated.set(key(result.id), (repeated.get(key(result.id)) ?? 0) + 1);
   for (const [id, count] of repeated) {
     // Existing ungated parameterized suites contain repeated passing titles.
     // A gated or skipped identity must remain unambiguous on every runner.
-    if (count > 1 && (required.has(id) || excluded.has(id) || results.some((result) => key(result.id) === id && result.status !== "passed"))) throw Error(`Duplicate gated report id: ${id}`);
+    if (count > 1 && (required.has(id) || excluded.has(id) || results.some((result) => key(result.id) === id && result.status !== "passed"))) findings.push(`Duplicate gated report id: ${id}`);
   }
   const available = profileFor(profile);
   for (const item of list.tests) {
     const result = reported.get(key(item.id));
-    if (!result) throw Error(`Inventory test not collected: ${key(item.id)}`);
-    if (mode === "verify" && result.status !== "passed") throw Error(`Inventory test did not pass: ${key(item.id)} (${result.status})`);
+    if (!result) { findings.push(`Inventory test not collected: ${key(item.id)}`); continue; }
+    if (mode === "verify" && result.status !== "passed") findings.push(`Inventory test did not pass: ${key(item.id)} (${result.status})`);
     if (mode === "ci") {
-      if (result.status === "skipped" && available.has(item.prerequisite)) throw Error(`Unexpected skip: ${key(item.id)}`);
-      if (result.status === "passed" && !available.has(item.prerequisite)) throw Error(`Stale inventory entry: ${key(item.id)}`);
-      if (!["passed", "skipped"].includes(result.status)) throw Error(`Inventory test incomplete: ${key(item.id)} (${result.status})`);
+      if (result.status === "skipped" && available.has(item.prerequisite)) findings.push(`Unexpected skip: ${key(item.id)}`);
+      if (result.status === "passed" && !available.has(item.prerequisite)) findings.push(`Stale inventory entry: ${key(item.id)}`);
+      if (!["passed", "skipped"].includes(result.status)) findings.push(`Inventory test incomplete: ${key(item.id)} (${result.status})`);
     }
   }
   for (const result of results) {
-    if (result.status === "pending" || result.status === "failed") throw Error(`Incomplete or failed test: ${key(result.id)} (${result.status})`);
-    if (result.status === "skipped" && !required.has(key(result.id)) && !excluded.has(key(result.id))) throw Error(`Unexplained skip: ${key(result.id)}`);
+    if (result.status === "pending" || result.status === "failed") findings.push(`Incomplete or failed test: ${key(result.id)} (${result.status})`);
+    if (result.status === "skipped" && !required.has(key(result.id)) && !excluded.has(key(result.id))) findings.push(`Unexplained skip: ${key(result.id)}`);
   }
+  if (findings.length) throw Error(findings.sort().join("\n"));
   return { total: results.length, passed: results.filter((result) => result.status === "passed").length };
 }
 
 /** Every non-excluded collected test must have passed on CI or locally. */
-export function proveParity(ciReport, localReport, inventory, ciRoot, localRoot = ciRoot, ciProfile = "ubuntu") {
+export function proveParity(ciReport, localReport, inventory, ciRoot, localRoot = ciRoot, ciProfile) {
+  if (!ciProfile) throw Error("CI profile required for parity");
   const list = parseInventory(inventory);
   compare("ci", ciReport, list, ciProfile, ciRoot);
   compare("verify", localReport, list, "macos", localRoot);
@@ -98,7 +101,7 @@ export function proveParity(ciReport, localReport, inventory, ciRoot, localRoot 
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
-  const [mode, reportPath, inventoryPath = "tests/ci-inventory.json", profile = "ubuntu", root = process.cwd(), localRoot = root, ciProfile = "ubuntu"] = process.argv.slice(2);
+  const [mode, reportPath, inventoryPath = "tests/ci-inventory.json", profile = "ubuntu", root = process.cwd(), localRoot = root, ciProfile] = process.argv.slice(2);
   try {
     if (mode === "parity") {
       const ci = JSON.parse(fs.readFileSync(reportPath, "utf8"));
