@@ -13,8 +13,9 @@
 //! - The pure session-list merge (`RecentOp`, `apply_recent_op`) lives in
 //!   `menu_recent_merge.rs` (D43), shared by Rust and TS through a fixture.
 //! - The quit escape follows Quit; off macOS Exit uses the quit guard.
-//! - Insert Table is enabled only for the focused WYSIWYG window and checked
-//!   again against the resolved target when clicked (M3a).
+//! - macOS custom items derive labels, ids, keys and enabled state from the
+//!   command layout and applied snapshot. A mode-limited click is checked
+//!   against its resolved window before emit (M4-WI-2/3).
 //!
 //! @coordinates-with src/menu_about.rs
 //! @coordinates-with src/menu_target.rs
@@ -23,6 +24,7 @@
 //! @coordinates-with src/menu_edit.rs
 //! @coordinates-with src/menu_format.rs
 //! @coordinates-with src/menu_paragraph.rs
+//! @coordinates-with src/menu_from_layout.rs
 //! @coordinates-with src/menu_recent.rs
 //! @coordinates-with src/menu_recent_merge.rs
 //! @coordinates-with src/commands/menu.rs
@@ -31,6 +33,7 @@
 use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
+use crate::menu_layout::menu_layout;
 use crate::services::logger;
 use crate::services::quit_guard::{self, effects::AppQuitGuard};
 
@@ -64,7 +67,6 @@ pub const MENU_APP_STOP_WAITING_QUIT: &str = "menu.app.stop_waiting_quit";
 pub const MENU_APP_QUIT: &str = "menu.app.quit";
 #[path = "menu_recent.rs"]
 mod menu_recent;
-use menu_recent::build_recent_submenu;
 pub use menu_recent::{publish_after, MenuState, ModeReport};
 
 #[path = "menu_recent_merge.rs"]
@@ -89,6 +91,9 @@ mod menu_format;
 #[path = "menu_paragraph.rs"]
 mod menu_paragraph;
 
+#[path = "menu_from_layout.rs"]
+mod menu_from_layout;
+
 #[path = "menu_about.rs"]
 mod menu_about;
 use menu_about::about_metadata_for;
@@ -100,16 +105,43 @@ pub use menu_target::{forget_window, MenuFocus};
 use menu_target::{route, MenuActionPayload, UNMANAGED_FOCUS};
 
 fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
+    let availability_cancelled = std::cell::Cell::new(false);
+    let attempted_native_emit = std::cell::Cell::new(false);
     let managed = app.try_state::<MenuFocus>();
     let focus = managed.as_deref().unwrap_or(&UNMANAGED_FOCUS);
     let live: Vec<String> = app.webview_windows().into_keys().collect();
     let emit = |label: &str, p: &MenuActionPayload| {
-        if action == "paragraph.table" && !menu_availability::table_action_allowed(app, label) {
-            return Err(());
+        let menus = app.try_state::<MenuState>();
+        let result = match menu_layout() {
+            Ok(layout) => menu_availability::emit_to_window(
+                layout,
+                action,
+                label,
+                focus,
+                menus.as_deref(),
+                |target| {
+                    attempted_native_emit.set(true);
+                    app.emit_to(target, "menu:action", p).map_err(|_| ())
+                },
+            ),
+            Err(_) => {
+                menu_availability::log_invalid_layout();
+                Err(())
+            }
+        };
+        if result.is_err() && !attempted_native_emit.get() {
+            // The guard already logged a refusal or invalid layout. A native
+            // emit failure keeps D261's dispatch log below.
+            availability_cancelled.set(true);
         }
-        app.emit_to(label, "menu:action", p).map_err(|_| ())
+        result
     };
-    route(action, value, focus, &live, emit, logger::log_event);
+    let log_event = |entry| {
+        if !availability_cancelled.get() {
+            logger::log_event(entry);
+        }
+    };
+    route(action, value, focus, &live, emit, log_event);
 }
 
 pub fn build_menu(
@@ -118,6 +150,8 @@ pub fn build_menu(
     active_view_mode: Option<&str>,
 ) -> tauri::Result<Menu<Wry>> {
     let menu = Menu::new(app)?;
+    let mac_specs = menu_from_layout::specs_for_app(app, active_view_mode)?;
+    let specs = mac_specs.as_deref();
     let app_name = app.package_info().name.clone();
     let about_metadata = about_metadata_for(
         std::env::consts::OS,
@@ -126,8 +160,9 @@ pub fn build_menu(
     );
     let about = PredefinedMenuItem::about(app, None, about_metadata)?;
 
-    let preferences_item = MenuItem::with_id(
+    let preferences_item = menu_from_layout::menu_item_or(
         app,
+        specs,
         MENU_FILE_PREFERENCES,
         "Preferences...",
         true,
@@ -173,45 +208,15 @@ pub fn build_menu(
         )?)
         .build()?;
 
-    let file_new = MenuItem::with_id(app, MENU_FILE_NEW, "New", true, Some("CmdOrCtrl+N"))?;
-    let file_new_window = MenuItem::with_id(
-        app,
-        MENU_FILE_NEW_WINDOW,
-        "New Window",
-        true,
-        Some("CmdOrCtrl+Shift+N"),
-    )?;
-    let file_open = MenuItem::with_id(app, MENU_FILE_OPEN, "Open...", true, Some("CmdOrCtrl+O"))?;
-    let file_save = MenuItem::with_id(app, MENU_FILE_SAVE, "Save", true, Some("CmdOrCtrl+S"))?;
-    let file_export = MenuItem::with_id(
-        app,
-        MENU_FILE_EXPORT_HTML,
-        "Export HTML...",
-        true,
-        Some("CmdOrCtrl+Shift+E"),
-    )?;
-    let file_close = MenuItem::with_id(app, MENU_FILE_CLOSE, "Close", true, Some("CmdOrCtrl+W"))?;
-    let recent_menu = build_recent_submenu(app, recent_files)?;
-
-    let file_menu = SubmenuBuilder::new(app, "File")
-        .item(&file_new)
-        .item(&file_new_window)
-        .item(&file_open)
-        .item(&recent_menu)
-        .separator()
-        .item(&file_save)
-        .item(&file_export)
-        .separator()
-        .item(&file_close)
-        .build()?;
+    let file_menu = menu_submenus::file_menu(app, recent_files, specs)?;
 
     let edit_menu = menu_edit::edit_menu(app)?;
-    let view_menu = menu_submenus::view_menu(app, active_view_mode)?;
-    let format_menu = menu_format::format_menu(app, active_view_mode == Some("wysiwyg"))?;
+    let view_menu = menu_submenus::view_menu(app, active_view_mode, specs)?;
+    let format_menu = menu_format::format_menu(app, active_view_mode == Some("wysiwyg"), specs)?;
 
-    let theme_menu = menu_submenus::theme_menu(app)?;
+    let theme_menu = menu_submenus::theme_menu(app, specs)?;
     let window_menu = menu_submenus::window_menu(app)?;
-    let help_menu = menu_submenus::help_menu(app)?;
+    let help_menu = menu_submenus::help_menu(app, specs)?;
 
     menu.append(&app_menu)?;
     menu.append(&file_menu)?;

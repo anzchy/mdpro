@@ -2,6 +2,9 @@
 
 use super::menu_recent::recent_label;
 use super::*;
+use crate::models::{LogLevel, LogSettings};
+use crate::services::quit_guard::effects::AppQuitGuard;
+use crate::services::{logger, quit_guard, window_restore::test_home::TestHome};
 
 #[test]
 fn test_recent_label_uses_file_name_only() {
@@ -207,4 +210,16 @@ fn test_menu_source_contract_for_escape_item() {
         !src.contains("set_enabled"),
         "(5) escape item is never set_enabled"
     );
+    let home = TestHome::new("m4_escape_witness");
+    let old = logger::get_log_settings();
+    logger::set_log_settings(LogSettings {
+        enabled: true,
+        level: LogLevel::Debug,
+    });
+    quit_guard::deliver_escape::<AppQuitGuard>(None);
+    logger::set_log_settings(old);
+    let log = std::fs::read_to_string(home.dir.join(".mdpro/mdpro.log")).unwrap();
+    assert!(log
+        .lines()
+        .any(|line| line.contains("app.quit.escape") && line.contains("noGuard")));
 }

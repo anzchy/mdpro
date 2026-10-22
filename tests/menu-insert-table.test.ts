@@ -1,109 +1,68 @@
-// @vitest-environment node
 /**
- * @module menu-insert-table.test
- * Purpose: Verify the native menu item Format → Insert Table is wired
- * end-to-end: menu.rs declares it with the right accelerator, dispatches
- * a paragraph.table action; useMenuEvents handles the action and
- * forwards to the same insert-table flow that the ⌘⌥T shortcut uses.
- *
- * Strategy: source inspection across menu.rs, useMenuEvents.ts, App.tsx,
- * and the user-facing shortcut docs. Mirrors the per-three-files sync
- * pattern enforced by .claude/rules/41-keyboard-shortcuts.md.
+ * Purpose: keep Format → Insert Table's command-table description, native
+ * builder wiring and frontend action observable across the M4 extraction.
+ * The native key equivalent itself remains a macOS device check.
  */
-
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
+import { dispatchMenuAction } from "../src/hooks/menuActionTable";
+import { useTableInsertStore } from "../src/stores/tableInsertStore";
+
 const ROOT = path.resolve(__dirname, "..");
-const menuRs = fs.readFileSync(
-  path.join(ROOT, "src-tauri/src/menu.rs"),
-  "utf-8",
-);
-// D261-WI-1a moved the action switch into menuActionTable.ts; read the hook
-// and its table together.
-const useMenuEvents = ["src/hooks/useMenuEvents.ts", "src/hooks/menuActionTable.ts"]
-  .map((p) => fs.readFileSync(path.join(ROOT, p), "utf-8"))
-  .join("\n");
-const appTsx = fs.readFileSync(path.join(ROOT, "src/App.tsx"), "utf-8");
-const shortcutDocs = fs.readFileSync(
-  path.join(ROOT, "docs/guide/keyboard-shortcuts.md"),
-  "utf-8",
-);
+const source = (relative: string) => fs.readFileSync(path.join(ROOT, relative), "utf-8");
+const layout = JSON.parse(source("src-tauri/src/menu_layout.json"));
+const menuRs = source("src-tauri/src/menu.rs");
+const formatRs = source("src-tauri/src/menu_format.rs");
+const paragraphRs = source("src-tauri/src/menu_paragraph.rs");
+const appTsx = source("src/App.tsx");
+const shortcutDocs = source("docs/guide/keyboard-shortcuts.md");
 
-describe("menu.rs — Format > Insert Table item", () => {
-  it("declares the MENU_FORMAT_INSERT_TABLE constant", () => {
-    expect(menuRs).toMatch(
-      /const\s+MENU_FORMAT_INSERT_TABLE:\s*&str\s*=\s*"menu\.format\.insert_table"/,
-    );
-  });
-
-  it("builds the menu item with label \"Insert Table\" and accelerator CmdOrCtrl+Alt+T", () => {
-    expect(menuRs).toMatch(
-      /MENU_FORMAT_INSERT_TABLE[\s\S]*"Insert Table"[\s\S]*"CmdOrCtrl\+Alt\+T"/,
-    );
-  });
-
-  it("adds the item to the Format submenu", () => {
-    expect(menuRs).toMatch(
-      /SubmenuBuilder::new\(app,\s*"Format"\)[\s\S]*format_insert_table/,
-    );
-  });
-
-  it("dispatches paragraph.table action when the menu item fires", () => {
-    expect(menuRs).toMatch(
-      /MENU_FORMAT_INSERT_TABLE\s*=>\s*emit_menu_action\(app,\s*"paragraph\.table",\s*None\)/,
-    );
-  });
+afterEach(() => {
+  useTableInsertStore.getState().clearPending();
+  vi.restoreAllMocks();
 });
 
-describe("useMenuEvents — paragraph.table handler", () => {
-  it("declares an onInsertTable handler in MenuHandlers", () => {
-    expect(useMenuEvents).toMatch(/onInsertTable\?:/);
+describe("Format → Insert Table", () => {
+  it("retains the v1 item, id, mode and key in the generated layout", () => {
+    const row = layout.rows.find((entry: { id: string }) => entry.id === "paragraph.table");
+    expect(row.menuId).toBe("menu.format.insert_table");
+    expect(row.menu.macos).toEqual(["Format", "Insert Table"]);
+    expect(row.key.macos.defaults.v1).toBe("Cmd+Option+T");
+    expect(row.availability.macos.v1).toBe("W");
+    // The Rust behavior case `m4_wi2_insert_table_descriptor...` checks the
+    // same row after applying the snapshot and mode. These source checks pin
+    // the native builder and route it consumes.
+    expect(menuRs).toMatch(/const\s+MENU_FORMAT_INSERT_TABLE:\s*&str\s*=\s*"menu\.format\.insert_table"/);
+    expect(paragraphRs).toMatch(/MENU_FORMAT_INSERT_TABLE[\s\S]*"Insert Table"[\s\S]*"CmdOrCtrl\+Alt\+T"/);
+    expect(formatRs).toMatch(/SubmenuBuilder::new\(app,\s*"Format"\)[\s\S]*format_insert_table/);
+    expect(menuRs).toMatch(/MENU_FORMAT_INSERT_TABLE\s*=>\s*emit_menu_action\(app,\s*"paragraph\.table",\s*None\)/);
   });
 
-  it("handles the paragraph.table action and forwards to onInsertTable", () => {
-    // D235: through runModalAction, which refuses it while a modal is open.
-    expect(useMenuEvents).toMatch(
-      /case\s+"paragraph\.table":[\s\S]{0,200}runModalAction\("paragraph\.table",\s*"menu\.format\.insert_table",\s*handlers\.onInsertTable\)/,
+  it("opens exactly one real pending table insert and logs its control id", () => {
+    const insert = vi.fn();
+    const selected: string[] = [];
+    dispatchMenuAction(
+      { action: "paragraph.table" },
+      { onInsertTable: () => useTableInsertStore.getState().requestInsert(insert) },
+      (controlId) => {
+        selected.push(controlId);
+        return "m4-table-action";
+      },
     );
+    const pending = useTableInsertStore.getState().pendingCallback;
+    expect(typeof pending).toBe("function");
+    pending?.(2, 3);
+    expect(insert).toHaveBeenCalledExactlyOnceWith(2, 3);
+    expect(selected).toEqual(["menu.format.insert_table"]);
+    // App's handler supplies the same store request to the real listener.
+    expect(appTsx).toMatch(/useMenuEvents\(\{[\s\S]*onInsertTable:[\s\S]*\}\)/);
+    const hook = source("src/hooks/useMenuEvents.ts");
+    expect(hook).not.toMatch(/\]\s*,?\s*\[\s*handlers\.\w+|\},\s*\[\s*(?:\s*handlers\.\w+\s*,?)+\s*\]/);
   });
 
-  it("logs the menu select for the action", () => {
-    // D235: runModalAction logs its control id before the modal check.
-    expect(useMenuEvents).toMatch(/"menu\.format\.insert_table"/);
-    expect(useMenuEvents).toMatch(
-      /const runModalAction = [\s\S]{0,300}const actionId = logMenuSelect\(controlId\);/,
-    );
-  });
-
-  it("does not build an effect dependency list from handler props (D31)", () => {
-    // Replaced for D31: the previous assertion (`handlers.onInsertTable` in the
-    // useEffect dependency list) specified the dependency-array wiring that
-    // caused a re-subscribe on every App render and leaked subscriptions. The
-    // behaviour it guarded, `paragraph.table` → `onInsertTable`, is now
-    // specified behaviourally in `tests/use-menu-events-subscription.test.ts`
-    // (B1). This is a structural backstop only; destructuring the props into
-    // locals would evade it, and A3 there catches that behaviourally.
-    expect(useMenuEvents).not.toMatch(
-      /\]\s*,?\s*\[\s*handlers\.\w+|\},\s*\[\s*(?:\s*handlers\.\w+\s*,?)+\s*\]/,
-    );
-  });
-});
-
-describe("App.tsx — wires onInsertTable into useMenuEvents", () => {
-  it("passes an onInsertTable callback to useMenuEvents", () => {
-    // Both useKeyboardShortcuts and useMenuEvents must trigger the same
-    // tableInsertStore.requestInsert flow so the menu item and ⌘⌥T are
-    // truly interchangeable.
-    expect(appTsx).toMatch(
-      /useMenuEvents\(\{[\s\S]*onInsertTable:[\s\S]*\}\)/,
-    );
-  });
-});
-
-describe("user docs — keyboard-shortcuts.md", () => {
-  it("documents Cmd + Option + T → Insert Table under Format", () => {
+  it("documents the current v1 shortcut under Format", () => {
     expect(shortcutDocs).toMatch(/Cmd\s*\+\s*Option\s*\+\s*T[\s\S]{0,80}Insert Table/i);
   });
 });

@@ -429,6 +429,10 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 
 <a id="release-036-gate"></a>**0.3.6 发版门禁（2026-10-16，delegator 记）**：**范围**：用户原话「Core + polish (Recommended)」。① [菜单重组计划](20261015-plan-menu-reorganisation.md)整份（M2 spike → D255-WI-1 → M0 → M1a → D261-WI-1 → M3 → M7 → M1b → M4 / M5 / D255-WI-3a…d → M6；M8 不在本版），含 [D255](#d255)、[D261](#d261)（[D220](#d220) 是它的重复项），实质上覆盖 [D210](#d210)–[D213](#d213)、[D216](#d216)；② [D260](#d260) 设置栏（变体 D）与 [D262](#d262) 设置左栏不能滚动；③ [D246](#d246) 的 H-1 / H-2 监听器加固（ADR-0111，`fix/d246-h1-h2-watcher-hardening` @ `8b555883`，已写好，等 v0.3.5 发布后落地）；④ 修补批：[D238](#d238)、[D256](#d256)、[D257](#d257)、[D258](#d258)、[D259](#d259)、[D214](#d214)、[D241](#d241)、[D245](#d245)，以及 [D253](#d253)（用户原话「Close the secondary window (Recommended)」）。**名额**（上限二，ADR-0097）：mdpro-a6 走 H-1 / H-2 → 菜单计划的 M 链（M7 除外）；mdpro-a3 走 D260 + D262 → 修补批 → M7 → D255-WI-3a…d。**锁定点**：用户原话「After M6 + device batches (Recommended)」：范围全部落地、macOS 菜单栏批次、Windows 菜单批次与修补批真机通过之后锁定，不定日期。**出口条件**：每项经 verifier、mini audit（C0/H0）与 ci-gate 落地；上述三批真机；build-only 演练全绿；锁定 SHA 上的 RC 回归；draft 发布另经用户批准；发布后从 0.3.5 走一次更新作金丝雀。**不进 0.3.6**：计划 P Stage 4（归 v0.3.7）、菜单计划 M8、[D243](#d243)（需 ADR）、[D229](#d229)、[D251](#d251)（先出原型）、ADR-0047 的 WI-005 起各项（工具轨，不随版发布）、e2e 旅程计划。
 
+| 菜单工作项 | 状态 | 证据 |
+|---|---|---|
+| <a id="m4"></a>**M4** | 🔄 WI-1–3 的 Rust 提取、应用绑定解析与按窗口可用性已通过本阶段门禁；WI-4 起等待 D255-WI-3a 落地并由 delegator rebase，整项与真机菜单栏检查未完成 | WI-1 `2193ca1d`；WI-2/3 为本行所在提交；收据 `M4-WI-2`、`M4-WI-3`、`M4-WI-2-R1`、`M4-WI-2-R2`，均 assertion RED → SEPARATION-HELD。原生 AppKit 菜单与描述树一致性留给真机批次，按 M4 brief Amendment 3。 |
+
 | ID | 级别 | 状态 | 缺陷 | 证据与提交 |
 |---|---|---|---|---|
 | **D1**（既有） | MUST | **已修复** | 计时器跨越文件选择器。实测导出报告 72 745 ms，其中 72 154 ms 是人工停留，净成本 591 ms；**经由对话框的 `durationMs` 全部不可用** | 门禁二记录 `:210`。记录只点名 `file.rs:1098`，**实测同一形态共三处**（见下，且出数字的不是被点名那处）。「既有」在仓库内无更早出处：`git log --all -S '**D1**'` 只命中 `c92b1ba`。**修复（2026-09-22）**：三处全部改掉，两种改法 —— open 路径计时器移到选择器之后，两条导出路径把「渲染+净化」这一段**在选择器打开前收进 `Duration`**，选择器关闭后再起第二段，`duration_ms = render_span + write_start.elapsed()`，人工停留正好落在两段之间的缝里。回归测试 `src-tauri/tests/timer_excludes_dialog_dwell.rs`（4 例，RED 1→GREEN 4），见下。修复提交 `ea02d23` |

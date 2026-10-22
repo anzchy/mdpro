@@ -1,7 +1,100 @@
-use super::{allows_insert_table, MenuModes, ViewMode};
+use super::{allows_insert_table, dispatch_if_allowed, MenuModes, ViewMode};
+use crate::menu::menu_from_layout::menu_layout_for;
+use crate::menu::menu_target::route;
+use crate::menu::MenuFocus;
 use crate::menu::{menu_recent_merge::RecentOp, MenuState, ModeReport};
+use crate::menu_layout::{menu_layout, Availability, MenuPath};
+use crate::models::KeyboardShortcuts;
 use crate::models::{LogLevel, LogSettings};
+use crate::services::applied_shortcuts::{
+    resolve_applied, AppliedBinding, AppliedShortcuts, AppliedSource,
+};
 use crate::services::{logger, window_restore::test_home::TestHome};
+
+fn m4_defaults() -> AppliedShortcuts {
+    AppliedShortcuts {
+        keyboard_shortcuts_version: 1,
+        source: AppliedSource::Loaded,
+        bindings: resolve_applied(&KeyboardShortcuts::default()),
+    }
+}
+
+#[test]
+fn m4_wi3_all_layout_rows_follow_v1_mode_and_disabled_rows_are_keyless() {
+    let mut layout = menu_layout().unwrap().clone();
+    for (id, title) in [("edit.findNext", "Find Next"), ("format.strong", "Bold")] {
+        let row = layout.rows.iter_mut().find(|row| row.id == id).unwrap();
+        row.menu.macos = MenuPath::Path(vec!["Injected".into(), title.into()]);
+        row.menu_id = Some(format!("menu.synthetic.{id}"));
+    }
+    let mut applied = m4_defaults();
+    applied.bindings.insert(
+        "editFindNext".into(),
+        AppliedBinding::Bound {
+            chord: "Cmd+Shift+D".into(),
+        },
+    );
+    for mode in [Some(ViewMode::Wysiwyg), Some(ViewMode::Source), None] {
+        let specs = menu_layout_for(&layout, &applied, mode);
+        let expected_count = layout
+            .rows
+            .iter()
+            .filter(|row| matches!(row.menu.macos, MenuPath::Path(_)))
+            .count();
+        assert_eq!(specs.len(), expected_count);
+        for row in layout
+            .rows
+            .iter()
+            .filter(|row| matches!(row.menu.macos, MenuPath::Path(_)))
+        {
+            let spec = specs.iter().find(|spec| spec.command_id == row.id).unwrap();
+            let expected = match row.availability.macos.v1 {
+                Availability::Both => true,
+                Availability::W => mode == Some(ViewMode::Wysiwyg),
+                Availability::S => mode == Some(ViewMode::Source),
+                Availability::None => false,
+            };
+            assert_eq!(spec.enabled, expected, "{} {mode:?}", row.id);
+            if !expected {
+                assert_eq!(spec.accelerator, None, "{} {mode:?}", row.id);
+            }
+        }
+    }
+}
+
+#[test]
+fn m4_wi3_allowed_refused_allowed_clicks_follow_target_mode() {
+    let layout = menu_layout().unwrap();
+    let mut emitted = Vec::new();
+    let mut click = |target: &str, focused: Option<&str>, mode| {
+        dispatch_if_allowed(layout, "paragraph.table", target, focused, mode, |label| {
+            emitted.push(label.to_string());
+            Ok(())
+        })
+    };
+    assert!(click("A", Some("A"), Some(ViewMode::Wysiwyg)).is_ok());
+    assert!(click("A", Some("A"), Some(ViewMode::Source)).is_err());
+    assert!(click("B", Some("B"), Some(ViewMode::Wysiwyg)).is_ok());
+    assert_eq!(emitted, ["A", "B"]);
+}
+
+#[test]
+fn m4_wi3_no_focus_missing_report_and_closed_target_refuse_stale_click() {
+    let layout = menu_layout().unwrap();
+    let mut emitted = 0;
+    for (focus, mode) in [
+        (None, Some(ViewMode::Wysiwyg)),
+        (Some("A"), None),
+        (Some("B"), Some(ViewMode::Wysiwyg)),
+    ] {
+        let result = dispatch_if_allowed(layout, "paragraph.table", "A", focus, mode, |_| {
+            emitted += 1;
+            Ok(())
+        });
+        assert!(result.is_err());
+    }
+    assert_eq!(emitted, 0);
+}
 
 #[test]
 fn m3a_ac1_two_windows_follow_focused_mode() {
@@ -93,6 +186,10 @@ fn m3a_injected_caller_is_the_only_mode_report_label() {
     assert!(source.contains("window: WebviewWindow<Wry>"));
     assert!(source.contains("window.label().to_string()"));
     assert!(!source.contains("window_label:"));
+    let mut modes = MenuModes::default();
+    modes.report("A", "source").unwrap();
+    assert_eq!(modes.for_focused(Some("A")), Some(ViewMode::Source));
+    assert_eq!(modes.for_focused(Some("B")), None);
 }
 
 #[test]
@@ -165,6 +262,21 @@ fn m3a_every_declared_menu_id_has_exactly_one_click_route() {
         }
     }
     assert!(checked >= 19, "only {checked} ids checked");
+    let focus = MenuFocus::new();
+    focus.apply("A", true);
+    let mut delivered = Vec::new();
+    route(
+        "paragraph.table",
+        None,
+        &focus,
+        &["A".into(), "B".into()],
+        |label, payload| {
+            delivered.push((label.to_string(), payload.action.clone()));
+            Ok::<(), ()>(())
+        },
+        |_| {},
+    );
+    assert_eq!(delivered, [("A".into(), "paragraph.table".into())]);
 }
 
 #[test]
