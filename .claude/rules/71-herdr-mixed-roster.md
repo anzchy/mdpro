@@ -156,6 +156,8 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
   5. **the reset counts only when `agent_session.value` has changed after that turn.** herdr
      updates the id when the first turn starts, not at `/new`. If the id did not change, the
      result is void: follow § Restart (a new pane) and resend.
+     A pane whose `agent_session` is `null`, as on implementor panes, cannot use the id
+     check: it passes instead when the status line reads `Context 0% used` before the prompt.
 
   Probe passed 2026-10-22 (ADR-0131 decision 7): the id went from `01a16229…` to `01a1622c…`, and
   the reply to "what was your previous request" was "none".
