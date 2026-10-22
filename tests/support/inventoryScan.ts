@@ -90,21 +90,32 @@ function classify(b: KeyBinding): string {
 export function composedCodeMirror(bindings: readonly KeyBinding[]): { found: Found[]; anyOnly: number } {
   const found: Found[] = [];
   let anyOnly = 0;
+  let sourceIndex = -1;
   [...new Set(bindings)].forEach((b, index) => {
     if (b.any && !b.key && !b.mac && !b.win && !b.linux) anyOnly++;
     const source = classify(b);
+    if (source === "mdpro:sourceFormatPlugin") {
+      if (sourceIndex < 0) sourceIndex = index;
+      return;
+    }
     for (const platform of ["macos", "windows", "linux"] as const) {
-      // This plugin builds today's v1 keymap at mount time for the host OS.
-      // Resolve the other platform's key from the same runner; the inventory
-      // remains an independent literal list checked below.
-      const key = source === "mdpro:sourceFormatPlugin"
-        ? sourceFormatKeymap(platform === "macos").find((entry) => entry.run === b.run)?.key
-        : b[FIELD[platform]] ?? b.key;
+      const key = b[FIELD[platform]] ?? b.key;
       if (!key) continue;
       found.push({ source, key, platform, fn: b.run, index });
       if (b.shift) found.push({ source, key: `Shift-${key}`, platform, fn: b.shift, index });
     }
   });
+  // The Source plugin's mounted map is host-specific. Scan its exported map
+  // afresh for each platform so a Mac-only binding remains visible on Linux.
+  if (sourceIndex >= 0) {
+    for (const platform of ["macos", "windows", "linux"] as const) {
+      for (const binding of sourceFormatKeymap(platform === "macos")) {
+        if (!binding.key) continue;
+        found.push({ source: "mdpro:sourceFormatPlugin", key: binding.key, platform,
+          fn: binding.run, index: sourceIndex });
+      }
+    }
+  }
   return { found, anyOnly };
 }
 

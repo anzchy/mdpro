@@ -30,10 +30,9 @@ describe("one owner on v2", () => {
 });
 
 describe("v1 violates it at exactly the documented set", () => {
-  it("C2, C3 on macOS; C6 Image/Italic and ADR-0096's inert rows off-Mac", () => {
+  it("C2, C3 on macOS; ADR-0096's inert rows off-Mac", () => {
     const got = oneOwnerViolations("v1").dups.map((d) => `${d.platform} ${d.chord} ${d.ids.join("+")}`);
     const off = OFF.flatMap((p) => [
-      `${p} Cmd+I format.emphasis+format.image`,
       `${p} Cmd+2 paragraph.heading2+view.source`,
       `${p} Cmd+4 paragraph.heading4+view.wysiwyg`,
       `${p} Cmd+Shift+\` format.code+format.strike`,
@@ -76,8 +75,8 @@ describe("v2 × today's inventory cross-check", () => {
     has(OFF, "editor:codemirror:defaultKeymap:Ctrl-m", "window.minimize", "removeInM1b(D272)");
   });
 
-  it("names D270 (latent vs the unavailable Underline) and core Mod-a", () => {
-    has(PLATFORMS, "editor:codemirror:historyKeymap:Mod-u", "format.underline", "latent(D270)");
+  it("names D270's Underline shadow and core Mod-a", () => {
+    has(PLATFORMS, "editor:codemirror:historyKeymap:Mod-u", "format.underline", "shadowed(mdpro:sourceFormatPlugin)");
     has(PLATFORMS, "editor:milkdown:core/baseKeymap:Mod-a", "edit.selectAll", "implements");
     has(PLATFORMS, "editor:codemirror:defaultKeymap:Mod-/", "view.cycleViewMode", "shadowed(mdpro:Editor.viewModeKeymap)");
   });
@@ -101,8 +100,8 @@ describe("R2-D: latent notes stay honest", () => {
     expect(hits.map(explanation)).toEqual([null]);
   });
 
-  it("covers D267 and D270; D268 is shadowed by Source Italic", () => {
-    expect([...new Set(latentRows.map((r) => r.latent))].sort()).toEqual(["D267", "D270"]);
+  it("covers D267; D268 and D270 are deliberate shadows", () => {
+    expect([...new Set(latentRows.map((r) => r.latent))].sort()).toEqual(["D267"]);
   });
 
   it("no latent row collides with an available, bound v2 row in a shared context", () => {

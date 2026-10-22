@@ -105,7 +105,7 @@ pub struct WindowGeometry {
 }
 
 #[path = "keyboard_shortcut_defaults.rs"]
-mod keyboard_shortcut_defaults;
+pub(crate) mod keyboard_shortcut_defaults;
 #[path = "keyboard_shortcuts.rs"]
 mod keyboard_shortcuts;
 #[path = "keyboard_shortcuts_version.rs"]

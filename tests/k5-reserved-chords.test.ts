@@ -61,7 +61,8 @@ describe("K5 on v2", () => {
   it.each(collectionCases("tests/k5-reserved-chords.test.ts:60", PLATFORMS))("%s: no v2 default or fixed second key is reserved", (p) => {
     const r = k5("v2", p);
     expect(r.violations).toEqual([]);
-    expect(r.checked).toBeGreaterThanOrEqual(55);
+    // Off-Mac Image has no v2 key until M1b (D255-WI-3b Ruling 4).
+    expect(r.checked).toBeGreaterThanOrEqual(p === "macos" ? 55 : 54);
     expect(r.skippedNative).toEqual(p === "macos" ? NATIVE_MAC : NATIVE_OFF);
   });
 

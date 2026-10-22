@@ -21,6 +21,31 @@ pub(super) const CONTEXTS: [OwnershipContext; 7] = [
     OwnershipContext::Recorder,
     OwnershipContext::NativeFocus,
 ];
+
+#[test]
+fn image_conflict_resolution_matches_shared_parity_fixture() {
+    let cases: Vec<Value> = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/legacy-image-shortcut-cases.json"
+    ))
+    .expect("image parity fixture");
+    assert!(cases.len() >= 6);
+    for case in cases {
+        let platform: Platform =
+            serde_json::from_value(case["platform"].clone()).expect("platform");
+        let stored = case["stored"].as_str().expect("stored");
+        let expected = case["expected"].as_str().expect("expected");
+        let input = Map::from([("formatImage".to_string(), stored.to_string())]);
+        let result = resolve_with(layout(), platform, 1, &input, &Overrides::new());
+        let got = serde_json::to_value(result.resolutions.get("formatImage"))
+            .expect("resolution serializes");
+        let want = if expected == "<unassigned>" {
+            serde_json::json!({"kind":"unassigned"})
+        } else {
+            serde_json::json!({"kind":"bound","chord":expected})
+        };
+        assert_eq!(got, want, "{platform:?} stored {stored:?}");
+    }
+}
 pub(super) type Map = BTreeMap<String, String>;
 pub(super) type Overrides = BTreeMap<String, Availability>;
 

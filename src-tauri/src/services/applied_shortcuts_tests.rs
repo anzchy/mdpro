@@ -27,6 +27,42 @@ const APPLIED_CONTRACT: &str = concat!(
 );
 const FIELD_COUNT: usize = 58;
 
+#[test]
+fn image_applied_snapshot_matches_host_rows_of_shared_parity_fixture() {
+    let cases: Value = read_json(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../tests/fixtures/legacy-image-shortcut-cases.json"
+    ));
+    let host = if cfg!(target_os = "macos") {
+        "macos"
+    } else if cfg!(target_os = "windows") {
+        "windows"
+    } else {
+        "linux"
+    };
+    let rows = cases.as_array().expect("parity rows");
+    let mut checked = 0;
+    for row in rows {
+        if row["platform"] != host {
+            continue;
+        }
+        let stored = row["stored"].as_str().expect("stored string");
+        let expected = row["expected"].as_str().expect("expected string");
+        let mut input = KeyboardShortcuts::default();
+        input.format_image = stored.to_string();
+        let got = serde_json::to_value(resolve_applied(&input).get("formatImage"))
+            .expect("binding serializes");
+        let want = if expected == "<unassigned>" {
+            json!({"state":"unassigned"})
+        } else {
+            json!({"state":"bound","chord":expected})
+        };
+        assert_eq!(got, want, "host {host} stored {stored:?}");
+        checked += 1;
+    }
+    assert!(checked >= 2);
+}
+
 fn read_json(path: &str) -> Value {
     let raw = std::fs::read_to_string(path).expect("fixture readable");
     serde_json::from_str(&raw).expect("fixture JSON")
@@ -58,7 +94,13 @@ fn default_chords() -> Map<String, Value> {
 }
 
 /// The pointwise rule, as the spec states it.
-fn expected_binding(stored: &str, default: &str) -> Value {
+fn expected_binding(field: &str, stored: &str, default: &str) -> Value {
+    if field == "formatImage"
+        && !cfg!(target_os = "macos")
+        && (stored == "Cmd+Ctrl+I" || stored.is_empty())
+    {
+        return json!({ "state": "unassigned" });
+    }
     match stored {
         "<unassigned>" => json!({ "state": "unassigned" }),
         "<system>" => json!({ "state": "system" }),
@@ -82,7 +124,7 @@ fn assert_law(input: &KeyboardShortcuts, label: &str) {
     for (k, v) in &stored {
         let s = v.as_str().expect("binding is a string");
         let d = defaults[k].as_str().expect("default is a string");
-        assert_eq!(bindings[k], expected_binding(s, d), "{label}: field {k}");
+        assert_eq!(bindings[k], expected_binding(k, s, d), "{label}: field {k}");
     }
 
     let resolved = resolve_applied(input);

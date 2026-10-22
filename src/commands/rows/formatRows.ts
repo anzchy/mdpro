@@ -10,6 +10,18 @@ import { configurable, macOff } from "../rowBuilders";
 
 const BOTH: readonly OwnershipContext[] = ["editorW", "editorS", "tableW", "tableS"];
 
+const imageRow = configurable({
+  id: "format.image",
+  menuId: "menu.format.image",
+  menu: macOff<MenuPath>(["Format", "Image..."], "none"),
+  field: "formatImage",
+  v1: "Cmd+Ctrl+I",
+  v2: "Cmd+Shift+I",
+  availability: ["both", "both"],
+  contexts: BOTH,
+});
+const noImageKey = { ...imageRow.key.windows, defaults: { v1: "<unassigned>", v2: "<unassigned>" } } as const;
+
 export const FORMAT_ROWS: readonly CommandRow[] = [
   configurable({
     id: "format.strong",
@@ -36,7 +48,7 @@ export const FORMAT_ROWS: readonly CommandRow[] = [
     field: "formatUnderline",
     v1: "Cmd+U",
     v2: "Cmd+U",
-    availability: ["none", "none"],
+    availability: ["both", "both"],
     contexts: BOTH,
   }),
   configurable({
@@ -66,16 +78,7 @@ export const FORMAT_ROWS: readonly CommandRow[] = [
     v2: "Cmd+K",
     availability: ["both", "both"],
   }),
-  configurable({
-    id: "format.image",
-    menuId: "menu.format.image",
-    menu: macOff<MenuPath>(["Format", "Image..."], "none"),
-    field: "formatImage",
-    v1: "Cmd+Ctrl+I",
-    v2: "Cmd+Shift+I",
-    availability: ["none", "none"],
-    contexts: BOTH,
-  }),
+  { ...imageRow, key: { ...imageRow.key, windows: noImageKey, linux: noImageKey } },
   configurable({
     id: "format.highlight",
     field: "formatHighlight",
@@ -92,7 +95,7 @@ export const FORMAT_ROWS: readonly CommandRow[] = [
     field: "formatClearFormat",
     v1: "Cmd+\\",
     v2: "Cmd+\\",
-    availability: ["none", "none"],
+    availability: ["W", "W"],
     contexts: BOTH,
   }),
 ];

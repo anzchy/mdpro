@@ -23,6 +23,7 @@ import { typoraKeymapMilkdownPlugin } from "../../plugins/milkdown/typoraKeymapP
 import { inlineEditMilkdownPlugin } from "../../plugins/milkdown/inlineEditPlugin";
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
+import { underlineMarkPlugin } from "../../plugins/milkdown/underlineMarkPlugin";
 import { editSyncMilkdownPlugin } from "../../plugins/milkdown/editSync/plugin";
 import { tableParityPlugins } from "../../plugins/milkdown/table/parityPlugins";
 import { mdproCommonmark } from "../../plugins/milkdown/commonmarkPreset";
@@ -166,6 +167,7 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
         .use(pasteHtmlSanitizerMilkdownPlugin)
         .use(imagePasteMilkdownPlugin)
         .use(highlightMarkPlugin)
+        .use(underlineMarkPlugin)
         .use(inlineEditMilkdownPlugin);
     },
     [activeDocumentId],

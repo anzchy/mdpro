@@ -30,12 +30,14 @@ import {
   makeParagraphCommand,
 } from "../plugins/milkdown/typoraCommandFactories";
 import { makeTyporaLinkCommand } from "../plugins/milkdown/typoraLinkCommand";
+import { clearFormatCommand, makeHeadingLevelCommand, selectLineCommand, selectWordCommand, underlineCommand } from "../plugins/milkdown/wysiwygFormatCommands";
 import { useEditorStore } from "../stores/editorStore";
 import { useLinkInsertStore } from "../stores/linkInsertStore";
 import { useMilkdownEditorStore } from "../stores/milkdownEditorStore";
 import { useTableInsertStore } from "../stores/tableInsertStore";
 import { loggingService } from "../services/loggingService";
 import { runSourceEditorMenuCommand, tableActionForId } from "./editorMenuSourceCommands";
+import { startEditorImageInsert } from "./editorImageInsert";
 import { triggerTableInsert } from "./tableInsertTrigger";
 import type { MenuTargetToken } from "./menuTargetToken";
 
@@ -108,6 +110,20 @@ function runMilkdownCommand(
     ? applied : refused("outside_table");
 
   switch (id) {
+    case "paragraph.increaseHeading":
+      return runProse(view, makeHeadingLevelCommand("increase"));
+    case "paragraph.decreaseHeading":
+      return runProse(view, makeHeadingLevelCommand("decrease"));
+    case "edit.selectWord":
+      return runProse(view, selectWordCommand());
+    case "edit.selectLine":
+      return runProse(view, selectLineCommand());
+    case "format.clearFormat":
+      return runProse(view, clearFormatCommand());
+    case "format.underline":
+      return runProse(view, underlineCommand());
+    case "format.image":
+      return startEditorImageInsert({ mode: "wysiwyg", view, editor }, token, actionId);
     case "paragraph.paragraph":
       return runProse(view, makeParagraphCommand());
     case "paragraph.table": {

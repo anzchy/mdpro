@@ -75,7 +75,7 @@ const LIBRARY_KEYMAPS: readonly EditorOwnedRow[] = [
   s("historyKeymap", "Mod-z", impl("edit.undo")),
   s("historyKeymap", "Mod-y", impl("edit.redo"), off), s("historyKeymap", "Mod-Shift-z", impl("edit.redo"), mac),
   s("historyKeymap", "Ctrl-Shift-z", impl("edit.redo"), { platforms: LINUX }),
-  s("historyKeymap", "Mod-u", owned, { latent: "D270" }),
+  s("historyKeymap", "Mod-u", shadowedBy("mdpro:sourceFormatPlugin")),
   s("historyKeymap", "Alt-u", owned, off), s("historyKeymap", "Mod-Shift-u", owned, mac),
   s("foldKeymap", "Ctrl-Shift-[", remove("C12"), off), s("foldKeymap", "Ctrl-Shift-]", remove("C12"), off),
   s("foldKeymap", "Cmd-Alt-[", remove("C12"), mac), s("foldKeymap", "Cmd-Alt-]", remove("C12"), mac),

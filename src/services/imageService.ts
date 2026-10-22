@@ -1,5 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 
+/** Open the native image picker; null means the user canceled. */
+export async function pickImage(): Promise<string | null> {
+  return invoke<string | null>("pick_image");
+}
+
 /**
  * Image configuration settings
  */

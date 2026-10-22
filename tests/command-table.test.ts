@@ -67,7 +67,8 @@ describe("v1 defaults equal today's DEFAULT_KEYBOARD_SHORTCUTS", () => {
       for (const p of PLATFORMS) {
         const k = r.key[p];
         checks += 1;
-        const want = DEFAULT_KEYBOARD_SHORTCUTS[r.prefField as Field];
+        const want = r.id === "format.image" && p !== "macos"
+          ? "<unassigned>" : DEFAULT_KEYBOARD_SHORTCUTS[r.prefField as Field];
         if (k.kind !== "configurable" || k.defaults.v1 !== want) {
           mismatches.push(`${r.id}/${p}: ${String(k.defaults.v1)} != ${want}`);
         }
@@ -123,7 +124,7 @@ const V2: Record<Field, readonly [string, string]> = {
   formatCode: ["Cmd+Shift+`", "Cmd+Shift+`"],
   formatStrike: ["Cmd+Shift+X", "Cmd+Shift+X"],
   formatHyperlink: ["Cmd+K", "Cmd+K"],
-  formatImage: ["Cmd+Shift+I", "Cmd+Shift+I"],
+  formatImage: ["Cmd+Shift+I", "<unassigned>"],
   formatHighlight: ["Cmd+Shift+M", "Cmd+Shift+M"],
   formatClearFormat: ["Cmd+\\", "Cmd+\\"],
   viewSource: ["Ctrl+2", "<unassigned>"],
@@ -166,7 +167,7 @@ describe("v2 defaults equal the literal § 5.3.2 table", () => {
         return k !== undefined && k.defaults.v1 !== k.defaults.v2;
       });
     expect(changed("macos")).toHaveLength(15);
-    expect(changed("windows")).toHaveLength(20);
+    expect(changed("windows")).toHaveLength(19);
     expect(changed("linux")).toEqual(changed("windows"));
   });
 });
@@ -335,9 +336,9 @@ const AVAILABILITY: Record<Field, readonly [Availability, Availability, readonly
   formatEmphasis: ["both", "both", BOTH],
   formatCode: ["both", "both", BOTH],
   formatStrike: ["both", "both", BOTH],
-  paragraphIncreaseHeading: ["S", "S", S_ONLY],
-  paragraphDecreaseHeading: ["S", "S", S_ONLY],
-  editSelectWord: ["S", "S", S_ONLY],
+  paragraphIncreaseHeading: ["both", "both", BOTH],
+  paragraphDecreaseHeading: ["both", "both", BOTH],
+  editSelectWord: ["both", "both", BOTH],
   editFind: ["S", "S", S_ONLY],
   editFindNext: ["S", "S", S_ONLY],
   editFindPrevious: ["S", "S", S_ONLY],
@@ -346,12 +347,12 @@ const AVAILABILITY: Record<Field, readonly [Availability, Availability, readonly
   paragraphMathBlock: ["S", "S", S_ONLY],
   paragraphOrderedList: ["S", "both", BOTH],
   paragraphUnorderedList: ["S", "both", BOTH],
-  formatUnderline: ["none", "none", BOTH],
-  formatImage: ["none", "none", BOTH],
-  formatClearFormat: ["none", "none", BOTH],
+  formatUnderline: ["both", "both", BOTH],
+  formatImage: ["both", "both", BOTH],
+  formatClearFormat: ["W", "W", BOTH],
   editCopyAsMarkdown: ["none", "none", BOTH],
   editPasteAsPlainText: ["none", "none", BOTH],
-  editSelectLine: ["S", "S", BOTH],
+  editSelectLine: ["both", "both", BOTH],
   editDeleteWord: ["S", "S", BOTH],
   viewSwitchDocuments: ["none", "none", BOTH],
   paragraphQuote: ["none", "both", BOTH],

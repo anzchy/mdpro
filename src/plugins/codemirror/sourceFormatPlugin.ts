@@ -10,10 +10,14 @@ import { Prec } from "@codemirror/state";
 import { keymap, type EditorView, type KeyBinding } from "@codemirror/view";
 import { loggingService } from "../../services/loggingService";
 import { isMacPlatform } from "../../utils/platformLabels";
+import { startEditorImageInsert } from "../../utils/editorImageInsert";
+import { currentWindowLabel } from "../../utils/currentWindowLabel";
+import { captureToken } from "../../utils/menuTargetToken";
 import { createPlugin } from "../core/pluginTypes";
 import {
   codeCommand, codeFencesCommand, deleteWordCommand, emphasisCommand, mathBlockCommand,
   orderedListCommand, strikeCommand, strongCommand, unorderedListCommand,
+  underlineCommand,
 } from "./sourceFormatCommands";
 
 type SourceCommand = (view: EditorView) => boolean;
@@ -38,6 +42,16 @@ export const sourceFormatRunners = {
   emphasis: logged("format.emphasis", emphasisCommand),
   code: logged("format.code", codeCommand),
   strike: logged("format.strike", strikeCommand),
+  underline: logged("format.underline", underlineCommand),
+  image: (view: EditorView) => {
+    const actionId = loggingService.generateActionId();
+    const result = startEditorImageInsert({ mode: "source", view }, captureToken(currentWindowLabel()), actionId);
+    loggingService.logEventSync({
+      level: "info", event: "ui.editor.command", status: result.status === "opened" ? "start" : "cancel",
+      actionId, context: { command: "format.image", mode: "source", via: "key" },
+    });
+    return true;
+  },
   codeFences: logged("paragraph.codeFences", codeFencesCommand),
   mathBlock: logged("paragraph.mathBlock", mathBlockCommand),
   orderedList: logged("paragraph.orderedList", orderedListCommand),
@@ -54,6 +68,8 @@ export function sourceFormatKeymap(isMac: boolean): readonly KeyBinding[] {
     { key: `${primary}-i`, run: sourceFormatRunners.emphasis },
     { key: `${primary}-Shift-\``, run: sourceFormatRunners.code },
     { key: isMac ? "Ctrl-Shift-\`" : "Alt-Shift-5", run: sourceFormatRunners.strike },
+    { key: `${primary}-u`, run: sourceFormatRunners.underline },
+    ...(isMac ? [{ key: "Mod-Ctrl-i", run: sourceFormatRunners.image }] : []),
     { key: `${primary}-Alt-c`, run: sourceFormatRunners.codeFences },
     { key: `${primary}-Alt-b`, run: sourceFormatRunners.mathBlock },
     { key: `${primary}-Alt-o`, run: sourceFormatRunners.orderedList },

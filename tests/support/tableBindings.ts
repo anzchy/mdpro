@@ -23,7 +23,6 @@ export type Version = "v1" | "v2";
 /** The field each latent defect waits on (matrix R2-D, R3-2). */
 export const LATENT_FIELD: Readonly<Record<LatentId, string>> = {
   D267: "paragraphCodeFences",
-  D270: "formatUnderline",
 };
 
 export interface TableBinding {

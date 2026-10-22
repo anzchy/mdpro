@@ -198,7 +198,7 @@ it("WI-8 Settings gives every new v1 Source command a key and capability", () =>
   ]) {
     const row = rowById(id)!;
     const value = DEFAULT_KEYBOARD_SHORTCUTS[row.prefField!];
-    const expectedCapability = ["paragraph.mathBlock", "edit.selectLine", "edit.deleteWord",
+    const expectedCapability = ["paragraph.mathBlock", "edit.deleteWord",
       "paragraph.orderedList", "paragraph.unorderedList"].includes(id) ? "Source only" : null;
     for (const platform of ["macos", "windows", "linux"] as const) {
       const state = rowStateOf({

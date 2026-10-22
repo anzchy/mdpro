@@ -1582,16 +1582,16 @@
       ],
       "availability": {
         "macos": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -1649,21 +1649,23 @@
         }
       },
       "contexts": [
+        "editorW",
         "editorS",
+        "tableW",
         "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -2502,22 +2504,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "W",
+          "v2": "W"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "W",
+          "v2": "W"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "W",
+          "v2": "W"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -2845,8 +2847,8 @@
         "windows": {
           "kind": "configurable",
           "defaults": {
-            "v1": "Cmd+Ctrl+I",
-            "v2": "Cmd+Shift+I"
+            "v1": "<unassigned>",
+            "v2": "<unassigned>"
           },
           "secondaries": {
             "v1": [],
@@ -2856,8 +2858,8 @@
         "linux": {
           "kind": "configurable",
           "defaults": {
-            "v1": "Cmd+Ctrl+I",
-            "v2": "Cmd+Shift+I"
+            "v1": "<unassigned>",
+            "v2": "<unassigned>"
           },
           "secondaries": {
             "v1": [],
@@ -2873,22 +2875,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -3092,22 +3094,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -3384,21 +3386,23 @@
         }
       },
       "contexts": [
+        "editorW",
         "editorS",
+        "tableW",
         "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -3893,21 +3897,23 @@
         }
       },
       "contexts": [
+        "editorW",
         "editorS",
+        "tableW",
         "tableS"
       ],
       "availability": {
         "macos": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "S",
-          "v2": "S"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
@@ -7524,9 +7530,9 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "editorOwned"
-      },
-      "latent": "D270"
+        "kind": "shadowed",
+        "by": "mdpro:sourceFormatPlugin"
+      }
     },
     {
       "editor": "S",
@@ -8234,6 +8240,23 @@
     {
       "editor": "S",
       "source": "mdpro:sourceFormatPlugin",
+      "key": "Ctrl-u",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.underline"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
       "key": "Mod-Alt-b",
       "platforms": [
         "macos"
@@ -8293,6 +8316,22 @@
       "disposition": {
         "kind": "implements",
         "command": "paragraph.unorderedList"
+      }
+    },
+    {
+      "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-Ctrl-i",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.image"
       }
     },
     {
@@ -8377,6 +8416,22 @@
     },
     {
       "editor": "S",
+      "source": "mdpro:sourceFormatPlugin",
+      "key": "Mod-u",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorS",
+        "tableS"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.underline"
+      }
+    },
+    {
+      "editor": "S",
       "source": "mdpro:sourceTableTabNav",
       "key": "Shift-Tab",
       "platforms": [
@@ -8446,6 +8501,27 @@
       },
       "names": [
         "strikethrough"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod--",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.decreaseHeading"
+      },
+      "names": [
+        "decreaseHeading"
       ]
     },
     {
@@ -8598,6 +8674,46 @@
     {
       "editor": "W",
       "source": "mdpro:typoraKeymap",
+      "key": "Mod-=",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "paragraph.increaseHeading"
+      },
+      "names": [
+        "increaseHeading"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-Ctrl-i",
+      "platforms": [
+        "macos"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.image"
+      },
+      "names": [
+        "image"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
       "key": "Mod-Shift-`",
       "platforms": [
         "macos",
@@ -8619,6 +8735,27 @@
     {
       "editor": "W",
       "source": "mdpro:typoraKeymap",
+      "key": "Mod-\\",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.clearFormat"
+      },
+      "names": [
+        "clearFormat"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
       "key": "Mod-b",
       "platforms": [
         "macos",
@@ -8635,6 +8772,27 @@
       },
       "names": [
         "bold"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-d",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectWord"
+      },
+      "names": [
+        "selectWord"
       ]
     },
     {
@@ -8677,6 +8835,48 @@
       },
       "names": [
         "link"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-l",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "edit.selectLine"
+      },
+      "names": [
+        "selectLine"
+      ]
+    },
+    {
+      "editor": "W",
+      "source": "mdpro:typoraKeymap",
+      "key": "Mod-u",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "contexts": [
+        "editorW",
+        "tableW"
+      ],
+      "disposition": {
+        "kind": "implements",
+        "command": "format.underline"
+      },
+      "names": [
+        "underline"
       ]
     },
     {

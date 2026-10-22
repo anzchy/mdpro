@@ -25,10 +25,9 @@
  * not stable public API.  These commands are registered by the GFM preset that
  * IS loaded, so they work correctly.
  *
- * Note: underline (⌘U / formatUnderline) is not implemented here.
- * CommonMark and GFM have no underline mark, so there is no Milkdown
- * command to bind. The preference entry exists but is intentionally
- * unbound in WYSIWYG mode.
+ * D255-WI-3b adds a real underline mark and the current v1 WYSIWYG keys in
+ * `wysiwygKeymapEntries.ts`; M1b will replace these literals with the applied
+ * shortcut set.
  *
  * @coordinates-with src/utils/modalTabActionGuard.ts — ⌘K is refused over an open modal (D235-WI-2)
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
@@ -59,6 +58,7 @@ import {
   makeParagraphCommand,
 } from "./typoraCommandFactories";
 import { makeTyporaLinkPendingCallback } from "./typoraLinkCommand";
+import { wysiwygV1Entries } from "./wysiwygKeymapEntries";
 
 export { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
 export { makeBoldCommand, makeHeadingCommand, makeItalicCommand, makeParagraphCommand } from "./typoraCommandFactories";
@@ -201,6 +201,7 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
 export function typoraKeymapConfig(isMac: boolean): Record<string, CommandEntry> {
   return {
     ...TYPORA_KEYMAP_ENTRIES,
+    ...wysiwygV1Entries(isMac),
     strikethrough: { ...TYPORA_KEYMAP_ENTRIES.strikethrough, shortcuts: strikethroughShortcut(isMac) },
   };
 }

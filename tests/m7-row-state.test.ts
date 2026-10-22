@@ -149,7 +149,10 @@ describe("M7 resetDefaults(platform, version)", () => {
   const PLATFORMS: readonly Platform[] = ["macos", "windows", "linux"];
 
   it("d1 v1 is today's defaults on every platform", () => {
-    for (const p of PLATFORMS) expect(resetDefaults(p, 1)).toEqual(DEFAULT_KEYBOARD_SHORTCUTS);
+    for (const p of PLATFORMS) expect(resetDefaults(p, 1)).toEqual({
+      ...DEFAULT_KEYBOARD_SHORTCUTS,
+      ...(p === "macos" ? {} : { formatImage: "<unassigned>" }),
+    });
   });
 
   it("d2 v2 is the table's v2 per platform, states included", () => {

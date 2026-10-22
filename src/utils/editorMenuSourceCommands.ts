@@ -11,6 +11,7 @@ import { highlightCommand } from "../plugins/codemirror/highlightPlugin";
 import {
   codeCommand, codeFencesCommand, deleteWordCommand, emphasisCommand, mathBlockCommand, orderedListCommand,
   quoteCommand, strikeCommand, strongCommand, unorderedListCommand,
+  underlineCommand,
 } from "../plugins/codemirror/sourceFormatCommands";
 import { insertLinkCommand } from "../plugins/codemirror/linkPlugin";
 import { dispatchSourceTableAction } from "../plugins/codemirror/sourceTableContextMenu";
@@ -20,6 +21,7 @@ import { useDocumentStore } from "../stores/documentStore";
 import { useLinkInsertStore } from "../stores/linkInsertStore";
 import type { MenuTargetToken } from "./menuTargetToken";
 import type { EditorMenuResult } from "./editorMenuCommands";
+import { startEditorImageInsert } from "./editorImageInsert";
 
 const TABLE_ACTIONS: Readonly<Record<string, TableActionId>> = {
   "table.insertRowAbove": "insert_row_before",
@@ -81,6 +83,10 @@ export function runSourceEditorMenuCommand(
       return runEffect(view, codeCommand);
     case "format.strike":
       return runEffect(view, strikeCommand);
+    case "format.underline":
+      return runEffect(view, underlineCommand);
+    case "format.image":
+      return startEditorImageInsert({ mode: "source", view }, token, actionId);
     case "paragraph.codeFences":
       return runEffect(view, codeFencesCommand);
     case "paragraph.orderedList":

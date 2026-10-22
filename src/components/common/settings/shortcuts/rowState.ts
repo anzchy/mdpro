@@ -24,6 +24,7 @@
 import { assertNever } from "../../../../commands/assertNever";
 import type { BindingField } from "../../../../commands/bindingConflicts.types";
 import { normaliseStored } from "../../../../commands/chord";
+import { effectiveImageShortcut } from "../../../../commands/legacyImageShortcut";
 import type { Availability, CommandRow, Platform } from "../../../../commands/commandTable.types";
 import {
   SYSTEM_BINDING,
@@ -103,7 +104,9 @@ function pendingOf(input: RowStateInput, field: BindingField, fallback: string):
   if (binding === undefined) return null;
   const raw = input.saved[field];
   // "" means the default; Rust's snapshot binds it to the default too.
-  const saved = raw === undefined || raw === "" ? fallback : raw;
+  const saved = field === "formatImage"
+    ? effectiveImageShortcut(input.platform, raw ?? fallback)
+    : raw === undefined || raw === "" ? fallback : raw;
   const active = appliedAsStored(binding);
   return sameBinding(saved, active, input.platform) ? null : { active, afterRestart: saved };
 }
@@ -134,7 +137,9 @@ export function rowStateOf(input: RowStateInput): RowState | null {
   if (field === undefined) return null;
   return {
     kind: "configurable",
-    value: input.local[field] ?? fallback,
+    value: field === "formatImage"
+      ? effectiveImageShortcut(platform, input.local[field] ?? fallback)
+      : input.local[field] ?? fallback,
     // nativeBehaviour is off-Mac text (D19): macOS has no browser find bar.
     capability:
       platform !== "macos" && row.nativeBehaviour !== undefined

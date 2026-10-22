@@ -98,7 +98,7 @@ it("WI-6 public Select Line dispatch selects the current Source line once", () =
 });
 
 it.each(["paragraph.mathBlock", "edit.selectLine", "edit.deleteWord"])(
-  "WI-6 WYSIWYG %s refuses with one cancel and a toast", (id) => {
+  "WI-6 WYSIWYG %s refuses with one cancel when wrong mode or W view is absent", (id) => {
     const view = setup().view;
     useEditorStore.setState({ viewMode: "wysiwyg" });
     const before = view.state.doc.toString();
@@ -108,8 +108,9 @@ it.each(["paragraph.mathBlock", "edit.selectLine", "edit.deleteWord"])(
     expect(view.state.selection.eq(selection)).toBe(true);
     expect(outcomes()).toHaveLength(1);
     expect(outcomes()[0].payload.status).toBe("cancel");
-    expect(outcomes()[0].payload.context?.reason).toBe("wrong_mode");
-    expect(useToastStore.getState().message).toMatch(/Source/);
+    expect(outcomes()[0].payload.context?.reason).toBe(id === "edit.selectLine" ? "missing_view" : "wrong_mode");
+    if (id === "edit.selectLine") expect(useToastStore.getState().message).toBeNull();
+    else expect(useToastStore.getState().message).toMatch(/Source/);
   },
 );
 

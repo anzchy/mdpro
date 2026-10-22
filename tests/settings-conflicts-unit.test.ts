@@ -103,7 +103,7 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
   });
 
   it("u12 the same custom on a W-only and an S-only row is allowed (no shared context)", () => {
-    const r = findSettingsConflicts("macos", 1, { paragraphTable: "Cmd+J", paragraphIncreaseHeading: "Cmd+J" });
+    const r = findSettingsConflicts("macos", 1, { paragraphTable: "Cmd+J", paragraphMathBlock: "Cmd+J" });
     expect(r.refusing.size).toBe(0);
   });
 

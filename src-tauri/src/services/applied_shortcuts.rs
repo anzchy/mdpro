@@ -33,6 +33,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::models::preferences::keyboard_shortcut_defaults::effective_image_shortcut;
 use crate::models::{
     KeyboardShortcuts, LogEntryPayload, LogLevel, LogStatus, CURRENT_KEYBOARD_SHORTCUTS_VERSION,
     SYSTEM_BINDING, UNASSIGNED_BINDING,
@@ -117,7 +118,12 @@ pub fn resolve_applied(shortcuts: &KeyboardShortcuts) -> BTreeMap<String, Applie
     as_object(shortcuts)
         .into_iter()
         .map(|(field, value)| {
-            let stored = value.as_str().unwrap_or_default();
+            let raw = value.as_str().unwrap_or_default();
+            let stored = if field == "formatImage" {
+                effective_image_shortcut(cfg!(target_os = "macos"), raw)
+            } else {
+                raw
+            };
             let binding = match stored {
                 UNASSIGNED_BINDING => AppliedBinding::Unassigned,
                 SYSTEM_BINDING => AppliedBinding::System,

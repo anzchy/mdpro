@@ -83,6 +83,8 @@ export function dispatchEditorMenuAction(action: string, token?: MenuTargetToken
     return true;
   }
   const result = runEditorMenuCommand(row.id, token!, actionId);
-  logOutcome(actionId, row.id, result.status === "refused" ? result.reason ?? "unavailable" : undefined);
+  if (row.id !== "format.image" || result.status !== "opened") {
+    logOutcome(actionId, row.id, result.status === "refused" ? result.reason ?? "unavailable" : undefined);
+  }
   return true;
 }

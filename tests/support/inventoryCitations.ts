@@ -39,6 +39,8 @@ export const IMPLEMENTS_BY_IDENTITY: Readonly<Record<string, readonly unknown[]>
   "format.emphasis": [sourceFormatRunners.emphasis],
   "format.code": [sourceFormatRunners.code],
   "format.strike": [sourceFormatRunners.strike],
+  "format.underline": [sourceFormatRunners.underline],
+  "format.image": [sourceFormatRunners.image],
   "paragraph.codeFences": [sourceFormatRunners.codeFences],
   "paragraph.mathBlock": [sourceFormatRunners.mathBlock],
   "paragraph.orderedList": [sourceFormatRunners.orderedList],
@@ -59,10 +61,14 @@ const CM = "@milkdown/preset-commonmark/lib/index.js";
 const GFM = "@milkdown/preset-gfm/lib/index.js";
 const HIST = "@milkdown/plugin-history/lib/index.js";
 const TYPORA = "src/plugins/milkdown/typoraKeymapPlugin.ts";
+const WI3B_KEYS = "src/plugins/milkdown/wysiwygKeymapEntries.ts";
 const cm = (exp: string) => `milkdown:preset-commonmark/${exp}`;
 
 const typora = (key: string, id: string, line: number, name: string): CitedImplements => ({
   source: "mdpro:typoraKeymap", key, implements: id, citation: `${TYPORA}:${line}`, name,
+});
+const wi3b = (key: string, id: string, line: number, name: string): CitedImplements => ({
+  source: "mdpro:typoraKeymap", key, implements: id, citation: `${WI3B_KEYS}:${line}`, name,
 });
 
 export const IMPLEMENTS_CITED: readonly CitedImplements[] = [
@@ -98,6 +104,13 @@ export const IMPLEMENTS_CITED: readonly CitedImplements[] = [
   typora("Ctrl-Shift-`", "format.strike", 112, "strikethrough"),
   typora("Alt-Shift-5", "format.strike", 112, "strikethrough"),
   typora("Mod-k", "format.hyperlink", 191, "link"),
+  wi3b("Mod-=", "paragraph.increaseHeading", 51, "increaseHeading"),
+  wi3b("Mod--", "paragraph.decreaseHeading", 52, "decreaseHeading"),
+  wi3b("Mod-d", "edit.selectWord", 53, "selectWord"),
+  wi3b("Mod-l", "edit.selectLine", 54, "selectLine"),
+  wi3b("Mod-\\", "format.clearFormat", 55, "clearFormat"),
+  wi3b("Mod-u", "format.underline", 56, "underline"),
+  wi3b("Mod-Ctrl-i", "format.image", 35, "image"),
   { source: "milkdown:core/baseKeymap", key: "Mod-a", implements: "edit.selectAll",
     citation: "prosemirror-commands/dist/index.js:820" },
 ];

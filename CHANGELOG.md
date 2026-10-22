@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- WYSIWYG now runs heading-level changes, Select Word, Select Line, Clear Format, Underline, and Image from their current shortcuts and editor commands. Underline is a real round-tripping mark in both modes; Image uses a native picker and refuses stale results after a document or mode change (D255-WI-3b; device check pending).
+- On Windows and Linux, an Image shortcut saved as the old `Cmd+Ctrl+I` default reads as keyless without rewriting preferences; other saved chords remain unchanged. Settings, conflict resolution and the applied-shortcut snapshot use the same parity cases (D255-WI-3b).
+- Source inline formatting now unwraps only recognized marker runs, and Code Fences refuses any selection range that touches an existing fenced block. Source ⌘U / Ctrl+U runs Underline ahead of CodeMirror's selection-history key (D255-WI-3b, D270).
+
 - Source mode now supports Bold, Italic, Inline Code, Strikethrough, Code Fences, Math Block, Ordered and Unordered Lists, Select Line, and Delete Word through its v1 shortcuts and editor commands. Quote is implemented but remains hidden until v2 keys are enabled (D255-WI-3a; device check pending).
 
 - Stage secondary-window teardown after close consent with a main-thread hide acknowledgement, then a 50 ms wait. A separate opt-in no-hide diagnostic build supports one bounded device comparison; the WebKit crash remains unresolved (D294; device verification pending).

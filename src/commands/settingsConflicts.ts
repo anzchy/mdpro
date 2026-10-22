@@ -29,6 +29,7 @@ import { assertNever } from "./assertNever";
 import type { BindingField, SuppressReason } from "./bindingConflicts.types";
 import { normaliseStored } from "./chord";
 import { rowById, rowByPrefField } from "./commandTable";
+import { effectiveImageShortcut } from "./legacyImageShortcut";
 import type { CommandRow, Platform } from "./commandTable.types";
 
 export type SettingsConflictKind = "hard" | "duplicate" | "takesDefault" | "physicalOverlap";
@@ -115,7 +116,8 @@ export function findSettingsConflicts(
   const idOf = (f: BindingField): string => rowByPrefField(f)?.id ?? String(f);
   const valueOf = (f: BindingField): string => {
     const raw = local[f];
-    return typeof raw === "string" ? raw : (rowByPrefField(f)?.key[platform].defaults[ver] ?? "");
+    const stored = typeof raw === "string" ? raw : (rowByPrefField(f)?.key[platform].defaults[ver] ?? "");
+    return f === "formatImage" ? effectiveImageShortcut(platform, stored) : stored;
   };
   const name = (f: BindingField) => nameOf(idOf(f), platform, labels);
   const refusing = new Map<BindingField, SettingsConflict>();

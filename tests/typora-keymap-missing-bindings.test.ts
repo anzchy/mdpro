@@ -116,7 +116,7 @@ describe("TYPORA_KEYMAP_CONFIG — issue #27: previously missing bindings", () =
     expect(mockCall).toHaveBeenCalledWith("ToggleStrikethrough");
   });
 
-  it("does NOT have an underline entry (underline is unsupported in CommonMark/GFM)", () => {
-    expect(TYPORA_KEYMAP_CONFIG).not.toHaveProperty("underline");
+  it("has the D255-WI-3b underline entry backed by a real mark", () => {
+    expect(TYPORA_KEYMAP_CONFIG.underline.shortcuts).toBe("Mod-u");
   });
 });

@@ -18,6 +18,7 @@ import userEvent from "@testing-library/user-event";
 import { findSettingsConflicts } from "../src/commands/settingsConflicts";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import { V2_DEFAULTS } from "./support/bindingV2Defaults";
+import legacyImageCases from "./fixtures/legacy-image-shortcut-cases.json";
 
 interface LogPayload {
   event: string;
@@ -151,6 +152,18 @@ describe("M1A-WI-10 v1 defaults show no conflict and save an unrelated rebind", 
       expect(screen.getByText(label, { selector: ".shortcut-label" })).toBeTruthy();
     expect(screen.queryByText("Highlight Selection", { selector: ".shortcut-label" })).toBeNull();
   });
+});
+
+it.each(legacyImageCases)("D255-WI-3b Image read-time parity: $platform stored $stored", async ({ platform, stored, expected }) => {
+  const uiPlatform = platform === "macos" ? "MacIntel" : platform === "windows" ? "Win32" : "Linux";
+  await open({ platform: uiPlatform, store: { formatImage: stored } });
+  const row = screen.getByText("Image", { selector: ".shortcut-label" }).closest(".shortcut-row");
+  expect(row?.querySelector(".shortcut-value")?.textContent).toBe(
+    expected === "<unassigned>" ? "Not set" : platform === "macos" ? expected : expected.replace("Cmd", "Ctrl").replace("Option", "Alt"),
+  );
+  if (expected === "<unassigned>") expect(conflictAlert()).toBeUndefined();
+  expect(fake.state.store.formatImage).toBe(stored);
+  expect(fake.state.writes).toEqual([]);
 });
 
 describe("M1A-WI-10 refused Saves", () => {

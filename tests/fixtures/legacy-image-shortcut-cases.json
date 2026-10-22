@@ -1,0 +1,8 @@
+[
+  { "platform": "macos", "stored": "Cmd+Ctrl+I", "expected": "Cmd+Ctrl+I" },
+  { "platform": "windows", "stored": "Cmd+Ctrl+I", "expected": "<unassigned>" },
+  { "platform": "linux", "stored": "Cmd+Ctrl+I", "expected": "<unassigned>" },
+  { "platform": "windows", "stored": "Cmd+Option+J", "expected": "Cmd+Option+J" },
+  { "platform": "linux", "stored": "", "expected": "<unassigned>" },
+  { "platform": "macos", "stored": "", "expected": "Cmd+Ctrl+I" }
+]

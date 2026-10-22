@@ -50,7 +50,7 @@ export const V2_DEFAULTS: Readonly<Record<string, readonly [string, string]>> = 
   formatCode: ["Cmd+Shift+`", "Cmd+Shift+`"],
   formatStrike: ["Cmd+Shift+X", "Cmd+Shift+X"],
   formatHyperlink: ["Cmd+K", "Cmd+K"],
-  formatImage: ["Cmd+Shift+I", "Cmd+Shift+I"],
+  formatImage: ["Cmd+Shift+I", "<unassigned>"],
   formatHighlight: ["Cmd+Shift+M", "Cmd+Shift+M"],
   formatClearFormat: ["Cmd+\\", "Cmd+\\"],
   viewSource: ["Ctrl+2", "<unassigned>"],
@@ -70,6 +70,5 @@ export const V2_DEFAULTS: Readonly<Record<string, readonly [string, string]>> = 
 /** Fields whose v2 availability is `none` on every platform (R1-11). */
 export const V2_UNAVAILABLE: readonly string[] = [
   "fileOpenQuickly", "fileSaveAs", "editCopyAsMarkdown", "editPasteAsPlainText",
-  "formatUnderline", "formatImage", "formatClearFormat",
   "viewToggleFullscreen", "viewSwitchDocuments",
 ];

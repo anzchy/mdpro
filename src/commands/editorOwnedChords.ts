@@ -21,7 +21,7 @@ export type InventoryEditor = "W" | "S";
 export type RemovalId = "C11" | "C12" | "C17" | "D264" | "D269" | "D271" | "D272" | "K4";
 
 /** A registered defect whose collision is not live on v2 (matrix SD16). */
-export type LatentId = "D267" | "D270";
+export type LatentId = "D267";
 
 export type Disposition =
   | { readonly kind: "implements"; readonly command: CommandId }
@@ -73,9 +73,11 @@ export function keymapNameToStored(name: string, platform: Platform): string | n
 }
 
 export const SOURCE_FORMAT_BINDINGS: readonly EditorOwnedRow[] = [
+  row("S", "mdpro:sourceFormatPlugin", "Mod-Ctrl-i", impl("format.image"), { platforms: MAC }),
   ...([
     ["Mod-b", "Ctrl-b", "format.strong"],
     ["Mod-i", "Ctrl-i", "format.emphasis"],
+    ["Mod-u", "Ctrl-u", "format.underline"],
     ["Mod-Shift-`", "Ctrl-Shift-`", "format.code"],
     ["Ctrl-Shift-`", "Alt-Shift-5", "format.strike"],
     ["Mod-Alt-c", "Ctrl-Alt-c", "paragraph.codeFences"],

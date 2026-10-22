@@ -4,6 +4,7 @@ pub mod draft_recovery;
 pub mod export;
 pub mod file;
 pub mod image;
+pub mod image_pick;
 pub mod launch;
 pub mod logging;
 pub mod mcp;
@@ -65,6 +66,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         image::upload_image,
         image::upload_images_batch,
         image::copy_external_image,
+        image_pick::pick_image,
         image::get_image_config,
         image::set_image_config,
         // MCP commands

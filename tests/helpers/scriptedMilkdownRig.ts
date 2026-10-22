@@ -32,6 +32,9 @@
  */
 import { defaultValueCtx, Editor, editorViewCtx, rootCtx } from "@milkdown/kit/core";
 import { gfm } from "@milkdown/kit/preset/gfm";
+import { history } from "@milkdown/kit/plugin/history";
+import { underlineMarkPlugin } from "../../src/plugins/milkdown/underlineMarkPlugin";
+import { typoraKeymapMilkdownPlugin } from "../../src/plugins/milkdown/typoraKeymapPlugin";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { mdproCommonmark } from "../../src/plugins/milkdown/commonmarkPreset";
 import { emptyParagraphEdgeSerializerPlugins } from "../../src/plugins/milkdown/emptyParagraph";
@@ -101,6 +104,9 @@ export async function mountScriptedMilkdownRig(
     })
     .use(mdproCommonmark)
     .use(gfm)
+    .use(history)
+    .use(underlineMarkPlugin)
+    .use(typoraKeymapMilkdownPlugin)
     .use(emptyParagraphEdgeSerializerPlugins)
     .create();
   const view = editor.action((ctx) => ctx.get(editorViewCtx));

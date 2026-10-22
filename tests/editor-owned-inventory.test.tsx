@@ -94,6 +94,14 @@ describe("composed CodeMirror keymap ⇄ S rows", () => {
     }
   });
 
+  it("D255-WI-3b Source Image binds on macOS and stays keyless on Windows and Linux", () => {
+    const image = scoped().filter((f) => f.source === "mdpro:sourceFormatPlugin" && f.key === "Mod-Ctrl-i");
+    expect(image.map((f) => f.platform)).toEqual(["macos"]);
+    expect(image[0]?.fn).toBe(IMPLEMENTS_BY_IDENTITY["format.image"]?.[0]);
+    expect(INV.filter((r) => r.source === "mdpro:sourceFormatPlugin" && r.key === "Mod-Ctrl-i")
+      .flatMap((r) => r.platforms)).toEqual(["macos"]);
+  });
+
   it("resolves platform-specific names", () => {
     const on = (p: Platform, src: string) =>
       new Set(scoped().filter((f) => f.platform === p && f.source === src).map((f) => keymapNameToStored(f.key, p)));
@@ -210,7 +218,7 @@ describe("inventory integrity", () => {
       if (r.latent !== undefined) expect(r.disposition.kind).toBe("editorOwned");
     }
     expect([...removal].sort()).toEqual(["C11", "C12", "C17", "D264", "D269", "D271", "D272", "K4"]);
-    expect([...new Set(INV.flatMap((r) => (r.latent ? [r.latent] : [])))].sort()).toEqual(["D267", "D270"]);
+    expect([...new Set(INV.flatMap((r) => (r.latent ? [r.latent] : [])))].sort()).toEqual(["D267"]);
   });
 
   it("contexts follow the editor, and table-only handlers act only in tableW", () => {
@@ -241,11 +249,11 @@ describe("R1-10b / R2-4b: every other implements pair is cited and checked", () 
       !(r.editor === "S" && [...covered].some((c) => r.source.startsWith(c))));
     const got = [...new Set(others.map((r) => `${r.source}|${r.key}|${r.disposition.kind === "implements" ? r.disposition.command : ""}`))];
     expect(got.sort()).toEqual(IMPLEMENTS_CITED.map((c) => `${c.source}|${c.key}|${c.implements}`).sort());
-    expect(IMPLEMENTS_CITED).toHaveLength(27);
+    expect(IMPLEMENTS_CITED).toHaveLength(34);
   });
 
   it("(1) each citation's line holds the key literal", () => {
-    expect(IMPLEMENTS_CITED.filter((c) => !citedLine(c.citation).includes(`"${c.key}"`)).map((c) => c.citation)).toEqual([]);
+    expect(IMPLEMENTS_CITED.filter((c) => !citedLine(c.citation).includes(JSON.stringify(c.key))).map((c) => c.citation)).toEqual([]);
   });
 
   it("(2) exported commands are bound by identity", () => {
@@ -281,12 +289,12 @@ describe("R3-2: each latent row is tied to its own reserver", () => {
 
   it("(b) a latent note explains only a collision with its own field's reserver", () => {
     const fake = (key: string): EditorOwnedRow => ({
-      editor: "S", source: "test:synthetic", key, platforms: ["macos"], contexts: ["editorS", "tableS"],
-      disposition: { kind: "editorOwned" }, latent: "D270",
+      editor: "S", source: "test:synthetic", key, platforms: ["windows"], contexts: ["editorS", "tableS"],
+      disposition: { kind: "editorOwned" }, latent: "D267",
     });
-    const own = collisions("v2", [fake("Mod-u")]);
-    expect(own.map((c) => [c.rowId, explanation(c)])).toEqual([["format.underline", "latent(D270)"]]);
-    const other = collisions("v2", [fake("Mod-l")]);
+    const own = collisions("v2", [fake("Ctrl-Shift-k")]);
+    expect(own.map((c) => [c.rowId, explanation(c)])).toEqual([["paragraph.codeFences", "latent(D267:M1b)"]]);
+    const other = collisions("v2", [fake("Ctrl-l")]);
     expect(other.map((c) => [c.rowId, explanation(c)])).toEqual([["edit.selectLine", null]]);
   });
 });

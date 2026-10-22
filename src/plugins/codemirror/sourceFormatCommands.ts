@@ -14,11 +14,20 @@ export function toggleInlineMark(view: EditorView, marker: string): boolean {
   if (view.state.readOnly) return false;
   const state = view.state;
   if (state.selection.ranges.some((range) => state.sliceDoc(range.from, range.to).includes("\n"))) return false;
+  if (state.selection.ranges.some((range) => {
+    const selected = state.sliceDoc(range.from, range.to);
+    return selected.length > 0 && selected.split("").every((char) => marker.includes(char));
+  })) return false;
   const transaction = state.changeByRange((range) => {
     const selected = state.sliceDoc(range.from, range.to);
     const length = marker.length;
-    const wrapped = selected.length >= length * 2
-      && selected.startsWith(marker) && selected.endsWith(marker);
+    const markerChar = marker[0];
+    const leading = selected.match(new RegExp(`^\\${markerChar}+`))?.[0].length ?? 0;
+    const trailing = selected.match(new RegExp(`\\${markerChar}+$`))?.[0].length ?? 0;
+    const balanced = leading === trailing && leading > 0 && selected.length > leading + trailing;
+    const wrapped = markerChar === "*"
+      ? balanced && leading <= 3 && (length === 1 ? leading === 1 || leading === 3 : leading === 2 || leading === 3)
+      : balanced && leading === length;
     const content = wrapped ? selected.slice(length, -length) : selected;
     const insert = wrapped ? content : `${marker}${content}${marker}`;
     const from = wrapped ? range.from : range.from + length;
@@ -37,11 +46,28 @@ export const emphasisCommand = (view: EditorView): boolean => toggleInlineMark(v
 export const codeCommand = (view: EditorView): boolean => toggleInlineMark(view, "`");
 export const strikeCommand = (view: EditorView): boolean => toggleInlineMark(view, "~~");
 
-/** Fence selected whole lines, with a caret in the body for an empty line. */
-export function codeFencesCommand(view: EditorView): boolean {
+/** Toggle exact HTML underline tags around every Source selection in one transaction. */
+export function underlineCommand(view: EditorView): boolean {
   if (view.state.readOnly) return false;
-  const { state } = view;
-  const { from, to } = state.selection.main;
+  const state = view.state;
+  if (state.selection.ranges.some((range) => state.sliceDoc(range.from, range.to).includes("\n"))) return false;
+  const transaction = state.changeByRange((range) => {
+    const selected = state.sliceDoc(range.from, range.to);
+    const wrapped = /^<u>(?:(?!<\/?u>).)*<\/u>$/s.test(selected);
+    const content = wrapped ? selected.slice(3, -4) : selected;
+    const insert = wrapped ? content : `<u>${selected}</u>`;
+    const from = wrapped ? range.from : range.from + 3;
+    return {
+      changes: { from: range.from, to: range.to, insert },
+      range: EditorSelection.range(from, from + content.length),
+    };
+  });
+  view.dispatch(state.update(transaction, { userEvent: "input", annotations: isolateHistory.of("full") }));
+  return true;
+}
+
+/** True when any selected line intersects an already-open fenced block. */
+function touchesExistingFence(state: EditorView["state"], from: number, to: number): boolean {
   const first = state.doc.lineAt(from);
   const last = state.doc.lineAt(to > from && state.doc.lineAt(to).from === to ? to - 1 : to);
   let fence: { marker: "`" | "~"; length: number } | null = null;
@@ -53,18 +79,29 @@ export function codeFencesCommand(view: EditorView): boolean {
     if (fence) {
       const candidate = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(syntax)?.[1];
       if (candidate && candidate[0] === fence.marker && candidate.length >= fence.length) {
-        if (number >= first.number && number <= last.number) return false;
+        if (number >= first.number && number <= last.number) return true;
         fence = null;
       }
     } else {
       const candidate = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(syntax);
       if (candidate && !(candidate[1][0] === "`" && candidate[2].includes("`"))) {
-        if (number >= first.number && number <= last.number) return false;
+        if (number >= first.number && number <= last.number) return true;
         fence = { marker: candidate[1][0] as "`" | "~", length: candidate[1].length };
       }
     }
-    if (number === first.number && fence) return false;
+    if (number === first.number && fence) return true;
   }
+  return false;
+}
+
+/** Fence selected whole lines, with a caret in the body for an empty line. */
+export function codeFencesCommand(view: EditorView): boolean {
+  if (view.state.readOnly) return false;
+  const { state } = view;
+  if (state.selection.ranges.some((range) => touchesExistingFence(state, range.from, range.to))) return false;
+  const { from, to } = state.selection.main;
+  const first = state.doc.lineAt(from);
+  const last = state.doc.lineAt(to > from && state.doc.lineAt(to).from === to ? to - 1 : to);
   const selected = state.sliceDoc(first.from, last.to);
   const trailing = last.number < state.doc.lines ? "\n" : "";
   const insert = `\`\`\`\n${selected}\n\`\`\`${trailing}`;

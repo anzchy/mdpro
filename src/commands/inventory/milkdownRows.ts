@@ -4,6 +4,7 @@
  * (with their entry names), mdpro's typora keymap, Milkdown core's ProseMirror
  * base keymap (macOS adds its Emacs-style rows), and the `handleKeyDown`
  * handlers of prosemirror-tables' tableEditing and mdpro's inlineEditPlugin.
+ * D255-WI-3b adds the seven current v1 WYSIWYG command entries.
  * Only names with a modifier are listed.
  *
  * @coordinates-with tests/editor-owned-inventory.test.tsx — bijection with the exports
@@ -62,6 +63,13 @@ const TYPORA: readonly EditorOwnedRow[] = [
   typora("Mod-0", "paragraph", impl("paragraph.paragraph")),
   typora("Mod-b", "bold", impl("format.strong")),
   typora("Mod-i", "italic", impl("format.emphasis")),
+  typora("Mod-=", "increaseHeading", impl("paragraph.increaseHeading")),
+  typora("Mod--", "decreaseHeading", impl("paragraph.decreaseHeading")),
+  typora("Mod-d", "selectWord", impl("edit.selectWord")),
+  typora("Mod-l", "selectLine", impl("edit.selectLine")),
+  typora("Mod-\\", "clearFormat", impl("format.clearFormat")),
+  typora("Mod-u", "underline", impl("format.underline")),
+  typora("Mod-Ctrl-i", "image", impl("format.image"), { platforms: MAC }),
   row("W", "mdpro:typoraKeymap", "Shift-Tab", owned, { names: ["codeBlockOutdent", "tableShiftTab"] }),
   typora("Mod-Shift-`", "inlineCode", impl("format.code")),
   typora("Ctrl-Shift-`", "strikethrough", impl("format.strike"), { platforms: MAC }),

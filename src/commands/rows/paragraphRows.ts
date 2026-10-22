@@ -46,7 +46,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     field: "paragraphIncreaseHeading",
     v1: "Cmd+=",
     v2: "Cmd+Option+]",
-    availability: ["S", "S"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "paragraph.decreaseHeading",
@@ -55,7 +55,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     field: "paragraphDecreaseHeading",
     v1: "Cmd+-",
     v2: "Cmd+Option+[",
-    availability: ["S", "S"],
+    availability: ["both", "both"],
   }),
   configurable({
     id: "paragraph.table",

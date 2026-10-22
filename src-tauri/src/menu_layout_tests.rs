@@ -3,6 +3,7 @@
 //! "Unit: src-tauri/src/menu_layout.rs".
 
 use super::*;
+use crate::models::preferences::keyboard_shortcut_defaults::effective_image_shortcut;
 use crate::models::KeyboardShortcuts;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -52,11 +53,48 @@ fn pref_fields_and_v1_defaults_equal_keyboard_shortcuts_default() {
     for (field, row) in &by_field {
         let want = defaults[*field].as_str().expect("a string default");
         for (platform, key) in per_platform(&row.key) {
+            let effective = if *field == "formatImage" {
+                effective_image_shortcut(platform == "macos", want)
+            } else {
+                want
+            };
             assert_eq!(
                 key.defaults.v1.as_deref(),
-                Some(want),
+                Some(effective),
                 "{field} v1 on {platform}"
             );
+        }
+    }
+}
+
+#[test]
+fn image_layout_default_matches_shared_legacy_parity_rows() {
+    let cases: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/legacy-image-shortcut-cases.json"
+    ))
+    .expect("image parity fixture");
+    let rows = cases.as_array().expect("rows");
+    let image = layout()
+        .rows
+        .iter()
+        .find(|row| row.id == "format.image")
+        .expect("Image row");
+    for case in rows {
+        let platform = case["platform"].as_str().expect("platform");
+        let stored = case["stored"].as_str().expect("stored");
+        let expected = case["expected"].as_str().expect("expected");
+        assert_eq!(
+            effective_image_shortcut(platform == "macos", stored),
+            expected
+        );
+        if stored == "Cmd+Ctrl+I" || stored.is_empty() {
+            let key = match platform {
+                "macos" => &image.key.macos,
+                "windows" => &image.key.windows,
+                "linux" => &image.key.linux,
+                _ => panic!("unknown platform"),
+            };
+            assert_eq!(key.defaults.v1.as_deref(), Some(expected));
         }
     }
 }

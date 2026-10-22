@@ -138,6 +138,25 @@ pub(super) fn default_hyperlink() -> String {
 pub(super) fn default_image() -> String {
     "Cmd+Ctrl+I".to_string()
 }
+
+/// Effective Image key for a platform; the saved value itself stays untouched.
+pub(crate) fn effective_image_shortcut(is_macos: bool, stored: &str) -> &str {
+    if stored.is_empty() {
+        return if is_macos {
+            "Cmd+Ctrl+I"
+        } else {
+            "<unassigned>"
+        };
+    }
+    if !is_macos && stored == "Cmd+Ctrl+I" {
+        return "<unassigned>";
+    }
+    stored
+}
+
+#[cfg(test)]
+#[path = "legacy_image_shortcut_tests.rs"]
+mod legacy_image_shortcut_tests;
 pub(super) fn default_highlight() -> String {
     "Cmd+Shift+H".to_string()
 }

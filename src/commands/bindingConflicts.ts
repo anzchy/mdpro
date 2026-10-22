@@ -33,6 +33,7 @@ import { COMMAND_TABLE } from "./commandTable";
 import type { Availability, CommandRow, OwnershipContext, Platform } from "./commandTable.types";
 import { normaliseStored } from "./chord";
 import { EDITOR_OWNED_CHORDS } from "./editorOwnedChords";
+import { effectiveImageShortcut } from "./legacyImageShortcut";
 import { physicallyShadowedBy } from "./physicalOverlap";
 import { RESERVED_CHORDS } from "./reservedChords";
 import { type HardOwner, hardOwnerIndex, minId, secondaryOwners, topOwner } from "./bindingOwners";
@@ -75,7 +76,8 @@ function entryOf(
 ): { entry: Entry; value: string } {
   const def = row.key[p].defaults[ver] ?? "";
   const raw = stored[field];
-  const value = typeof raw === "string" ? raw : def;
+  const saved = typeof raw === "string" ? raw : def;
+  const value = field === "formatImage" ? effectiveImageShortcut(p, saved) : saved;
   const avail = override ?? row.availability[p][ver];
   const contexts = override !== undefined && override !== "none" ? availabilityContexts(override) : row.contexts;
   const allowed = availabilityContexts(avail);

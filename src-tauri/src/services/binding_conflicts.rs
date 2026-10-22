@@ -32,6 +32,7 @@ use crate::menu_layout::{
     menu_layout, Availability, CommandRow, MenuLayout, OwnershipContext, Platform,
 };
 use crate::models::chord::{normalise_stored, Platform as ChordPlatform};
+use crate::models::preferences::keyboard_shortcut_defaults::effective_image_shortcut;
 use owners::{
     add_secondaries, availability_contexts, chord_platform, intersects, min_holder, on,
     shared_index, top_owner, Holder, OwnerIndex,
@@ -146,7 +147,12 @@ pub fn resolve_with(
         };
         let key = on(&row.key, platform);
         let def = key.default_at(v2).unwrap_or_default();
-        let value = stored.get(&field).map_or(def, String::as_str);
+        let raw = stored.get(&field).map_or(def, String::as_str);
+        let value = if field == "formatImage" {
+            effective_image_shortcut(platform == Platform::Macos, raw)
+        } else {
+            raw
+        };
         let avail = on(&row.availability, platform);
         let ov = overrides.get(&field).copied();
         let avail = ov.unwrap_or(if v2 { avail.v2 } else { avail.v1 });
