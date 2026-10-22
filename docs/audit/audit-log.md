@@ -89,3 +89,8 @@ The first ten audit requests after ADR-0131 (2026-10-22), one row each: how long
 
 | # | Date | Item · round | Auditor | Reset check (session id changed?) | Duration | Input tokens | Cached | Output |
 |---|---|---|---|---|---|---|---|---|
+| 1 | 2026-10-22 | ADR-0132 r1 | gpt-auditor | yes (`01a16248…` → `01a1624b…`) | 289 s | not captured | not captured | not captured |
+| 2 | 2026-10-22 | ADR-0132 r2 | gpt-auditor | yes (`01a16251…` → `01a16256…`) | 143 s | not captured | not captured | not captured |
+| 3 | 2026-10-22 | ADR-0132 r3 | gpt-auditor | yes (→ `01a1625a…`) | 101 s | not captured | not captured | not captured |
+
+Token counts were not captured for rows 1–3: the Codex pane shows only a context percentage. From row 4 on, read the session's final usage with `/status` before the next reset.

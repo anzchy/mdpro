@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known issues
 
-- On macOS, closing a secondary window can occasionally make mdpro quit unexpectedly (about 1 close in 25 in device testing at the smallest window width). Unsaved edits up to the last automatic draft save, made every 30 seconds, are offered for recovery at the next launch; edits made after it are lost. Targeted for 0.3.7 (D294).
+- On macOS, closing a secondary window can occasionally make mdpro quit unexpectedly (seen in 2 of 46 closes in device testing at the smallest window width). Unsaved edits that no automatic draft holds are lost. Drafts cover each window's active tab at the interval set in Settings (30 seconds by default), so recent edits, edits in background tabs, and everything unsaved when autosave is off can be lost. Targeted for 0.3.7 (D294).
 
 ### Fixed
 

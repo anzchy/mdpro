@@ -2,6 +2,8 @@
 
 ## Status
 
+Extended 2026-10-22 by [ADR-0132](0132-d294-secondary-window-close-crash-ships-as-a-known-issue-with-a-0-3-7-fix-by.md): D294, a device-found defect, joins decision 5's tracked set by name, with a stricter "absent" rule. Nothing in this ADR is superseded.
+
 Accepted, 2026-10-21. Decided by the user, recorded by herdr-delegator. The user's words: 「采纳 (Recommended)」.
 Reviewed before acceptance by Opus (`plan` mode, three rounds, final READY C0 H0) and by gpt-auditor (`review-plan`,
 two rounds, final READY C0 H0); merged record `~/.mdpro-redesign/herdr-spike/delegator/merged-ADR0129.md`.
