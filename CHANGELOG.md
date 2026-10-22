@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Known issues
+
+- On macOS, closing a secondary window can occasionally make mdpro quit unexpectedly (about 1 close in 25 in device testing at the smallest window width). Unsaved edits up to the last automatic draft save, made every 30 seconds, are offered for recovery at the next launch; edits made after it are lost. Targeted for 0.3.7 (D294).
+
 ### Fixed
 
 - Source mode now supports Bold, Italic, Inline Code, Strikethrough, Code Fences, Math Block, Ordered and Unordered Lists, Select Line, and Delete Word through its v1 shortcuts and editor commands. Quote is implemented but remains hidden until v2 keys are enabled (D255-WI-3a; device check pending).
