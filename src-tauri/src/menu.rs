@@ -5,7 +5,8 @@
 //! - Each `menu:action` goes to one window, `emit_to` the target `route`
 //!   resolves in `menu_target.rs` (D261); nothing broadcasts it.
 //! - Recent-files state and the "Open Recent" submenu live in `menu_recent.rs`;
-//!   the Edit, View, Theme, Window and Help submenus in `menu_submenus.rs`.
+//!   Edit and Format builders live in `menu_edit.rs` and `menu_format.rs`,
+//!   while View, Theme, Window and Help live in `menu_submenus.rs`.
 //!   `MenuState::publish_op` merges a window's op under a sync lock and
 //!   publishes only once the menu built from it has installed (audit row 18);
 //!   the click handler below reads the list through the data mutex only.
@@ -19,6 +20,9 @@
 //! @coordinates-with src/menu_target.rs
 //! @coordinates-with src/menu_quit.rs
 //! @coordinates-with src/menu_submenus.rs
+//! @coordinates-with src/menu_edit.rs
+//! @coordinates-with src/menu_format.rs
+//! @coordinates-with src/menu_paragraph.rs
 //! @coordinates-with src/menu_recent.rs
 //! @coordinates-with src/menu_recent_merge.rs
 //! @coordinates-with src/commands/menu.rs
@@ -75,6 +79,15 @@ mod menu_quit;
 
 #[path = "menu_submenus.rs"]
 mod menu_submenus;
+
+#[path = "menu_edit.rs"]
+mod menu_edit;
+
+#[path = "menu_format.rs"]
+mod menu_format;
+
+#[path = "menu_paragraph.rs"]
+mod menu_paragraph;
 
 #[path = "menu_about.rs"]
 mod menu_about;
@@ -192,27 +205,9 @@ pub fn build_menu(
         .item(&file_close)
         .build()?;
 
-    let edit_menu = menu_submenus::edit_menu(app)?;
+    let edit_menu = menu_edit::edit_menu(app)?;
     let view_menu = menu_submenus::view_menu(app, active_view_mode)?;
-
-    let format_highlight = MenuItem::with_id(
-        app,
-        MENU_FORMAT_HIGHLIGHT,
-        "Highlight Selection",
-        true,
-        Some("CmdOrCtrl+Shift+H"),
-    )?;
-    let format_insert_table = MenuItem::with_id(
-        app,
-        MENU_FORMAT_INSERT_TABLE,
-        "Insert Table",
-        active_view_mode == Some("wysiwyg"),
-        Some("CmdOrCtrl+Alt+T"),
-    )?;
-    let format_menu = SubmenuBuilder::new(app, "Format")
-        .item(&format_highlight)
-        .item(&format_insert_table)
-        .build()?;
+    let format_menu = menu_format::format_menu(app, active_view_mode == Some("wysiwyg"))?;
 
     let theme_menu = menu_submenus::theme_menu(app)?;
     let window_menu = menu_submenus::window_menu(app)?;
