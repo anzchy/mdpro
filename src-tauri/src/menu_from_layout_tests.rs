@@ -172,7 +172,7 @@ fn m4_wi2_unassigned_and_bad_chord_are_keyless_and_bad_value_is_not_logged() {
 }
 
 #[test]
-fn m4_wi2_reserved_defaults_are_keyless_when_rows_gain_paths() {
+fn m1b_switch_documents_uses_v2_key_while_macos_fullscreen_stays_system_owned() {
     let mut layout = menu_layout().unwrap().clone();
     for (id, name) in [
         ("view.switchDocuments", "Switch Documents"),
@@ -183,9 +183,15 @@ fn m4_wi2_reserved_defaults_are_keyless_when_rows_gain_paths() {
         row.menu_id = Some(format!("menu.synthetic.{id}"));
     }
     let items = menu_layout_for(&layout, &defaults(), Some(ViewMode::Wysiwyg));
-    for id in ["view.switchDocuments", "view.toggleFullscreen"] {
-        assert_eq!(item(&items, id).accelerator, None, "{id}");
-    }
+    assert_eq!(
+        item(&items, "view.switchDocuments").accelerator.as_deref(),
+        Some("Ctrl+Tab")
+    );
+    assert_eq!(item(&items, "view.toggleFullscreen").accelerator, None);
+    let mut v1 = defaults();
+    v1.keyboard_shortcuts_version = 1;
+    let v1_items = menu_layout_for(&layout, &v1, Some(ViewMode::Wysiwyg));
+    assert_eq!(item(&v1_items, "view.switchDocuments").accelerator, None);
     assert_eq!(
         item(&items, "file.new").accelerator.as_deref(),
         Some("Cmd+N")

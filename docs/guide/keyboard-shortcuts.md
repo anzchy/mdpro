@@ -51,8 +51,8 @@ These shortcuts work across all view modes.
 | Image | ⇧⌘I | Ctrl+Shift+I |
 | Highlight | ⇧⌘M | Ctrl+Shift+M |
 | Source / WYSIWYG view | ⌃2 / ⌃4 | Unassigned |
-| Fullscreen | System | F11 (not available until its command is built) |
-| Switch Documents | ⌃Tab (not available yet) | Ctrl+Tab (not available yet) |
+| Fullscreen | System | F11 (v2) |
+| Switch Documents | ⌃Tab (v2) | Ctrl+Tab (v2) |
 
 On macOS, Hide mdpro has no key so ⌘H can open Replace in Source. The
 Window menu no longer has a second Close Window item. Ctrl+Alt heading and

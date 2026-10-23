@@ -1,8 +1,9 @@
 /**
  * Purpose: command-table rows for the View group of `KeyboardShortcuts`.
  * v1 = today's defaults; v2 = plan § 5.3.2 with D11 (⌘/ first, F6 second),
- * D15 (off-Mac F11 full screen, unavailable until D255-WI-3d) and C4
- * (Switch Documents ⌃Tab / Ctrl+Tab, reserved and unavailable).
+ * D15 (off-Mac F11 full screen) and C4 (Switch Documents ⌃Tab /
+ * Ctrl+Tab) are available after D255-WI-3d; v1 does not activate its legacy
+ * switch default.
  *
  * @coordinates-with src/commands/commandTable.ts — assembles the rows
  */

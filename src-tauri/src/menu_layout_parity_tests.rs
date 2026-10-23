@@ -74,7 +74,7 @@ fn layout_menu_ids_with_a_menu_path_equal_the_menu_constants() {
     ]
     .into_iter()
     .collect();
-    assert_eq!(expected.len(), 55);
+    assert_eq!(expected.len(), 56);
 
     let layout = menu_layout().expect("the committed menu_layout.json parses");
     let with_path: BTreeSet<&str> = layout

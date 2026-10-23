@@ -55,11 +55,13 @@ export function useKeyboardShortcuts({
   onExportHtml,
   onToggleSidebar,
   onToggleFullscreen,
+  onSwitchDocuments,
   onCycleViewMode,
   onOpenPreferences,
   onInsertTable,
   onTableAction,
   shortcuts = DEFAULT_KEYBOARD_SHORTCUTS,
+  shortcutsVersion = 2,
 }: ShortcutHandlers) {
   const editorView = useEditorStore((state) => state.editorView);
 
@@ -126,7 +128,11 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.viewToggleSidebar, { action: "view.toggle_sidebar" });
         onToggleSidebar(actionId);
-      } else if (onToggleFullscreen && !isMac && shortcuts.viewToggleFullscreen === "F11" && matchesShortcut(event, "F11")) {
+      } else if (onSwitchDocuments && shortcutsVersion >= 2 && matchesShortcut(event, shortcuts.viewSwitchDocuments)) {
+        event.preventDefault();
+        const actionId = loggingService.logShortcut(shortcuts.viewSwitchDocuments, { action: "view.switch_documents" });
+        onSwitchDocuments(actionId);
+      } else if (onToggleFullscreen && shortcutsVersion >= 2 && !isMac && shortcuts.viewToggleFullscreen === "F11" && matchesShortcut(event, "F11")) {
         event.preventDefault();
         const actionId = loggingService.logShortcut("F11", { action: "view.toggle_fullscreen" });
         onToggleFullscreen(actionId);
@@ -227,6 +233,8 @@ export function useKeyboardShortcuts({
     onSaveAs,
     onToggleSidebar,
     onToggleFullscreen,
+    onSwitchDocuments,
     shortcuts,
+    shortcutsVersion,
   ]);
 }

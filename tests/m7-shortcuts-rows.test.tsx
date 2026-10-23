@@ -143,7 +143,7 @@ describe("M7 row states", () => {
     await record(user, "Find Next", "{Meta>}j{/Meta}");
     await clickSave(user);
     await waitFor(() => expect(closed).toHaveLength(1));
-    expect(fake.state.writes[0]?.fileOpenQuickly).toBe(DEFAULT_KEYBOARD_SHORTCUTS.fileOpenQuickly);
+    expect(fake.state.writes[0]?.fileOpenQuickly).toBe(v1TableDefaults("macos").fileOpenQuickly);
   });
 
   it("r2 WYSIWYG only / Source only: the key button works and the capability line sits under the name", async () => {

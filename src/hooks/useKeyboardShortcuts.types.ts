@@ -25,6 +25,7 @@ export interface ShortcutHandlers {
   onExportHtml?: (actionId?: string) => void;
   onToggleSidebar?: (actionId?: string) => void;
   onToggleFullscreen?: (actionId?: string) => void;
+  onSwitchDocuments?: (actionId?: string) => void;
   onCycleViewMode?: (actionId?: string) => void;
   onOpenPreferences?: (actionId?: string) => void;
   /**
@@ -42,6 +43,8 @@ export interface ShortcutHandlers {
   onTableAction?: (id: TableShortcutAction, actionId?: string) => void;
   /** Live keyboard shortcut map. Defaults to DEFAULT_KEYBOARD_SHORTCUTS. */
   shortcuts?: KeyboardShortcuts | null;
+  /** Loaded applied-set version; v1 exposes Switch Documents without a key. */
+  shortcutsVersion?: number;
 }
 
 export type TableShortcutAction =

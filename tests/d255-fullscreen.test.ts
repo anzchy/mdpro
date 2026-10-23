@@ -17,10 +17,11 @@ it("only an applied off-Mac F11 binding fires the keyboard command", async () =>
     return event.defaultPrevented;
   };
   try {
-    for (const [platform, binding, shouldFire] of [
-      ["Win32", "Cmd+Option+F", false],
-      ["Win32", "F11", true],
-      ["MacIntel", "F11", false],
+    for (const [platform, binding, version, shouldFire] of [
+      ["Win32", "Cmd+Option+F", 2, false],
+      ["Win32", "F11", 2, true],
+      ["Win32", "F11", 1, false],
+      ["MacIntel", "F11", 2, false],
     ] as const) {
       Object.defineProperty(window.navigator, "platform", { value: platform, configurable: true });
       vi.resetModules();
@@ -29,10 +30,43 @@ it("only an applied off-Mac F11 binding fires the keyboard command", async () =>
       const onToggleFullscreen = vi.fn();
       const { unmount } = renderHook(() => useKeyboardShortcuts({
         onToggleFullscreen,
+        shortcutsVersion: version,
         shortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS, viewToggleFullscreen: binding },
       }));
       expect(press("F11")).toBe(shouldFire);
       expect(onToggleFullscreen).toHaveBeenCalledTimes(shouldFire ? 1 : 0);
+      unmount();
+    }
+  } finally {
+    Object.defineProperty(window.navigator, "platform", { value: originalPlatform, configurable: true });
+  }
+});
+
+it("uses the off-Mac applied Ctrl+Tab for Switch Documents only in v2", async () => {
+  const originalPlatform = window.navigator.platform;
+  Object.defineProperty(window.navigator, "platform", { value: "Win32", configurable: true });
+  try {
+    vi.resetModules();
+    const { useKeyboardShortcuts } = await import("../src/hooks/useKeyboardShortcuts");
+    const { DEFAULT_KEYBOARD_SHORTCUTS } = await import("../src/types/preferences");
+    const press = () => {
+      const event = new KeyboardEvent("keydown", { key: "Tab", ctrlKey: true, bubbles: true, cancelable: true });
+      act(() => window.dispatchEvent(event));
+      return event.defaultPrevented;
+    };
+    for (const [version, binding, fires] of [
+      [1, "Cmd+Tab", false],
+      [2, "<unassigned>", false],
+      [2, "Cmd+Tab", true],
+    ] as const) {
+      const switched = vi.fn();
+      const { unmount } = renderHook(() => useKeyboardShortcuts({
+        onSwitchDocuments: switched,
+        shortcutsVersion: version,
+        shortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS, viewSwitchDocuments: binding },
+      }));
+      expect(press()).toBe(fires);
+      expect(switched).toHaveBeenCalledTimes(fires ? 1 : 0);
       unmount();
     }
   } finally {

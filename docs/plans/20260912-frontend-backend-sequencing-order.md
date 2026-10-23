@@ -433,7 +433,7 @@ WI-5.1 Rust 模型 → WI-5.2 TS 类型 → WI-5.3 运行时应用 → WI-5.4 �
 
 | 菜单工作项 | 状态 | 证据 |
 |---|---|---|
-| <a id="m1b-fix1"></a>**M1b Fix 1** | 🟡 分支已修复，待 Linux CI、审计与真机；未落地 | 2026-10-23 修复 WYSIWYG AltGr、Source 已释放键与导航所有权、自定义方向键、v2 菜单分发、标题降级，并修正六个 Linux Rust 测试的主机假设。回归覆盖 Mac / 非 Mac 挂载编辑器和共享 Rust/TS 所有权夹具；收据及例外记在本项的 Fix 1 handoff。 |
+| <a id="m1b-fix1"></a>**M1b Fix 1** | 🟡 分支已修复，待 Linux CI、审计与真机；未落地 | 2026-10-23 修复 WYSIWYG AltGr、Source 已释放键与导航所有权、自定义方向键、v2 菜单分发、标题降级，并修正六个 Linux Rust 测试的主机假设。随后 rebase 到 D255-WI-3d：v2 ⌃Tab / Ctrl+Tab 接入应用后的切换文档键，v1 不绑定；非 Mac F11 仅在 v2 应用绑定时触发。回归覆盖 Mac / 非 Mac 挂载编辑器和共享 Rust/TS 所有权夹具；收据及例外记在本项的 Fix 1 与 Rebase handoff。 |
 | <a id="m4"></a>**M4** | ✅ 已落地 `2a9fa451`（PR #527，2026-10-22）；真机菜单栏批次待验（`真机未验`） | WI-1 c17ead3e、WI-2/3 e1cc7d11、WI-4–7 2a9fa451。High 级审计 r1：Codex C0 H0 M0 L2、Fable C0 H0 M7 L6、`/security-review` C0 H0 M0 L1，合并 C0 H0。verifier ISSUES 仅为收据，用户追认为 G527-1（「Accept retroactively (Recommended)」）。待真机：macOS 原生 AppKit 菜单树与描述树一致；Windows 上 `rebuild_offmac_root` 的菜单（Fable M，无门禁覆盖）。 |
 
 | ID | 级别 | 状态 | 缺陷 | 证据与提交 |

@@ -415,7 +415,7 @@ WYSIWYG|menu.view.wysiwyg|on|Ctrl+4
 Cycle View Mode|menu.view.cycle|on|Cmd+/
 —
 Toggle Sidebar|menu.view.toggle_sidebar|on|Cmd+Shift+L
-Switch Documents|menu.view.switch_documents|on|-
+Switch Documents|menu.view.switch_documents|on|Ctrl+Tab
 [Themes]
 Light|menu.theme.light|on|-
 Dark|menu.theme.dark|on|-
@@ -568,7 +568,7 @@ WYSIWYG|menu.view.wysiwyg|on|Ctrl+4
 Cycle View Mode|menu.view.cycle|on|Cmd+/
 —
 Toggle Sidebar|menu.view.toggle_sidebar|on|Cmd+Shift+L
-Switch Documents|menu.view.switch_documents|on|-
+Switch Documents|menu.view.switch_documents|on|Ctrl+Tab
 [Themes]
 Light|menu.theme.light|on|-
 Dark|menu.theme.dark|on|-

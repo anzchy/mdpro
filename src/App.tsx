@@ -798,11 +798,13 @@ function App() {
     onClose: handleCloseRequest,
     onToggleSidebar: sidebarPreference.toggle,
     onToggleFullscreen: (actionId) => void windowService.toggleFullscreenWithFeedback(showToast, actionId),
+    onSwitchDocuments: switchToMostRecentDocument,
     onCycleViewMode: userViewModeCommands.cycle,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: () => triggerTableInsert(),
     onTableAction: handleTableShortcut,
     shortcuts: keyboardShortcuts,
+    shortcutsVersion: appliedShortcuts?.keyboardShortcutsVersion,
   });
 
   useMenuEvents({

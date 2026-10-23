@@ -16,6 +16,8 @@ vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 import { useDocument } from "../src/hooks/useDocument";
 import { useMenuEvents } from "../src/hooks/useMenuEvents";
+import { useKeyboardShortcuts } from "../src/hooks/useKeyboardShortcuts";
+import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import { switchToMostRecentDocument } from "../src/hooks/switchDocuments";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
@@ -46,6 +48,32 @@ beforeEach(() => {
 });
 
 describe("D255 Switch Documents", () => {
+  it("uses the applied v2 Ctrl+Tab to switch MRU, while v1 stays keyless", () => {
+    const { result } = renderHook(() => useDocument());
+    act(() => result.current.setActiveDocumentById("b"));
+    act(() => result.current.setActiveDocumentById("c"));
+    const { unmount } = renderHook(() => useKeyboardShortcuts({
+      onSwitchDocuments: switchToMostRecentDocument,
+      shortcutsVersion: 2,
+      shortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS, viewSwitchDocuments: "Ctrl+Tab" },
+    }));
+    const press = (key: string) => {
+      const event = new KeyboardEvent("keydown", { key, ctrlKey: true, bubbles: true, cancelable: true });
+      act(() => window.dispatchEvent(event));
+      return event.defaultPrevented;
+    };
+    expect(press("Tab")).toBe(true);
+    expect(active()).toEqual({ document: "b", editor: "b", tab: "b" });
+    unmount();
+    const old = renderHook(() => useKeyboardShortcuts({
+      onSwitchDocuments: switchToMostRecentDocument,
+      shortcutsVersion: 1,
+      shortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS, viewSwitchDocuments: "Ctrl+Tab" },
+    }));
+    expect(press("Tab")).toBe(false);
+    expect(active()).toEqual({ document: "b", editor: "b", tab: "b" });
+    old.unmount();
+  });
   it("zero tabs logs a no-op and leaves every active identity empty", () => {
     const log = vi.spyOn(loggingService, "logEventSync");
     useDocumentStore.setState({ documents: [], activeDocumentId: null });

@@ -29,7 +29,8 @@ const stripComments = (text: string) =>
 const APP_RAW = raw("App.tsx");
 const app = stripComments(APP_RAW);
 const token = stripComments(raw("utils/menuTargetToken.ts"));
-const APP_BASE_LINES = 977;
+// WI-3d and M1b each add App routing; their combined tree is 985 lines.
+const APP_BASE_LINES = 986;
 
 function mustMatch(re: RegExp, text: string, what: string): RegExpMatchArray {
   const m = text.match(re);
