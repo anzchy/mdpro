@@ -9,6 +9,10 @@ Proposed the same day. Revision 2 answers both round-one reviews
 Codex's round 3 on revision 4 counted C0 H0 M2; Opus did not review revision 4, the round cap (ADR-0120) having
 been reached. Implementation is queued after the 0.3.6 lock.
 
+2026-10-23: placement re-assessed by both auditors (a third mode, Source only, or both editors); the user kept
+Source only: 「Stick to B, based on opus and codex audit」. Record:
+[placement assessment](../reference/20261023-adr-0136-placement-assessment.md).
+
 The user's requests that led to it:
 1. The survey: 「let gpt-auditor to do a survey: add vim style navigation,which use `prefix + *`, so that we can
    quickly navigate through characters/ words/ paragrahps, select words/a paragraph etc. to avoid conflicts with current
