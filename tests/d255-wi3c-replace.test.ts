@@ -12,6 +12,77 @@ const schema = new Schema({ nodes: {
 const pluginPath = "../src/plugins/milkdown/find/findPlugin";
 
 describe("WYSIWYG replacement", () => {
+  for (const [replacement, firstText, nextRange, secondText] of [
+    ["Cat", "Cat cat cat", { from: 5, to: 8 }, "Cat Cat cat"],
+    ["cats", "cats cat cat", { from: 6, to: 9 }, "cats cats cat"],
+  ] as const) {
+    it(`advances past its own ${replacement} insertion on repeated Replace`, async () => {
+      const find = await import(/* @vite-ignore */ pluginPath);
+      const host = document.createElement("div"); document.body.append(host);
+      const view = new EditorView(host, { state: EditorState.create({
+        schema, doc: schema.node("doc", null, schema.node("paragraph", null, schema.text("cat cat cat"))),
+        plugins: [history(), find.createFindPlugin()],
+      }) });
+      try {
+        find.setFindQuery(view, "cat");
+        expect(find.replaceFind(view, replacement, false)).toBe(true);
+        expect(view.state.doc.textContent).toBe(firstText);
+        const state = find.getFindState(view.state);
+        expect(state.matches[state.current]).toEqual(nextRange);
+        expect(find.replaceFind(view, replacement, false)).toBe(true);
+        expect(view.state.doc.textContent).toBe(secondText);
+      } finally { view.destroy(); host.remove(); }
+    });
+  }
+
+  it("wraps to the first remaining match after replacing the last one", async () => {
+    const find = await import(/* @vite-ignore */ pluginPath);
+    const host = document.createElement("div"); document.body.append(host);
+    const view = new EditorView(host, { state: EditorState.create({
+      schema, doc: schema.node("doc", null, schema.node("paragraph", null, schema.text("cat cat cat"))),
+      plugins: [history(), find.createFindPlugin()],
+    }) });
+    try {
+      find.setFindQuery(view, "cat");
+      find.moveFind(view, -1);
+      expect(find.replaceFind(view, "cats", false)).toBe(true);
+      expect(view.state.doc.textContent).toBe("cat cat cats");
+      const state = find.getFindState(view.state);
+      expect(state.matches[state.current]).toEqual({ from: 1, to: 4 });
+    } finally { view.destroy(); host.remove(); }
+  });
+
+  it("selects no match when single Replace removes the last occurrence", async () => {
+    const find = await import(/* @vite-ignore */ pluginPath);
+    const host = document.createElement("div"); document.body.append(host);
+    const view = new EditorView(host, { state: EditorState.create({
+      schema, doc: schema.node("doc", null, schema.node("paragraph", null, schema.text("cat"))),
+      plugins: [history(), find.createFindPlugin()],
+    }) });
+    try {
+      find.setFindQuery(view, "cat");
+      expect(find.replaceFind(view, "dog", false)).toBe(true);
+      expect(view.state.doc.textContent).toBe("dog");
+      expect(find.getFindState(view.state).matches).toEqual([]);
+      expect(find.getFindState(view.state).current).toBe(-1);
+    } finally { view.destroy(); host.remove(); }
+  });
+
+  it("preserves the current occurrence across an ordinary edit elsewhere", async () => {
+    const find = await import(/* @vite-ignore */ pluginPath);
+    const host = document.createElement("div"); document.body.append(host);
+    const view = new EditorView(host, { state: EditorState.create({
+      schema, doc: schema.node("doc", null, schema.node("paragraph", null, schema.text("cat cat"))),
+      plugins: [find.createFindPlugin()],
+    }) });
+    try {
+      find.setFindQuery(view, "cat"); find.moveFind(view, 1);
+      view.dispatch(view.state.tr.insertText("cat ", 1));
+      const state = find.getFindState(view.state);
+      expect(state.matches[state.current]).toEqual({ from: 9, to: 12 });
+    } finally { view.destroy(); host.remove(); }
+  });
+
   it("replaces only the current eligible match and advances", async () => {
     const find = await import(/* @vite-ignore */ pluginPath).catch(() => null);
     expect(find).not.toBeNull();

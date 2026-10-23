@@ -1,5 +1,5 @@
 /**
- * Purpose: keep WYSIWYG find state and decorations in ProseMirror without changing its document.
+ * Purpose: track WYSIWYG find decorations and coordinate undoable document replacement.
  * @coordinates-with findModel.ts
  * @coordinates-with ../../../components/Editor/FindReplaceBar.tsx
  */
@@ -22,6 +22,7 @@ type FindAction =
   | { type: "query"; query: string }
   | { type: "options"; options: Partial<FindOptions> }
   | { type: "move"; direction: 1 | -1 }
+  | { type: "replaceNext" }
   | { type: "close" };
 
 export const findPluginKey = new PluginKey<FindState>("mdpro-find");
@@ -45,6 +46,11 @@ function reduceFind(tr: Transaction, state: FindState): FindState {
   if (tr.docChanged || action?.type === "open" || action?.type === "query" || action?.type === "options") {
     const matches = findMatches(tr.doc, next.query, next);
     const oldRange = state.matches[state.current];
+    if (action?.type === "replaceNext" && oldRange) {
+      const afterInsertion = tr.mapping.map(oldRange.to, 1);
+      const following = matches.findIndex((range) => range.from >= afterInsertion);
+      return { ...next, matches, current: !matches.length ? -1 : following >= 0 ? following : 0 };
+    }
     const mappedStart = tr.docChanged && oldRange ? tr.mapping.map(oldRange.from, 1) : -1;
     const mappedCurrent = matches.findIndex((range) => range.from === mappedStart);
     const nextAfterRemoved = matches.findIndex((range) => range.from >= mappedStart);
@@ -114,7 +120,9 @@ export function closeFind(view: EditorView): void {
   dispatchAction(view, { type: "close" });
 }
 
-/** Replace the current match or the pre-operation match set as one isolated undo event. */
+/** Replace the current match or the pre-operation match set as one isolated undo event.
+ * Single Replace advances after its insertion, even when the inserted text matches the query.
+ */
 export function replaceFind(view: EditorView, replacement: string, all: boolean): boolean {
   if (view.isDestroyed || !view.dom.isConnected || !view.editable || view.composing) return false;
   const find = getFindState(view.state);
@@ -123,6 +131,7 @@ export function replaceFind(view: EditorView, replacement: string, all: boolean)
   if (!ranges.length || ranges.some((range) => !range)) return false;
   let tr = closeHistory(view.state.tr);
   for (const range of [...ranges].reverse()) tr = tr.insertText(replacement, range.from, range.to);
+  if (!all) tr = tr.setMeta(findPluginKey, { type: "replaceNext" } satisfies FindAction);
   view.dispatch(tr);
   view.dispatch(closeHistory(view.state.tr).setMeta("addToHistory", false));
   return true;
