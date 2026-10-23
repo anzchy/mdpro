@@ -1,5 +1,6 @@
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { FindReplacePrototype } from "./components/Editor/FindReplacePrototype";
 import "./styles/index.css";
 
 // Apply macOS traffic-light clearances only when running inside Tauri on macOS.
@@ -12,5 +13,5 @@ if (isTauri && isMacOS) {
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <App />,
+  new URLSearchParams(window.location.search).has("variant") ? <FindReplacePrototype /> : <App />,
 );
