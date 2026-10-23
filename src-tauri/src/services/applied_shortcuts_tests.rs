@@ -131,7 +131,7 @@ fn default_chords() -> Map<String, Value> {
 fn expected_binding(field: &str, stored: &str, default: &str) -> Value {
     if field == "formatImage"
         && !host_shortcut_expectations::host_has_default_image_shortcut()
-        && (stored == "Cmd+Ctrl+I" || stored.is_empty())
+        && stored == "Cmd+Ctrl+I"
     {
         return json!({ "state": "unassigned" });
     }

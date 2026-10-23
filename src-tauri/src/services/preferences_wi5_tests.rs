@@ -157,8 +157,7 @@ fn wi5_c_view_shortcut_wire_keys_are_view_source_and_view_wysiwyg() {
 
 #[test]
 fn wi5_c_view_shortcut_defaults_match_the_menu_accelerators() {
-    // src-tauri/src/menu.rs lines 135 / 143 carry Some("Ctrl+2") / Some("Ctrl+4")
-    // and src/types/preferences.ts:213-214 carry the same (rule 41).
+    // M1b keeps Ctrl+2 / Ctrl+4 on macOS and unassigns both off-Mac.
     //
     // Deserialising `{}` is what fires the `#[serde(default = "…")]` functions
     // this WI adds — and it is the ONLY mechanism WI-5 owns. NOT asserted here:
@@ -169,8 +168,18 @@ fn wi5_c_view_shortcut_defaults_match_the_menu_accelerators() {
     // current; WI-7 falsified both clauses on 2026-09-23.)
     let shortcuts: KeyboardShortcuts =
         serde_json::from_str("{}").expect("an empty object fires every per-field serde default");
-    assert_eq!(shortcuts.view_source, "Ctrl+2");
-    assert_eq!(shortcuts.view_wysiwyg, "Ctrl+4");
+    let view_source = if cfg!(target_os = "macos") {
+        "Ctrl+2"
+    } else {
+        "<unassigned>"
+    };
+    let view_wysiwyg = if cfg!(target_os = "macos") {
+        "Ctrl+4"
+    } else {
+        "<unassigned>"
+    };
+    assert_eq!(shortcuts.view_source, view_source);
+    assert_eq!(shortcuts.view_wysiwyg, view_wysiwyg);
 }
 
 #[test]
@@ -450,7 +459,17 @@ fn wi5_g_present_shortcut_group_missing_the_new_keys_takes_their_documented_defa
     let prefs = serde_json::from_str::<UserPreferences>(minimal)
         .expect("a config whose shortcut group predates the new keys must still load");
 
-    assert_eq!(prefs.keyboard_shortcuts.view_source, "Ctrl+2");
-    assert_eq!(prefs.keyboard_shortcuts.view_wysiwyg, "Ctrl+4");
+    let view_source = if cfg!(target_os = "macos") {
+        "Ctrl+2"
+    } else {
+        "<unassigned>"
+    };
+    let view_wysiwyg = if cfg!(target_os = "macos") {
+        "Ctrl+4"
+    } else {
+        "<unassigned>"
+    };
+    assert_eq!(prefs.keyboard_shortcuts.view_source, view_source);
+    assert_eq!(prefs.keyboard_shortcuts.view_wysiwyg, view_wysiwyg);
     assert_eq!(prefs.keyboard_shortcuts.file_open_quickly, "<unassigned>");
 }

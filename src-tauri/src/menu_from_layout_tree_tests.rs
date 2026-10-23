@@ -4,11 +4,6 @@
 use super::super::menu_construction_plan::{construction_plan, root_names, sequence, MenuNode};
 use super::*;
 use crate::menu_layout::{menu_layout, Availability, KeyKind, MenuPath, Platform};
-use crate::models::{KeyboardShortcuts, CURRENT_KEYBOARD_SHORTCUTS_VERSION};
-use crate::services::applied_shortcuts::{resolve_applied, AppliedSource};
-
-#[path = "host_shortcut_expectations_tests.rs"]
-mod host_shortcut_expectations;
 
 #[test]
 fn m4_amendment11_root_order_is_platform_specific() {
@@ -227,11 +222,7 @@ fn enabled(availability: Availability, mode: ViewMode) -> bool {
 
 fn descriptor_tree(platform: Platform, mode: ViewMode) -> Vec<String> {
     let layout = menu_layout().unwrap();
-    let applied = AppliedShortcuts {
-        keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
-        source: AppliedSource::Loaded,
-        bindings: resolve_applied(&KeyboardShortcuts::default()),
-    };
+    let applied = super::tests::defaults();
     // build_menu -> specs_for_app -> menu_layout_for on macOS. Off-Mac
     // menu_item_or consumes the same fallback tuple entry tested below.
     let mac_specs = menu_layout_for(layout, &applied, Some(mode));
@@ -592,27 +583,17 @@ Keyboard Shortcuts…|menu.help.keyboard_shortcuts|on|-";
 
 #[test]
 fn m4_wi1_wi2_full_ordered_descriptor_tree_matches_the_pre_wi2_baseline_on_all_targets() {
-    let mac_image_row = "Image...|menu.format.image|on|Cmd+Shift+I";
-    let expected_mac_row = if host_shortcut_expectations::host_has_default_image_shortcut() {
-        mac_image_row
-    } else {
-        "Image...|menu.format.image|on|-"
-    };
     for (platform, expected) in [
         (Platform::Macos, MAC_W_BASELINE),
         (Platform::Windows, OFF_W_BASELINE),
         (Platform::Linux, OFF_W_BASELINE),
     ] {
         let actual = descriptor_tree(platform, ViewMode::Wysiwyg);
-        let expected = if platform == Platform::Macos {
-            expected.replace(mac_image_row, expected_mac_row)
-        } else {
-            expected.to_string()
-        };
+        let expected = expected.to_string();
         assert_eq!(actual.join("\n"), expected, "{platform:?} WYSIWYG");
         let source = descriptor_tree(platform, ViewMode::Source).join("\n");
         let expected_source = if platform == Platform::Macos {
-            MAC_S_BASELINE.replace(mac_image_row, expected_mac_row)
+            MAC_S_BASELINE.to_string()
         } else {
             expected.replace(
                 "Insert Table|menu.format.insert_table|on|",

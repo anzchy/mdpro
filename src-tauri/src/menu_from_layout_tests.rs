@@ -7,11 +7,29 @@ use crate::services::applied_shortcuts::{
 use crate::services::binding_conflicts::{resolve_bindings, Resolution, SuppressReason};
 use crate::services::{logger, window_restore::test_home::TestHome};
 
-fn defaults() -> AppliedShortcuts {
+pub(super) fn defaults() -> AppliedShortcuts {
+    let layout = menu_layout().unwrap();
+    let mut bindings = resolve_applied(&KeyboardShortcuts::default());
+    for row in &layout.rows {
+        let (Some(field), crate::menu_layout::KeyKind::Configurable) =
+            (row.pref_field.as_ref(), row.key.macos.kind)
+        else {
+            continue;
+        };
+        let binding = match row.key.macos.defaults.v2.as_deref() {
+            Some("<unassigned>") => AppliedBinding::Unassigned,
+            Some("<system>") => AppliedBinding::System,
+            Some(chord) => AppliedBinding::Bound {
+                chord: chord.to_string(),
+            },
+            None => continue,
+        };
+        bindings.insert(field.clone(), binding);
+    }
     AppliedShortcuts {
         keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::Loaded,
-        bindings: resolve_applied(&KeyboardShortcuts::default()),
+        bindings,
     }
 }
 
