@@ -113,7 +113,7 @@ it.each([["paragraph.quote", "> alpha\n"], ["paragraph.orderedList", "1. alpha\n
   },
 );
 
-it("Fix 1 Replace remains unavailable in WYSIWYG without hiding the app", async () => {
+it("WYSIWYG Replace refuses when a test rig has no find plugin, without hiding the app", async () => {
   resetMenuHarness(); seedStores(); useToastStore.getState().clearToast();
   useEditorStore.setState({ viewMode: "wysiwyg" });
   milkdown = await mountScriptedMilkdownRig("alpha", { heights: [30] });
@@ -121,7 +121,7 @@ it("Fix 1 Replace remains unavailable in WYSIWYG without hiding the app", async 
   expect(dispatchEditorMenuAction("editor.edit.replace", captureToken("main"))).toBe(true);
   expect(milkdown.editor.action((ctx) => ctx.get(serializerCtx)(milkdown!.view.state.doc))).toBe("alpha\n");
   expect(outcomes()).toHaveLength(1);
-  expect(outcomes()[0].payload.context?.reason).toBe("wrong_mode");
+  expect(outcomes()[0].payload.context?.reason).toBe("no_change");
 });
 
 it("WI-6 public Select Line dispatch selects the current Source line once", () => {

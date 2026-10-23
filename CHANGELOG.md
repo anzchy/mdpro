@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- WYSIWYG Find and Replace now open a bottom docked bar above the tabs. Matches track edits without changing the document, navigation wraps, and Replace / Replace All are separate undo steps. Applied v2 shortcuts and native Edit menu commands work in both editor modes (D255-WI-3c; device check pending).
+
 - Save As now reaches the picker when a registered document's original file was deleted, while still rejecting unsafe or oversized source snapshots. A Rust-owned held path blocks an open target even after a symlink retargets and the renderer's document mirror is absent (D255-WI-3d Fix 2).
 - Save As now checks live open paths again when a symlink is replaced or retargeted, serializes target checks with file opening and writing, and rejects unsafe or oversized source snapshots before opening the picker (D255-WI-3d Fix 1).
 - Save As now writes through the existing dialog, rebinds the tab, and refuses a selected target already open in any mdpro window, even through a path alias, without writing it. Switch Documents follows the most recently used other tab, with a disabled one-tab menu item. Windows and Linux can toggle actual full-screen state from View; F11 works when the applied binding is F11 (D255-WI-3d; device check pending).

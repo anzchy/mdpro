@@ -822,21 +822,23 @@
         }
       },
       "contexts": [
+        "editorW",
         "editorS",
+        "tableW",
         "tableS"
       ],
       "availability": {
         "macos": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         },
         "windows": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         },
         "linux": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         }
       },
       "route": {
@@ -901,21 +903,23 @@
         }
       },
       "contexts": [
+        "editorW",
         "editorS",
+        "tableW",
         "tableS"
       ],
       "availability": {
         "macos": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         },
         "windows": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         },
         "linux": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         }
       },
       "route": {
@@ -979,21 +983,23 @@
         }
       },
       "contexts": [
+        "editorW",
         "editorS",
+        "tableW",
         "tableS"
       ],
       "availability": {
         "macos": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         },
         "windows": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         },
         "linux": {
           "v1": "S",
-          "v2": "S"
+          "v2": "both"
         }
       },
       "route": {
@@ -1430,15 +1436,15 @@
       "availability": {
         "macos": {
           "v1": "none",
-          "v2": "S"
+          "v2": "both"
         },
         "windows": {
           "v1": "none",
-          "v2": "S"
+          "v2": "both"
         },
         "linux": {
           "v1": "none",
-          "v2": "S"
+          "v2": "both"
         }
       },
       "route": {

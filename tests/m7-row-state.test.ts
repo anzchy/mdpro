@@ -47,12 +47,12 @@ describe("M7 row states", () => {
     expect(rowStateOf(input(field("fileOpenQuickly"), { version: 2, platform: "windows" }))).toEqual({ kind: "unavailable" });
   });
 
-  it("s2 Replace is unavailable at v1 and an ordinary Source-only row at v2 (D13)", () => {
+  it("s2 Replace is unavailable at v1 and available in both editor modes at v2", () => {
     expect(rowStateOf(input(field("editReplace")))).toEqual({ kind: "unavailable" });
     expect(rowStateOf(input(field("editReplace"), { version: 2 }))).toMatchObject({
       kind: "configurable",
       value: "Cmd+H",
-      capability: "Source only",
+      capability: null,
     });
   });
 

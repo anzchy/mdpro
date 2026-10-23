@@ -7,10 +7,10 @@
  * - `unavailable` (availability `none`): no key button. `fixed` (a fixed key)
  *   and `system` (a configurable row whose default is `<system>`): the key
  *   in a non-editable box. Everything else is `configurable`.
- * - The capability line is the row's `nativeBehaviour` text off-Mac (D19:
- *   Find's "WYSIWYG: browser find bar"), else "WYSIWYG only" / "Source
- *   only"; it states what the command can do, never the window's current
- *   mode (§ 5.5).
+ * - In v1, the capability line is the row's `nativeBehaviour` text off-Mac
+ *   (D19: Find's "WYSIWYG: browser find bar"); otherwise it follows the
+ *   version's availability. It states what the command can do, never the
+ *   window's current mode (§ 5.5).
  * - The key-kind branch is an exhaustive switch ending in `assertNever`
  *   (rule 60).
  * - Pending compares the saved value with the run's applied snapshot, never
@@ -144,9 +144,9 @@ export function rowStateOf(input: RowStateInput): RowState | null {
     value: field === "formatImage"
       ? effectiveImageShortcut(platform, input.local[field] ?? fallback)
       : input.local[field] ?? fallback,
-    // nativeBehaviour is off-Mac text (D19): macOS has no browser find bar.
+    // nativeBehaviour describes v1 off-Mac fallback only (D19).
     capability:
-      platform !== "macos" && row.nativeBehaviour !== undefined
+      ver === "v1" && platform !== "macos" && row.nativeBehaviour !== undefined
         ? row.nativeBehaviour
         : capabilityText(availability),
     secondaries,

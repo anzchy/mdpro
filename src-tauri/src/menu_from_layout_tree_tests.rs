@@ -371,10 +371,10 @@ Select Word|menu.edit.select_word|on|Cmd+D
 Delete Word|menu.edit.delete_word|off|-
 —
 Find ▸
-Find...|menu.edit.find|off|-
-Replace...|menu.edit.replace|off|-
-Find Next|menu.edit.find_next|off|-
-Find Previous|menu.edit.find_previous|off|-
+Find...|menu.edit.find|on|Cmd+F
+Replace...|menu.edit.replace|on|Cmd+H
+Find Next|menu.edit.find_next|on|Cmd+G
+Find Previous|menu.edit.find_previous|on|Cmd+Shift+G
 [Paragraph]
 Heading 1|menu.paragraph.heading1|on|Cmd+1
 Heading 2|menu.paragraph.heading2|on|Cmd+2

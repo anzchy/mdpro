@@ -21,6 +21,7 @@ import type { Command, Selection } from "@milkdown/kit/prose/state";
 import { Selection as ProseSelection } from "@milkdown/kit/prose/state";
 import type { EditorView as MilkdownView } from "@milkdown/kit/prose/view";
 import { milkdownHighlightCommand } from "../plugins/milkdown/milkdownHighlightCommand";
+import { getFindState, moveFind, openFind } from "../plugins/milkdown/find/findPlugin";
 import { makeCodeBlockIndentCommand } from "../plugins/milkdown/codeBlockIndentCommand";
 import { dispatchTableActionFromKeyboard } from "../plugins/milkdown/table/contextMenu";
 import {
@@ -177,6 +178,16 @@ function runMilkdownCommand(
       return moveSelection(view, "top");
     case "edit.jumpToBottom":
       return moveSelection(view, "bottom");
+    case "edit.find":
+      openFind(view, false);
+      return getFindState(view.state).open ? { status: "opened" } : refused("no_change");
+    case "edit.replace":
+      openFind(view, true);
+      return getFindState(view.state).replacing ? { status: "opened" } : refused("no_change");
+    case "edit.findNext":
+      return moveFind(view, 1) ? applied : refused("no_change");
+    case "edit.findPrevious":
+      return moveFind(view, -1) ? applied : refused("no_change");
     default:
       return refused("unsupported");
   }

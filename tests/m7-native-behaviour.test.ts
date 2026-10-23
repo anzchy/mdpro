@@ -2,9 +2,8 @@
 /**
  * M7 audit round 1 (PR #504, two Mediums), on the real command table:
  * (a) D19 (U11, 2026-10-17: 「A · Keep, say so in Settings (Recommended)」):
- *     off-Mac, WYSIWYG Ctrl+F keeps opening WebView2's find bar, and the
- *     Find row says "WYSIWYG: browser find bar". `nativeBehaviour` is
- *     off-Mac text (plan § 5.5 / § 5.2), so macOS keeps "Source only".
+ *     the v1 off-Mac Find row says "WYSIWYG: browser find bar". D255-WI-3c
+ *     makes v2 available in both editor modes, so that note no longer applies.
  * (b) rowStateOf's key-kind branch is exhaustive (rule 60): an unknown kind
  *     throws rather than falling through.
  */
@@ -32,14 +31,15 @@ describe("M7 (a) Find's native behaviour comes from the real table row", () => {
     expect(find().nativeBehaviour).toBe("WYSIWYG: browser find bar");
   });
 
-  it("n2 Windows and Linux show it, at v1 and v2", () => {
+  it("n2 Windows and Linux show the legacy browser note only at v1", () => {
     for (const p of ["windows", "linux"] as const)
       for (const v of [1, 2])
-        expect({ p, v, s: state(find(), p, v) }).toMatchObject({ p, v, s: { kind: "configurable", capability: "WYSIWYG: browser find bar" } });
+        expect({ p, v, s: state(find(), p, v) }).toMatchObject({ p, v, s: { kind: "configurable", capability: v === 1 ? "WYSIWYG: browser find bar" : null } });
   });
 
   it("n3 macOS has no browser find bar, so its Find row stays Source only", () => {
     expect(state(find(), "macos")).toMatchObject({ kind: "configurable", capability: "Source only" });
+    expect(state(find(), "macos", 2)).toMatchObject({ kind: "configurable", capability: null });
   });
 
   it("n4 no other row gains a native-behaviour line", () => {

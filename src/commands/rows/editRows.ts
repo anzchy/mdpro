@@ -1,7 +1,7 @@
 /**
  * Purpose: command-table rows for the Edit group of `KeyboardShortcuts`.
  * v1 = today's defaults and the D255 audit's availability; v2 = plan § 5.3.2
- * with D13 (Replace keeps ⌘H) and the M1b deltas (Replace → Source).
+ * with D13 (Replace keeps ⌘H) and D255-WI-3c's v2 WYSIWYG find support.
  *
  * @coordinates-with src/commands/commandTable.ts — assembles the rows
  */
@@ -82,7 +82,8 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     field: "editFind",
     v1: "Cmd+F",
     v2: "Cmd+F",
-    availability: ["S", "S"],
+    availability: ["S", "both"],
+    contexts: BOTH,
     nativeBehaviour: "WYSIWYG: browser find bar",
   }),
   configurable({
@@ -93,7 +94,8 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     v1: "Cmd+G",
     v2: "Cmd+G",
     v2Secondaries: ["F3"],
-    availability: ["S", "S"],
+    availability: ["S", "both"],
+    contexts: BOTH,
   }),
   configurable({
     id: "edit.findPrevious",
@@ -103,7 +105,8 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     v1: "Cmd+Shift+G",
     v2: "Cmd+Shift+G",
     v2Secondaries: ["Shift+F3"],
-    availability: ["S", "S"],
+    availability: ["S", "both"],
+    contexts: BOTH,
   }),
   { ...configurable({
     id: "edit.replace",
@@ -112,7 +115,7 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     field: "editReplace",
     v1: "Cmd+H",
     v2: "Cmd+H",
-    availability: ["none", "S"],
+    availability: ["none", "both"],
     contexts: BOTH,
   }), route: { macos: "frontend", windows: "frontend", linux: "frontend" } },
 ];

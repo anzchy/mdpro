@@ -1,6 +1,7 @@
 /**
- * Purpose: applied WYSIWYG keys for D255-WI-3b commands after M1b.
+ * Purpose: applied WYSIWYG formatting and find keys after M1b and D255-WI-3c.
  * @coordinates-with typoraKeymapPlugin.ts
+ * @coordinates-with find/findPlugin.ts
  * @coordinates-with ../../utils/editorImageInsert.ts
  */
 import type { Editor } from "@milkdown/kit/core";
@@ -11,6 +12,7 @@ import { currentWindowLabel } from "../../utils/currentWindowLabel";
 import { startEditorImageInsert } from "../../utils/editorImageInsert";
 import { captureToken } from "../../utils/menuTargetToken";
 import { appliedMilkdownKey, defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import { getFindState, moveFind, openFind } from "./find/findPlugin";
 import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
 import {
   clearFormatCommand, makeHeadingLevelCommand, selectLineCommand, selectWordCommand, underlineCommand,
@@ -65,6 +67,26 @@ export function wysiwygEntries(
     selectLine: bind("editSelectLine", () => logged("edit.selectLine", selectLineCommand())),
     clearFormat: bind("formatClearFormat", () => logged("format.clearFormat", clearFormatCommand())),
     underline: bind("formatUnderline", () => logged("format.underline", underlineCommand())),
+    find: bind("editFind", () => logged("edit.find", (_state, _dispatch, view) => {
+      if (!view) return false;
+      openFind(view, false);
+      return getFindState(view.state).open;
+    })),
+    findNext: bind("editFindNext", () => logged("edit.findNext", (_state, _dispatch, view) => {
+      if (!view) return false;
+      moveFind(view, 1);
+      return true;
+    })),
+    findPrevious: bind("editFindPrevious", () => logged("edit.findPrevious", (_state, _dispatch, view) => {
+      if (!view) return false;
+      moveFind(view, -1);
+      return true;
+    })),
+    replace: bind("editReplace", () => logged("edit.replace", (_state, _dispatch, view) => {
+      if (!view) return false;
+      openFind(view, true);
+      return getFindState(view.state).replacing;
+    })),
     ...imageEntry,
   };
   return Object.fromEntries(Object.entries(candidates).filter(([, entry]) => entry !== null)) as Record<string, Entry>;

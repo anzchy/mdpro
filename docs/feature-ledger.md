@@ -160,7 +160,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 专注模式 / 打字机模式 | Stub | `src/plugins/codemirror/focusModePlugin.ts`, `src/plugins/codemirror/typewriterModePlugin.ts`, `src/plugins/core/pluginConfig.ts` | 插件 id `focus-mode` 与 `typewriter-mode`：注册了，默认关，没有任何设置 UI 能打开。翻遍 ⌘, 的十个设置页也找不到开关 |
 | WYSIWYG 下的数学公式排版 | Absent | — | ⌃4 切到 WYSIWYG，输入 `$E=mc^2$` 仍是字面文本，不会排版。Phase 2，决策 B3 |
 | WYSIWYG 下的脚注渲染 | Partial | `src/components/Editor/MilkdownEditor.tsx` | 限制：有渲染、无跳转也无回链。⌃4 下输入 `[^1]` 与脚注定义，引用渲染成上标 1（`footnote_reference` 节点），定义渲染成 `dl[data-type=footnote_definition]` 块；点上标不跳转，脚注末尾没有回链。2026-10-12 Windows 审计实测纠正（原记 Absent、字面文本）。同 B3 |
-| WYSIWYG 下的查找替换 | Absent | — | ⌃4 下按 ⌘F 不会出现查找面板；⌃2 切回源码模式才有 |
+| WYSIWYG 下的查找替换 | Shipped | `src/components/Editor/FindReplaceBar.tsx`, `src/plugins/milkdown/find/findPlugin.ts`, `src/plugins/milkdown/find/findModel.ts`, `src/commands/rows/editRows.ts` | D255-WI-3c：WYSIWYG 的 Find / Replace 在编辑列底部、标签上方打开；从选区预填、逐项装饰并报数量，Aa / Whole word 收窄，下一项 / 上一项循环；Replace / Replace All 独立于相邻输入成为可撤销步骤。代码与数学内容排除，链接仅搜可见标签而不搜 URL；切换文档或模式清掉查找条。v2 应用后的菜单与按键均可触发；真机待验。 |
 
 #### Windows 差异
 
@@ -241,7 +241,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 能力 | 状态 | 在哪 | 怎么确认 |
 |---|---|---|---|
 | 源码编辑 | Shipped | `src/components/Editor/Editor.tsx`, `src/styles/sections/editor-source.css`, `src/components/Editor/extensions/appTheme.ts` | ⌃2（`menu.view.source`）切到原始 Markdown，有语法着色、行号和当前行高亮选区可见：编辑器有焦点时选区用强调色淡底（`--color-accent-soft`），失焦时用中性灰；当前行只是一层极淡的半透明底，不再盖住选区（[D154](plans/20260912-frontend-backend-sequencing-order.md#d154)：此前当前行是不透明的 `--color-surface`，单行选区与多行选区的末行都看不见高亮，且应用自己的选区色在有焦点时被 CodeMirror 的规则压掉；仅单元验证，真机未复核）。深色模式下源码编辑器整体跟着变深：CodeMirror 的明暗基础主题跟随应用主题（运行中切换主题也即时跟随），⌘F 搜索面板、输入框、按钮、行号栏当前行与 lint 提示框都用 mdpro 自己的颜色 token，搜索框聚焦有强调色描边、按钮键盘聚焦有描边（[D158](plans/20260912-frontend-backend-sequencing-order.md#d158)：此前不论应用主题如何，CodeMirror 都按浅色模式绘制这些部件，深色模式下面板与提示框是浅灰底黑字）。限制：搜索面板里原生复选框在深色模式下仍是浅色，等重设计给主题类加 `color-scheme`；提示框的 1px 描边是临时替代，等带描边环的 `--shadow-soft` 落地后去掉；仅单元验证与浏览器截图，真机未复核。 |
-| 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts`, `src/styles/sections/editor-source.css` | Source 中 ⌘F 查找、⌘H 打开替换并聚焦替换输入框，⌘G / ⌘⇧G 跳转；这四项和 Select Word 从本次运行的 applied set 读取，自定义值替换旧键，F3 / Shift+F3 仍固定跳转。WYSIWYG 查找浮层另属 D255-WI-3c。搜索面板关闭按钮的焦点环由 D233 修复。单元验证，真机待验。 |
+| 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts`, `src/styles/sections/editor-source.css` | Source 中 ⌘F 查找、⌘H 打开替换并聚焦替换输入框，⌘G / ⌘⇧G 跳转；这四项和 Select Word 从本次运行的 applied set 读取，自定义值替换旧键，F3 / Shift+F3 仍固定跳转。WYSIWYG 使用 D255-WI-3c 的底部停靠条。搜索面板关闭按钮的焦点环由 D233 修复。单元验证，真机待验。 |
 | 源码模式标题级别 | Shipped | `src/plugins/codemirror/headingPlugin.ts` | 光标停在某行按 ⌘1…⌘6（插件 `heading`）前面补上对应数量的 `#`，⌘0 清掉；光标不会跳位 |
 | 提升 / 降低标题级别 | Shipped | `src/plugins/codemirror/headingPlugin.ts` | 在一行上反复按 ⌘- 一路降到 H6 就停住，反复按 ⌘= 一路升回纯文本 |
 | 源码模式插入链接 | Shipped | `src/plugins/codemirror/linkPlugin.ts`, `src/components/Editor/LinkInsertModal.tsx`, `src/components/Editor/SplitView.tsx`, `src/hooks/useLinkInsertBinding.ts` | 其他模态框开着时 ⌃2 下的 ⌘K 同样被拒绝并记一行 `ui.dialog.open` `cancel`（D235-WI-2，单元验证，真机未验）。2026-10-09 Mac mini 真机：`8bb859e` 的 release 包上 ⌃2 下 ⌘K 弹出「Insert Link」恰一次，点 Cancel 文档不变，输网址回车插入恰一处 `[文字](网址)`，日志 `screen:"source"`（`docs/test/20261009-d32-d55-d56-device-check.md`）。Esc 关闭只有单元测试验证（D55-3），真机没按 Esc。此前 D55 的毛病只在打包包里出现（`window.prompt` 不弹窗，⌘K 没反应，2026-10-08 Mac mini `5154220` release 包真机证实）。自 2026-10-09（[D55](plans/20260912-frontend-backend-sequencing-order.md#d55)）起不再用 `window.prompt`：⌃2 下选中文字按 ⌘K，弹出与 WYSIWYG 同一个「Insert Link」框（`SplitView` 挂载），回车插入 `[文字](网址)`，Esc / Cancel 不改文档，关闭后焦点回到编辑器；日志 `ui.link-modal.*` 的 `screen` 为 `source`。确认：`pnpm tauri build` 出的包在 ⌃2 下按 ⌘K。自 2026-10-10（[D73](plans/20260912-frontend-backend-sequencing-order.md#d73)；同日 Mac mini `2a590cf` 的 release 包真机通过，`docs/test/20261010-d64-d70-d72-d73-d74-device-check.md`：⌃2 下弹窗开着时 MCP `create_document` 切走、⌃4、⌘W 关掉文档，弹窗都关闭，`reason` 依次为 `document-switched` / `view-mode-changed` / `document-closed`，另一份文档内容不变）请求绑定发起时的文档与视图模式：弹窗开着时 ⌘W、外部打开文件或 MCP `create_document` 切走活动文档、文档被关闭、切到 WYSIWYG，弹窗都自动关闭，不再把 `[文字](网址)` 按旧偏移写进另一份文档；日志 `ui.link-insert.cancel` 带 `reason`。单测：`tests/d55-source-link-insert.test.tsx`、`tests/d73-link-insert-stale-request.test.tsx`。这条路的插件 id 是 `link` |
@@ -545,7 +545,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 全局搜索 | ○ | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● | ● |
 | 文件树 / 工作区 | ○ | ● | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
 | 文件增删重命名 | ○ | ● | ● | ● | ● | ● | ● | ● | ◐ | ● | ● | ● |
-| 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts`, `src/styles/sections/editor-source.css` | Source 中 ⌘F 查找、⌘H 打开替换并聚焦替换输入框，⌘G / ⌘⇧G 跳转；这四项和 Select Word 从本次运行的 applied set 读取，自定义值替换旧键，F3 / Shift+F3 仍固定跳转。WYSIWYG 查找浮层另属 D255-WI-3c。搜索面板关闭按钮的焦点环由 D233 修复。单元验证，真机待验。 |
+| 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts`, `src/styles/sections/editor-source.css` | Source 中 ⌘F 查找、⌘H 打开替换并聚焦替换输入框，⌘G / ⌘⇧G 跳转；这四项和 Select Word 从本次运行的 applied set 读取，自定义值替换旧键，F3 / Shift+F3 仍固定跳转。WYSIWYG 使用 D255-WI-3c 的底部停靠条。搜索面板关闭按钮的焦点环由 D233 修复。单元验证，真机待验。 |
 | 字数统计 | ○ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |
 | 拼写检查 | ◍ | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ● | ● |
 | PDF 导出 | ○ | ● | ● | ● | ● | ● | ◐ | ● | ● | ● | ● | ● |
@@ -624,7 +624,7 @@ mdpro 这一列**全部来自仓库核实**，不是回忆。关键命中：
 | 拼写检查 | ◍ | `src/plugins/codemirror/spellCheckPlugin.ts` —— `displayName: "Spell Check (Stub)"`，`codemirrorExtension: () => []`，init 里只打一条 `TODO: integrate dictionary backend` |
 | 打字机 / 专注模式 | ◍ | 插件已实现并注册（`src/plugins/index.ts`），但 `src/plugins/core/pluginConfig.ts` 中 `enabled: false`，且组件/hooks/Rust 侧零开关 |
 | 编辑区数学 | ○ | `katex` 仅被 `src/services/exportService.ts` 引用（经 `src/services/mathRender.ts`）；导出面之外无排版 |
-| 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts`, `src/styles/sections/editor-source.css` | Source 中 ⌘F 查找、⌘H 打开替换并聚焦替换输入框，⌘G / ⌘⇧G 跳转；这四项和 Select Word 从本次运行的 applied set 读取，自定义值替换旧键，F3 / Shift+F3 仍固定跳转。WYSIWYG 查找浮层另属 D255-WI-3c。搜索面板关闭按钮的焦点环由 D233 修复。单元验证，真机待验。 |
+| 查找与替换 | Shipped | `src/components/Editor/extensions/search.ts`, `src/styles/sections/editor-source.css` | Source 中 ⌘F 查找、⌘H 打开替换并聚焦替换输入框，⌘G / ⌘⇧G 跳转；这四项和 Select Word 从本次运行的 applied set 读取，自定义值替换旧键，F3 / Shift+F3 仍固定跳转。WYSIWYG 使用 D255-WI-3c 的底部停靠条。搜索面板关闭按钮的焦点环由 D233 修复。单元验证，真机待验。 |
 | 字数统计 | ○ | `wordCount` / `word_count` / `charCount` / `StatusBar` / `字数` 全仓库零命中 |
 | 打印 | ○ | `menu.rs` 及全部组件无 print 路径（唯一命中是 `MarkdownSettings.tsx` 的 "Pretty-print GFM tables"，不相关） |
 | 文件树 / 工作区 | ○ | `src/components/Sidebar/` 只有 `TOCSidebar`（从未渲染的打开文档列表 `Sidebar` / `FileItem` 已按 [ADR-0059](adr/0059-open-documents-live-in-the-tabs-not-in-the-sidebar.md) 删除：打开的文档只在底部标签里显示）；`App.tsx` 的 `workspace` 只是 CSS 类名 |

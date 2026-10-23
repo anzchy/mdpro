@@ -102,7 +102,7 @@ export function runProbeSuite(p: Platform, lane: "unit" | "slow"): void {
       const ctrlH = handles(view, states.iii, raw({ key: "h", code: "KeyH", keyCode: 72, ctrlKey: true }));
       const metaA = handles(view, states.iii, raw({ key: "a", code: "KeyA", keyCode: 65, metaKey: true }));
       const ctrlA = handles(view, states.iii, raw({ key: "a", code: "KeyA", keyCode: 65, ctrlKey: true }));
-      expect({ ctrlH, metaA }).toEqual({ ctrlH: mac, metaA: mac });
+      expect({ ctrlH, metaA }).toEqual({ ctrlH: true, metaA: mac });
       if (!mac) expect(ctrlA).toBe(true);
     });
 

@@ -97,6 +97,14 @@ fn m4_wi3_guarded_route_emits_only_to_the_current_allowed_window() {
                 }
             ),
             (
+                "B".into(),
+                MenuActionPayload {
+                    action: "editor.edit.findNext".into(),
+                    value: None,
+                    target: "B".into()
+                }
+            ),
+            (
                 "A".into(),
                 MenuActionPayload {
                     action: "paragraph.table".into(),
@@ -106,13 +114,13 @@ fn m4_wi3_guarded_route_emits_only_to_the_current_allowed_window() {
             ),
         ]
     );
-    assert_eq!(dispatch_logs.borrow().len(), 3);
+    assert_eq!(dispatch_logs.borrow().len(), 4);
     let log_text = std::fs::read_to_string(home.dir.join(".mdpro/mdpro.log")).unwrap();
     let cancels: Vec<_> = log_text
         .lines()
         .filter(|line| line.contains("ui.menu.availability") && line.contains("wrong_mode"))
         .collect();
-    assert_eq!(cancels.len(), 2);
+    assert_eq!(cancels.len(), 1);
     let source = include_str!("menu.rs");
     assert!(source.contains("emit_to_window("));
     assert!(source.contains("menus.as_deref()"));
@@ -254,10 +262,10 @@ fn m4_wi3_refused_click_logs_once_and_accepted_click_does_not_log_cancel() {
     let layout = menu_layout().unwrap();
     let refused = dispatch_if_allowed(
         layout,
-        "editor.edit.findNext",
+        "paragraph.table",
         "A",
         Some("A"),
-        Some(ViewMode::Wysiwyg),
+        Some(ViewMode::Source),
         |_| Ok(()),
     );
     let accepted = dispatch_if_allowed(
@@ -265,7 +273,7 @@ fn m4_wi3_refused_click_logs_once_and_accepted_click_does_not_log_cancel() {
         "editor.edit.findNext",
         "A",
         Some("A"),
-        Some(ViewMode::Source),
+        Some(ViewMode::Wysiwyg),
         |_| Ok(()),
     );
     logger::set_log_settings(old);
@@ -274,7 +282,7 @@ fn m4_wi3_refused_click_logs_once_and_accepted_click_does_not_log_cancel() {
     let log = std::fs::read_to_string(home.dir.join(".mdpro/mdpro.log")).unwrap();
     let lines: Vec<_> = log
         .lines()
-        .filter(|line| line.contains("ui.menu.availability") && line.contains("edit.findNext"))
+        .filter(|line| line.contains("ui.menu.availability") && line.contains("paragraph.table"))
         .collect();
     assert_eq!(lines.len(), 1);
     assert!(lines[0].contains("wrong_mode"));

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { ImageContextMenu } from "./ImageContextMenu";
 import { LinkInsertModal } from "./LinkInsertModal";
+import { FindReplaceBar } from "./FindReplaceBar";
 import { TableContextMenu } from "./TableContextMenu";
 import { TableInsertModal } from "./TableInsertModal";
 import {
@@ -44,6 +45,7 @@ import { abandonIfStale, type HighlightRequest } from "../../utils/menuTargetTok
 import { getMilkdownView, readyMilkdown } from "../../utils/focusActiveEditor";
 import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
 import { installAltGrGuard } from "../../plugins/codemirror/altGrGuard";
+import { liveFindView, useFindHost } from "../../plugins/milkdown/find/findHost";
 // ---------------------------------------------------------------------------
 // Security helpers — exported for unit testing
 // ---------------------------------------------------------------------------
@@ -118,6 +120,7 @@ interface MilkdownEditorInnerProps {
 }
 
 function MilkdownEditorInner({ highlightRequest, generation, appliedShortcuts }: MilkdownEditorInnerProps) {
+  const { findState, plugin: findMilkdownPlugin } = useFindHost();
   const documents = useDocumentStore((state) => state.documents);
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
 
@@ -168,6 +171,7 @@ function MilkdownEditorInner({ highlightRequest, generation, appliedShortcuts }:
         // editor's document — never through a React effect (see editSync/plugin.ts).
         .use(editSyncMilkdownPlugin(activeDocumentId))
         .use(typoraKeymapForApplied(appliedShortcuts))
+        .use(findMilkdownPlugin)
         .use(pasteHtmlSanitizerMilkdownPlugin)
         .use(imagePasteMilkdownPlugin)
         .use(highlightMarkPlugin)
@@ -220,23 +224,15 @@ function MilkdownEditorInner({ highlightRequest, generation, appliedShortcuts }:
 
   // Enforce the link-click scheme allowlist and route clicks by resolved
   // origin — external handoff, in-document, or blocked (#10, ADR-0002);
-  // WI-2.6 cursor restore on mode toggle; D37 focus + caret restore after a
-  // wholesale rebuild (consumes the carry armed for this generation); WI-8 scroll
-  // restore on mode toggle (after the cursor restores, so the scroll position
-  // wins). All extracted to hook files to keep this component under the 300-line
-  // guideline.
+  // WI-2.6 cursor, D37 focus + caret, and WI-8 scroll restoration on rebuild
+  // live in hooks; scroll restores last.
   useMilkdownLinkClickGuard(activeDocumentId);
   useMilkdownTableCursorRestore(editor, activeDocumentId);
   useMilkdownFocusRestore(editor, activeDocumentId, generation);
   useMilkdownScrollRestore(editor, activeDocumentId);
 
-  // ⌘⇧H highlight in WYSIWYG mode — applies ProseMirror highlight mark via toggleMark.
-  // In source/split mode the CodeMirror highlightCommand handles this instead
-  // (see Editor.tsx). Each new highlightRequest ({ seq, token }, D261) first has
-  // its menu-target token checked: a request whose document or editor has gone
-  // since it was made (a switch, or this editor remounting with a request it
-  // already saw) changes nothing. Otherwise we obtain the ProseMirror view
-  // through the Milkdown editor's action API and delegate.
+  // ⌘⇧H applies a ProseMirror mark here (CodeMirror handles Source). The D261
+  // token refuses stale requests before the live view applies the mark.
   useEffect(() => {
     if (highlightRequest === undefined) return;
     if (abandonIfStale(highlightRequest.token, "highlight", loggingService.generateActionId())) return;
@@ -259,6 +255,8 @@ function MilkdownEditorInner({ highlightRequest, generation, appliedShortcuts }:
   return (
     <>
       <Milkdown />
+      <FindReplaceBar state={findState} appliedShortcuts={appliedShortcuts}
+        getView={() => liveFindView(editorRef.current.get() ?? null, activeDocumentId, generation)} />
       <ImageContextMenu editor={editor} activeDocumentId={activeDocumentId} />
     </>
   );
