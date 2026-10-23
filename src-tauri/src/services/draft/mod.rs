@@ -21,6 +21,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::models::{Draft, DraftMetadata};
 
@@ -35,6 +36,9 @@ mod recovery;
 mod startup_migration;
 mod types;
 mod visibility;
+
+// Issued while DRAFT_LOCK is held, so successful saves have storage commit order.
+static NEXT_DRAFT_SAVE_ORDER: AtomicU64 = AtomicU64::new(1);
 
 pub use guarded::{discard_draft_guarded_with, recover_draft_guarded_with};
 pub use live_listing::{cleanup_old_drafts_for_with, list_drafts_for};
@@ -54,7 +58,9 @@ pub use owner::{
     in_use, owner_is_live, session_id, InUseReason, LiveContext, OpenSet, ShadowUnavailable,
 };
 pub(crate) use paths::is_valid_draft_id;
-pub use protection::{delete_draft, delete_draft_owned, delete_draft_with_token};
+pub use protection::{
+    delete_draft, delete_draft_owned, delete_draft_with_token, OwnedDeleteOutcome,
+};
 use protection::{
     delete_draft_locked, preserve_if_protected_locked, preserve_legacy_if_present_locked,
     validate_claim_token,
@@ -77,6 +83,9 @@ pub use types::{
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct DraftBundle {
+    /// Unique identity of this write; absent only on pre-D305 bundles.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub revision: String,
     /// Absent in bundles written before ADR-0038, and never written as null.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<DraftOwner>,
@@ -176,12 +185,15 @@ pub fn save_draft_as_with_token(
 
     // Serialises with guarded recover/discard/cleanup (ADR-0038 §4).
     let _draft_lock = lock::draft_lock();
+    let save_order = NEXT_DRAFT_SAVE_ORDER.fetch_add(1, Ordering::Relaxed);
     let now = Utc::now();
     let dest = bundle_path(document_id)?;
     preserve_if_protected_locked(document_id, token, owner.as_ref())?;
     preserve_legacy_if_present_locked(document_id)?;
 
+    let revision = uuid::Uuid::new_v4().to_string();
     let bundle = DraftBundle {
+        revision: revision.clone(),
         owner,
         claim: None,
         claim_consumed: false,
@@ -217,6 +229,8 @@ pub fn save_draft_as_with_token(
         success: true,
         draft_path: dest.to_string_lossy().to_string(),
         saved_at: now.timestamp_millis(),
+        revision,
+        save_order,
     })
 }
 
@@ -262,6 +276,7 @@ pub fn load_draft(document_id: &str) -> Result<Option<Draft>, DraftError> {
 
     // Migrate to bundle format — best-effort; read succeeds even if migration fails.
     let bundle = DraftBundle {
+        revision: String::new(),
         owner: None,
         claim: None,
         claim_consumed: false,

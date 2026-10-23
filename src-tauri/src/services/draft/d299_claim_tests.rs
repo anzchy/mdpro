@@ -42,6 +42,7 @@ fn d299_claim_write_under_same_id_consumes_claim_without_a_move() {
         session_id: owner.session_id.clone(),
     };
     let source = DraftBundle {
+        revision: String::new(),
         owner: Some(owner.clone()),
         claim: Some(token.clone()),
         claim_consumed: false,
@@ -90,6 +91,7 @@ fn d299_old_token_never_deletes_a_newer_claim_at_the_same_source_id() {
         session_id: owner.session_id.clone(),
     };
     let source = DraftBundle {
+        revision: String::new(),
         owner: Some(owner.clone()),
         claim: Some(newer),
         claim_consumed: false,
@@ -155,6 +157,7 @@ fn d299_unconsumed_claim_moves_before_no_token_write_then_old_token_is_stale() {
         session_id: own.session_id.clone(),
     };
     let source = DraftBundle {
+        revision: String::new(),
         owner: Some(own.clone()),
         claim: Some(token.clone()),
         claim_consumed: false,
@@ -196,6 +199,7 @@ fn d299_dirty_same_id_tab_cannot_erase_recovered_text_before_y_autosave() {
         session_id: owner.session_id.clone(),
     };
     let source = DraftBundle {
+        revision: String::new(),
         owner: Some(owner.clone()),
         claim: Some(token.clone()),
         claim_consumed: false,

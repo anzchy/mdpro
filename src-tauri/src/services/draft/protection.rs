@@ -90,6 +90,7 @@ pub(super) fn preserve_legacy_if_present_locked(document_id: &str) -> Result<boo
     };
     let moved_id = uuid::Uuid::new_v4().to_string();
     let moved = DraftBundle {
+        revision: String::new(),
         owner: None,
         claim: None,
         claim_consumed: false,
@@ -136,13 +137,32 @@ pub fn delete_draft(document_id: &str) -> Result<bool, DraftError> {
     delete_draft_with_token(document_id, None)
 }
 
-/// Delete only an unclaimed draft currently owned by this session and window.
+/// Delete only the exact unclaimed revision owned by this session and window.
 /// Foreign-window and old-session bundles, including unmerged Recovery drafts,
 /// remain byte-for-byte intact.
 /// The ownership read and removal share DRAFT_LOCK, including while another
 /// window writes the same ID.
-pub fn delete_draft_owned(document_id: &str, window_label: &str) -> Result<bool, DraftError> {
-    delete_draft_owned_inner(document_id, window_label, lock::draft_lock, || {})
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OwnedDeleteOutcome {
+    Deleted,
+    Absent,
+    Protected,
+    Stale,
+}
+
+pub fn delete_draft_owned(
+    document_id: &str,
+    window_label: &str,
+    expected_revision: &str,
+) -> Result<OwnedDeleteOutcome, DraftError> {
+    delete_draft_owned_inner(
+        document_id,
+        window_label,
+        expected_revision,
+        lock::draft_lock,
+        || {},
+    )
 }
 
 #[cfg(test)]
@@ -152,19 +172,42 @@ pub(super) fn delete_draft_owned_with_read_hook(
     acquire_lock: impl FnOnce() -> MutexGuard<'static, ()>,
     before_read: impl FnOnce(),
 ) -> Result<bool, DraftError> {
-    delete_draft_owned_inner(document_id, window_label, acquire_lock, before_read)
+    // This test seam captures the revision before its deliberately delayed lock acquisition.
+    let path = bundle_path(document_id)?;
+    let raw = fs::read_to_string(path).map_err(|e| DraftError::IoError {
+        message: e.to_string(),
+    })?;
+    let bundle: DraftBundle = serde_json::from_str(&raw).map_err(|e| DraftError::ParseError {
+        message: e.to_string(),
+    })?;
+    Ok(matches!(
+        delete_draft_owned_inner(
+            document_id,
+            window_label,
+            &bundle.revision,
+            acquire_lock,
+            before_read
+        )?,
+        OwnedDeleteOutcome::Deleted
+    ))
 }
 
 fn delete_draft_owned_inner(
     document_id: &str,
     window_label: &str,
+    expected_revision: &str,
     acquire_lock: impl FnOnce() -> MutexGuard<'static, ()>,
     before_read: impl FnOnce(),
-) -> Result<bool, DraftError> {
+) -> Result<OwnedDeleteOutcome, DraftError> {
+    if uuid::Uuid::parse_str(expected_revision).is_err() {
+        return Err(DraftError::IoError {
+            message: "invalid draft revision".into(),
+        });
+    }
     let held = acquire_lock();
     let path = bundle_path(document_id)?;
     if !path.exists() {
-        return Ok(false);
+        return Ok(OwnedDeleteOutcome::Absent);
     }
     before_read();
     let raw = read_owned_bundle_locked(&path, &held)?;
@@ -175,12 +218,24 @@ fn delete_draft_owned_inner(
         owner.session_id == session_id() && owner.window_label == window_label
     });
     if !owned || bundle.claim.is_some() {
-        return Ok(false);
+        return Ok(OwnedDeleteOutcome::Protected);
+    }
+    if bundle.revision != expected_revision {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "file.draft.discard.stale".into(),
+            status: LogStatus::Success,
+            action_id: Some(uuid::Uuid::new_v4().to_string()),
+            context: None,
+            duration_ms: None,
+            error: None,
+        });
+        return Ok(OwnedDeleteOutcome::Stale);
     }
     fs::remove_file(path).map_err(|e| DraftError::IoError {
         message: e.to_string(),
     })?;
-    Ok(true)
+    Ok(OwnedDeleteOutcome::Deleted)
 }
 
 fn read_owned_bundle_locked(

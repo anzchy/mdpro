@@ -89,10 +89,54 @@ fn d305_command_rejects_invalid_id_and_uses_trusted_window_label() {
         session_id: session_id().to_string(),
         window_label: "B".into(),
     };
-    save_draft_as_with_token(Some(owner), "X", "B bytes", None, "B", None).unwrap();
+    let saved = save_draft_as_with_token(Some(owner), "X", "B bytes", None, "B", None).unwrap();
     let before = load_draft("X").unwrap().unwrap();
-    assert!(delete_discarded_draft_logged("../X", "A").is_err());
-    assert!(!delete_discarded_draft_logged("X", "A").unwrap());
+    assert!(delete_discarded_draft_logged("../X", "A", &saved.revision).is_err());
+    assert_eq!(
+        delete_discarded_draft_logged("X", "A", &saved.revision).unwrap(),
+        OwnedDeleteOutcome::Protected
+    );
     assert_eq!(load_draft("X").unwrap().unwrap().content, before.content);
+    let _ = fs::remove_dir_all(&home);
+}
+
+#[test]
+fn d305_stale_command_keeps_newer_bytes_and_emits_diagnostic() {
+    let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let home = make_temp_home("d305_stale_command");
+    let _home_guard = set_home(&home);
+    crate::services::logger::set_log_settings(crate::models::LogSettings {
+        enabled: true,
+        level: LogLevel::Info,
+    });
+    let owner = DraftOwner {
+        session_id: session_id().to_string(),
+        window_label: "A".into(),
+    };
+    let first = save_draft_as_with_token(Some(owner.clone()), "X", "V1", None, "X", None).unwrap();
+    let second = save_draft_as_with_token(Some(owner), "X", "V2", None, "X", None).unwrap();
+    let path = std::path::PathBuf::from(&second.draft_path);
+    let v2 = fs::read(&path).unwrap();
+    let stale = delete_discarded_draft_logged("X", "A", &first.revision).unwrap();
+    assert_eq!(serde_json::to_value(stale).unwrap(), json!("stale"));
+    assert_eq!(fs::read(&path).unwrap(), v2);
+    let log_path = crate::services::logger::log_path().unwrap();
+    let lines = fs::read_to_string(log_path).unwrap();
+    let stale_line: serde_json::Value = lines
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .find(|line: &serde_json::Value| line["event"] == "file.draft.discard.stale")
+        .expect("stale diagnostic");
+    assert!(stale_line["actionId"]
+        .as_str()
+        .is_some_and(|id| !id.is_empty()));
+    assert_eq!(
+        delete_discarded_draft_logged("X", "A", &second.revision).unwrap(),
+        OwnedDeleteOutcome::Deleted
+    );
+    assert_eq!(
+        delete_discarded_draft_logged("X", "A", &second.revision).unwrap(),
+        OwnedDeleteOutcome::Absent
+    );
     let _ = fs::remove_dir_all(&home);
 }

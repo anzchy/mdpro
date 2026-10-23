@@ -73,6 +73,7 @@ fn d299_prior_session_claim_is_protected_after_restart() {
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     let source = DraftBundle {
+        revision: String::new(),
         owner: Some(DraftOwner {
             session_id: "old-session".into(),
             window_label: "main".into(),

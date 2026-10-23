@@ -68,6 +68,8 @@ pub struct DraftSaveResult {
     pub success: bool,
     pub draft_path: String,
     pub saved_at: i64,
+    pub revision: String,
+    pub save_order: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

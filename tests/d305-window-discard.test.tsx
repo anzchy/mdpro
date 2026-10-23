@@ -36,7 +36,14 @@ import { useWindowCloseGuard } from "../src/hooks/useWindowCloseGuard";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import { useEditorStore } from "../src/stores/editorStore";
-import { draftWritesSuspended, resumeDrafts, suspendAndDrainDrafts } from "../src/services/draftWriteCoordinator";
+import { draftWritesSuspended, forgetDraftRevision, rememberDraftRevision, resumeDrafts, suspendAndDrainDrafts } from "../src/services/draftWriteCoordinator";
+
+function revisionFor(id: string): string {
+  return `00000000-0000-4000-8000-${id === "A" ? "00000000000a" : id === "B" ? "00000000000b" : "00000000000c"}`;
+}
+function seedKnownDrafts() {
+  for (const id of state.drafts.keys()) rememberDraftRevision(id, revisionFor(id));
+}
 
 function doc(id: string): Document {
   return { id, path: `/tmp/${id}.md`, content: `dirty ${id}`, encoding: "UTF-8", lineEnding: "lf", isModified: true, lastSaved: null, fileSize: null };
@@ -51,11 +58,13 @@ function mount() {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
   state.handlers.clear(); state.closes = 0; state.visible = true; state.drafts.clear(); state.failId = "";
+  for (const id of ["A", "B", "C"]) forgetDraftRevision(id);
   win.label = "main";
   logEventSync.mockClear(); invokeMock.mockReset();
   invokeMock.mockImplementation(async (command, args) => {
     if (command === "window_close_order") state.visible = args?.operation === "restore";
     if (command === "save_draft") state.drafts.set(String(args?.documentId), String(args?.content));
+    if (command === "save_draft") return { revision: revisionFor(String(args?.documentId)) };
     if (command === "delete_discarded_draft") {
       const id = String(args?.documentId);
       if (id === state.failId) throw new Error("disk failure");
@@ -93,6 +102,7 @@ describe("D305 window Discard", () => {
     useDocumentStore.setState({ documents: [doc("A"), doc("B"), doc("C")], activeDocumentId: "A" });
     state.drafts.set("A", "dirty A"); state.drafts.set("B", "dirty B"); state.drafts.set("C", "dirty C");
     state.failId = "B";
+    seedKnownDrafts();
     const { result, unmount } = mount(); await settle(); await requestClose();
     await act(async () => { await result.current.confirmClose(); });
     expect([...state.drafts.keys()]).toEqual(["B"]);
@@ -104,6 +114,7 @@ describe("D305 window Discard", () => {
     useDocumentStore.setState({ documents: [doc("A"), doc("B"), doc("C")], activeDocumentId: "A" });
     for (const id of ["A", "B", "C"]) state.drafts.set(id, `dirty ${id}`);
     state.failId = failedId;
+    seedKnownDrafts();
     const { result, unmount } = mount(); await settle(); await requestClose();
     await act(async () => { await result.current.confirmClose(); });
     expect([...state.drafts.keys()]).toEqual([failedId]);
@@ -146,6 +157,7 @@ describe("D305 window Discard", () => {
       if (command === "save_draft") {
         await new Promise<void>((resolve) => pending.push(resolve));
         state.drafts.set(String(args?.documentId), String(args?.content));
+        return { revision: revisionFor(String(args?.documentId)) };
       }
       if (command === "delete_discarded_draft") return state.drafts.delete(String(args?.documentId));
       return null;
@@ -172,6 +184,7 @@ describe("D305 window Discard", () => {
       if (command === "save_draft") {
         if (!release) await new Promise<void>((resolve) => { release = resolve; });
         state.drafts.set(String(args?.documentId), String(args?.content));
+        return { revision: revisionFor(String(args?.documentId)) };
       }
       if (command === "delete_discarded_draft") return state.drafts.delete(String(args?.documentId));
       return null;
@@ -192,6 +205,7 @@ describe("D305 window Discard", () => {
   it("stops the delete batch when a renewed prompt is cancelled during a pending delete", async () => {
     useDocumentStore.setState({ documents: [doc("A"), doc("B")], activeDocumentId: "A" });
     state.drafts.set("A", "dirty A"); state.drafts.set("B", "dirty B");
+    seedKnownDrafts();
     let releaseDelete!: () => void;
     invokeMock.mockImplementation(async (command, args) => {
       if (command === "delete_discarded_draft") {
@@ -214,6 +228,7 @@ describe("D305 window Discard", () => {
   it("restores a staged secondary window before re-prompting after a delete-time edit", async () => {
     win.label = "secondary";
     state.drafts.set("A", "dirty A");
+    seedKnownDrafts();
     let releaseDelete!: () => void;
     invokeMock.mockImplementation(async (command, args) => {
       if (command === "window_close_order") state.visible = args?.operation === "restore";
@@ -254,6 +269,91 @@ describe("D305 window Discard", () => {
     expect(state.visible).toBe(true);
     expect(result.current.pendingClose).toBe("window");
     expect(state.closes).toBe(0);
+    unmount();
+  });
+
+  it("stops a discard batch and leaves the window open when the first draft is stale", async () => {
+    useDocumentStore.setState({ documents: [doc("A"), doc("B")], activeDocumentId: "A" });
+    state.drafts.set("A", "newer V2"); state.drafts.set("B", "dirty B");
+    seedKnownDrafts();
+    invokeMock.mockImplementation(async (command, args) => {
+      if (command === "delete_discarded_draft") {
+        if (args?.documentId === "A") return "stale";
+        state.drafts.delete(String(args?.documentId));
+        return "deleted";
+      }
+      return null;
+    });
+    const { result, unmount } = mount(); await settle(); await requestClose();
+    await act(async () => { await result.current.confirmClose(); });
+    expect([...state.drafts.entries()]).toEqual([["A", "newer V2"], ["B", "dirty B"]]);
+    expect(state.closes).toBe(0);
+    expect(result.current.pendingClose).toBe("window");
+    unmount();
+  });
+
+  it.each([["A", "B"], ["B", "A"]])("keeps per-document revisions when autosaving %s then %s", async (first, second) => {
+    const revisions = new Map<string, string>();
+    useDocumentStore.setState({ documents: [doc("A"), doc("B")], activeDocumentId: first });
+    invokeMock.mockImplementation(async (command, args) => {
+      const id = String(args?.documentId);
+      if (command === "save_draft") {
+        const revision = `00000000-0000-4000-8000-${id === "A" ? "00000000000a" : "00000000000b"}`;
+        state.drafts.set(id, String(args?.content)); revisions.set(id, revision);
+        return { revision };
+      }
+      if (command === "delete_discarded_draft") {
+        if (args?.expectedRevision !== revisions.get(id)) return "stale";
+        state.drafts.delete(id);
+        return "deleted";
+      }
+      return null;
+    });
+    const { result, unmount } = mount(); await settle();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    act(() => useDocumentStore.setState({ activeDocumentId: second }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect([...state.drafts.keys()].sort()).toEqual(["A", "B"]);
+    await requestClose();
+    await act(async () => { await result.current.confirmClose(); });
+    expect([...state.drafts.keys()]).toEqual([]);
+    expect(state.closes).toBe(1);
+    unmount();
+  });
+
+  it("uses the last disk write when autosave responses settle in reverse order", async () => {
+    const firstRevision = "00000000-0000-4000-8000-000000000001";
+    const secondRevision = "00000000-0000-4000-8000-000000000002";
+    let completeFirst!: () => void;
+    let saves = 0;
+    let diskRevision = "";
+    invokeMock.mockImplementation(async (command, args) => {
+      if (command === "save_draft") {
+        saves += 1;
+        if (saves === 1) {
+          diskRevision = firstRevision;
+          state.drafts.set("A", String(args?.content));
+          await new Promise<void>((resolve) => { completeFirst = resolve; });
+          return { revision: firstRevision, saveOrder: 1 };
+        }
+        diskRevision = secondRevision;
+        state.drafts.set("A", String(args?.content));
+        return { revision: secondRevision, saveOrder: 2 };
+      }
+      if (command === "delete_discarded_draft") {
+        if (args?.expectedRevision !== diskRevision) return "stale";
+        state.drafts.delete("A");
+        return "deleted";
+      }
+      return null;
+    });
+    const { result, unmount } = mount(); await settle(); await requestClose();
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(saves).toBe(2);
+    await act(async () => { completeFirst(); await Promise.resolve(); });
+    await act(async () => { await result.current.confirmClose(); });
+    expect(state.drafts.has("A")).toBe(false);
+    expect(state.closes).toBe(1);
     unmount();
   });
 });

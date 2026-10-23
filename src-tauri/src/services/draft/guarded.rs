@@ -165,6 +165,7 @@ fn recover_locked(
     };
     let result = recover_draft(document_id, target, token.clone())?;
     let bundle = DraftBundle {
+        revision: String::new(),
         owner: Some(caller.clone()),
         claim: Some(token),
         claim_consumed: false,

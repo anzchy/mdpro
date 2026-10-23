@@ -12,6 +12,27 @@ fn owner(label: &str) -> DraftOwner {
     }
 }
 
+// Keep the original D305 assertions against the current stored revision.
+fn delete_draft_owned(document_id: &str, window_label: &str) -> Result<bool, DraftError> {
+    let path = bundle_path(document_id)?;
+    let revision = if path.exists() {
+        let raw = std::fs::read_to_string(path).map_err(|e| DraftError::IoError {
+            message: e.to_string(),
+        })?;
+        serde_json::from_str::<DraftBundle>(&raw)
+            .map_err(|e| DraftError::ParseError {
+                message: e.to_string(),
+            })?
+            .revision
+    } else {
+        uuid::Uuid::new_v4().to_string()
+    };
+    Ok(matches!(
+        super::delete_draft_owned(document_id, window_label, &revision)?,
+        OwnedDeleteOutcome::Deleted
+    ))
+}
+
 #[test]
 fn d305_own_discard_deletes_and_other_window_survives() {
     let home = TempHome::new("d305_own_discard");
@@ -91,6 +112,35 @@ fn d305_owner_check_occurs_after_lock_acquisition() {
 }
 
 #[test]
+fn d305_stale_same_window_delete_preserves_newer_saved_bytes() {
+    let home = TempHome::new("d305_stale_same_window");
+    save_draft_as(Some(owner("A")), "X", "V1", None, "X").unwrap();
+    let lock = draft_lock();
+    let (ready_tx, ready_rx) = mpsc::channel();
+    let (proceed_tx, proceed_rx) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        delete_draft_owned_with_read_hook(
+            "X",
+            "A",
+            || {
+                ready_tx.send(()).unwrap();
+                proceed_rx.recv().unwrap();
+                draft_lock()
+            },
+            || assert!(super::lock::draft_lock_is_held()),
+        )
+        .unwrap()
+    });
+    ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    drop(lock);
+    save_draft_as(Some(owner("A")), "X", "V2 from quit backstop", None, "X").unwrap();
+    let v2_bytes = home.read_raw("X");
+    proceed_tx.send(()).unwrap();
+    assert!(!worker.join().unwrap(), "a V1 delete must not erase V2");
+    assert_eq!(home.read_raw("X"), v2_bytes);
+}
+
+#[test]
 fn d305_b_save_before_a_discard_survives() {
     let home = TempHome::new("d305_b_save_first");
     save_draft_as(Some(owner("A")), "X", "A", None, "A").unwrap();
@@ -133,4 +183,25 @@ fn d305_invalid_document_id_is_rejected_without_mutating_drafts() {
     let before = home.read_raw("X");
     assert!(delete_draft_owned("../X", "A").is_err());
     assert_eq!(home.read_raw("X"), before);
+}
+
+#[test]
+fn d305_missing_revision_is_rejected_and_present_draft_is_unchanged() {
+    let home = TempHome::new("d305_missing_revision");
+    save_draft_as(Some(owner("A")), "X", "keep", None, "X").unwrap();
+    let before = home.read_raw("X");
+    assert!(super::delete_draft_owned("X", "A", "").is_err());
+    assert_eq!(home.read_raw("X"), before);
+}
+
+#[test]
+fn d305_save_order_matches_real_commit_order_and_serializes() {
+    let _home = TempHome::new("d305_save_order");
+    let first = save_draft_as(Some(owner("A")), "X", "first", None, "X").unwrap();
+    let second = save_draft_as(Some(owner("A")), "X", "second", None, "X").unwrap();
+    assert!(first.save_order < second.save_order);
+    assert_ne!(first.revision, second.revision);
+    let encoded = serde_json::to_value(&second).unwrap();
+    assert_eq!(encoded["saveOrder"], second.save_order);
+    assert_eq!(encoded["revision"], second.revision);
 }

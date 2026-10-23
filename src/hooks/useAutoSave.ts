@@ -32,7 +32,7 @@ export function useAutoSave(autoSaveInterval: number) {
           content: activeDocument.content,
           originalPath: activeDocument.path,
           title: extractTitle(activeDocument.content),
-        }));
+        }) as Promise<{ revision: string; saveOrder: number }>);
         lastSaveRef.current = now;
       } catch (err) {
         loggingService.logEventSync({

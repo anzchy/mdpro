@@ -26,6 +26,7 @@ use crate::models::{Draft, LogEntryPayload, LogLevel, LogStatus};
 use crate::services::draft::{
     delete_draft_owned, delete_draft_with_token as delete_draft_service, load_draft,
     save_draft_as_with_token, session_id, DraftClaimToken, DraftError, DraftOwner, DraftSaveResult,
+    OwnedDeleteOutcome,
 };
 use crate::services::logger;
 use crate::services::quit_guard::{DraftGate, QUIT_COMMITTED};
@@ -246,14 +247,16 @@ pub async fn delete_draft(
 pub async fn delete_discarded_draft(
     window: WebviewWindow,
     document_id: String,
-) -> Result<bool, DraftError> {
-    delete_discarded_draft_logged(&document_id, window.label())
+    expected_revision: String,
+) -> Result<OwnedDeleteOutcome, DraftError> {
+    delete_discarded_draft_logged(&document_id, window.label(), &expected_revision)
 }
 
 fn delete_discarded_draft_logged(
     document_id: &str,
     window_label: &str,
-) -> Result<bool, DraftError> {
+    expected_revision: &str,
+) -> Result<OwnedDeleteOutcome, DraftError> {
     let action_id = uuid::Uuid::new_v4().to_string();
     let start = std::time::Instant::now();
     logger::log_event(LogEntryPayload {
@@ -265,7 +268,7 @@ fn delete_discarded_draft_logged(
         duration_ms: None,
         error: None,
     });
-    let result = delete_draft_owned(document_id, window_label);
+    let result = delete_draft_owned(document_id, window_label, expected_revision);
     logger::log_event(LogEntryPayload {
         level: if result.is_err() {
             LogLevel::Error
@@ -282,7 +285,7 @@ fn delete_discarded_draft_logged(
         context: result
             .as_ref()
             .ok()
-            .map(|deleted| json!({ "deleted": deleted })),
+            .map(|outcome| json!({ "outcome": outcome })),
         duration_ms: Some(start.elapsed().as_millis() as u64),
         error: result.as_ref().err().map(|error| error.kind().to_string()),
     });
