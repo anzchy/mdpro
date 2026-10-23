@@ -50,7 +50,7 @@ export const V2_DEFAULTS: Readonly<Record<string, readonly [string, string]>> = 
   formatCode: ["Cmd+Shift+`", "Cmd+Shift+`"],
   formatStrike: ["Cmd+Shift+X", "Cmd+Shift+X"],
   formatHyperlink: ["Cmd+K", "Cmd+K"],
-  formatImage: ["Cmd+Shift+I", "<unassigned>"],
+  formatImage: ["Cmd+Shift+I", "Cmd+Shift+I"],
   formatHighlight: ["Cmd+Shift+M", "Cmd+Shift+M"],
   formatClearFormat: ["Cmd+\\", "Cmd+\\"],
   viewSource: ["Ctrl+2", "<unassigned>"],

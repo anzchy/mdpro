@@ -3,6 +3,6 @@
   { "platform": "windows", "stored": "Cmd+Ctrl+I", "expected": "<unassigned>" },
   { "platform": "linux", "stored": "Cmd+Ctrl+I", "expected": "<unassigned>" },
   { "platform": "windows", "stored": "Cmd+Option+J", "expected": "Cmd+Option+J" },
-  { "platform": "linux", "stored": "", "expected": "<unassigned>" },
-  { "platform": "macos", "stored": "", "expected": "Cmd+Ctrl+I" }
+  { "platform": "linux", "stored": "", "expected": "Cmd+Shift+I" },
+  { "platform": "macos", "stored": "", "expected": "Cmd+Shift+I" }
 ]

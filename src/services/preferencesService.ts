@@ -37,6 +37,7 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { UserPreferences, WindowState } from "../types/preferences";
 import type { AppliedShortcuts } from "../types/keyboardShortcuts";
+import { defaultAppliedShortcuts } from "../commands/appliedKeymap";
 import { useToastStore } from "../stores/toastStore";
 import { loggingService } from "./loggingService";
 import {
@@ -64,7 +65,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   windowState: { width: 1200, height: 800, x: 100, y: 100, isMaximized: false },
   keyboardShortcuts: DEFAULT_KEYBOARD_SHORTCUTS,
   // Rust's CURRENT_KEYBOARD_SHORTCUTS_VERSION (models/keyboard_shortcuts_version.rs).
-  keyboardShortcutsVersion: 1,
+  keyboardShortcutsVersion: 2,
   logging: { enabled: true, level: "info" },
   windowStates: {},
   mcp: DEFAULT_MCP_CONFIG,
@@ -124,17 +125,7 @@ function logRead(purpose: PreferenceReadPurpose, ok: boolean): void {
  * fresh object on each call.
  */
 function browserAppliedShortcuts(): AppliedShortcuts {
-  const bindings = Object.fromEntries(
-    Object.entries(DEFAULT_KEYBOARD_SHORTCUTS).map(([field, chord]) => [
-      field,
-      { state: "bound", chord },
-    ]),
-  ) as AppliedShortcuts["bindings"];
-  return {
-    keyboardShortcutsVersion: DEFAULT_PREFERENCES.keyboardShortcutsVersion,
-    source: "loaded",
-    bindings,
-  };
+  return defaultAppliedShortcuts();
 }
 
 /** One `preferences.shortcuts.applied.read` entry; enum-only context. */

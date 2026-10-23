@@ -38,6 +38,7 @@ use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, SubmenuBuilder}
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
 use crate::menu_layout::{menu_layout, Platform};
+use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
 use crate::services::quit_guard::{self, effects::AppQuitGuard};
 
@@ -73,6 +74,7 @@ pub const MENU_APP_STOP_WAITING_QUIT: &str = "menu.app.stop_waiting_quit";
 /// "Exit" — the guarded quit off macOS (D190-WI-4, ADR-0090). Routed in Rust
 /// only, into `QuitGuard::request_quit`.
 pub const MENU_APP_QUIT: &str = "menu.app.quit";
+const MENU_APP_HIDE: &str = "menu.app.hide";
 #[path = "menu_recent.rs"]
 mod menu_recent;
 pub use menu_recent::{publish_after, MenuState, ModeReport};
@@ -256,7 +258,13 @@ pub fn build_menu(
         app_menu
             .item(&PredefinedMenuItem::services(app, None)?)
             .separator()
-            .item(&PredefinedMenuItem::hide(app, None)?)
+            .item(&MenuItem::with_id(
+                app,
+                MENU_APP_HIDE,
+                "Hide mdpro",
+                true,
+                None::<&str>,
+            )?)
             .item(&PredefinedMenuItem::hide_others(app, None)?)
             .item(&PredefinedMenuItem::show_all(app, None)?)
             .separator()
@@ -342,6 +350,7 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
             quit_guard::deliver_escape(app.try_state::<AppQuitGuard>().as_deref())
         }
         MENU_APP_QUIT => request_guarded_quit(app),
+        MENU_APP_HIDE => hide_app(app),
         MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
         MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
         MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
@@ -387,6 +396,34 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
             }
         }
     }
+}
+
+/// macOS Hide deliberately has no accelerator so Source can receive Cmd+H.
+fn hide_app(app: &AppHandle<Wry>) {
+    let action_id = uuid::Uuid::new_v4().to_string();
+    let log = |status, error: Option<String>| {
+        logger::log_event(LogEntryPayload {
+            level: if error.is_some() {
+                LogLevel::Error
+            } else {
+                LogLevel::Info
+            },
+            event: "ui.menu.hide".into(),
+            status,
+            action_id: Some(action_id.clone()),
+            context: None,
+            duration_ms: None,
+            error,
+        });
+    };
+    log(LogStatus::Start, None);
+    #[cfg(target_os = "macos")]
+    match app.hide() {
+        Ok(()) => log(LogStatus::Success, None),
+        Err(error) => log(LogStatus::Fail, Some(error.to_string())),
+    }
+    #[cfg(not(target_os = "macos"))]
+    log(LogStatus::Fail, Some("Hide is macOS only".into()));
 }
 
 /// The Exit item off macOS: ask the guard, over a sorted snapshot of the open

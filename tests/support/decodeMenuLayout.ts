@@ -68,7 +68,7 @@ const context = oneOf<OwnershipContext>([
 ]);
 const editor = oneOf<InventoryEditor>(["W", "S"]);
 const latent = oneOf<LatentId>(["D267"]);
-const removal = oneOf<RemovalId>(["C11", "C12", "C17", "D264", "D269", "D271", "D272", "K4"]);
+const removal = oneOf<RemovalId>(["C11", "C12", "C17", "D264", "D267", "D269", "D271", "D272", "K4"]);
 
 function perPlatform<T>(v: unknown, at: string, item: (x: unknown, at: string) => T): PerPlatform<T> {
   const o = obj(v, ["macos", "windows", "linux"], at);

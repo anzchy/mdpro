@@ -1,13 +1,13 @@
 /**
- * Purpose: the Source editor's (CodeMirror) chords as composed today: the
+ * Purpose: the Source editor's (CodeMirror) baseline chords before M1b: the
  * basic setup's keymaps (@codemirror/commands 6.10.1, search 6.6.0, language
  * 6.12.1, lint 6.9.5, autocomplete 6.20.1), `indentWithTab`, and mdpro's own
  * keymaps (Editor.tsx, headingPlugin, linkPlugin, highlightPlugin, the Source
  * table Tab keymap). A binding's `Shift-` variant is its own row. Only names
  * with a modifier, or an F-key, are listed.
  *
- * @coordinates-with tests/editor-owned-inventory.test.tsx — two-way bijection
- *   with the mounted editor's composed keymap
+ * @coordinates-with tests/editor-owned-inventory.test.tsx — historical rows
+ *   and live v2 removal checks
  */
 import type { EditorOwnedRow } from "../editorOwnedChords";
 import { LINUX, MAC, OFF, impl, owned, remove, row, shadowedBy, type RowOptions } from "./rowKit";
@@ -26,14 +26,15 @@ const DEFAULT_KEYMAP: readonly EditorOwnedRow[] = [
   s("defaultKeymap", "Ctrl-ArrowRight", owned, mac), s("defaultKeymap", "Shift-Ctrl-ArrowRight", owned, mac),
   s("defaultKeymap", "Alt-ArrowUp"), s("defaultKeymap", "Shift-Alt-ArrowUp"),
   s("defaultKeymap", "Alt-ArrowDown"), s("defaultKeymap", "Shift-Alt-ArrowDown"),
-  s("defaultKeymap", "Mod-Alt-ArrowUp", remove("C17")), s("defaultKeymap", "Mod-Alt-ArrowDown", remove("C17")),
+  // C17 keeps multi-cursor outside tables; the applied table keymap wins inside them.
+  s("defaultKeymap", "Mod-Alt-ArrowUp"), s("defaultKeymap", "Mod-Alt-ArrowDown"),
   s("defaultKeymap", "Mod-Enter"),
   s("defaultKeymap", "Alt-l", owned, off), s("defaultKeymap", "Ctrl-l", owned, mac),
   // D268: Source Italic's v1 Mod-i wins in the high-precedence source-format keymap.
   s("defaultKeymap", "Mod-i", shadowedBy("mdpro:sourceFormatPlugin")),
   s("defaultKeymap", "Mod-[", impl("paragraph.outdent")), s("defaultKeymap", "Mod-]", impl("paragraph.indent")),
   s("defaultKeymap", "Mod-Alt-\\", owned, mac), s("defaultKeymap", "Mod-Alt-\\", remove("D264"), off),
-  s("defaultKeymap", "Shift-Mod-k", owned, { latent: "D267" }),
+  s("defaultKeymap", "Shift-Mod-k", remove("D267")),
   s("defaultKeymap", "Shift-Mod-\\"),
   s("defaultKeymap", "Mod-/", shadowedBy("mdpro:Editor.viewModeKeymap")),
   s("defaultKeymap", "Alt-A"),

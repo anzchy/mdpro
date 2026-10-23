@@ -167,6 +167,6 @@ describe("D189-WI-4 the toggle names the live viewToggleSidebar binding", () => 
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const app = readFileSync(join(__dirname, "..", "src/App.tsx"), "utf8");
-    expect(app).toMatch(/sidebarToggleShortcut=\{keyboardShortcuts\.viewToggleSidebar\}/);
+    expect(app).toMatch(/sidebarToggleShortcut=\{keyboardShortcuts\?\.viewToggleSidebar\s*\?\?\s*"<unassigned>"\}/);
   });
 });

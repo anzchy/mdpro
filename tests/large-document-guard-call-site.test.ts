@@ -825,7 +825,7 @@ describe("WI-4/WI-5: large-document guardrail call site (source-text, below Leve
 // no render harness.
 // ---------------------------------------------------------------------------
 describe("ADR-0022: Source table verdict wiring in App (source-text Gates)", () => {
-  it("C16: handleTableShortcut's Source branch checks the verdict before dispatching (supplement to K3)", () => {
+  it("C16: Source table actions are owned by the editor keymap and withheld with its extensions", () => {
     const src = readSrc(APP_PATH);
     const start = src.indexOf("const handleTableShortcut");
     expect(start).toBeGreaterThan(-1);
@@ -833,17 +833,10 @@ describe("ADR-0022: Source table verdict wiring in App (source-text Gates)", () 
     expect(end).toBeGreaterThan(start);
     const slice = src.slice(start, end);
 
-    const gate =
-      /isSourceTablesWithheld\(\s*useEditorStore\.getState\(\)\s*,\s*useDocumentStore\.getState\(\)\.activeDocumentId\s*\)/g;
-    const matches = [...slice.matchAll(gate)];
-    expect(matches).toHaveLength(1);
-
-    const dispatchIdx = slice.indexOf("dispatchSourceTableAction(");
-    expect(dispatchIdx).toBeGreaterThan(-1);
-    expect(matches[0].index).toBeLessThan(dispatchIdx);
-
-    // editorStore's own activeDocumentId is not the active document.
-    expect(slice).not.toContain("useEditorStore.getState().activeDocumentId");
+    expect(slice).not.toContain("dispatchSourceTableAction(");
+    const editor = readSrc("../src/components/Editor/Editor.tsx");
+    expect(editor).toContain("sourceTableArrowKeymapExt");
+    expect(editor).toContain("...(!sourceTablesWithheld ? [sourceTableArrowKeymapExt] : [])");
   });
 });
 

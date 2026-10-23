@@ -1,5 +1,5 @@
 /**
- * Purpose: current v1 WYSIWYG keys for D255-WI-3b commands.
+ * Purpose: applied WYSIWYG keys for D255-WI-3b commands after M1b.
  * @coordinates-with typoraKeymapPlugin.ts
  * @coordinates-with ../../utils/editorImageInsert.ts
  */
@@ -10,6 +10,8 @@ import { useMilkdownEditorStore } from "../../stores/milkdownEditorStore";
 import { currentWindowLabel } from "../../utils/currentWindowLabel";
 import { startEditorImageInsert } from "../../utils/editorImageInsert";
 import { captureToken } from "../../utils/menuTargetToken";
+import { appliedMilkdownKey, defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
 import {
   clearFormatCommand, makeHeadingLevelCommand, selectLineCommand, selectWordCommand, underlineCommand,
 } from "./wysiwygFormatCommands";
@@ -28,11 +30,20 @@ function logged(id: string, command: Command): Command {
   };
 }
 
-/** Keymap entries bind literal v1 keys; M1b will supply applied-set bindings. */
-export function wysiwygV1Entries(isMac: boolean): Record<string, Entry> {
-  const image: Record<string, Entry> = isMac ? {
+/** Configurable WYSIWYG entries use only the run's applied bindings. */
+export function wysiwygEntries(
+  isMac: boolean,
+  applied: AppliedShortcuts | null = defaultAppliedShortcuts(isMac ? "macos" : "linux"),
+): Record<string, Entry> {
+  const platform = isMac ? "macos" : "linux";
+  const bind = (field: Parameters<typeof appliedMilkdownKey>[1], command: Entry["command"]): Entry | null => {
+    const shortcuts = appliedMilkdownKey(applied, field, platform);
+    return shortcuts ? { shortcuts, command } : null;
+  };
+  const imageKey = appliedMilkdownKey(applied, "formatImage", platform);
+  const imageEntry: Record<string, Entry> = imageKey ? {
     image: {
-      shortcuts: "Mod-Ctrl-i",
+      shortcuts: imageKey,
       command: () => (_state, _dispatch, view) => {
         const editor = useMilkdownEditorStore.getState().getEditor() as Editor | null;
         const actionId = loggingService.generateActionId();
@@ -47,13 +58,14 @@ export function wysiwygV1Entries(isMac: boolean): Record<string, Entry> {
       },
     },
   } : {};
-  return {
-    increaseHeading: { shortcuts: "Mod-=", command: () => logged("paragraph.increaseHeading", makeHeadingLevelCommand("increase")) },
-    decreaseHeading: { shortcuts: "Mod--", command: () => logged("paragraph.decreaseHeading", makeHeadingLevelCommand("decrease")) },
-    selectWord: { shortcuts: "Mod-d", command: () => logged("edit.selectWord", selectWordCommand()) },
-    selectLine: { shortcuts: "Mod-l", command: () => logged("edit.selectLine", selectLineCommand()) },
-    clearFormat: { shortcuts: "Mod-\\", command: () => logged("format.clearFormat", clearFormatCommand()) },
-    underline: { shortcuts: "Mod-u", command: () => logged("format.underline", underlineCommand()) },
-    ...image,
+  const candidates = {
+    increaseHeading: bind("paragraphIncreaseHeading", () => logged("paragraph.increaseHeading", makeHeadingLevelCommand("increase"))),
+    decreaseHeading: bind("paragraphDecreaseHeading", () => logged("paragraph.decreaseHeading", makeHeadingLevelCommand("decrease"))),
+    selectWord: bind("editSelectWord", () => logged("edit.selectWord", selectWordCommand())),
+    selectLine: bind("editSelectLine", () => logged("edit.selectLine", selectLineCommand())),
+    clearFormat: bind("formatClearFormat", () => logged("format.clearFormat", clearFormatCommand())),
+    underline: bind("formatUnderline", () => logged("format.underline", underlineCommand())),
+    ...imageEntry,
   };
+  return Object.fromEntries(Object.entries(candidates).filter(([, entry]) => entry !== null)) as Record<string, Entry>;
 }

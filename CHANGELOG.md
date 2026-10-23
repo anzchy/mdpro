@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Keyboard shortcut defaults now use the v2 command table across the native menu, WYSIWYG, Source, and Settings. Existing custom keys survive migration; duplicate custom keys are suppressed until repaired and restarted. A new default displaced by a custom key is saved as unassigned and explained on the first upgraded run. Source table arrows, AltGr input, and F6 view cycling are handled in the editor (M1b; device check pending).
+
 - The macOS menu bar now follows the command table's Edit, Paragraph, Format, View and Themes tree. Selection and Find are nested under Edit; Insert Table moves to Paragraph; unavailable items remain visible and keyless. Custom shortcuts come from the run's applied set, and editor clicks recheck the target window's mode. Themes has one checked item, Help opens Settings › Keyboard Shortcuts, Settings… replaces Preferences…, and Window gains Bring All to Front. Native menu appearance and clicks await the M4 device batch (M4 WI-1–7).
 
 ### Fixed

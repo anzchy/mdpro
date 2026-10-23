@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
-import { EditorSelection, Prec } from "@codemirror/state";
-import { redo, toggleLineComment, undo } from "@codemirror/commands";
+import { EditorSelection, EditorState, Prec } from "@codemirror/state";
+import { defaultKeymap, redo, toggleLineComment, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
-import { searchExtensions } from "./extensions/search";
+import { searchExtensionsFor } from "./extensions/search";
+import { appliedKey, defaultAppliedShortcuts, withAppliedShortcuts } from "../../commands/appliedKeymap";
+import { isMacPlatform } from "../../utils/platformLabels";
+import { installAltGrGuard } from "../../plugins/codemirror/altGrGuard";
 import {
   initialCloseBrackets,
   initialCodeTheme,
@@ -21,6 +24,7 @@ import { pluginRegistry } from "../../plugins";
 import { highlightCommand } from "../../plugins/codemirror/highlightPlugin";
 import { isPositionInFencedCode } from "../../plugins/codemirror/sourceTableDetection";
 import { sourceTableTabKeymap } from "../../plugins/codemirror/sourceTableTabNav";
+import { sourceTableArrowKeymap } from "../../plugins/codemirror/sourceTableArrowKeymap";
 import { sourceTableExtensions } from "../../plugins/codemirror/sourceTableExtensions";
 import { useSourceTablesWithheld } from "../../hooks/useSourceTablesWithheld";
 import {
@@ -31,6 +35,7 @@ import { linesFromText } from "../../plugins/codemirror/textLineSource";
 import { restoreSourceScrollAnchor } from "../../utils/scrollAnchor/source";
 import { loggingService } from "../../services/loggingService";
 import { abandonIfStale, type HighlightRequest } from "../../utils/menuTargetToken";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
 
 interface EditorProps {
   value: string;
@@ -40,6 +45,7 @@ interface EditorProps {
   highlightRequest?: HighlightRequest;
   /** D203: focus the view once it is created (a tab switch made while Source had focus). */
   focusOnMount?: boolean;
+  appliedShortcuts?: AppliedShortcuts | null;
 }
 
 export function Editor({
@@ -48,8 +54,10 @@ export function Editor({
   readOnly = false,
   highlightRequest,
   focusOnMount = false,
+  appliedShortcuts = defaultAppliedShortcuts(isMacPlatform() ? "macos" : "linux"),
 }: EditorProps) {
   const viewRef = useRef<EditorView | null>(null);
+  const releaseAltGrGuardRef = useRef<(() => void) | null>(null);
   const initializedRef = useRef(false);
   const setEditorView = useEditorStore((state) => state.setEditorView);
   // D158: CodeMirror's base theme follows the app theme (see extensions/appTheme).
@@ -58,7 +66,10 @@ export function Editor({
   // "withheld". A subscription (not a getState() read) because App's guard
   // effect records the verdict after this component mounts.
   const sourceTablesWithheld = useSourceTablesWithheld();
-  const pluginExtensions = useMemo(() => pluginRegistry.getCodemirrorExtensions(), []);
+  const pluginExtensions = useMemo(
+    () => withAppliedShortcuts(appliedShortcuts, () => pluginRegistry.getCodemirrorExtensions()),
+    [appliedShortcuts],
+  );
   const pluginEventExtension = useMemo(
     () =>
       EditorView.updateListener.of((update) => {
@@ -88,6 +99,15 @@ export function Editor({
       ]),
     [],
   );
+  const sourceDefaultKeys = useMemo(
+    () => {
+      const appOwned = new Set(["Shift-Mod-k", "Mod-i", "Mod-[", "Mod-]", "Mod-/"]);
+      return keymap.of(defaultKeymap.filter((binding) =>
+        !appOwned.has(binding.key ?? "") &&
+        (isMacPlatform() || (binding.key !== "Ctrl-m" && binding.key !== "Mod-Alt-\\"))));
+    },
+    [],
+  );
 
   // High-precedence keymap so Cmd+/ always cycles view modes (even when
   // CodeMirror has focus) and the line-comment shortcut moves to Cmd+Alt+/.
@@ -96,20 +116,19 @@ export function Editor({
   // through userViewModeCommands (user intent: persisted as lastViewMode,
   // ADR-0031 step 6) rather than the store's programmatic default.
   const viewModeKeymap = useMemo(
-    () =>
-      Prec.highest(
-        keymap.of([
-          {
-            key: "Mod-/",
-            run: () => {
-              userViewModeCommands.cycle();
-              return true;
-            },
-          },
-          { key: "Mod-Alt-/", run: toggleLineComment },
-        ]),
-      ),
-    [],
+    () => {
+      const key = appliedKey(appliedShortcuts, "viewCycleViewMode", isMacPlatform() ? "macos" : "linux");
+      return Prec.highest(keymap.of([
+        ...(key ? [{ key, run: () => { userViewModeCommands.cycle(); return true; } }] : []),
+        ...(appliedShortcuts ? [{ key: "F6", run: () => { userViewModeCommands.cycle(); return true; } }] : []),
+        { key: "Mod-Alt-/", run: toggleLineComment },
+      ]));
+    },
+    [appliedShortcuts],
+  );
+  const activeSearchExtensions = useMemo(
+    () => searchExtensionsFor(appliedShortcuts, isMacPlatform()),
+    [appliedShortcuts],
   );
   const releaseReadyRef = useRef<(() => void) | null>(null);
   const readyDocumentId = useDocumentStore((state) => state.activeDocumentId);
@@ -125,19 +144,15 @@ export function Editor({
     });
   }, [readyDocumentId, readyGeneration]);
 
-  // Source-mode table Tab / Shift-Tab (Phase 2 WI-2.3, D40). @uiw/react-codemirror
-  // puts its default `keymap.of([indentWithTab])` ahead of every extension we
-  // pass, so no array position here can outrank it — precedence comes from
-  // Prec.high alone. tableTabCommand returns false only when no selected line
-  // is a table line (prose, fenced code, withheld documents), falling through
-  // to that default indent, which is also code-block Tab (#d170f9c). When it
-  // touches a table but cannot navigate (delimiter row, write-guard refusal,
-  // Shift-Tab in the first cell, mixed or multi-table selections) it swallows
-  // the key instead (D41, ADR-0046). Cost: inside a table this outranks any
-  // future default-precedence Tab binding.
+  // Table Tab outranks CodeMirror's built-in indentWithTab, but falls through
+  // outside tables (D40/D41, ADR-0046). Withheld documents omit the extension.
   const sourceTableTabKeymapExt = useMemo(
     () => Prec.high(keymap.of(sourceTableTabKeymap)),
     [],
+  );
+  const sourceTableArrowKeymapExt = useMemo(
+    () => Prec.highest(keymap.of(sourceTableArrowKeymap(appliedShortcuts, isMacPlatform() ? "macos" : "linux"))),
+    [appliedShortcuts],
   );
 
   // Memoize the full extensions array.
@@ -148,7 +163,7 @@ export function Editor({
       viewModeKeymap,
       markdownExtension,
       syntaxHighlightingExtension,
-      ...searchExtensions,
+      ...activeSearchExtensions,
       pluginEventExtension,
       ...pluginExtensions,
       // Detection, Tab keymap, cell highlight, column-count linter — in this
@@ -157,6 +172,7 @@ export function Editor({
         withheld: sourceTablesWithheld,
         tabKeymap: sourceTableTabKeymapExt,
       }),
+      ...(!sourceTablesWithheld ? [sourceTableArrowKeymapExt] : []),
       // Dynamic compartments — reconfigured via applyEditorPref() and related helpers.
       // Initial values are defaults; reapplyEditorPrefs() syncs them to persisted prefs.
       initialWordWrap(true),
@@ -164,16 +180,12 @@ export function Editor({
       initialCloseBrackets(true),
       initialCodeTheme("default"),
       undoRedoKeymap,
+      sourceDefaultKeys,
+      EditorState.allowMultipleSelections.of(true),
     ],
-    // pluginExtensions and pluginEventExtension are stable memos; the only dep
-    // that actually changes is sourceTablesWithheld (per document switch or
-    // verdict), so this array keeps its identity across renders otherwise.
-    // That does not stop reconfigures: the inline `onChange` and `basicSetup`
-    // literal below are also useCodeMirror deps, so every Editor render
-    // (each keystroke included) dispatches a StateEffect.reconfigure.
-    // The listed memos are kept for readability.
+    // The applied snapshot and table verdict both change these extensions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap, sourceTablesWithheld],
+    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceDefaultKeys, sourceTableTabKeymapExt, sourceTableArrowKeymapExt, viewModeKeymap, activeSearchExtensions, sourceTablesWithheld],
   );
 
   // A request whose document or editor has gone since it was made (a switch,
@@ -189,6 +201,8 @@ export function Editor({
   useEffect(() => {
     return () => {
       releaseReadyRef.current?.();
+      releaseAltGrGuardRef.current?.();
+      releaseAltGrGuardRef.current = null;
       releaseReadyRef.current = null;
       setEditorView(null);
       if (initializedRef.current) {
@@ -211,6 +225,8 @@ export function Editor({
           }
         }}
         onCreateEditor={(view) => {
+          releaseAltGrGuardRef.current?.();
+          releaseAltGrGuardRef.current = installAltGrGuard(view.contentDOM, isMacPlatform());
           viewRef.current = view;
           const readyDocumentId = useDocumentStore.getState().activeDocumentId;
           releaseReadyRef.current?.();
@@ -259,6 +275,10 @@ export function Editor({
         }}
         editable={!readOnly}
         basicSetup={{
+          defaultKeymap: false,
+          lintKeymap: false,
+          foldKeymap: false,
+          searchKeymap: false,
           lineNumbers: true,
           highlightActiveLine: true,
           highlightSelectionMatches: true,

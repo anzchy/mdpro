@@ -555,10 +555,27 @@ fn wi7_h_every_shortcut_default_matches_the_shared_contract_fixture() {
     });
     let document: Value =
         serde_json::from_str(&text).expect("the contract fixture must be valid JSON");
-    let fixture = as_object(
+    let mut fixture = as_object(
         &document["$defaultKeyboardShortcuts"],
         "the fixture's $defaultKeyboardShortcuts block",
     );
+    if !cfg!(target_os = "macos") {
+        let layout = crate::menu_layout::menu_layout().expect("committed layout");
+        for row in &layout.rows {
+            let Some(field) = &row.pref_field else {
+                continue;
+            };
+            let key = if cfg!(target_os = "windows") {
+                &row.key.windows
+            } else {
+                &row.key.linux
+            };
+            fixture.insert(
+                field.clone(),
+                Value::String(key.defaults.v2.clone().expect("v2 default")),
+            );
+        }
+    }
     let rust = defaults_via_default_trait();
 
     assert!(

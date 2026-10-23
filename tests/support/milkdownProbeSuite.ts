@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { EditorState } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { normaliseStored } from "../../src/commands/chord";
-import type { Platform } from "../../src/commands/commandTable.types";
+import type { OwnershipContext, Platform } from "../../src/commands/commandTable.types";
 import { EDITOR_OWNED_CHORDS, keymapNameToStored } from "../../src/commands/editorOwnedChords";
 import { validDomain } from "./chordDomain";
 import { inScope, scannedMilkdown } from "./inventoryScan";
@@ -19,6 +19,7 @@ import {
   type StateName,
 } from "./milkdownProbe";
 import { tableBindings } from "./tableBindings";
+import { typoraKeymapConfig } from "../../src/plugins/milkdown/typoraKeymapPlugin";
 
 const HANDLER_ONLY = ["Ctrl-`", "Shift-ArrowLeft", "Shift-ArrowRight", "Shift-ArrowUp", "Shift-ArrowDown",
   "Mod-Backspace", "Mod-Delete"];
@@ -67,7 +68,24 @@ export function runProbeSuite(p: Platform, lane: "unit" | "slow"): void {
     let states: Record<StateName, EditorState>;
     let result = new Map<string, Set<StateName>>();
     const chords = domain(p, lane);
-    const wRows = () => EDITOR_OWNED_CHORDS.filter((r) => r.editor === "W" && r.platforms.includes(p));
+    // The M1a inventory retains removed v1 rows for migration/conflict history.
+    // Probe the v2 composition: base/history/retained table keys plus the
+    // applied Typora config, which owns the configurable actions now.
+    const activeChords = () => {
+      const staticRows = EDITOR_OWNED_CHORDS.filter((r) => {
+        if (r.editor !== "W" || !r.platforms.includes(p) || r.source === "mdpro:typoraKeymap") return false;
+        if (r.source.startsWith("milkdown:preset-commonmark/"))
+          return r.source.endsWith("/hardbreakKeymap") ||
+            (r.source.endsWith("/listItemKeymap") && r.key === "Shift-Tab");
+        if (r.source === "milkdown:preset-gfm/tableKeymap") return r.key === "Shift-Tab" || r.key === "Mod-Enter";
+        if (r.source.startsWith("milkdown:preset-gfm/")) return false;
+        return r.disposition.kind !== "removeInM1b" && r.disposition.kind !== "shadowed";
+      }).map((r) => ({ chord: keymapNameToStored(r.key, p), contexts: r.contexts }));
+      const typoraRows = Object.values(typoraKeymapConfig(mac)).map((entry) => ({
+        chord: keymapNameToStored(entry.shortcuts, p), contexts: ["editorW", "tableW"] as const,
+      }));
+      return [...staticRows, ...typoraRows].filter((r): r is { chord: string; contexts: readonly OwnershipContext[] } => r.chord !== null);
+    };
 
     beforeAll(async () => {
       view = await mountMilkdown();
@@ -99,7 +117,7 @@ export function runProbeSuite(p: Platform, lane: "unit" | "slow"): void {
       const unlisted: string[] = [];
       for (const [chord, hit] of result) {
         for (const s of hit) {
-          const ok = wRows().some((r) => keymapNameToStored(r.key, p) === chord && r.contexts.includes(stateContext(s)));
+          const ok = activeChords().some((r) => r.chord === chord && r.contexts.includes(stateContext(s)));
           if (!ok) unlisted.push(`${p} ${chord} in (${s}) → ${stateContext(s)}`);
         }
       }
@@ -108,12 +126,12 @@ export function runProbeSuite(p: Platform, lane: "unit" | "slow"): void {
 
     it("converse: every W row is handled in some state, or is listed unreachable", () => {
       const unreachable = UNREACHABLE[mac ? "mac" : "off"];
-      const missing = [...new Set(wRows().map((r) => keymapNameToStored(r.key, p)!))]
+      const missing = [...new Set(activeChords().map((r) => r.chord))]
         .filter((c) => (result.get(c)?.size ?? 0) === 0 && !(c in unreachable));
       expect(missing).toEqual([]);
       expect(Object.keys(unreachable).filter((c) => (result.get(c)?.size ?? 0) > 0)).toEqual([]);
       expect(Object.keys(unreachable)).toHaveLength(4);
-      expect(wRows().length).toBeGreaterThan(0);
+      expect(activeChords().length).toBeGreaterThan(0);
     });
 
     it("anchors are handled in their named state", () => {

@@ -14,14 +14,15 @@
  * - The key-kind branch is an exhaustive switch ending in `assertNever`
  *   (rule 60).
  * - Pending compares the saved value with the run's applied snapshot, never
- *   the unsaved edit (ADR-0114 Decision 4). Before M1b nothing is suppressed
- *   at startup, so a suppressed duplicate is not a state here; M1b adds it.
+ *   the unsaved edit (ADR-0114 Decision 4). Suppression comes from the
+ *   startup snapshot and stays visible until the next launch.
  *
  * @coordinates-with src/commands/commandTable.types.ts — the row shape
  * @coordinates-with src/types/keyboardShortcuts.ts — AppliedBinding
  * @coordinates-with src/components/common/settings/shortcuts/ShortcutRow.tsx — draws it
  */
 import { assertNever } from "../../../../commands/assertNever";
+import type { SuppressReason } from "../../../../commands/bindingConflicts.types";
 import type { BindingField } from "../../../../commands/bindingConflicts.types";
 import { normaliseStored } from "../../../../commands/chord";
 import { effectiveImageShortcut } from "../../../../commands/legacyImageShortcut";
@@ -64,6 +65,7 @@ export type RowState =
       readonly secondaries: readonly string[];
       readonly conflict: boolean;
       readonly pending: Pending | null;
+      readonly suppressed: SuppressReason | null;
     };
 
 function capabilityText(availability: Availability): string | null {
@@ -88,6 +90,8 @@ function appliedAsStored(binding: AppliedBinding): string {
       return UNASSIGNED_BINDING;
     case "system":
       return SYSTEM_BINDING;
+    case "suppressed":
+      return UNASSIGNED_BINDING;
     default:
       return assertNever(binding);
   }
@@ -148,5 +152,6 @@ export function rowStateOf(input: RowStateInput): RowState | null {
     secondaries,
     conflict: input.conflicts.has(field),
     pending: pendingOf(input, field, fallback),
+    suppressed: input.applied?.[field]?.state === "suppressed" ? input.applied[field].reason : null,
   };
 }

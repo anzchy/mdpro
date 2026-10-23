@@ -28,16 +28,41 @@
 import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import {
   commonmark,
+  blockquoteKeymap,
+  bulletListKeymap,
+  codeBlockKeymap,
+  emphasisKeymap,
+  headingKeymap,
+  inlineCodeKeymap,
+  listItemKeymap,
+  orderedListKeymap,
+  paragraphKeymap,
   remarkInlineLinkPlugin,
   remarkPreserveEmptyLinePlugin,
+  strongKeymap,
 } from "@milkdown/kit/preset/commonmark";
 import { remarkBlankLineGapsPlugin } from "./emptyParagraph";
 import { linkDefinitionPlugins } from "./linkDefinitions";
 import { listSpreadPlugins } from "./listSpread";
 
+const releaseListModBrackets: MilkdownPlugin = (ctx) => {
+  ctx.update(listItemKeymap.key, (entries) => ({
+    ...entries,
+    SinkListItem: { ...entries.SinkListItem, shortcuts: "Tab" },
+    LiftListItem: { ...entries.LiftListItem, shortcuts: "Shift-Tab" },
+  }));
+  return () => {};
+};
+
 /** preset-commonmark with mdpro's definition, empty-line and list-spread plugins. */
 export const mdproCommonmark: MilkdownPlugin[] = [
   ...commonmark.flatMap((plugin) => {
+    // The app keymap binds these fields from the applied run snapshot. Retaining
+    // a preset shortcut here would resurrect a disabled or customised key.
+    if ([blockquoteKeymap, bulletListKeymap, codeBlockKeymap, emphasisKeymap,
+      headingKeymap, inlineCodeKeymap, orderedListKeymap, paragraphKeymap,
+      strongKeymap].some((entry) => plugin === entry.shortcuts)) return [];
+    if (plugin === listItemKeymap.shortcuts) return [releaseListModBrackets, plugin];
     if (plugin === remarkInlineLinkPlugin.options) return linkDefinitionPlugins;
     if (plugin === remarkInlineLinkPlugin.plugin) return [];
     if (plugin === remarkPreserveEmptyLinePlugin.options) return [...remarkBlankLineGapsPlugin];

@@ -190,6 +190,18 @@ pub(super) fn hard_owner_index(layout: &MenuLayout, p: Platform, v2: bool) -> Ow
         .iter()
         .filter(|r| r.platforms.contains(&p))
     {
+        if v2
+            && match &r.disposition {
+                Disposition::RemoveInM1b { .. } | Disposition::Shadowed { .. } => true,
+                Disposition::Implements { command } => layout
+                    .rows
+                    .iter()
+                    .any(|row| row.id == *command && row.pref_field.is_some()),
+                Disposition::EditorOwned {} => false,
+            }
+        {
+            continue;
+        }
         let (id, except) = match &r.disposition {
             Disposition::Implements { command } => (command.clone(), Some(command.clone())),
             Disposition::EditorOwned {}

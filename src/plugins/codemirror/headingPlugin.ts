@@ -1,5 +1,9 @@
 import { EditorView, keymap } from "@codemirror/view";
 import { createPlugin } from "../core/pluginTypes";
+import { appliedKey, currentAppliedShortcuts } from "../../commands/appliedKeymap";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
+import type { KeyboardShortcuts } from "../../types/preferences";
+import { isMacPlatform } from "../../utils/platformLabels";
 
 export function makeHeadingCommand(level: number) {
   return (view: EditorView): boolean => {
@@ -90,6 +94,23 @@ export function decreaseHeadingCommand(view: EditorView): boolean {
   return makeHeadingCommand(0)(view);
 }
 
+/** Only active applied bindings enter the Source heading keymap. */
+export function sourceHeadingKeymap(applied: AppliedShortcuts | null, isMac: boolean) {
+  const platform = isMac ? "macos" : "linux";
+  const rows: Array<[keyof KeyboardShortcuts, (view: EditorView) => boolean]> = [
+    ["paragraphHeading1", heading1Command], ["paragraphHeading2", heading2Command],
+    ["paragraphHeading3", heading3Command], ["paragraphHeading4", heading4Command],
+    ["paragraphHeading5", heading5Command], ["paragraphHeading6", heading6Command],
+    ["paragraphParagraph", paragraphCommand],
+    ["paragraphIncreaseHeading", increaseHeadingCommand],
+    ["paragraphDecreaseHeading", decreaseHeadingCommand],
+  ];
+  return rows.flatMap(([field, run]) => {
+    const key = appliedKey(applied, field, platform);
+    return key ? [{ key, run }] : [];
+  });
+}
+
 export const headingPlugin = createPlugin({
   name: "heading",
   displayName: "Heading",
@@ -99,15 +120,5 @@ export const headingPlugin = createPlugin({
     enabled: true,
   },
   codemirrorExtension: () =>
-    keymap.of([
-      { key: "Mod-1", run: heading1Command },
-      { key: "Mod-2", run: heading2Command },
-      { key: "Mod-3", run: heading3Command },
-      { key: "Mod-4", run: heading4Command },
-      { key: "Mod-5", run: heading5Command },
-      { key: "Mod-6", run: heading6Command },
-      { key: "Mod-0", run: paragraphCommand },
-      { key: "Mod-=", run: increaseHeadingCommand },
-      { key: "Mod--", run: decreaseHeadingCommand },
-    ]),
+    keymap.of(sourceHeadingKeymap(currentAppliedShortcuts(), isMacPlatform())),
 });

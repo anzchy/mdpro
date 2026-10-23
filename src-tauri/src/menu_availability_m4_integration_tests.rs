@@ -124,7 +124,7 @@ fn m4_wi3_installation_switches_enabled_state_without_a_click() {
     let _home = TestHome::new("m4_mode_install");
     let state = MenuState::default();
     let applied = AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: crate::models::CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::Loaded,
         bindings: resolve_applied(&KeyboardShortcuts::default()),
     };
@@ -190,10 +190,10 @@ fn m4_wi3_installation_switches_enabled_state_without_a_click() {
         installed,
         [
             (false, None),
-            (true, Some("Cmd+Alt+T".into())),
-            (true, Some("Cmd+Alt+T".into())),
+            (true, Some("Cmd+Shift+T".into())),
+            (true, Some("Cmd+Shift+T".into())),
             (false, None),
-            (true, Some("Cmd+Alt+T".into())),
+            (true, Some("Cmd+Shift+T".into())),
             (false, None),
         ]
     );

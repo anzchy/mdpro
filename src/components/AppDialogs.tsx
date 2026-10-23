@@ -94,6 +94,9 @@ export interface AppDialogsProps {
   settingsOpen: boolean;
   settingsInitialPage?: "general" | "keyboard-shortcuts";
   onSettingsClose: () => void;
+  shortcutConflictMessage?: string | null;
+  onShortcutConflictOpenSettings?: () => void;
+  onShortcutConflictDismiss?: () => void;
 }
 
 /** The open token every non-MCP slot passes while it is open. */
@@ -123,6 +126,9 @@ export function AppDialogs({
   settingsOpen,
   settingsInitialPage = "general",
   onSettingsClose,
+  shortcutConflictMessage = null,
+  onShortcutConflictOpenSettings = () => {},
+  onShortcutConflictDismiss = () => {},
 }: AppDialogsProps) {
   const [mcpRequestId, setMcpRequestId] = useState<string | null>(null);
   const [keptIds, setKeptIds] = useState<Set<string>>(() => new Set());
@@ -134,7 +140,7 @@ export function AppDialogs({
     reload: reloadMessage ? OPEN_TOKEN : null,
     recreate: recreateRequest ? `${recreateRequest.documentId}:${recreateRequest.seq}` : null,
     encoding: encodingIssue ? OPEN_TOKEN : null,
-    confirm: confirmDialog.open ? OPEN_TOKEN : null,
+    confirm: confirmDialog.open || shortcutConflictMessage ? OPEN_TOKEN : null,
     settings: settingsOpen ? OPEN_TOKEN : null,
     mcp: mcpRequestId,
   };
@@ -179,7 +185,7 @@ export function AppDialogs({
           />
         );
       case "confirm":
-        return (
+        return confirmDialog.open ? (
           <ConfirmDialog
             open={confirmDialog.open}
             title="Unsaved changes"
@@ -190,7 +196,15 @@ export function AppDialogs({
             onConfirm={onConfirmClose}
             onCancel={onCancelClose}
           />
-        );
+        ) : <ConfirmDialog
+          open={Boolean(shortcutConflictMessage)}
+          title="Shortcut conflicts"
+          message={shortcutConflictMessage ?? ""}
+          confirmLabel="Open Keyboard Shortcuts"
+          cancelLabel="Dismiss"
+          onConfirm={onShortcutConflictOpenSettings}
+          onCancel={onShortcutConflictDismiss}
+        />;
       case "settings":
         return <SettingsDialog open={settingsOpen} onClose={onSettingsClose} initialPage={settingsInitialPage} />;
       case "mcp":

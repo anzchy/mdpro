@@ -1,11 +1,10 @@
 /**
- * Purpose: bind the current v1 Source shortcuts ahead of CodeMirror defaults.
- * M1b will replace these literals with the applied shortcut set.
+ * Purpose: bind the applied Source format shortcuts ahead of CodeMirror defaults.
  *
  * @coordinates-with sourceFormatCommands.ts
  * @coordinates-with ../../commands/editorOwnedChords.ts
  */
-import { selectLine } from "@codemirror/commands";
+import { indentLess, indentMore, selectLine } from "@codemirror/commands";
 import { Prec } from "@codemirror/state";
 import { keymap, type EditorView, type KeyBinding } from "@codemirror/view";
 import { loggingService } from "../../services/loggingService";
@@ -13,10 +12,13 @@ import { isMacPlatform } from "../../utils/platformLabels";
 import { startEditorImageInsert } from "../../utils/editorImageInsert";
 import { currentWindowLabel } from "../../utils/currentWindowLabel";
 import { captureToken } from "../../utils/menuTargetToken";
+import { appliedKey, currentAppliedShortcuts, defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
+import type { KeyboardShortcuts } from "../../types/preferences";
 import { createPlugin } from "../core/pluginTypes";
 import {
   codeCommand, codeFencesCommand, deleteWordCommand, emphasisCommand, mathBlockCommand,
-  orderedListCommand, strikeCommand, strongCommand, unorderedListCommand,
+  orderedListCommand, quoteCommand, strikeCommand, strongCommand, unorderedListCommand,
   underlineCommand,
 } from "./sourceFormatCommands";
 
@@ -56,27 +58,36 @@ export const sourceFormatRunners = {
   mathBlock: logged("paragraph.mathBlock", mathBlockCommand),
   orderedList: logged("paragraph.orderedList", orderedListCommand),
   unorderedList: logged("paragraph.unorderedList", unorderedListCommand),
+  quote: logged("paragraph.quote", quoteCommand),
+  indent: logged("paragraph.indent", indentMore),
+  outdent: logged("paragraph.outdent", indentLess),
   selectLine: logged("edit.selectLine", selectLine),
   deleteWord: logged("edit.deleteWord", deleteWordCommand),
 } as const;
 
-/** Today's v1 keymap; Quote intentionally has no v1 key. */
-export function sourceFormatKeymap(isMac: boolean): readonly KeyBinding[] {
-  const primary = isMac ? "Mod" : "Ctrl";
-  return [
-    { key: `${primary}-b`, run: sourceFormatRunners.strong },
-    { key: `${primary}-i`, run: sourceFormatRunners.emphasis },
-    { key: `${primary}-Shift-\``, run: sourceFormatRunners.code },
-    { key: isMac ? "Ctrl-Shift-\`" : "Alt-Shift-5", run: sourceFormatRunners.strike },
-    { key: `${primary}-u`, run: sourceFormatRunners.underline },
-    ...(isMac ? [{ key: "Mod-Ctrl-i", run: sourceFormatRunners.image }] : []),
-    { key: `${primary}-Alt-c`, run: sourceFormatRunners.codeFences },
-    { key: `${primary}-Alt-b`, run: sourceFormatRunners.mathBlock },
-    { key: `${primary}-Alt-o`, run: sourceFormatRunners.orderedList },
-    { key: `${primary}-Alt-u`, run: sourceFormatRunners.unorderedList },
-    { key: `${primary}-l`, run: sourceFormatRunners.selectLine },
-    { key: `${primary}-Shift-d`, run: sourceFormatRunners.deleteWord },
+/** Bind the Source commands supplied by this run's applied v2 snapshot. */
+export function sourceFormatKeymap(
+  isMac: boolean,
+  applied: AppliedShortcuts | null = defaultAppliedShortcuts(isMac ? "macos" : "linux"),
+): readonly KeyBinding[] {
+  const platform = isMac ? "macos" : "linux";
+  const rows: Array<[keyof KeyboardShortcuts, SourceCommand]> = [
+    ["formatStrong", sourceFormatRunners.strong], ["formatEmphasis", sourceFormatRunners.emphasis],
+    ["formatCode", sourceFormatRunners.code], ["formatStrike", sourceFormatRunners.strike],
+    ["formatUnderline", sourceFormatRunners.underline], ["formatImage", sourceFormatRunners.image],
+    ["paragraphCodeFences", sourceFormatRunners.codeFences],
+    ["paragraphMathBlock", sourceFormatRunners.mathBlock],
+    ["paragraphOrderedList", sourceFormatRunners.orderedList],
+    ["paragraphUnorderedList", sourceFormatRunners.unorderedList],
+    ["paragraphQuote", sourceFormatRunners.quote],
+    ["paragraphIndent", sourceFormatRunners.indent],
+    ["paragraphOutdent", sourceFormatRunners.outdent],
+    ["editSelectLine", sourceFormatRunners.selectLine], ["editDeleteWord", sourceFormatRunners.deleteWord],
   ];
+  return rows.flatMap(([field, run]) => {
+    const key = appliedKey(applied, field, platform);
+    return key ? [{ key, run }] : [];
+  });
 }
 
 export const sourceFormatPlugin = createPlugin({
@@ -85,5 +96,5 @@ export const sourceFormatPlugin = createPlugin({
   supportedModes: ["codemirror"],
   priority: 100,
   defaultConfig: { enabled: true },
-  codemirrorExtension: () => Prec.highest(keymap.of(sourceFormatKeymap(isMacPlatform()))),
+  codemirrorExtension: () => Prec.highest(keymap.of(sourceFormatKeymap(isMacPlatform(), currentAppliedShortcuts()))),
 });

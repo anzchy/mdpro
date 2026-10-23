@@ -1,10 +1,10 @@
-//! Full ordered descriptor parity against the pre-WI-2 v1 menu tree.
+//! Full ordered descriptor parity against the M1b v2 menu tree.
 //! The native AppKit result is a separate device check (Amendment 3).
 
 use super::super::menu_construction_plan::{construction_plan, root_names, sequence, MenuNode};
 use super::*;
 use crate::menu_layout::{menu_layout, Availability, KeyKind, MenuPath, Platform};
-use crate::models::KeyboardShortcuts;
+use crate::models::{KeyboardShortcuts, CURRENT_KEYBOARD_SHORTCUTS_VERSION};
 use crate::services::applied_shortcuts::{resolve_applied, AppliedSource};
 
 #[path = "host_shortcut_expectations_tests.rs"]
@@ -213,13 +213,7 @@ const FORMAT_MAC: &[&str] = &[
 const THEME: &[&str] = &["theme.light", "theme.dark", "theme.system"];
 const WINDOW: &[&str] = &["window.minimize", "window.zoom", "|", "window.closeWindow"];
 const HELP: &[&str] = &["help.mdproHelp"];
-const WINDOW_MAC: &[&str] = &[
-    "window.minimize",
-    "window.zoom",
-    "|",
-    "window.closeWindow",
-    "bring_all",
-];
+const WINDOW_MAC: &[&str] = &["window.minimize", "window.zoom", "|", "bring_all"];
 const HELP_MAC: &[&str] = &["help.keyboardShortcuts"];
 
 fn enabled(availability: Availability, mode: ViewMode) -> bool {
@@ -234,7 +228,7 @@ fn enabled(availability: Availability, mode: ViewMode) -> bool {
 fn descriptor_tree(platform: Platform, mode: ViewMode) -> Vec<String> {
     let layout = menu_layout().unwrap();
     let applied = AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::Loaded,
         bindings: resolve_applied(&KeyboardShortcuts::default()),
     };
@@ -295,17 +289,17 @@ fn descriptor_tree(platform: Platform, mode: ViewMode) -> Vec<String> {
                         (on, key.map(str::to_string))
                     } else if is_mac {
                         (
-                            enabled(row.availability.macos.v1, mode),
+                            enabled(row.availability.macos.v2, mode),
                             row.key
                                 .macos
-                                .default_at(false)
+                                .default_at(true)
                                 .map(|key| key.replace("Option", "Alt")),
                         )
                     } else {
                         let availability = if platform == Platform::Windows {
-                            row.availability.windows.v1
+                            row.availability.windows.v2
                         } else {
-                            row.availability.linux.v1
+                            row.availability.linux.v2
                         };
                         let on = enabled(availability, mode);
                         let key = if matches!(
@@ -322,7 +316,7 @@ fn descriptor_tree(platform: Platform, mode: ViewMode) -> Vec<String> {
                             } else {
                                 &row.key.linux
                             })
-                            .default_at(false)
+                            .default_at(true)
                             .map(|key| key.replace("Cmd", "Ctrl").replace("Option", "Alt"))
                         };
                         let (_, title_from_constructor, on, key) =
@@ -349,7 +343,7 @@ Settings...|menu.file.preferences|on|Cmd+,
 —
 Services|native.services|on|-
 —
-Hide mdpro|app.hide|on|Cmd+H
+Hide mdpro|menu.app.hide|on|-
 Hide Others|app.hideOthers|on|Cmd+Alt+H
 Show All|app.showAll|on|-
 —
@@ -397,18 +391,18 @@ Heading 3|menu.paragraph.heading3|on|Cmd+3
 Heading 4|menu.paragraph.heading4|on|Cmd+4
 Heading 5|menu.paragraph.heading5|on|Cmd+5
 Heading 6|menu.paragraph.heading6|on|Cmd+6
-Paragraph|menu.paragraph.paragraph|on|Cmd+0
+Paragraph|menu.paragraph.paragraph|on|Cmd+Shift+0
 —
-Increase Heading|menu.paragraph.increase_heading|on|Cmd+=
-Decrease Heading|menu.paragraph.decrease_heading|on|Cmd+-
+Increase Heading|menu.paragraph.increase_heading|on|Cmd+Alt+]
+Decrease Heading|menu.paragraph.decrease_heading|on|Cmd+Alt+[
 —
-Table...|menu.format.insert_table|on|Cmd+Alt+T
+Table...|menu.format.insert_table|on|Cmd+Shift+T
 Code Fences|menu.paragraph.code_fences|on|Cmd+Alt+C
 Math Block|menu.paragraph.math_block|off|-
-Quote|menu.paragraph.quote|off|-
+Quote|menu.paragraph.quote|on|Cmd+Shift+B
 —
-Ordered List|menu.paragraph.ordered_list|off|-
-Unordered List|menu.paragraph.unordered_list|off|-
+Ordered List|menu.paragraph.ordered_list|on|Cmd+Alt+O
+Unordered List|menu.paragraph.unordered_list|on|Cmd+Alt+U
 —
 Indent|menu.paragraph.indent|on|Cmd+]
 Outdent|menu.paragraph.outdent|on|Cmd+[
@@ -417,11 +411,11 @@ Bold|menu.format.strong|on|Cmd+B
 Italic|menu.format.emphasis|on|Cmd+I
 Underline|menu.format.underline|on|Cmd+U
 Code|menu.format.code|on|Cmd+Shift+`
-Strikethrough|menu.format.strike|on|Ctrl+Shift+`
-Highlight Selection|menu.format.highlight|on|Cmd+Shift+H
+Strikethrough|menu.format.strike|on|Cmd+Shift+X
+Highlight Selection|menu.format.highlight|on|Cmd+Shift+M
 —
 Link...|menu.format.hyperlink|on|Cmd+K
-Image...|menu.format.image|on|Cmd+Ctrl+I
+Image...|menu.format.image|on|Cmd+Shift+I
 —
 Clear Format|menu.format.clear_format|on|Cmd+\\
 [View]
@@ -439,7 +433,6 @@ System|menu.theme.system|on|-
 Minimize|window.minimize|on|Cmd+M
 Zoom|window.zoom|on|-
 —
-Close Window|window.closeWindow|on|Cmd+W
 Bring All to Front|native.bring_all|on|-
 [Help]
 Keyboard Shortcuts…|menu.help.keyboard_shortcuts|on|-";
@@ -482,8 +475,8 @@ Toggle Sidebar|menu.view.toggle_sidebar|on|Ctrl+Shift+L
 Switch Documents|menu.view.switch_documents|on|-
 Toggle Fullscreen|menu.view.toggle_fullscreen|on|-
 [Format]
-Highlight Selection|menu.format.highlight|on|Ctrl+Shift+H
-Insert Table|menu.format.insert_table|on|Ctrl+Alt+T
+Highlight Selection|menu.format.highlight|on|Ctrl+Shift+M
+Insert Table|menu.format.insert_table|on|Ctrl+Shift+T
 [Theme]
 Light|menu.theme.light|on|-
 Dark|menu.theme.dark|on|-
@@ -503,7 +496,7 @@ Settings...|menu.file.preferences|on|Cmd+,
 —
 Services|native.services|on|-
 —
-Hide mdpro|app.hide|on|Cmd+H
+Hide mdpro|menu.app.hide|on|-
 Hide Others|app.hideOthers|on|Cmd+Alt+H
 Show All|app.showAll|on|-
 —
@@ -537,11 +530,11 @@ Select All|edit.selectAll|on|Cmd+A
 Selection ▸
 Select Line|menu.edit.select_line|on|Cmd+L
 Select Word|menu.edit.select_word|on|Cmd+D
-Delete Word|menu.edit.delete_word|on|Cmd+Shift+D
+Delete Word|menu.edit.delete_word|on|-
 —
 Find ▸
 Find...|menu.edit.find|on|Cmd+F
-Replace...|menu.edit.replace|off|-
+Replace...|menu.edit.replace|on|Cmd+H
 Find Next|menu.edit.find_next|on|Cmd+G
 Find Previous|menu.edit.find_previous|on|Cmd+Shift+G
 [Paragraph]
@@ -551,15 +544,15 @@ Heading 3|menu.paragraph.heading3|on|Cmd+3
 Heading 4|menu.paragraph.heading4|on|Cmd+4
 Heading 5|menu.paragraph.heading5|on|Cmd+5
 Heading 6|menu.paragraph.heading6|on|Cmd+6
-Paragraph|menu.paragraph.paragraph|on|Cmd+0
+Paragraph|menu.paragraph.paragraph|on|Cmd+Shift+0
 —
-Increase Heading|menu.paragraph.increase_heading|on|Cmd+=
-Decrease Heading|menu.paragraph.decrease_heading|on|Cmd+-
+Increase Heading|menu.paragraph.increase_heading|on|Cmd+Alt+]
+Decrease Heading|menu.paragraph.decrease_heading|on|Cmd+Alt+[
 —
 Table...|menu.format.insert_table|off|-
 Code Fences|menu.paragraph.code_fences|on|Cmd+Alt+C
-Math Block|menu.paragraph.math_block|on|Cmd+Alt+B
-Quote|menu.paragraph.quote|off|-
+Math Block|menu.paragraph.math_block|on|Cmd+Alt+Shift+M
+Quote|menu.paragraph.quote|on|Cmd+Shift+B
 —
 Ordered List|menu.paragraph.ordered_list|on|Cmd+Alt+O
 Unordered List|menu.paragraph.unordered_list|on|Cmd+Alt+U
@@ -571,11 +564,11 @@ Bold|menu.format.strong|on|Cmd+B
 Italic|menu.format.emphasis|on|Cmd+I
 Underline|menu.format.underline|on|Cmd+U
 Code|menu.format.code|on|Cmd+Shift+`
-Strikethrough|menu.format.strike|on|Ctrl+Shift+`
-Highlight Selection|menu.format.highlight|on|Cmd+Shift+H
+Strikethrough|menu.format.strike|on|Cmd+Shift+X
+Highlight Selection|menu.format.highlight|on|Cmd+Shift+M
 —
 Link...|menu.format.hyperlink|on|Cmd+K
-Image...|menu.format.image|on|Cmd+Ctrl+I
+Image...|menu.format.image|on|Cmd+Shift+I
 —
 Clear Format|menu.format.clear_format|off|-
 [View]
@@ -593,14 +586,13 @@ System|menu.theme.system|on|-
 Minimize|window.minimize|on|Cmd+M
 Zoom|window.zoom|on|-
 —
-Close Window|window.closeWindow|on|Cmd+W
 Bring All to Front|native.bring_all|on|-
 [Help]
 Keyboard Shortcuts…|menu.help.keyboard_shortcuts|on|-";
 
 #[test]
 fn m4_wi1_wi2_full_ordered_descriptor_tree_matches_the_pre_wi2_baseline_on_all_targets() {
-    let mac_image_row = "Image...|menu.format.image|on|Cmd+Ctrl+I";
+    let mac_image_row = "Image...|menu.format.image|on|Cmd+Shift+I";
     let expected_mac_row = if host_shortcut_expectations::host_has_default_image_shortcut() {
         mac_image_row
     } else {

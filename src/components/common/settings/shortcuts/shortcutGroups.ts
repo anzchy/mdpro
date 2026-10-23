@@ -132,6 +132,7 @@ export function groupOf(row: CommandRow, platform: Platform): ShortcutGroup {
 /** The name a row shows on `platform`. */
 export function entryLabel(row: CommandRow, platform: Platform): string {
   if (row.prefField !== undefined) return FIELD_LABELS[row.prefField];
+  if (row.id === "window.closeWindow" && platform === "macos") return "Close Window";
   const menu = row.menu[platform];
   const item = menu === "none" ? undefined : menu[menu.length - 1];
   return (item ?? row.id).replace(/(\.\.\.|…)$/, "");

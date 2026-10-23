@@ -147,10 +147,10 @@ describe("Windows (navigator.platform = Win32)", () => {
     { binding: "Cmd+W", handler: "onClose", init: { key: "w", ctrlKey: true } },
     { binding: "Cmd+Shift+E", handler: "onExportHtml", init: { key: "E", ctrlKey: true, shiftKey: true } },
     { binding: "Cmd+Shift+L", handler: "onToggleSidebar", init: { key: "L", ctrlKey: true, shiftKey: true } },
-    { binding: "Cmd+Shift+H", handler: "onHighlight", init: { key: "H", ctrlKey: true, shiftKey: true } },
+    { binding: "Cmd+Shift+M", handler: "onHighlight", init: { key: "M", ctrlKey: true, shiftKey: true } },
     { binding: "Cmd+,", handler: "onOpenPreferences", init: { key: ",", ctrlKey: true } },
     { binding: "Cmd+/", handler: "onCycleViewMode", init: { key: "/", ctrlKey: true } },
-    { binding: "Cmd+Option+T", handler: "onInsertTable", init: { key: "t", ctrlKey: true, altKey: true } },
+    { binding: "Cmd+Shift+T", handler: "onInsertTable", init: { key: "T", ctrlKey: true, shiftKey: true } },
     {
       binding: "Cmd+Option+Up",
       handler: "onTableAction",
@@ -174,11 +174,11 @@ describe("Windows (navigator.platform = Win32)", () => {
     ]);
     expect([d.viewToggleSidebar, d.formatHighlight, d.filePreferences, d.viewCycleViewMode]).toEqual([
       "Cmd+Shift+L",
-      "Cmd+Shift+H",
+      "Cmd+Shift+M",
       "Cmd+,",
       "Cmd+/",
     ]);
-    expect([d.paragraphTable, d.tableInsertRowAbove]).toEqual(["Cmd+Option+T", "Cmd+Option+Up"]);
+    expect([d.paragraphTable, d.tableInsertRowAbove]).toEqual(["Cmd+Shift+T", "Cmd+Option+Up"]);
   });
 
   it("the Windows key (metaKey) + S fires nothing and leaves the default alone", () => {

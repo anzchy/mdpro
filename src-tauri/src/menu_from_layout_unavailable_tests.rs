@@ -103,6 +103,8 @@ fn m4_every_macos_custom_id_has_one_production_route() {
                 arm.contains(&format!("\"{action}\"")),
                 "{id} routes incorrectly: {arm}"
             );
+        } else if id == "menu.app.hide" {
+            assert!(source.contains("MENU_APP_HIDE => hide_app(app)"));
         } else if id == "menu.app.quit" || id == "menu.app.stop_waiting_quit" {
             assert!(source.contains("MENU_APP_QUIT => request_guarded_quit"));
             assert!(source.contains("MENU_APP_STOP_WAITING_QUIT =>"));

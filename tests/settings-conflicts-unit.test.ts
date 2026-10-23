@@ -23,6 +23,7 @@ import {
 } from "../src/commands/settingsConflicts";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import { FIELDS } from "./support/bindingSweep";
+import { v1TableDefaults } from "./support/bindingV1Defaults";
 import { CONTEXTS, HIDDEN, PLATFORMS, keysOf, v2Defaults } from "./support/settingsConflictDomain";
 
 describe("M7 no hidden set: every field is shown", () => {
@@ -42,13 +43,13 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     }
   });
 
-  it("u2 off-Mac v1 data collisions (Image/Italic, Source/H2, Strike/Code) are default vs default: allowed", () => {
+  it("u2 off-Mac v1 Source/H2 and Strike/Code data collisions are default vs default: allowed", () => {
     // Guard: the collisions really are in the v1 data off-Mac (normal forms
     // equal), so the empty result is not vacuous.
-    const norm = (f: keyof typeof DEFAULT_KEYBOARD_SHORTCUTS) => normaliseStored(DEFAULT_KEYBOARD_SHORTCUTS[f], "windows");
-    expect(norm("formatImage")).toBe(norm("formatEmphasis"));
+    const norm = (f: keyof typeof DEFAULT_KEYBOARD_SHORTCUTS) => normaliseStored(v1TableDefaults("windows")[f], "windows");
+    expect(norm("formatImage")).toBeNull();
     expect(norm("viewSource")).toBe(norm("paragraphHeading2"));
-    expect(norm("formatImage")).not.toBeNull();
+    expect(norm("formatStrike")).toBe(norm("formatCode"));
     const r = findSettingsConflicts("windows", 1, {});
     expect(r.refusing.size).toBe(0);
   });

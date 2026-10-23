@@ -20,7 +20,7 @@ const imageRow = configurable({
   availability: ["both", "both"],
   contexts: BOTH,
 });
-const noImageKey = { ...imageRow.key.windows, defaults: { v1: "<unassigned>", v2: "<unassigned>" } } as const;
+const noImageKey = { ...imageRow.key.windows, defaults: { v1: "<unassigned>", v2: "Cmd+Shift+I" } } as const;
 
 export const FORMAT_ROWS: readonly CommandRow[] = [
   configurable({

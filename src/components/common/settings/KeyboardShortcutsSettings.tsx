@@ -164,6 +164,11 @@ export function KeyboardShortcutsSettings({ onClose }: KeyboardShortcutsSettings
     try {
       await preferencesService.setPreferences({ keyboardShortcuts: snapshot });
       if (!alive.current) return;
+      if (applied && savedShortcuts && Object.entries(applied).some(([field, binding]) =>
+        binding.state === "suppressed" &&
+        snapshot[field as keyof KeyboardShortcuts] !== savedShortcuts[field as keyof KeyboardShortcuts])) {
+        loggingService.logUiEvent("ui.shortcut-conflict.repaired", { status: "success" });
+      }
       setSavedShortcuts(snapshot);
       // An edit made while saving is not in this save: keep it, the banner and the dialog.
       if (editCount.current === editsAtStart) {

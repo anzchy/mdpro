@@ -61,6 +61,9 @@ export function ShortcutRow({ label, field, state, isMac, editing, recordingProm
             {`Active: ${keyText(field, pending.active, isMac)} · after restart: ${keyText(field, pending.afterRestart, isMac)}`}
           </span>
         )}
+        {configurable?.suppressed && (
+          <span className="shortcut-pending">{`Active: Suppressed (${configurable.suppressed}) until restart`}</span>
+        )}
       </div>
       <div className="shortcut-keys">
         {state.kind === "unavailable" && <span className="shortcut-status">Not available</span>}

@@ -7,6 +7,7 @@ import { Editor } from "../src/components/Editor/Editor";
 import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { doc, seedStores } from "./support/editorGenerationDomain";
+import { v1Applied } from "./support/bindingV1Defaults";
 
 const invoke = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -26,7 +27,7 @@ it("AC-7/11 macOS Source Ctrl+Cmd+I opens the picker once from the real keymap",
   useDocumentStore.setState({ documents: [doc("d1", "alpha")], activeDocumentId: "d1" });
   useEditorStore.setState({ viewMode: "source" });
   invoke.mockImplementation(async (command: string) => command === "pick_image" ? null : undefined);
-  render(<Editor value="alpha" onChange={vi.fn()} />);
+  render(<Editor value="alpha" onChange={vi.fn()} appliedShortcuts={v1Applied("macos")} />);
   const editor = useEditorStore.getState().editorView!;
   const event = new KeyboardEvent("keydown", {
     key: "i", metaKey: true, ctrlKey: true, bubbles: true, cancelable: true,
@@ -42,7 +43,7 @@ it("AC-7/11 read-only Source Image key cannot open the picker or change content"
   seedStores();
   useDocumentStore.setState({ documents: [doc("d1", "alpha")], activeDocumentId: "d1" });
   useEditorStore.setState({ viewMode: "source" });
-  render(<Editor value="alpha" readOnly onChange={vi.fn()} />);
+  render(<Editor value="alpha" readOnly onChange={vi.fn()} appliedShortcuts={v1Applied("macos")} />);
   const editor = useEditorStore.getState().editorView!;
   const event = new KeyboardEvent("keydown", {
     key: "i", metaKey: true, ctrlKey: true, bubbles: true, cancelable: true,

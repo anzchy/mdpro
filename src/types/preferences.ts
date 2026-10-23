@@ -168,13 +168,13 @@ export interface KeyboardShortcuts {
   tableDeleteColumn: string;
 }
 
-/** Default keyboard shortcuts (Typora macOS conventions) */
+/** Active v2 keyboard shortcuts on macOS; Rust supplies host defaults. */
 export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   // File operations
   fileNew: "Cmd+N",
   fileNewWindow: "Cmd+Shift+N",
   fileOpen: "Cmd+O",
-  fileOpenQuickly: "Cmd+Shift+O",
+  fileOpenQuickly: "<unassigned>",
   fileSave: "Cmd+S",
   fileSaveAs: "Cmd+Shift+S",
   fileClose: "Cmd+W",
@@ -185,9 +185,9 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   editPasteAsPlainText: "Cmd+Shift+V",
   editSelectLine: "Cmd+L",
   editSelectWord: "Cmd+D",
-  editDeleteWord: "Cmd+Shift+D",
-  editJumpToTop: "Cmd+Up",
-  editJumpToBottom: "Cmd+Down",
+  editDeleteWord: "<unassigned>",
+  editJumpToTop: "<system>",
+  editJumpToBottom: "<system>",
   editFind: "Cmd+F",
   editFindNext: "Cmd+G",
   editFindPrevious: "Cmd+Shift+G",
@@ -200,13 +200,13 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   paragraphHeading4: "Cmd+4",
   paragraphHeading5: "Cmd+5",
   paragraphHeading6: "Cmd+6",
-  paragraphParagraph: "Cmd+0",
-  paragraphIncreaseHeading: "Cmd+=",
-  paragraphDecreaseHeading: "Cmd+-",
-  paragraphTable: "Cmd+Option+T",
+  paragraphParagraph: "Cmd+Shift+0",
+  paragraphIncreaseHeading: "Cmd+Option+]",
+  paragraphDecreaseHeading: "Cmd+Option+[",
+  paragraphTable: "Cmd+Shift+T",
   paragraphCodeFences: "Cmd+Option+C",
-  paragraphMathBlock: "Cmd+Option+B",
-  paragraphQuote: "Cmd+Option+Q",
+  paragraphMathBlock: "Cmd+Option+Shift+M",
+  paragraphQuote: "Cmd+Shift+B",
   paragraphOrderedList: "Cmd+Option+O",
   paragraphUnorderedList: "Cmd+Option+U",
   paragraphIndent: "Cmd+]",
@@ -217,10 +217,10 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   formatEmphasis: "Cmd+I",
   formatUnderline: "Cmd+U",
   formatCode: "Cmd+Shift+`",
-  formatStrike: "Ctrl+Shift+`",
+  formatStrike: "Cmd+Shift+X",
   formatHyperlink: "Cmd+K",
-  formatImage: "Cmd+Ctrl+I",
-  formatHighlight: "Cmd+Shift+H",
+  formatImage: "Cmd+Shift+I",
+  formatHighlight: "Cmd+Shift+M",
   formatClearFormat: "Cmd+\\",
 
   // File export operations
@@ -231,8 +231,8 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   viewWysiwyg: "Ctrl+4",
   viewToggleSidebar: "Cmd+Shift+L",
   viewCycleViewMode: "Cmd+/",
-  viewToggleFullscreen: "Cmd+Option+F",
-  viewSwitchDocuments: "Cmd+`",
+  viewToggleFullscreen: "<system>",
+  viewSwitchDocuments: "Ctrl+Tab",
 
   // Table actions (direction-mnemonic via Cmd+Option+arrows). The
   // shortcut only fires when the cursor is inside a table; otherwise

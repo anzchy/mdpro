@@ -28,7 +28,7 @@ export interface ShortcutHandlers {
   onCycleViewMode?: (actionId?: string) => void;
   onOpenPreferences?: (actionId?: string) => void;
   /**
-   * Fires for `paragraphTable` (default ⌘⌥T). Opens the Insert Table
+   * Fires for `paragraphTable` (v2 default ⌘⇧T). Opens the Insert Table
    * modal via `tableInsertStore.requestInsert`. Wired in App.tsx.
    */
   onInsertTable?: (actionId?: string) => void;
@@ -41,7 +41,7 @@ export interface ShortcutHandlers {
    */
   onTableAction?: (id: TableShortcutAction, actionId?: string) => void;
   /** Live keyboard shortcut map. Defaults to DEFAULT_KEYBOARD_SHORTCUTS. */
-  shortcuts?: KeyboardShortcuts;
+  shortcuts?: KeyboardShortcuts | null;
 }
 
 export type TableShortcutAction =

@@ -10,6 +10,7 @@
  *   these strings verbatim in place of a chord
  */
 import type { KeyboardShortcuts } from "./preferences";
+import type { SuppressReason } from "../commands/bindingConflicts.types";
 
 /** A binding the user deliberately left without a chord. */
 export const UNASSIGNED_BINDING = "<unassigned>" as const;
@@ -29,7 +30,8 @@ export type KeyboardShortcutState = typeof UNASSIGNED_BINDING | typeof SYSTEM_BI
 export type AppliedBinding =
   | { state: "bound"; chord: string }
   | { state: "unassigned" }
-  | { state: "system" };
+  | { state: "system" }
+  | { state: "suppressed"; reason: SuppressReason };
 
 /** Where the applied snapshot came from. */
 export type AppliedShortcutsSource = "loaded" | "defaultsAfterLoadFailure";

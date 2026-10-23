@@ -143,8 +143,8 @@ describe("app shortcuts call exactly their own handler", () => {
     { handler: "onNew", init: { key: "n", metaKey: true }, shortcut: "Cmd+N", action: "file.new" },
     {
       handler: "onHighlight",
-      init: { key: "H", metaKey: true, shiftKey: true },
-      shortcut: "Cmd+Shift+H",
+      init: { key: "M", metaKey: true, shiftKey: true },
+      shortcut: "Cmd+Shift+M",
       action: "format.highlight",
     },
     {
@@ -171,8 +171,8 @@ describe("app shortcuts call exactly their own handler", () => {
     },
     {
       handler: "onInsertTable",
-      init: { key: "t", metaKey: true, altKey: true },
-      shortcut: "Cmd+Option+T",
+      init: { key: "T", metaKey: true, shiftKey: true },
+      shortcut: "Cmd+Shift+T",
       action: "paragraph.table",
     },
   ] as const)("$shortcut → $handler once, with its logged actionId", ({ handler, init, shortcut, action }) => {
@@ -306,11 +306,11 @@ describe("editor-only shortcuts need a CodeMirror target AND a store editorView"
     unmount();
   });
 
-  it("Cmd+0 inside the editor strips the heading", () => {
+  it("Cmd+Shift+0 inside the editor strips the heading", () => {
     const { unmount } = renderHook(() => useKeyboardShortcuts(makeHandlers()));
     const view = mountView("### Title");
 
-    press(view.contentDOM, { key: "0", metaKey: true });
+    press(view.contentDOM, { key: "0", code: "Digit0", metaKey: true, shiftKey: true });
 
     expect(view.state.doc.toString()).toBe("Title");
     expect(shortcutLogs().map((l) => l.context.action)).toEqual(["paragraph.paragraph"]);

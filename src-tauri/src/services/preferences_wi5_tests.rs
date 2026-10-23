@@ -452,5 +452,5 @@ fn wi5_g_present_shortcut_group_missing_the_new_keys_takes_their_documented_defa
 
     assert_eq!(prefs.keyboard_shortcuts.view_source, "Ctrl+2");
     assert_eq!(prefs.keyboard_shortcuts.view_wysiwyg, "Ctrl+4");
-    assert_eq!(prefs.keyboard_shortcuts.file_open_quickly, "Cmd+Shift+O");
+    assert_eq!(prefs.keyboard_shortcuts.file_open_quickly, "<unassigned>");
 }

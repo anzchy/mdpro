@@ -79,6 +79,7 @@ fn seeded() -> UserPreferences {
         },
         keyboard_shortcuts: KeyboardShortcuts::default(),
         keyboard_shortcuts_version: 4,
+        shortcut_migration_conflicts: Vec::new(),
         window_states: std::collections::HashMap::new(),
         logging: LogSettings {
             enabled: false,

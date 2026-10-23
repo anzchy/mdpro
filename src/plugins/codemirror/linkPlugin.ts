@@ -34,6 +34,8 @@ import { refuseModalOpenWhileModalOpen } from "../../utils/modalTabActionGuard";
 import { abandonIfStale, type MenuTargetToken } from "../../utils/menuTargetToken";
 import { useEditorStore } from "../../stores/editorStore";
 import { loggingService } from "../../services/loggingService";
+import { appliedKey, currentAppliedShortcuts } from "../../commands/appliedKeymap";
+import { isMacPlatform } from "../../utils/platformLabels";
 
 export interface SourceLinkOrigin {
   source: "menu" | "shortcut";
@@ -132,11 +134,8 @@ export const linkPlugin = createPlugin({
   defaultConfig: {
     enabled: true,
   },
-  codemirrorExtension: () =>
-    keymap.of([
-      {
-        key: "Mod-k",
-        run: insertLinkCommand,
-      },
-    ]),
+  codemirrorExtension: () => {
+    const key = appliedKey(currentAppliedShortcuts(), "formatHyperlink", isMacPlatform() ? "macos" : "linux");
+    return keymap.of(key ? [{ key, run: insertLinkCommand }] : []);
+  },
 });

@@ -52,15 +52,14 @@ import { decideLargeDocumentGuard } from "./utils/largeDocumentGuard";
 import { buildSourceTablesWithheldLog } from "./utils/sourceTableWithheldLog";
 import { shouldEvaluateGuard, sourceTableVerdictOf } from "./utils/sourceTableVerdict";
 import type { ViewMode } from "./types/editor";
+import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import type { KeyboardShortcuts } from "./types/preferences";
-import { DEFAULT_KEYBOARD_SHORTCUTS } from "./types/preferences";
 import { useDocumentStore } from "./stores/documentStore";
-import { isSourceTablesWithheld, useEditorStore, userViewModeCommands } from "./stores/editorStore";
+import { useEditorStore, userViewModeCommands } from "./stores/editorStore";
 import { useMilkdownEditorStore } from "./stores/milkdownEditorStore";
 import { useToastStore } from "./stores/toastStore";
 import { useThemeStore } from "./stores/themeStore";
 import { dispatchTableActionFromKeyboard } from "./plugins/milkdown/table/contextMenu";
-import { dispatchSourceTableAction } from "./plugins/codemirror/sourceTableContextMenu";
 import type { TableShortcutAction } from "./hooks/useKeyboardShortcuts";
 import { migrateViewMode } from "./utils/viewModeUtils";
 import { quitDialogModel } from "./utils/quitDialogModel";
@@ -125,7 +124,9 @@ function App() {
   const [settingsInitialPage, setSettingsInitialPage] = useState<"general" | "keyboard-shortcuts">("general");
   const [recreateRequest, setRecreateRequest] = useState<RecreateRequest | null>(null);
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("wysiwyg");
-  const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(DEFAULT_KEYBOARD_SHORTCUTS);
+  const [startupShortcutValues, setStartupShortcutValues] = useState<KeyboardShortcuts | null>(null);
+  const { appliedShortcuts, appliedShortcutsError, keyboardShortcuts,
+    shortcutConflictMessage, dismissShortcutConflict } = useAppShortcuts(startupShortcutValues);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [launchPathsComplete, setLaunchPathsComplete] = useState(false);
   const closeTargetRef = useRef<PendingClose>(null);
@@ -233,6 +234,7 @@ function App() {
         await loggingService.hydrateSettings();
         const prefs = await preferencesService.getPreferences("app_hydrate");
         if (!mounted) return;
+        setStartupShortcutValues(prefs.keyboardShortcuts);
         // Don't set viewMode here - defer until launch paths are complete
         // to avoid race condition with Finder/CLI file opens
         setDefaultViewMode(migrateViewMode(prefs.defaultViewMode));
@@ -240,9 +242,6 @@ function App() {
         sidebarPreference.hydrateWidth(prefs.sidebarWidth);
         setAutoSaveInterval(prefs.autoSaveInterval);
         hydrateRecentFiles(prefs.recentFiles);
-        if (prefs.keyboardShortcuts) {
-          setKeyboardShortcuts({ ...DEFAULT_KEYBOARD_SHORTCUTS, ...prefs.keyboardShortcuts });
-        }
         await applyWindowState(prefs.windowState);
         // Apply-only. Hydration must never write the value it just read: that is
         // a redundant write every launch, and across two windows a
@@ -780,12 +779,6 @@ function App() {
           editor as Parameters<typeof dispatchTableActionFromKeyboard>[0],
           id,
         );
-      } else {
-        // ADR-0022: the table tools are off for a withheld Source document.
-        if (isSourceTablesWithheld(useEditorStore.getState(), useDocumentStore.getState().activeDocumentId)) return;
-        const cmView = useEditorStore.getState().editorView;
-        if (!cmView) return;
-        dispatchSourceTableAction(cmView, id, cmView.state.selection.main.head);
       }
     },
     [],
@@ -924,13 +917,18 @@ function App() {
         <section className="workspace">
           {!activeDocument ? (
             <NoDocumentEditorColumn />
+          ) : !appliedShortcuts ? (
+            <div role="status" aria-label={appliedShortcutsError ? "Keyboard shortcuts unavailable" : "Loading keyboard shortcuts"}>
+              {appliedShortcutsError ? "Keyboard shortcuts could not load. Restart mdpro to retry." : "Loading keyboard shortcuts…"}
+            </div>
           ) : viewMode === "wysiwyg" ? (
-            <MilkdownEditor highlightRequest={highlightRequest} />
+            <MilkdownEditor highlightRequest={highlightRequest} appliedShortcuts={appliedShortcuts} />
           ) : (
             <SplitView
               markdown={activeDocument.content}
               onChange={updateActiveDocumentContent}
               highlightRequest={highlightRequest}
+              appliedShortcuts={appliedShortcuts}
             />
           )}
         </section>
@@ -944,7 +942,7 @@ function App() {
         onNewDocument={createDocument}
         sidebarShown={showSidebar}
         onToggleSidebar={sidebarPreference.toggle}
-        sidebarToggleShortcut={keyboardShortcuts.viewToggleSidebar}
+        sidebarToggleShortcut={keyboardShortcuts?.viewToggleSidebar ?? "<unassigned>"}
       />
 
       {/* The App-level dialogs, incl. this window's ADR-0042 MCP prompt (D42 WI-3). */}
@@ -966,6 +964,16 @@ function App() {
         settingsOpen={settingsOpen}
         settingsInitialPage={settingsInitialPage}
         onSettingsClose={() => setSettingsOpen(false)}
+        shortcutConflictMessage={shortcutConflictMessage}
+        onShortcutConflictOpenSettings={() => {
+          loggingService.logUiEvent("ui.shortcut-conflict.open-settings", { status: "success" });
+          dismissShortcutConflict();
+          handleOpenSettings(undefined, "keyboard-shortcuts");
+        }}
+        onShortcutConflictDismiss={() => {
+          loggingService.logUiEvent("ui.shortcut-conflict.dismiss", { status: "success" });
+          dismissShortcutConflict();
+        }}
       />
       <Toast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
     </div>

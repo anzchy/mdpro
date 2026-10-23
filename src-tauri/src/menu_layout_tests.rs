@@ -37,7 +37,7 @@ fn round_trip_through_the_struct_loses_nothing() {
 }
 
 #[test]
-fn pref_fields_and_v1_defaults_equal_keyboard_shortcuts_default() {
+fn pref_fields_and_host_v2_defaults_equal_keyboard_shortcuts_default() {
     let defaults = serde_json::to_value(KeyboardShortcuts::default()).expect("serialises");
     let defaults = defaults.as_object().expect("an object");
     let mut by_field: BTreeMap<&str, &CommandRow> = BTreeMap::new();
@@ -52,18 +52,14 @@ fn pref_fields_and_v1_defaults_equal_keyboard_shortcuts_default() {
     assert_eq!(fields, expected);
     for (field, row) in &by_field {
         let want = defaults[*field].as_str().expect("a string default");
-        for (platform, key) in per_platform(&row.key) {
-            let effective = if *field == "formatImage" {
-                effective_image_shortcut(platform == "macos", want)
-            } else {
-                want
-            };
-            assert_eq!(
-                key.defaults.v1.as_deref(),
-                Some(effective),
-                "{field} v1 on {platform}"
-            );
-        }
+        let key = if cfg!(target_os = "macos") {
+            &row.key.macos
+        } else if cfg!(target_os = "windows") {
+            &row.key.windows
+        } else {
+            &row.key.linux
+        };
+        assert_eq!(key.defaults.v2.as_deref(), Some(want), "{field} v2 on host");
     }
 }
 
@@ -94,7 +90,12 @@ fn image_layout_default_matches_shared_legacy_parity_rows() {
                 "linux" => &image.key.linux,
                 _ => panic!("unknown platform"),
             };
-            assert_eq!(key.defaults.v1.as_deref(), Some(expected));
+            let expected_default = if stored.is_empty() {
+                key.defaults.v2.as_deref()
+            } else {
+                key.defaults.v1.as_deref()
+            };
+            assert_eq!(expected_default, Some(expected));
         }
     }
 }
@@ -121,12 +122,41 @@ fn rust_hide_count_is_pinned_and_never_off_mac() {
             .iter()
             .filter(|(_, r)| **r == MenuRoute::RustHide)
             .count();
-        // Hide mdpro is the predefined native item today; D13 moves it to
-        // rust-hide in M1b, which re-pins this count.
-        assert_eq!(hides, 0, "{} is rust-hide", row.id);
+        assert_eq!(
+            hides,
+            usize::from(row.id == "app.hide"),
+            "{} is rust-hide",
+            row.id
+        );
     }
     // Off-Mac Exit (2) and Stop Waiting and Quit (3) are the rust-owned routes.
-    assert_eq!(counts.get("rust"), Some(&5));
+    assert_eq!(counts.get("rust"), Some(&6));
+}
+
+#[test]
+fn m1b_hide_is_keyless_rust_action_and_mac_window_has_one_close() {
+    let hide = layout()
+        .rows
+        .iter()
+        .find(|row| row.id == "app.hide")
+        .unwrap();
+    assert_eq!(hide.route.macos, MenuRoute::RustHide);
+    assert_eq!(hide.key.macos.defaults.v2, None);
+    assert!(matches!(hide.menu.windows, MenuPath::None(_)));
+    assert!(matches!(hide.menu.linux, MenuPath::None(_)));
+
+    let close = layout()
+        .rows
+        .iter()
+        .find(|row| row.id == "window.closeWindow")
+        .unwrap();
+    assert!(matches!(close.menu.macos, MenuPath::None(_)));
+    let file_close = layout()
+        .rows
+        .iter()
+        .find(|row| row.id == "file.close")
+        .unwrap();
+    assert!(matches!(file_close.menu.macos, MenuPath::Path(_)));
 }
 
 #[test]

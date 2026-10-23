@@ -1,10 +1,8 @@
 /**
  * Purpose: the editor-owned chord inventory (plan M1A-WI-6, ADR-0114 K4): one
- * row per chord a loaded editor keymap binds today, in WYSIWYG (`W`, Milkdown)
- * or Source (`S`, CodeMirror), with what M1b does about it. Data only; in M1a
- * production reads it only through Settings' conflict check (M1A-WI-10).
- * Tests hold it in two-way bijection
- * with the composed keymaps.
+ * row per baseline editor chord in WYSIWYG (`W`, Milkdown) or Source (`S`,
+ * CodeMirror), with M1b removal/shadow dispositions. The v2 owner index
+ * projects this history onto the live keymaps for Settings and startup.
  *
  * @coordinates-with src/commands/chord.ts — chords are compared in normal form
  * @coordinates-with src/commands/inventory/*.ts — the rows, one file per editor
@@ -18,7 +16,7 @@ import { MAC, OFF, impl, row } from "./inventory/rowKit";
 export type InventoryEditor = "W" | "S";
 
 /** The defect or plan clause that removes or rebinds a row in M1b. */
-export type RemovalId = "C11" | "C12" | "C17" | "D264" | "D269" | "D271" | "D272" | "K4";
+export type RemovalId = "C11" | "C12" | "C17" | "D264" | "D267" | "D269" | "D271" | "D272" | "K4";
 
 /** A registered defect whose collision is not live on v2 (matrix SD16). */
 export type LatentId = "D267";

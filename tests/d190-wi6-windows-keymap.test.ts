@@ -32,13 +32,14 @@ vi.mock("../src/plugins/core/pluginTypes", () => ({ createPlugin: (def: unknown)
 
 import { keydownHandler } from "@milkdown/kit/prose/keymap";
 import { typoraKeymapConfig } from "../src/plugins/milkdown/typoraKeymapPlugin";
+import { v1Applied } from "./support/bindingV1Defaults";
 
 type Key = { key: string; keyCode: number; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; metaKey?: boolean };
 
 /** Every config entry whose chord the keydown triggers. */
 function entriesFiredBy(isMac: boolean, key: Key): string[] {
   const event = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, ...key };
-  return Object.entries(typoraKeymapConfig(isMac))
+  return Object.entries(typoraKeymapConfig(isMac, v1Applied(isMac ? "macos" : "windows")))
     .filter(([, entry]) => {
       const handler = keydownHandler({ [entry.shortcuts]: () => true });
       return handler({ state: {} } as never, event as unknown as KeyboardEvent);
@@ -71,14 +72,14 @@ describe("D190-WI-6 Windows/Linux WYSIWYG chords name one command each", () => {
   it("k4 no two Ctrl or Alt entries share a chord off-Mac", () => {
     // Tab / Shift-Tab / Escape are shared on purpose: each guarded handler
     // declines outside its context (table, code block) and the next one runs.
-    const chords = Object.values(typoraKeymapConfig(false))
+    const chords = Object.values(typoraKeymapConfig(false, v1Applied("windows")))
       .map((e) => e.shortcuts.replace(/^Mod-/, "Ctrl-"))
       .filter((c) => /^(Ctrl|Alt)-/.test(c));
     expect(new Set(chords).size).toBe(chords.length);
   });
 
   it("k5 macOS keeps ⌃⇧` for strikethrough and ⌘⇧` for inline code", () => {
-    const mac = typoraKeymapConfig(true);
+    const mac = typoraKeymapConfig(true, v1Applied("macos"));
     expect(mac.strikethrough.shortcuts).toBe("Ctrl-Shift-`");
     expect(mac.inlineCode.shortcuts).toBe("Mod-Shift-`");
   });

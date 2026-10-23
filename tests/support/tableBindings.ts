@@ -129,6 +129,12 @@ export function explanation(c: Collision): string | null {
     case "shadowed":
       return `shadowed(${d.by})`;
     case "editorOwned": {
+      // C17 keeps CodeMirror's multi-cursor command outside a table; the
+      // applied table keymap has higher precedence only inside the table.
+      if (c.row.source === "codemirror:defaultKeymap" &&
+        ((c.row.key === "Mod-Alt-ArrowUp" && c.rowId === "table.insertRowAbove") ||
+          (c.row.key === "Mod-Alt-ArrowDown" && c.rowId === "table.insertRowBelow")))
+        return "contextPriority(C17:table)";
       const latent = c.row.latent;
       if (latent === undefined || c.binding.row.prefField !== LATENT_FIELD[latent]) return null;
       if (isLiveCollision(c)) return null;

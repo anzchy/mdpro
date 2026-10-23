@@ -13,13 +13,21 @@
  * `tests/preferences-contract-parity.test.ts` (this WI adds no boundary).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+vi.hoisted(() => {
+  Object.defineProperty(window.navigator, "platform", { value: "MacIntel", configurable: true });
+});
+import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { findSettingsConflicts } from "../src/commands/settingsConflicts";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import { V2_DEFAULTS } from "./support/bindingV2Defaults";
 import legacyImageCases from "./fixtures/legacy-image-shortcut-cases.json";
 import { collectionCases } from "./support/collectionCases";
+import { v1TableDefaults } from "./support/bindingV1Defaults";
+import { defaultAppliedShortcuts, appliedStoredShortcuts } from "../src/commands/appliedKeymap";
+import { resolveBindings } from "../src/commands/bindingConflicts";
+import { useKeyboardShortcuts } from "../src/hooks/useKeyboardShortcuts";
+import type { AppliedShortcuts } from "../src/types/keyboardShortcuts";
 
 interface LogPayload {
   event: string;
@@ -32,11 +40,14 @@ const fake = vi.hoisted(() => {
     store: {} as Record<string, string>,
     writes: [] as Record<string, string>[],
     logs: [] as { event: string; context: Record<string, unknown> }[],
+    applied: null as AppliedShortcuts | null,
   };
   const invoke = async (cmd: string, args?: Record<string, unknown>): Promise<unknown> => {
     switch (cmd) {
       case "get_preferences":
         return { keyboardShortcutsVersion: state.version, keyboardShortcuts: { ...state.store } };
+      case "get_applied_shortcuts":
+        return state.applied;
       case "set_preferences": {
         const prefs = (args?.preferences ?? {}) as { keyboardShortcuts?: Record<string, string> };
         const ks = prefs.keyboardShortcuts ?? {};
@@ -68,6 +79,7 @@ const MAC_KEYS: Record<string, string> = {
   [F_B]: "{Meta>}{Shift>}j{/Shift}{/Meta}",
   [F_C]: "{Meta>}{Alt>}j{/Alt}{/Meta}",
   "Cmd+Z": "{Meta>}z{/Meta}",
+  "Cmd+S": "{Meta>}s{/Meta}",
   "Cmd+N": "{Meta>}n{/Meta}",
   "Cmd+K": "{Meta>}k{/Meta}",
   "Cmd+Shift+S": "{Meta>}{Shift>}s{/Shift}{/Meta}",
@@ -82,16 +94,18 @@ afterEach(() => {
 const v2Mac = (): Record<string, string> =>
   Object.fromEntries(Object.entries(V2_DEFAULTS).map(([f, [mac]]) => [f, mac]));
 
-async function open(opts: { platform?: string; version?: number; store?: Record<string, string> } = {}) {
+async function open(opts: { platform?: string; version?: number; store?: Record<string, string>; applied?: AppliedShortcuts } = {}) {
   Object.defineProperty(navigator, "platform", { value: opts.platform ?? "MacIntel", configurable: true });
   fake.state.version = opts.version ?? 1;
-  fake.state.store = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...(opts.store ?? {}) };
+  const host = opts.platform === "Win32" ? "windows" : opts.platform === "Linux" ? "linux" : "macos";
+  fake.state.store = { ...(fake.state.version === 1 ? v1TableDefaults(host) : DEFAULT_KEYBOARD_SHORTCUTS), ...(opts.store ?? {}) };
   fake.state.writes = [];
   fake.state.logs = [];
+  fake.state.applied = opts.applied ?? null;
   const closed: number[] = [];
-  render(<KeyboardShortcutsSettings onClose={() => closed.push(1)} />);
+  const view = render(<KeyboardShortcutsSettings onClose={() => closed.push(1)} />);
   await screen.findByText("Keyboard Shortcuts");
-  return { closed, user: userEvent.setup(), before: { ...fake.state.store } };
+  return { closed, view, user: userEvent.setup(), before: { ...fake.state.store } };
 }
 
 function row(label: string): HTMLElement {
@@ -160,8 +174,9 @@ it(`D255-WI-3b Image read-time parity: ${platform} stored ${stored}`, async () =
   const uiPlatform = platform === "macos" ? "MacIntel" : platform === "windows" ? "Win32" : "Linux";
   await open({ platform: uiPlatform, store: { formatImage: stored } });
   const row = screen.getByText("Image", { selector: ".shortcut-label" }).closest(".shortcut-row");
+  const expectedForV1 = stored === "" ? v1TableDefaults(platform as "macos" | "windows" | "linux").formatImage : expected;
   expect(row?.querySelector(".shortcut-value")?.textContent).toBe(
-    expected === "<unassigned>" ? "Not set" : platform === "macos" ? expected : expected.replace("Cmd", "Ctrl").replace("Option", "Alt"),
+    expectedForV1 === "<unassigned>" ? "Not set" : platform === "macos" ? expectedForV1 : expectedForV1.replace("Cmd", "Ctrl").replace("Option", "Alt"),
   );
   if (expected === "<unassigned>") expect(conflictAlert()).toBeUndefined();
   expect(fake.state.store.formatImage).toBe(stored);
@@ -274,7 +289,7 @@ describe("M1A-WI-10 allowed Saves", () => {
 describe("M1A-WI-10 law: Save refused iff findSettingsConflicts(...).refusing is non-empty (S5)", () => {
   it("refuse → repair → accept, checked after every Save", async () => {
     const { closed, user } = await open();
-    const model: Record<string, string> = { ...DEFAULT_KEYBOARD_SHORTCUTS };
+    const model: Record<string, string> = { ...v1TableDefaults("macos") };
     let writes = 0;
     const saveAndCheck = async (expectRefused: boolean) => {
       await clickSave(user);
@@ -316,4 +331,83 @@ describe("M1A-WI-10 law: Save refused iff findSettingsConflicts(...).refusing is
     await waitFor(() => expect(closed).toHaveLength(1));
     expect(fake.state.store).toMatchObject({ editFindNext: F_B, fileNew: F_C, fileSave: F_A });
   });
+});
+
+it("AC-6 repairs a startup duplicate in Settings, keeps both inactive this run, then applies saved keys on restart", async () => {
+  const duplicateStore = { ...DEFAULT_KEYBOARD_SHORTCUTS, fileNew: F_A, fileSave: F_A };
+  const startupResolution = resolveBindings("macos", 2, duplicateStore);
+  const startup = defaultAppliedShortcuts("macos");
+  for (const field of ["fileNew", "fileSave"] as const) {
+    const binding = startupResolution[field];
+    if (binding.kind !== "suppressed") throw new Error(`${field} was not suppressed at startup`);
+    startup.bindings[field] = { state: "suppressed", reason: binding.reason };
+  }
+  expect(startup.bindings.fileNew).toEqual({ state: "suppressed", reason: "customDuplicate" });
+  expect(startup.bindings.fileSave).toEqual({ state: "suppressed", reason: "customDuplicate" });
+  const { closed, view, user } = await open({
+    version: 2, store: duplicateStore, applied: startup,
+  });
+  await waitFor(() => expect(row("New").textContent).toContain("Suppressed (customDuplicate) until restart"));
+  expect(row("Save").textContent).toContain("Suppressed (customDuplicate) until restart");
+  const onNew = vi.fn();
+  const onSave = vi.fn();
+  const running = renderHook(() => useKeyboardShortcuts({
+    onNew, onSave, shortcuts: appliedStoredShortcuts(startup),
+  }));
+  const press = (key: string) => act(() => document.body.dispatchEvent(new KeyboardEvent("keydown", {
+    key, metaKey: true, bubbles: true, cancelable: true,
+  })));
+  press("j");
+  expect(onNew).not.toHaveBeenCalled();
+  expect(onSave).not.toHaveBeenCalled();
+
+  await record(user, "Save", MAC_KEYS["Cmd+S"] as string);
+  expect(conflictAlert()).toBeUndefined();
+  await clickSave(user);
+  await waitFor(() => expect(closed).toHaveLength(1));
+  expect(fake.state.writes).toHaveLength(1);
+  expect(fake.state.store).toMatchObject({ fileNew: F_A, fileSave: "Cmd+S" });
+  view.unmount();
+  press("j");
+  press("s");
+  expect(onNew).not.toHaveBeenCalled();
+  expect(onSave).not.toHaveBeenCalled();
+
+  // Reopen the real page against the persisted file and the same fixed run snapshot.
+  const reopened = render(<KeyboardShortcutsSettings onClose={() => undefined} />);
+  await screen.findByText("Keyboard Shortcuts");
+  await waitFor(() => expect(row("Save").textContent).toContain("after restart: Cmd+S"));
+  expect(row("New").textContent).toContain("after restart: Cmd+J");
+  expect(row("New").textContent).toContain("Suppressed (customDuplicate) until restart");
+  expect(row("Save").textContent).toContain("Suppressed (customDuplicate) until restart");
+  reopened.unmount();
+  press("j");
+  press("s");
+  expect(onNew).not.toHaveBeenCalled();
+  expect(onSave).not.toHaveBeenCalled();
+  running.unmount();
+
+  const resolutions = resolveBindings("macos", 2, fake.state.store);
+  const restarted = defaultAppliedShortcuts("macos");
+  for (const field of ["fileNew", "fileSave"] as const) {
+    const binding = resolutions[field];
+    if (binding.kind !== "bound") throw new Error(`${field} did not bind after restart`);
+    restarted.bindings[field] = { state: "bound", chord: binding.chord };
+  }
+  expect(restarted.bindings.fileNew).toEqual({ state: "bound", chord: F_A });
+  expect(restarted.bindings.fileSave).toEqual({ state: "bound", chord: "Cmd+S" });
+  fake.state.applied = restarted;
+  const nextSettings = render(<KeyboardShortcutsSettings onClose={() => undefined} />);
+  await screen.findByText("Keyboard Shortcuts");
+  await waitFor(() => expect(row("New").querySelector(".shortcut-pending")).toBeNull());
+  expect(row("Save").querySelector(".shortcut-pending")).toBeNull();
+  nextSettings.unmount();
+  const nextRun = renderHook(() => useKeyboardShortcuts({
+    onNew, onSave, shortcuts: appliedStoredShortcuts(restarted),
+  }));
+  press("j");
+  press("s");
+  expect(onNew).toHaveBeenCalledTimes(1);
+  expect(onSave).toHaveBeenCalledTimes(1);
+  nextRun.unmount();
 });

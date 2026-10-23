@@ -43,6 +43,7 @@ pub fn merge_preferences(current: UserPreferences, updates: PartialPreferences) 
         // Kept from disk: only the loader's migration moves it, and
         // `PartialPreferences` has no such field (ADR-0114 Decision 9).
         keyboard_shortcuts_version: current.keyboard_shortcuts_version,
+        shortcut_migration_conflicts: current.shortcut_migration_conflicts,
         window_states: updates.window_states.unwrap_or(current.window_states),
         logging: updates.logging.unwrap_or(current.logging),
         auto_save: updates.auto_save.unwrap_or(current.auto_save),

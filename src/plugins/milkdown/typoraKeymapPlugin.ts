@@ -19,15 +19,13 @@
  * `state.schema` at dispatch time.  This makes the shortcuts independent of
  * which Milkdown presets are loaded.
  *
- * Exception: inlineCode (⌘⇧`) and strikethrough (⌃⇧`; Alt+Shift+5 on
- * Windows / Linux, see `strikethroughShortcut`) still use the Milkdown
+ * Exception: inlineCode and strikethrough still use the Milkdown
  * command registry because their ProseMirror mark names in the GFM schema are
  * not stable public API.  These commands are registered by the GFM preset that
  * IS loaded, so they work correctly.
  *
- * D255-WI-3b adds a real underline mark and the current v1 WYSIWYG keys in
- * `wysiwygKeymapEntries.ts`; M1b will replace these literals with the applied
- * shortcut set.
+ * D255-WI-3b adds a real underline mark and WYSIWYG commands in
+ * `wysiwygKeymapEntries.ts`; M1b binds them from the applied shortcut set.
  *
  * @coordinates-with src/utils/modalTabActionGuard.ts — ⌘K is refused over an open modal (D235-WI-2)
  * @coordinates-with src/components/Editor/MilkdownEditor.tsx
@@ -36,7 +34,10 @@
 
 import { $useKeymap } from "@milkdown/kit/utils";
 import { commandsCtx } from "@milkdown/kit/core";
-import { toggleInlineCodeCommand } from "@milkdown/kit/preset/commonmark";
+import {
+  createCodeBlockCommand, liftListItemCommand, sinkListItemCommand, toggleInlineCodeCommand,
+  wrapInBlockquoteCommand, wrapInBulletListCommand, wrapInOrderedListCommand,
+} from "@milkdown/kit/preset/commonmark";
 import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
 import type { Command } from "@milkdown/kit/prose/state";
 import { createPlugin } from "../core/pluginTypes";
@@ -54,7 +55,11 @@ import {
   makeTableShiftTabCommand,
   makeTableTabCommand,
 } from "./typoraTableNavigationCommands";
-import { wysiwygV1Entries } from "./wysiwygKeymapEntries";
+import { wysiwygEntries } from "./wysiwygKeymapEntries";
+import { appliedMilkdownKey, currentAppliedShortcuts, defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
+import type { KeyboardShortcuts } from "../../types/preferences";
+import { loggingService } from "../../services/loggingService";
 
 export { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
 export { makeBoldCommand, makeHeadingCommand, makeItalicCommand, makeParagraphCommand } from "./typoraCommandFactories";
@@ -71,6 +76,39 @@ type CommandEntry = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   command: (ctx: MilkdownCtx) => any;
 };
+
+function loggedListIndent(ctx: MilkdownCtx, direction: "indent" | "outdent"): Command {
+  return (state, dispatch, view) => {
+    const actionId = loggingService.generateActionId();
+    loggingService.logEventSync({
+      level: "info", event: "ui.editor.command", status: "start", actionId,
+      context: { command: `paragraph.${direction}`, mode: "wysiwyg", via: "key" },
+    });
+    const changed = makeCodeBlockIndentCommand(direction)(state, dispatch, view) ||
+      ctx.get(commandsCtx).call(direction === "indent" ? sinkListItemCommand.key : liftListItemCommand.key);
+    loggingService.logEventSync({
+      level: "info", event: "ui.editor.command", status: changed ? "success" : "cancel", actionId,
+      context: { command: `paragraph.${direction}`, mode: "wysiwyg", via: "key" },
+    });
+    return true;
+  };
+}
+
+function loggedPresetCommand(id: string, run: () => boolean): Command {
+  return () => {
+    const actionId = loggingService.generateActionId();
+    loggingService.logEventSync({
+      level: "info", event: "ui.editor.command", status: "start", actionId,
+      context: { command: id, mode: "wysiwyg", via: "key" },
+    });
+    const changed = run();
+    loggingService.logEventSync({
+      level: "info", event: "ui.editor.command", status: changed ? "success" : "cancel", actionId,
+      context: { command: id, mode: "wysiwyg", via: "key" },
+    });
+    return true;
+  };
+}
 
 /**
  * The strikethrough chord for a platform. macOS: ⌃⇧`. Windows / Linux:
@@ -89,6 +127,30 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
   heading5: { shortcuts: "Mod-5", command: () => makeHeadingCommand(5) },
   heading6: { shortcuts: "Mod-6", command: () => makeHeadingCommand(6) },
   paragraph: { shortcuts: "Mod-0", command: () => makeParagraphCommand() },
+  indent: {
+    shortcuts: "Mod-]",
+    command: (ctx) => loggedListIndent(ctx, "indent"),
+  },
+  outdent: {
+    shortcuts: "Mod-[",
+    command: (ctx) => loggedListIndent(ctx, "outdent"),
+  },
+  quote: {
+    shortcuts: "Mod-Shift-b",
+    command: (ctx) => loggedPresetCommand("paragraph.quote", () => ctx.get(commandsCtx).call(wrapInBlockquoteCommand.key)),
+  },
+  codeFences: {
+    shortcuts: "Mod-Alt-c",
+    command: (ctx) => loggedPresetCommand("paragraph.codeFences", () => ctx.get(commandsCtx).call(createCodeBlockCommand.key)),
+  },
+  orderedList: {
+    shortcuts: "Mod-Alt-o",
+    command: (ctx) => loggedPresetCommand("paragraph.orderedList", () => ctx.get(commandsCtx).call(wrapInOrderedListCommand.key)),
+  },
+  unorderedList: {
+    shortcuts: "Mod-Alt-u",
+    command: (ctx) => loggedPresetCommand("paragraph.unorderedList", () => ctx.get(commandsCtx).call(wrapInBulletListCommand.key)),
+  },
   bold: { shortcuts: "Mod-b", command: () => makeBoldCommand() },
   italic: { shortcuts: "Mod-i", command: () => makeItalicCommand() },
   // Table navigation entries are registered BEFORE codeBlockIndent so that
@@ -140,13 +202,32 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
   },
 };
 
-/** The keymap config for a platform; only the strikethrough chord differs. */
-export function typoraKeymapConfig(isMac: boolean): Record<string, CommandEntry> {
-  return {
-    ...TYPORA_KEYMAP_ENTRIES,
-    ...wysiwygV1Entries(isMac),
-    strikethrough: { ...TYPORA_KEYMAP_ENTRIES.strikethrough, shortcuts: strikethroughShortcut(isMac) },
+/** The keymap config for a platform and this run's applied shortcut set. */
+export function typoraKeymapConfig(
+  isMac: boolean,
+  applied: AppliedShortcuts | null = defaultAppliedShortcuts(isMac ? "macos" : "linux"),
+): Record<string, CommandEntry> {
+  const platform = isMac ? "macos" : "linux";
+  const fields: Record<string, keyof KeyboardShortcuts> = {
+    heading1: "paragraphHeading1", heading2: "paragraphHeading2", heading3: "paragraphHeading3",
+    heading4: "paragraphHeading4", heading5: "paragraphHeading5", heading6: "paragraphHeading6",
+    paragraph: "paragraphParagraph", bold: "formatStrong", italic: "formatEmphasis",
+    indent: "paragraphIndent", outdent: "paragraphOutdent",
+    quote: "paragraphQuote",
+    codeFences: "paragraphCodeFences", orderedList: "paragraphOrderedList", unorderedList: "paragraphUnorderedList",
+    inlineCode: "formatCode", strikethrough: "formatStrike", link: "formatHyperlink",
   };
+  const entries: Record<string, CommandEntry> = {};
+  for (const [name, entry] of Object.entries(TYPORA_KEYMAP_ENTRIES)) {
+    const field = fields[name];
+    if (!field) {
+      entries[name] = entry;
+      continue;
+    }
+    const shortcuts = appliedMilkdownKey(applied, field, platform);
+    if (shortcuts) entries[name] = { ...entry, shortcuts };
+  }
+  return { ...entries, ...wysiwygEntries(isMac, applied) };
 }
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
@@ -157,7 +238,8 @@ const IS_MAC = typeof navigator !== "undefined" && /Mac/i.test(navigator.platfor
  */
 export const TYPORA_KEYMAP_CONFIG: Record<string, CommandEntry> = typoraKeymapConfig(IS_MAC);
 
-const createTyporaKeymap = () => $useKeymap("typora", TYPORA_KEYMAP_CONFIG);
+const createTyporaKeymap = (applied: AppliedShortcuts | null) =>
+  $useKeymap("typora", typoraKeymapConfig(IS_MAC, applied));
 
 /**
  * The Milkdown plugin instance for use directly in editor factories that do
@@ -166,7 +248,12 @@ const createTyporaKeymap = () => $useKeymap("typora", TYPORA_KEYMAP_CONFIG);
  * Must be module-level so the same instance is reused across editor
  * recreations — matching the pattern in MilkdownEditor.tsx.
  */
-export const typoraKeymapMilkdownPlugin = createTyporaKeymap();
+export const typoraKeymapMilkdownPlugin = createTyporaKeymap(defaultAppliedShortcuts());
+
+/** The editor passes the settled run snapshot when it creates its keymap. */
+export function typoraKeymapForApplied(applied: AppliedShortcuts | null) {
+  return createTyporaKeymap(applied);
+}
 
 export const typoraKeymapPlugin = createPlugin({
   name: "typora-keymap",
@@ -176,5 +263,5 @@ export const typoraKeymapPlugin = createPlugin({
   defaultConfig: {
     enabled: true,
   },
-  milkdownPlugin: () => createTyporaKeymap(),
+  milkdownPlugin: () => createTyporaKeymap(currentAppliedShortcuts()),
 });

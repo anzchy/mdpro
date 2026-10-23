@@ -34,6 +34,31 @@ These shortcuts work across all view modes.
 | ⌘⇧L | Toggle Sidebar |
 | ⌘, | Open Preferences |
 
+### Changed defaults in version 2
+
+| Action | macOS | Windows / Linux |
+|--------|-------|-----------------|
+| Open Quickly, Delete Word | Unassigned | Unassigned |
+| Jump to Top / Bottom | System | System |
+| Paragraph | ⌘⇧0 | Ctrl+Shift+0 |
+| Increase / Decrease Heading | ⌥⌘] / ⌥⌘[ | Ctrl+Alt+] / Ctrl+Alt+[ |
+| Insert Table | ⌘⇧T | Ctrl+Shift+T |
+| Code Fences | ⌥⌘C | Ctrl+Shift+K |
+| Math Block | ⌥⇧⌘M | Ctrl+Alt+Shift+M |
+| Quote | ⇧⌘B | Ctrl+Shift+Q |
+| Ordered / Unordered List | ⌥⌘O / ⌥⌘U | Ctrl+Shift+[ / Ctrl+Shift+] |
+| Strikethrough | ⇧⌘X | Ctrl+Shift+X |
+| Image | ⇧⌘I | Ctrl+Shift+I |
+| Highlight | ⇧⌘M | Ctrl+Shift+M |
+| Source / WYSIWYG view | ⌃2 / ⌃4 | Unassigned |
+| Fullscreen | System | F11 (not available until its command is built) |
+| Switch Documents | ⌃Tab (not available yet) | Ctrl+Tab (not available yet) |
+
+On macOS, Hide mdpro has no key so ⌘H can open Replace in Source. The
+Window menu no longer has a second Close Window item. Ctrl+Alt heading and
+table chords may be unavailable on AltGr keyboard layouts; AltGr character
+input takes precedence.
+
 ## WYSIWYG Mode Shortcuts (Milkdown)
 
 These shortcuts work only in WYSIWYG mode via the Typora-style keymap plugin.
@@ -63,7 +88,7 @@ This allows editing the URL or code content directly without switching to Source
 | ⌘4 | Heading 4 |
 | ⌘5 | Heading 5 |
 | ⌘6 | Heading 6 |
-| ⌘0 | Paragraph (remove heading) |
+| ⌘⇧0 | Paragraph (remove heading) |
 
 > **Note**: In WYSIWYG mode, ⌘1-6 are heading shortcuts. Use ⌃2/⌃4 or ⌘/ to switch view modes.
 
@@ -74,7 +99,7 @@ This allows editing the URL or code content directly without switching to Source
 | ⌘B | Bold | `**text**` |
 | ⌘I | Italic | `*text*` |
 | ⌘⇧\` | Inline Code | `` `code` `` |
-| ⌃⇧\` | Strikethrough | `~~text~~` |
+| ⌘⇧X | Strikethrough | `~~text~~` |
 | ⌘K | Insert Link | `[text](url)` |
 
 > **Note**: Underline (⌘U) is listed in preferences but is not active in WYSIWYG mode. CommonMark and GFM have no underline mark, so there is no Milkdown command to bind.
@@ -97,7 +122,7 @@ These shortcuts work in source mode.
 
 | Shortcut | Action |
 |----------|--------|
-| ⌘⇧H | Highlight selection |
+| ⌘⇧M | Highlight selection |
 | ⌘A | Select all |
 | ⌘D | Select word |
 
@@ -105,7 +130,7 @@ These shortcuts work in source mode.
 
 | Shortcut | Action |
 |----------|--------|
-| Cmd + Option + T | Insert Table — opens the rows × cols picker (macOS: Paragraph → Table…; Windows/Linux: Format → Insert Table) |
+| Cmd + Shift + T | Insert Table — opens the rows × cols picker (macOS: Paragraph → Table…; Windows/Linux: Format → Insert Table) |
 
 ### Table actions (cursor inside a table)
 
@@ -221,8 +246,8 @@ from a list of its own, so every entry has a row
   them records nothing. Their stored value is saved unchanged.
 - **Fixed rows** show their key in a dashed box that is not a button. That
   is every built-in item with a key on the platform: Undo, Redo, Cut, Copy,
-  Paste and Select All everywhere; on macOS also Quit, Hide, Hide Others,
-  Minimize, Close Window and Enter Full Screen; on Windows, Minimize and
+  Paste and Select All everywhere; on macOS also Quit, Hide Others,
+  Minimize and Enter Full Screen; on Windows, Minimize and
   Close Window. **System rows** (Jump to Top / Bottom once defaults v2
   apply) show "System" the same way. Fixed second keys, such as F6 on Cycle
   View Mode, sit beside the main key in a dashed box of their own.
@@ -230,6 +255,10 @@ from a list of its own, so every entry has a row
   whose saved key differs from the one the app is running with shows
   "Active: … · after restart: …". It compares the saved key with the run's
   applied snapshot (`get_applied_shortcuts`), never with unsaved edits.
+- **Conflicts:** duplicate custom keys stay saved but are suppressed for the
+  current run. Repair them in Settings and restart to activate the new keys.
+  If a new default collides with a kept custom key during an upgrade, that
+  default is saved as `<unassigned>` and the first upgraded run explains why.
 - **Recording:** a key needs a modifier, except F1–F12, which record alone.
 - **Reset to Defaults** restores the table's defaults for the stored
   defaults version, `<unassigned>` and `<system>` included.
@@ -270,7 +299,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   editReplace: "Cmd+H",
   paragraphHeading1: "Cmd+1",
   formatStrong: "Cmd+B",
-  formatHighlight: "Cmd+Shift+H",
+  formatHighlight: "Cmd+Shift+M",
   viewToggleSidebar: "Cmd+Shift+L",
   viewCycleViewMode: "Cmd+/",
   // ...
@@ -347,13 +376,13 @@ high-precedence keymap, which calls the global store action directly.
 ├────────────────────────────────────────────┤
 │ WYSIWYG FORMATTING                         │
 │   ⌘B    Bold         ⌘I    Italic         │
-│   ⌘⇧`   Inline Code  ⌃⇧`   Strikethrough  │
-│   ⌘K    Link         ⌘0-6  Headings       │
+│   ⌘⇧`   Inline Code  ⌘⇧X   Strikethrough  │
+│   ⌘K    Link         ⌘1-6  Headings       │
 │   ⌃`    Inline Reveal                     │
 ├────────────────────────────────────────────┤
 │ EDITING                                    │
 │   ⌘Z    Undo         ⌘⇧Z   Redo           │
-│   ⌘⇧H   Highlight    ⌘⌥/   Toggle Comment │
+│   ⌘⇧M   Highlight    ⌘⌥/   Toggle Comment │
 └────────────────────────────────────────────┘
 ```
 

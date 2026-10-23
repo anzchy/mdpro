@@ -2,6 +2,8 @@ import { EditorSelection } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { keymap } from "@codemirror/view";
 import { createPlugin, type PluginConfig } from "../core/pluginTypes";
+import { appliedKey, currentAppliedShortcuts } from "../../commands/appliedKeymap";
+import { isMacPlatform } from "../../utils/platformLabels";
 
 // Use portable ==text== markdown syntax so the inserted text is rendered
 // correctly by all three pipelines (Rust preview, marked fallback, Milkdown
@@ -62,11 +64,7 @@ export const highlightPlugin = createPlugin<HighlightOptions>({
   } as PluginConfig<HighlightOptions>,
   codemirrorExtension: (config) => {
     const options = resolveOptions(config.options as HighlightOptions | undefined);
-    return keymap.of([
-      {
-        key: "Mod-Shift-h",
-        run: (view) => highlightCommand(view, options),
-      },
-    ]);
+    const key = appliedKey(currentAppliedShortcuts(), "formatHighlight", isMacPlatform() ? "macos" : "linux");
+    return keymap.of(key ? [{ key, run: (view) => highlightCommand(view, options) }] : []);
   },
 });

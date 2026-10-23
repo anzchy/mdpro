@@ -251,7 +251,7 @@ fn l4_l6_the_logger_read_agrees_with_the_loader_on_every_document() {
     assert_eq!(docs.len(), 18, "the enumerated domain changed size");
     assert!(mismatches.is_empty(), "{mismatches:#?}");
 
-    // M1A-WI-3d, by value: both reads see `{}` as version 1, not a ParseError.
+    // M1b migrates `{}` to the current shortcut version on the loader path.
     let Some((_, Doc::Raw(raw))) = docs.iter().find(|(l, _)| l == STAMP_OBJECT) else {
         panic!("{STAMP_OBJECT} is missing from the domain");
     };
@@ -269,7 +269,10 @@ fn l4_l6_the_logger_read_agrees_with_the_loader_on_every_document() {
     );
     assert_eq!(
         loaded,
-        Some(((false, LogLevel::Error), 1)),
+        Some((
+            (false, LogLevel::Error),
+            crate::models::CURRENT_KEYBOARD_SHORTCUTS_VERSION
+        )),
         "{STAMP_OBJECT}"
     );
 }

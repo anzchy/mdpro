@@ -33,6 +33,7 @@ fn layout_menu_ids_with_a_menu_path_equal_the_menu_constants() {
         MENU_THEME_SYSTEM,
         MENU_APP_STOP_WAITING_QUIT,
         MENU_APP_QUIT,
+        MENU_APP_HIDE,
         MENU_HELP_KEYBOARD_SHORTCUTS,
         "menu.file.save_as",
         "menu.edit.copy_as_markdown",

@@ -13,6 +13,19 @@
 //! constants, so it stays independent of the code under test.
 
 use super::*;
+
+#[test]
+fn m1b_custom_duplicate_is_suppressed_in_the_applied_snapshot() {
+    let mut stored = KeyboardShortcuts::default();
+    stored.file_new = "Cmd+J".into();
+    stored.file_save = "Cmd+J".into();
+    let snapshot = resolve_applied(&stored);
+    let value = serde_json::to_value(snapshot).expect("snapshot serializes");
+    assert_eq!(value["fileNew"]["state"], "suppressed");
+    assert_eq!(value["fileNew"]["reason"], "customDuplicate");
+    assert_eq!(value["fileSave"]["state"], "suppressed");
+    assert_eq!(value["fileSave"]["reason"], "customDuplicate");
+}
 use crate::models::{SYSTEM_BINDING, UNASSIGNED_BINDING};
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
@@ -53,7 +66,7 @@ fn image_applied_snapshot_matches_host_rows_of_shared_parity_fixture() {
         let expected = row["expected"].as_str().expect("expected string");
         let mut input = KeyboardShortcuts::default();
         input.format_image = stored.to_string();
-        let got = serde_json::to_value(resolve_applied(&input).get("formatImage"))
+        let got = serde_json::to_value(resolve_applied_raw(&input).get("formatImage"))
             .expect("binding serializes");
         let want = if expected == "<unassigned>" {
             json!({"state":"unassigned"})
@@ -83,17 +96,35 @@ fn from_obj(m: Map<String, Value>) -> KeyboardShortcuts {
 }
 
 fn bindings_value(k: &KeyboardShortcuts) -> Map<String, Value> {
-    match serde_json::to_value(resolve_applied(k)).expect("bindings serialize") {
+    match serde_json::to_value(resolve_applied_raw(k)).expect("bindings serialize") {
         Value::Object(m) => m,
         other => panic!("bindings serialised as {other}"),
     }
 }
 
 fn default_chords() -> Map<String, Value> {
-    match read_json(PREFS_CONTRACT)["$defaultKeyboardShortcuts"].clone() {
+    let mut defaults = match read_json(PREFS_CONTRACT)["$defaultKeyboardShortcuts"].clone() {
         Value::Object(m) => m,
         other => panic!("$defaultKeyboardShortcuts is {other}"),
+    };
+    if !cfg!(target_os = "macos") {
+        let layout = crate::menu_layout::menu_layout().expect("committed layout");
+        for row in &layout.rows {
+            let Some(field) = &row.pref_field else {
+                continue;
+            };
+            let key = if cfg!(target_os = "windows") {
+                &row.key.windows
+            } else {
+                &row.key.linux
+            };
+            defaults.insert(
+                field.clone(),
+                json!(key.defaults.v2.as_deref().expect("v2 default")),
+            );
+        }
     }
+    defaults
 }
 
 /// The pointwise rule, as the spec states it.
@@ -130,7 +161,7 @@ fn assert_law(input: &KeyboardShortcuts, label: &str) {
         assert_eq!(bindings[k], expected_binding(k, s, d), "{label}: field {k}");
     }
 
-    let resolved = resolve_applied(input);
+    let resolved = resolve_applied_raw(input);
     let counts = binding_counts(&resolved);
     let by_state = |state: &str| bindings.values().filter(|b| b["state"] == state).count();
     assert_eq!(counts.bound, by_state("bound"), "{label}: bound count");
@@ -146,8 +177,8 @@ fn assert_law(input: &KeyboardShortcuts, label: &str) {
         "{label}: counts sum"
     );
 
-    let a = serde_json::to_string(&resolve_applied(input)).expect("serialize");
-    let b = serde_json::to_string(&resolve_applied(input)).expect("serialize");
+    let a = serde_json::to_string(&resolve_applied_raw(input)).expect("serialize");
+    let b = serde_json::to_string(&resolve_applied_raw(input)).expect("serialize");
     assert_eq!(a, b, "{label}: determinism");
 }
 
@@ -250,7 +281,7 @@ fn a7_a8_the_rust_half_of_the_applied_contract() {
     let snapshot = AppliedShortcuts {
         keyboard_shortcuts_version: 1,
         source: AppliedSource::Loaded,
-        bindings: resolve_applied(&stored),
+        bindings: resolve_applied_raw(&stored),
     };
 
     let mut expected = fixture["applied"].clone();

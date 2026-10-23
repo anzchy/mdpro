@@ -2,8 +2,7 @@
  * Purpose: the hard owners the binding conflict filter checks a custom value
  * against (plan M1A-WI-8, matrix SD5, SD7, SD8): fixed keys and secondaries,
  * K5's reserved chords, and the editor-owned inventory, indexed by normal
- * form. Reached in production only through Settings' conflict check
- * (M1A-WI-10) until M1b.
+ * form. M1b uses the v2 owner projection for Settings and the applied set.
  *
  * Key decisions:
  * - Precedence fixed (0) > native (1) > reserved (2) > editorOwned (3).
@@ -64,11 +63,13 @@ function fixedOwners(row: CommandRow, p: Platform, ver: Version): HardOwner[] {
   return chords.flatMap((c) => owner(c === null ? null : normaliseStored(c, p), row.id, reason, row.contexts));
 }
 
-function inventoryOwners(tables: BindingTables, p: Platform): HardOwner[] {
+function inventoryOwners(tables: BindingTables, p: Platform, ver: Version): HardOwner[] {
   return tables.inventory.flatMap((r) => {
     if (!r.platforms.includes(p)) return [];
     const chord = keymapNameToStored(r.key, p);
     const d = r.disposition;
+    if (ver === "v2" && (d.kind === "removeInM1b" || d.kind === "shadowed" ||
+      (d.kind === "implements" && tables.rows.some((row) => row.id === d.command && row.prefField !== undefined)))) return [];
     switch (d.kind) {
       case "implements":
         return owner(chord, d.command, "editorOwned", r.contexts, d.command);
@@ -95,7 +96,7 @@ export function hardOwnerIndex(tables: BindingTables, p: Platform, ver: Version)
       const chord = normaliseStored(c, p);
       return owner(chord, `reserved:${chord ?? c}`, "reserved", ALL_CONTEXTS);
     }),
-    ...inventoryOwners(tables, p),
+    ...inventoryOwners(tables, p, ver),
   ];
   const index = new Map<string, HardOwner[]>();
   for (const o of all) index.set(o.chord, [...(index.get(o.chord) ?? []), o]);

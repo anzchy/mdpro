@@ -26,6 +26,6 @@ it("AC-10/11 Image has its Mac v1 key and no off-Mac key until M1b", () => {
   expect(row.key.macos.defaults.v1).toBe("Cmd+Ctrl+I");
   expect(row.key.windows.defaults.v1).toBe("<unassigned>");
   expect(row.key.linux.defaults.v1).toBe("<unassigned>");
-  expect(row.key.windows.defaults.v2).toBe("<unassigned>");
-  expect(row.key.linux.defaults.v2).toBe("<unassigned>");
+  expect(row.key.windows.defaults.v2).toBe("Cmd+Shift+I");
+  expect(row.key.linux.defaults.v2).toBe("Cmd+Shift+I");
 });

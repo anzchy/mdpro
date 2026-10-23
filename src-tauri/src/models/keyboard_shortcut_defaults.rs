@@ -1,11 +1,19 @@
 //! Purpose: the default chord of every `KeyboardShortcuts` field, named by
 //! its `#[serde(default = "…")]` attributes and its hand-written `Default`.
-//! Split out of `models/preferences.rs` (M1a WI-0, rule 50 § 6); values
-//! unchanged.
+//! Split out of `models/preferences.rs` (M1a WI-0, rule 50 § 6); M1b
+//! activates the v2 values on each host.
 //!
 //! @coordinates-with models/keyboard_shortcuts.rs
 
-// Default shortcut values (Typora macOS conventions)
+// Default shortcut values from the command table's active v2 column.
+fn host_chord(macos: &'static str, other: &'static str) -> String {
+    if cfg!(target_os = "macos") {
+        macos
+    } else {
+        other
+    }
+    .to_string()
+}
 pub(super) fn default_new() -> String {
     "Cmd+N".to_string()
 }
@@ -16,7 +24,7 @@ pub(super) fn default_open() -> String {
     "Cmd+O".to_string()
 }
 pub(super) fn default_open_quickly() -> String {
-    "Cmd+Shift+O".to_string()
+    "<unassigned>".to_string()
 }
 pub(super) fn default_save() -> String {
     "Cmd+S".to_string()
@@ -44,13 +52,13 @@ pub(super) fn default_select_word() -> String {
     "Cmd+D".to_string()
 }
 pub(super) fn default_delete_word() -> String {
-    "Cmd+Shift+D".to_string()
+    "<unassigned>".to_string()
 }
 pub(super) fn default_jump_to_top() -> String {
-    "Cmd+Up".to_string()
+    "<system>".to_string()
 }
 pub(super) fn default_jump_to_bottom() -> String {
-    "Cmd+Down".to_string()
+    "<system>".to_string()
 }
 pub(super) fn default_find() -> String {
     "Cmd+F".to_string()
@@ -84,31 +92,31 @@ pub(super) fn default_heading6() -> String {
     "Cmd+6".to_string()
 }
 pub(super) fn default_paragraph() -> String {
-    "Cmd+0".to_string()
+    "Cmd+Shift+0".to_string()
 }
 pub(super) fn default_increase_heading() -> String {
-    "Cmd+=".to_string()
+    "Cmd+Option+]".to_string()
 }
 pub(super) fn default_decrease_heading() -> String {
-    "Cmd+-".to_string()
+    "Cmd+Option+[".to_string()
 }
 pub(super) fn default_table() -> String {
-    "Cmd+Option+T".to_string()
+    "Cmd+Shift+T".to_string()
 }
 pub(super) fn default_code_fences() -> String {
-    "Cmd+Option+C".to_string()
+    host_chord("Cmd+Option+C", "Cmd+Shift+K")
 }
 pub(super) fn default_math_block() -> String {
-    "Cmd+Option+B".to_string()
+    "Cmd+Option+Shift+M".to_string()
 }
 pub(super) fn default_quote() -> String {
-    "Cmd+Option+Q".to_string()
+    host_chord("Cmd+Shift+B", "Cmd+Shift+Q")
 }
 pub(super) fn default_ordered_list() -> String {
-    "Cmd+Option+O".to_string()
+    host_chord("Cmd+Option+O", "Cmd+Shift+[")
 }
 pub(super) fn default_unordered_list() -> String {
-    "Cmd+Option+U".to_string()
+    host_chord("Cmd+Option+U", "Cmd+Shift+]")
 }
 pub(super) fn default_indent() -> String {
     "Cmd+]".to_string()
@@ -130,23 +138,19 @@ pub(super) fn default_code() -> String {
     "Cmd+Shift+`".to_string()
 }
 pub(super) fn default_strike() -> String {
-    "Ctrl+Shift+`".to_string()
+    "Cmd+Shift+X".to_string()
 }
 pub(super) fn default_hyperlink() -> String {
     "Cmd+K".to_string()
 }
 pub(super) fn default_image() -> String {
-    "Cmd+Ctrl+I".to_string()
+    "Cmd+Shift+I".to_string()
 }
 
 /// Effective Image key for a platform; the saved value itself stays untouched.
 pub(crate) fn effective_image_shortcut(is_macos: bool, stored: &str) -> &str {
     if stored.is_empty() {
-        return if is_macos {
-            "Cmd+Ctrl+I"
-        } else {
-            "<unassigned>"
-        };
+        return "Cmd+Shift+I";
     }
     if !is_macos && stored == "Cmd+Ctrl+I" {
         return "<unassigned>";
@@ -158,7 +162,7 @@ pub(crate) fn effective_image_shortcut(is_macos: bool, stored: &str) -> &str {
 #[path = "legacy_image_shortcut_tests.rs"]
 mod legacy_image_shortcut_tests;
 pub(super) fn default_highlight() -> String {
-    "Cmd+Shift+H".to_string()
+    "Cmd+Shift+M".to_string()
 }
 pub(super) fn default_clear_format() -> String {
     "Cmd+\\".to_string()
@@ -171,13 +175,13 @@ pub(super) fn default_export_html() -> String {
 /// (`menu_submenus.rs` `view_item_accelerator`; Windows and Linux have none,
 /// ADR-0096) and `src/types/preferences.ts`'s `viewSource` (rule 41).
 pub(super) fn default_view_source() -> String {
-    "Ctrl+2".to_string()
+    host_chord("Ctrl+2", "<unassigned>")
 }
 /// Mirrors the macOS accelerator ⌃4 on the View → WYSIWYG item
 /// (`menu_submenus.rs` `view_item_accelerator`; Windows and Linux have none,
 /// ADR-0096) and `src/types/preferences.ts`'s `viewWysiwyg` (rule 41).
 pub(super) fn default_view_wysiwyg() -> String {
-    "Ctrl+4".to_string()
+    host_chord("Ctrl+4", "<unassigned>")
 }
 pub(super) fn default_toggle_sidebar() -> String {
     "Cmd+Shift+L".to_string()
@@ -186,10 +190,10 @@ pub(super) fn default_cycle_view_mode() -> String {
     "Cmd+/".to_string()
 }
 pub(super) fn default_toggle_fullscreen() -> String {
-    "Cmd+Option+F".to_string()
+    host_chord("<system>", "F11")
 }
 pub(super) fn default_switch_documents() -> String {
-    "Cmd+`".to_string()
+    host_chord("Ctrl+Tab", "Cmd+Tab")
 }
 
 // Table action shortcuts — direction mnemonic via Cmd+Option+arrows.

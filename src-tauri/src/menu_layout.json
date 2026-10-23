@@ -83,6 +83,7 @@
     },
     {
       "id": "app.hide",
+      "menuId": "menu.app.hide",
       "menu": {
         "macos": [
           "mdpro",
@@ -150,7 +151,7 @@
         }
       },
       "route": {
-        "macos": "native",
+        "macos": "rust-hide",
         "windows": "unavailable",
         "linux": "unavailable"
       }
@@ -2854,7 +2855,7 @@
           "kind": "configurable",
           "defaults": {
             "v1": "<unassigned>",
-            "v2": "<unassigned>"
+            "v2": "Cmd+Shift+I"
           },
           "secondaries": {
             "v1": [],
@@ -2865,7 +2866,7 @@
           "kind": "configurable",
           "defaults": {
             "v1": "<unassigned>",
-            "v2": "<unassigned>"
+            "v2": "Cmd+Shift+I"
           },
           "secondaries": {
             "v1": [],
@@ -5713,10 +5714,7 @@
     {
       "id": "window.closeWindow",
       "menu": {
-        "macos": [
-          "Window",
-          "Close Window"
-        ],
+        "macos": "none",
         "windows": [
           "Window",
           "Close Window"
@@ -6533,8 +6531,7 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "removeInM1b",
-        "id": "C17"
+        "kind": "editorOwned"
       }
     },
     {
@@ -6551,8 +6548,7 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "removeInM1b",
-        "id": "C17"
+        "kind": "editorOwned"
       }
     },
     {
@@ -7304,9 +7300,9 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "editorOwned"
-      },
-      "latent": "D267"
+        "kind": "removeInM1b",
+        "id": "D267"
+      }
     },
     {
       "editor": "S",

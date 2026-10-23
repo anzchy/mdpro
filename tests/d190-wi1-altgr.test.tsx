@@ -23,6 +23,7 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { v1TableDefaults } from "./support/bindingV1Defaults";
 
 const ipc = vi.hoisted(() => ({ invoke: vi.fn(async () => null) }));
 
@@ -65,7 +66,9 @@ function pressWith(hook: HookModule, init: PressInit): { fired: HandlerName[]; e
     HandlerName,
     ReturnType<typeof vi.fn>
   >;
-  const { unmount } = renderHook(() => hook.useKeyboardShortcuts(handlers));
+  const { unmount } = renderHook(() => hook.useKeyboardShortcuts({
+    ...handlers, shortcuts: v1TableDefaults(/Mac/i.test(navigator.platform) ? "macos" : "windows"),
+  }));
   const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
   act(() => {
     window.dispatchEvent(event);

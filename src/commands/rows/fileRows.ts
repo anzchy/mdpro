@@ -1,7 +1,7 @@
 /**
  * Purpose: command-table rows for the File group of `KeyboardShortcuts`.
- * v1 = today's defaults; v2 = plan § 5.3.2 (inert until M1b, ADR-0114
- * Decision 9). Menu paths and menu ids are today's (`menu.rs`).
+ * v1 = migration baseline; v2 = active plan § 5.3.2 defaults (ADR-0114
+ * Decision 9). Menu paths and ids feed the generated native layout.
  *
  * @coordinates-with src/commands/commandTable.ts — assembles the rows
  */

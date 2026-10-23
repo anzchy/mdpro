@@ -1,14 +1,14 @@
 /**
- * Purpose: the WYSIWYG editor's (Milkdown 7.18.0) chords as composed today:
+ * Purpose: the WYSIWYG editor's (Milkdown 7.18.0) baseline chords before M1b:
  * the `$useKeymap` keymaps of preset-commonmark, preset-gfm and plugin-history
  * (with their entry names), mdpro's typora keymap, Milkdown core's ProseMirror
  * base keymap (macOS adds its Emacs-style rows), and the `handleKeyDown`
  * handlers of prosemirror-tables' tableEditing and mdpro's inlineEditPlugin.
- * D255-WI-3b adds the seven current v1 WYSIWYG command entries.
+ * D255-WI-3b's seven v1 entries remain here for migration history.
  * Only names with a modifier are listed.
  *
- * @coordinates-with tests/editor-owned-inventory.test.tsx — bijection with the exports
- * @coordinates-with tests/milkdown-keymap-probe-*.test.ts — every handled chord is a row
+ * @coordinates-with tests/editor-owned-inventory.test.tsx — historical package exports
+ * @coordinates-with tests/milkdown-keymap-probe-*.test.ts — v2 active projection
  */
 import type { EditorOwnedRow } from "../editorOwnedChords";
 import type { CommandId } from "../commandTable.types";

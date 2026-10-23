@@ -47,6 +47,7 @@ import { useKeyboardShortcuts } from "../src/hooks/useKeyboardShortcuts";
 import { useMenuEvents } from "../src/hooks/useMenuEvents";
 import { LinkInsertModal } from "../src/components/Editor/LinkInsertModal";
 import { useLinkInsertStore } from "../src/stores/linkInsertStore";
+import { v1TableDefaults } from "./support/bindingV1Defaults";
 
 async function menu(action: string): Promise<void> {
   await act(async () => {
@@ -63,7 +64,7 @@ const handlers = {
 
 function Harness() {
   useMenuEvents(handlers);
-  useKeyboardShortcuts(handlers);
+  useKeyboardShortcuts({ ...handlers, shortcuts: v1TableDefaults("macos") });
   return <LinkInsertModal />;
 }
 

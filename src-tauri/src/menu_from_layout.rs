@@ -6,7 +6,9 @@
 //! @coordinates-with src-tauri/src/services/binding_conflicts.rs
 
 use crate::menu_layout::{menu_layout, Availability, KeyKind, MenuLayout, MenuPath, Platform};
-use crate::models::{KeyboardShortcuts, LogEntryPayload, LogLevel, LogStatus};
+use crate::models::{
+    KeyboardShortcuts, LogEntryPayload, LogLevel, LogStatus, CURRENT_KEYBOARD_SHORTCUTS_VERSION,
+};
 use crate::services::applied_shortcuts::{
     resolve_applied, AppliedBinding, AppliedShortcuts, AppliedShortcutsState, AppliedSource,
 };
@@ -52,7 +54,7 @@ pub(super) fn unavailable_action_for_menu_id(layout: &MenuLayout, menu_id: &str)
     layout.rows.iter().find_map(|row| {
         if row.menu_id.as_deref() == Some(menu_id)
             && matches!(row.menu.macos, MenuPath::Path(_))
-            && row.availability.macos.v1 == Availability::None
+            && row.availability.macos.v2 == Availability::None
         {
             Some(row.id.clone())
         } else {
@@ -69,7 +71,7 @@ pub(super) fn specs_for_app(
         return Ok(None);
     }
     let default_applied = AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::DefaultsAfterLoadFailure,
         bindings: resolve_applied(&KeyboardShortcuts::default()),
     };
@@ -117,6 +119,7 @@ fn menu_layout_for_with_logger(
                 AppliedBinding::Bound { chord } => chord.clone(),
                 AppliedBinding::Unassigned => "<unassigned>".to_string(),
                 AppliedBinding::System => "<system>".to_string(),
+                AppliedBinding::Suppressed { .. } => "<unassigned>".to_string(),
             };
             (field.clone(), chord)
         })
@@ -174,7 +177,14 @@ fn menu_layout_for_with_logger(
                 }
                 native
             });
-            let enabled = allows(row.availability.macos.v1, mode);
+            let enabled = allows(
+                if v2 {
+                    row.availability.macos.v2
+                } else {
+                    row.availability.macos.v1
+                },
+                mode,
+            );
             Some(MenuItemSpec {
                 command_id: row.id.clone(),
                 menu_id: row.menu_id.clone(),

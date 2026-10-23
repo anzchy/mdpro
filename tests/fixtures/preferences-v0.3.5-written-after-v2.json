@@ -1,0 +1,126 @@
+{
+  "themeMode": "dark",
+  "autoSaveInterval": 45,
+  "defaultViewMode": "wysiwyg",
+  "lastViewMode": "wysiwyg",
+  "showSidebar": true,
+  "sidebarWidth": 220,
+  "enableScrollSync": true,
+  "recentFiles": [
+    "/Users/someone/notes/todo.md"
+  ],
+  "windowState": {
+    "width": 1200,
+    "height": 800,
+    "x": 100,
+    "y": 100,
+    "isMaximized": false
+  },
+  "keyboardShortcuts": {
+    "fileNew": "Cmd+N",
+    "fileNewWindow": "Cmd+Shift+N",
+    "fileOpen": "Cmd+Alt+O",
+    "fileOpenQuickly": "<unassigned>",
+    "fileSave": "Cmd+Option+P",
+    "fileSaveAs": "Cmd+Shift+S",
+    "fileClose": "Cmd+W",
+    "filePreferences": "Cmd+,",
+    "editCopyAsMarkdown": "Cmd+Shift+C",
+    "editPasteAsPlainText": "Cmd+Shift+V",
+    "editSelectLine": "Cmd+L",
+    "editSelectWord": "Cmd+D",
+    "editDeleteWord": "<unassigned>",
+    "editJumpToTop": "<system>",
+    "editJumpToBottom": "<system>",
+    "editFind": "Cmd+F",
+    "editFindNext": "Cmd+G",
+    "editFindPrevious": "Cmd+Shift+G",
+    "editReplace": "Cmd+H",
+    "paragraphHeading1": "Cmd+1",
+    "paragraphHeading2": "Cmd+2",
+    "paragraphHeading3": "Cmd+3",
+    "paragraphHeading4": "Cmd+4",
+    "paragraphHeading5": "Cmd+5",
+    "paragraphHeading6": "Cmd+6",
+    "paragraphParagraph": "Cmd+J",
+    "paragraphIncreaseHeading": "Cmd+Option+]",
+    "paragraphDecreaseHeading": "Cmd+Option+[",
+    "paragraphTable": "Cmd+Option+T",
+    "paragraphCodeFences": "Cmd+Option+C",
+    "paragraphMathBlock": "Cmd+Option+Shift+M",
+    "paragraphQuote": "Cmd+Shift+B",
+    "paragraphOrderedList": "Cmd+Option+O",
+    "paragraphUnorderedList": "Cmd+Option+U",
+    "paragraphIndent": "Cmd+]",
+    "paragraphOutdent": "Cmd+[",
+    "formatStrong": "Cmd+B",
+    "formatEmphasis": "Cmd+I",
+    "formatUnderline": "Cmd+U",
+    "formatCode": "Cmd+Shift+`",
+    "formatStrike": "Cmd+Shift+X",
+    "formatHyperlink": "Cmd+K",
+    "formatImage": "Cmd+Shift+I",
+    "formatHighlight": "Cmd+Ctrl+H",
+    "formatClearFormat": "Cmd+\\",
+    "fileExportHtml": "Cmd+Shift+E",
+    "viewSource": "Ctrl+2",
+    "viewWysiwyg": "Ctrl+4",
+    "viewToggleSidebar": "Cmd+Shift+L",
+    "viewCycleViewMode": "Cmd+/",
+    "viewToggleFullscreen": "<system>",
+    "viewSwitchDocuments": "Ctrl+Tab",
+    "tableInsertRowAbove": "Cmd+Option+Up",
+    "tableInsertRowBelow": "Cmd+Option+Down",
+    "tableInsertColumnLeft": "Cmd+Option+Left",
+    "tableInsertColumnRight": "Cmd+Option+Right",
+    "tableDeleteRow": "Cmd+Option+Backspace",
+    "tableDeleteColumn": "Cmd+Option+Shift+Backspace"
+  },
+  "logging": {
+    "enabled": true,
+    "level": "info"
+  },
+  "windowStates": {},
+  "autoSave": {
+    "enabled": true,
+    "intervalMs": 15000,
+    "debounceMs": 1500,
+    "saveOnBlur": true
+  },
+  "tabBar": {
+    "position": "top",
+    "maxVisibleTabs": 10,
+    "showCloseOnHover": true,
+    "closeFocusBehavior": "mru"
+  },
+  "image": {
+    "assetFolder": "./assets",
+    "copyExternalImages": true,
+    "showPastePreview": true,
+    "maxDimension": null
+  },
+  "mcp": {
+    "serverEnabled": true,
+    "startOnLaunch": false,
+    "autoApproveEdits": false
+  },
+  "editor": {
+    "fontFamily": "system",
+    "fontSize": 16,
+    "lineHeightX10": 16,
+    "contentWidth": "medium",
+    "tabSize": 4,
+    "wordWrap": true
+  },
+  "markdown": {
+    "autoPair": true,
+    "autoReformatTablesOnSave": false
+  },
+  "appearance": {
+    "codeTheme": "default"
+  },
+  "export": {
+    "defaultFolder": "",
+    "htmlIncludeStyles": true
+  }
+}

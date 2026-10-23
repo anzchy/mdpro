@@ -26,6 +26,7 @@ import { expect, vi } from "vitest";
 import { Editor } from "../../src/components/Editor/Editor";
 import { useDocumentStore } from "../../src/stores/documentStore";
 import { useEditorStore } from "../../src/stores/editorStore";
+import type { AppliedShortcuts } from "../../src/types/keyboardShortcuts";
 
 export const INDENT = "    ";
 export const DOC_ID = "doc-1";
@@ -57,10 +58,10 @@ export function seedStores(docId: string = DOC_ID, withheld = false): void {
  */
 export function mountEditor(
   doc: string,
-  { docId = DOC_ID, withheld = false }: { docId?: string; withheld?: boolean } = {},
+  { docId = DOC_ID, withheld = false, appliedShortcuts }: { docId?: string; withheld?: boolean; appliedShortcuts?: AppliedShortcuts | null } = {},
 ): EditorView {
   seedStores(docId, withheld);
-  const r = render(<Editor value={doc} onChange={vi.fn()} />);
+  const r = render(<Editor value={doc} onChange={vi.fn()} appliedShortcuts={appliedShortcuts} />);
   unmountEditor = r.unmount;
   const view = useEditorStore.getState().editorView;
   expect(view).not.toBeNull();

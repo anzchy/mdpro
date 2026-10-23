@@ -25,6 +25,7 @@ import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import { displayedShortcut } from "../src/utils/platformLabels";
 import { logs } from "./support/menuEventsHarness";
 import { mountMilkdownMenuRig } from "./support/editorMenuRig";
+import { v1Applied, v1Shortcuts } from "./support/bindingV1Defaults";
 
 const originalPlatform = navigator.platform;
 let unmountEditor: (() => void) | null = null;
@@ -34,9 +35,10 @@ const onSave = vi.fn();
 function mount(doc = "alpha"): EditorView {
   useDocumentStore.setState({ activeDocumentId: "d255-key" });
   useEditorStore.setState({ viewMode: "source", editorView: null, sourceTableVerdicts: {} });
-  const rendered = render(<Editor value={doc} onChange={vi.fn()} />);
+  const platform = /Mac/i.test(navigator.platform) ? "macos" : "windows";
+  const rendered = render(<Editor value={doc} onChange={vi.fn()} appliedShortcuts={v1Applied(platform)} />);
   unmountEditor = rendered.unmount;
-  const hook = renderHook(() => useKeyboardShortcuts({ onSave }));
+  const hook = renderHook(() => useKeyboardShortcuts({ onSave, shortcuts: v1Shortcuts(platform) }));
   unmountHook = hook.unmount;
   const view = useEditorStore.getState().editorView;
   expect(view).not.toBeNull();
@@ -197,13 +199,13 @@ it("WI-8 Settings gives every new v1 Source command a key and capability", () =>
     "paragraph.mathBlock", "edit.selectLine", "edit.deleteWord",
   ]) {
     const row = rowById(id)!;
-    const value = DEFAULT_KEYBOARD_SHORTCUTS[row.prefField!];
+    const value = v1Shortcuts("macos")[row.prefField!];
     const expectedCapability = ["paragraph.mathBlock", "edit.deleteWord",
       "paragraph.orderedList", "paragraph.unorderedList"].includes(id) ? "Source only" : null;
     for (const platform of ["macos", "windows", "linux"] as const) {
       const state = rowStateOf({
-        row, platform, version: 1, local: DEFAULT_KEYBOARD_SHORTCUTS,
-        saved: DEFAULT_KEYBOARD_SHORTCUTS, applied: null, conflicts: new Set(),
+        row, platform, version: 1, local: v1Shortcuts("macos"),
+        saved: v1Shortcuts("macos"), applied: null, conflicts: new Set(),
       });
       expect(state, `${id}/${platform}`).toMatchObject({ kind: "configurable", value, capability: expectedCapability });
       expect(displayedShortcut(row.prefField!, value, platform === "macos")).not.toBe("Not available");
@@ -213,5 +215,5 @@ it("WI-8 Settings gives every new v1 Source command a key and capability", () =>
   expect(rowStateOf({ row: quote, platform: "macos", version: 1,
     local: DEFAULT_KEYBOARD_SHORTCUTS, saved: DEFAULT_KEYBOARD_SHORTCUTS,
     applied: null, conflicts: new Set() })).toEqual({ kind: "unavailable" });
-  expect(displayedShortcut("formatStrike", DEFAULT_KEYBOARD_SHORTCUTS.formatStrike, false)).toBe("Alt+Shift+5");
+  expect(displayedShortcut("formatStrike", v1Shortcuts("windows").formatStrike, false)).toBe("Alt+Shift+5");
 });

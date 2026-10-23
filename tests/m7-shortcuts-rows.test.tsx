@@ -16,6 +16,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 import type { AppliedBinding } from "../src/types/keyboardShortcuts";
+import { v1TableDefaults } from "./support/bindingV1Defaults";
 
 const fake = vi.hoisted(() => {
   const state = {
@@ -69,7 +70,8 @@ interface OpenOpts {
 async function open(opts: OpenOpts = {}) {
   Object.defineProperty(navigator, "platform", { value: opts.platform ?? "MacIntel", configurable: true });
   fake.state.version = opts.version ?? 1;
-  fake.state.store = { ...DEFAULT_KEYBOARD_SHORTCUTS, ...(opts.store ?? {}) };
+  const host = opts.platform === "Win32" ? "windows" : opts.platform === "Linux" ? "linux" : "macos";
+  fake.state.store = { ...(fake.state.version === 1 ? v1TableDefaults(host) : DEFAULT_KEYBOARD_SHORTCUTS), ...(opts.store ?? {}) };
   fake.state.applied = opts.applied === undefined ? boundAll(fake.state.store) : opts.applied;
   fake.state.writes = [];
   const closed: number[] = [];
@@ -229,7 +231,7 @@ describe("M7 Reset and the recorder", () => {
     await user.click(screen.getByRole("button", { name: "Reset to Defaults" }));
     await clickSave(user);
     await waitFor(() => expect(closed).toHaveLength(1));
-    expect(fake.state.writes[0]).toEqual(DEFAULT_KEYBOARD_SHORTCUTS);
+    expect(fake.state.writes[0]).toEqual(v1TableDefaults("macos"));
   });
 
   it("e2 Reset at v2 writes the table's v2 defaults, <unassigned> and <system> included", async () => {

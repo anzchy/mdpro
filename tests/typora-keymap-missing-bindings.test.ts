@@ -103,9 +103,9 @@ describe("TYPORA_KEYMAP_CONFIG — issue #27: previously missing bindings", () =
     expect(mockCall).toHaveBeenCalledWith("ToggleInlineCode");
   });
 
-  it("has strikethrough entry with Ctrl-Shift-` shortcut on macOS", () => {
+  it("has strikethrough entry with the v2 Mod-Shift-x shortcut on macOS", () => {
     expect(TYPORA_KEYMAP_CONFIG).toHaveProperty("strikethrough");
-    expect(typoraKeymapConfig(true).strikethrough.shortcuts).toBe("Ctrl-Shift-`");
+    expect(typoraKeymapConfig(true).strikethrough.shortcuts).toBe("Mod-Shift-x");
   });
 
   it("calls toggleStrikethroughCommand key when strikethrough command executes", () => {

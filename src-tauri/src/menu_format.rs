@@ -36,7 +36,7 @@ pub(super) fn format_menu(
         MENU_FORMAT_HIGHLIGHT,
         "Highlight Selection",
         true,
-        Some("CmdOrCtrl+Shift+H"),
+        Some("CmdOrCtrl+Shift+M"),
     )?;
     let format_insert_table = menu_paragraph::insert_table_item(app, table_enabled, specs)?;
     SubmenuBuilder::new(app, "Format")

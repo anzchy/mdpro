@@ -2,7 +2,7 @@
 /**
  * @module insert-table-shortcut-wiring.test
  * Purpose: Verify that the existing `paragraphTable` shortcut
- * (Cmd+Option+T, defined in src/types/preferences.ts) is wired through
+ * (Cmd+Shift+T, defined in src/types/preferences.ts) is wired through
  * to a useKeyboardShortcuts handler and that App.tsx passes a callback
  * for it. Closes the ghost-shortcut TODO at TODOS.md:13.
  *
@@ -25,10 +25,10 @@ const preferencesSrc = fs.readFileSync(
 );
 
 describe("paragraphTable shortcut is wired to insert-table flow", () => {
-  it("preferences.ts already declares paragraphTable with Cmd+Option+T default", () => {
+  it("preferences.ts declares paragraphTable with Cmd+Shift+T default", () => {
     // Spec: WI-0 reuses the existing shortcut, does not introduce a new one.
     expect(preferencesSrc).toMatch(/paragraphTable:\s*string/);
-    expect(preferencesSrc).toMatch(/paragraphTable:\s*"Cmd\+Option\+T"/);
+    expect(preferencesSrc).toMatch(/paragraphTable:\s*"Cmd\+Shift\+T"/);
   });
 
   it("useKeyboardShortcuts accepts an onInsertTable handler", () => {

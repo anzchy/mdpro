@@ -36,6 +36,8 @@ import { useTableInsertStore } from "../../../stores/tableInsertStore";
 import { loggingService } from "../../../services/loggingService";
 import { focusActiveMilkdownAtEnd } from "../../../utils/focusActiveMilkdownAtEnd";
 import { GridPicker } from "./GridPicker";
+import type { AppliedShortcuts } from "../../../types/keyboardShortcuts";
+import { isMacPlatform, shortcutLabel } from "../../../utils/platformLabels";
 
 const DEFAULT_ROWS = 3;
 const DEFAULT_COLS = 3;
@@ -55,13 +57,13 @@ function focusReturnedFrom(card: HTMLElement | null): boolean {
   return active instanceof HTMLElement && active !== document.body && !card?.contains(active);
 }
 
-export function TableInsertModal() {
+export function TableInsertModal({ appliedShortcuts }: { appliedShortcuts?: AppliedShortcuts | null }) {
   const pendingCallback = useTableInsertStore((state) => state.pendingCallback);
   if (pendingCallback === null) return null;
-  return <TableInsertCard />;
+  return <TableInsertCard appliedShortcuts={appliedShortcuts ?? null} />;
 }
 
-function TableInsertCard() {
+function TableInsertCard({ appliedShortcuts }: { appliedShortcuts: AppliedShortcuts | null }) {
   const [rows, setRows] = useState<number>(DEFAULT_ROWS);
   const [cols, setCols] = useState<number>(DEFAULT_COLS);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -69,6 +71,8 @@ function TableInsertCard() {
   const titleId = useId();
   const countId = useId();
   const cardRef = useRef<HTMLDivElement>(null);
+  const tableBinding = appliedShortcuts?.bindings.paragraphTable;
+  const activeKey = tableBinding?.state === "bound" ? shortcutLabel(tableBinding.chord, isMacPlatform()) : null;
   // The close's log line, written at unmount once focus has been returned (D259).
   const logOnClose = useRef<((focusReturned: boolean) => void) | null>(null);
   useReturnFocusOnClose(cardRef, focusActiveMilkdownAtEnd);
@@ -214,7 +218,7 @@ function TableInsertCard() {
       >
         <h3 className="dialog-title" id={titleId}>
           Insert Table
-          <span className="dialog-title-hint">⌘⌥T</span>
+          {activeKey && <span className="dialog-title-hint">{activeKey}</span>}
         </h3>
 
         <GridPicker

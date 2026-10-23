@@ -38,8 +38,8 @@ export type OwnershipContext =
   | "nativeFocus";
 
 /**
- * A value per defaults version. v1 is today's table; v2 is § 5.3.2 as M1b
- * leaves it (ADR-0114 Decision 9) and is inert until M1b.
+ * A value per defaults version. v1 is the migration baseline; v2 is the
+ * active M1b table from § 5.3.2 (ADR-0114 Decision 9).
  */
 export interface Versioned<T> {
   readonly v1: T;

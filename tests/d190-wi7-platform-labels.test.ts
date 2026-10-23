@@ -54,8 +54,8 @@ describe("D190-WI-7 shortcut labels", () => {
     expect(displayedShortcut("viewWysiwyg", "Ctrl+4", false)).toBe("Ctrl+/ (toggle)");
   });
 
-  it("l5 off-Mac, strikethrough at its default shows Alt+Shift+5 (ADR-0096)", () => {
-    expect(displayedShortcut("formatStrike", "Ctrl+Shift+`", false)).toBe("Alt+Shift+5");
+  it("l5 a historical off-Mac strike chord is shown literally after v2 becomes active", () => {
+    expect(displayedShortcut("formatStrike", "Ctrl+Shift+`", false)).toBe("Ctrl+Shift+`");
   });
 
   it("l6 a customised value shows its own label, and macOS shows defaults as stored", () => {

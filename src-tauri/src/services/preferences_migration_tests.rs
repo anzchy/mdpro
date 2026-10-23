@@ -9,6 +9,7 @@
 //! Nothing is mocked. The test plan is a parameter, not a seam.
 
 use super::*;
+use crate::menu_layout::{menu_layout, KeyKind};
 use crate::models::{KeyboardShortcuts, CURRENT_KEYBOARD_SHORTCUTS_VERSION};
 use crate::services::preferences::{merge_preferences, PartialPreferences};
 use serde_json::{json, Map, Value};
@@ -206,13 +207,117 @@ fn m4_u32_max_is_never_migrated_or_lowered() {
 }
 
 #[test]
-fn production_plan_never_moves_a_document() {
+fn production_plan_moves_only_v1_documents() {
     for version in [0, 1, 2, u32::MAX] {
         let p = with_shortcuts(version, shortcuts_obj(&UserPreferences::default()));
         let (out, outcome) = migrate(p, &PRODUCTION_PLAN);
-        assert_eq!(outcome, MigrationOutcome::Unchanged, "v{version}");
-        assert_eq!(out.keyboard_shortcuts_version, version, "v{version}");
+        if version == 1 {
+            assert!(
+                matches!(outcome, MigrationOutcome::Migrated { .. }),
+                "v{version}"
+            );
+            assert_eq!(out.keyboard_shortcuts_version, 2, "v{version}");
+        } else {
+            assert_eq!(outcome, MigrationOutcome::Unchanged, "v{version}");
+            assert_eq!(out.keyboard_shortcuts_version, version, "v{version}");
+        }
     }
+}
+
+#[test]
+fn m1b_production_plan_migrates_changed_defaults_once_and_keeps_custom_values() {
+    let mut obj = shortcuts_obj(&UserPreferences::default());
+    // This document represents a v1 writer; v2 defaults are active now.
+    obj.insert("paragraphParagraph".into(), json!("Cmd+0"));
+    obj.insert("paragraphIncreaseHeading".into(), json!("Cmd+Option+9"));
+    let input = with_shortcuts(1, obj);
+    let (first, outcome) = migrate(input, &PRODUCTION_PLAN);
+    let after = shortcuts_obj(&first);
+
+    assert_eq!(CURRENT_KEYBOARD_SHORTCUTS_VERSION, 2);
+    assert_eq!(first.keyboard_shortcuts_version, 2);
+    assert!(matches!(outcome, MigrationOutcome::Migrated { changed_count } if changed_count > 0));
+    assert_eq!(after["paragraphParagraph"], json!("Cmd+Shift+0"));
+    assert_eq!(after["paragraphIncreaseHeading"], json!("Cmd+Option+9"));
+    let (second, second_outcome) = migrate(first, &PRODUCTION_PLAN);
+    assert_eq!(second_outcome, MigrationOutcome::Unchanged);
+    assert_eq!(shortcuts_obj(&second), after);
+}
+
+#[test]
+fn m1b_every_changed_v1_default_becomes_the_host_v2_default() {
+    let layout = menu_layout().expect("committed layout");
+    let mut obj = shortcuts_obj(&UserPreferences::default());
+    let mut expected = obj.clone();
+    let mut changed = 0;
+    for row in &layout.rows {
+        let Some(field) = &row.pref_field else {
+            continue;
+        };
+        let key = if cfg!(target_os = "macos") {
+            &row.key.macos
+        } else {
+            &row.key.windows
+        };
+        if key.kind != KeyKind::Configurable {
+            continue;
+        }
+        let Some(from) = &key.defaults.v1 else {
+            continue;
+        };
+        let Some(to) = &key.defaults.v2 else {
+            continue;
+        };
+        // The old off-Mac Image default was stored as the Mac chord and
+        // suppressed only when applied; the migration must still replace it.
+        let stored_from = if field == "formatImage" && !cfg!(target_os = "macos") {
+            "Cmd+Ctrl+I"
+        } else {
+            from.as_str()
+        };
+        obj.insert(field.clone(), json!(stored_from));
+        expected.insert(field.clone(), json!(to));
+        if stored_from != to {
+            changed += 1;
+        }
+    }
+    let (out, outcome) = migrate(with_shortcuts(1, obj), &PRODUCTION_PLAN);
+    assert_eq!(shortcuts_obj(&out), expected);
+    assert_eq!(out.keyboard_shortcuts_version, 2);
+    assert_eq!(
+        outcome,
+        MigrationOutcome::Migrated {
+            changed_count: changed
+        }
+    );
+}
+
+#[test]
+fn m1b_new_default_yields_to_kept_custom_and_is_stored_unassigned() {
+    let mut obj = shortcuts_obj(&UserPreferences::default());
+    obj.insert("fileSave".to_string(), json!("Cmd+Shift+T"));
+    obj.insert("paragraphTable".to_string(), json!("Cmd+Option+T"));
+    let (out, outcome) = migrate(with_shortcuts(1, obj), &PRODUCTION_PLAN);
+    assert!(matches!(outcome, MigrationOutcome::Migrated { .. }));
+    let stored = shortcuts_obj(&out);
+    assert_eq!(stored.get("fileSave"), Some(&json!("Cmd+Shift+T")));
+    assert_eq!(stored.get("paragraphTable"), Some(&json!("<unassigned>")));
+}
+
+#[test]
+fn m1b_yielded_notice_exists_only_during_the_upgrade_run() {
+    let mut obj = shortcuts_obj(&UserPreferences::default());
+    obj.insert("fileSave".to_string(), json!("Cmd+Shift+T"));
+    obj.insert("paragraphTable".to_string(), json!("Cmd+Option+T"));
+    let (current, _) = migrate(with_shortcuts(1, obj), &PRODUCTION_PLAN);
+    assert_eq!(current.shortcut_migration_conflicts, vec!["paragraphTable"]);
+    let bytes = serde_json::to_string(&current).expect("serialize");
+    let reopened: UserPreferences = serde_json::from_str(&bytes).expect("reopen");
+    assert!(reopened.shortcut_migration_conflicts.is_empty());
+    assert_eq!(
+        shortcuts_obj(&reopened).get("paragraphTable"),
+        Some(&json!("<unassigned>"))
+    );
 }
 
 /// The 20 single-group partials plus the empty one, each built from JSON.
@@ -248,12 +353,12 @@ fn v0_merge_keeps_the_stored_version_for_every_partial() {
 }
 
 #[test]
-fn d1_defaults_are_at_current_which_is_one() {
-    assert_eq!(CURRENT_KEYBOARD_SHORTCUTS_VERSION, 1);
+fn d1_defaults_are_at_current_which_is_two() {
+    assert_eq!(CURRENT_KEYBOARD_SHORTCUTS_VERSION, 2);
     assert_eq!(
         UserPreferences::default().keyboard_shortcuts_version,
         CURRENT_KEYBOARD_SHORTCUTS_VERSION
     );
     assert_eq!(PRODUCTION_PLAN.to, CURRENT_KEYBOARD_SHORTCUTS_VERSION);
-    assert!(PRODUCTION_PLAN.map.is_empty(), "M1a ships an empty map");
+    assert!(!PRODUCTION_PLAN.map.is_empty(), "M1b ships the full map");
 }

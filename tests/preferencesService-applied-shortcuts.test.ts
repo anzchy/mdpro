@@ -111,7 +111,7 @@ describe("T2: an IPC rejection is rethrown and logged, with no toast", () => {
 });
 
 describe("T3: browser mode builds bindings from the defaults without IPC", () => {
-  it("one bound entry per DEFAULT_KEYBOARD_SHORTCUTS key, version 1, source loaded", async () => {
+  it("one applied entry per DEFAULT_KEYBOARD_SHORTCUTS key, version 2, source loaded", async () => {
     vi.mocked(isTauri).mockReturnValue(false);
 
     const result = await preferencesService.getAppliedShortcuts();
@@ -122,9 +122,10 @@ describe("T3: browser mode builds bindings from the defaults without IPC", () =>
     expect(Object.keys(bindings).sort()).toEqual(Object.keys(defaults).sort());
     expect(Object.keys(defaults)).toHaveLength(58);
     for (const [k, chord] of Object.entries(defaults)) {
-      expect(bindings[k], k).toEqual({ state: "bound", chord });
+      expect(bindings[k], k).toEqual(chord === "<unassigned>" ? { state: "unassigned" } :
+        chord === "<system>" ? { state: "system" } : { state: "bound", chord });
     }
-    expect(result.keyboardShortcutsVersion).toBe(1);
+    expect(result.keyboardShortcutsVersion).toBe(2);
     expect(result.source).toBe("loaded");
   });
 });

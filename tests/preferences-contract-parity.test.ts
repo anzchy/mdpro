@@ -265,15 +265,15 @@ describe("WI-8 — cross-language preference contract parity (TS half)", () => {
 
   /**
    * D1 (M1a WI-2) — the browser defaults carry the shortcut-defaults version
-   * Rust's `CURRENT_KEYBOARD_SHORTCUTS_VERSION` is at, which is 1. The key's
+   * Rust's `CURRENT_KEYBOARD_SHORTCUTS_VERSION` is at, which is 2. The key's
    * presence on both sides is WI8-C's claim (CF3); this is the value.
    */
-  it("D1: getPreferences in the browser reports keyboardShortcutsVersion 1", async () => {
+  it("D1: getPreferences in the browser reports keyboardShortcutsVersion 2", async () => {
     const { preferencesService } = await import("../src/services/preferencesService");
     const defaults = await preferencesService.getPreferences("app_hydrate");
 
     expect(invokeMock).not.toHaveBeenCalled();
-    expect(defaults.keyboardShortcutsVersion).toBe(1);
+    expect(defaults.keyboardShortcutsVersion).toBe(2);
   });
 
   /**
@@ -367,7 +367,7 @@ describe("M1a WI-4 — applied-shortcuts contract (TS half)", () => {
 
   it("T4: the AppliedShortcuts type parses the fixture and covers every state", () => {
     const a: AppliedShortcuts = readAppliedContract().applied as AppliedShortcuts;
-    const STATES: Record<AppliedBinding["state"], true> = {
+    const STATES: Record<Exclude<AppliedBinding["state"], "suppressed">, true> = {
       bound: true,
       unassigned: true,
       system: true,

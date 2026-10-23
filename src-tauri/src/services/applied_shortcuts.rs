@@ -15,11 +15,10 @@
 //!   frontend's fallback when `get_preferences` fails.
 //! - `keyboardShortcutsVersion` is the loaded (post-migration) document's
 //!   version; CURRENT only on the fallback path.
-//! - M1a resolves stored values only: `"<unassigned>"` → unassigned,
+//! - The raw M1a helper resolves stored values only: `"<unassigned>"` → unassigned,
 //!   `"<system>"` → system, `""` → bound to the default (defensive: the D-b
-//!   repair already removed it), anything else → bound verbatim. The conflict
-//!   filter (`services/binding_conflicts.rs`, M1a WI-8) exists but is inert;
-//!   M1b wires it in.
+//!   repair already removed it), anything else → bound verbatim. M1b's startup
+//!   resolver overlays actionable ownership suppression on that raw result.
 //! - Logs carry the source and counts only: never a chord, a sentinel or a path.
 //!
 //! @coordinates-with services/preferences.rs — `load_preferences`, the run's
@@ -33,11 +32,13 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::menu_layout::Platform;
 use crate::models::preferences::keyboard_shortcut_defaults::effective_image_shortcut;
 use crate::models::{
     KeyboardShortcuts, LogEntryPayload, LogLevel, LogStatus, CURRENT_KEYBOARD_SHORTCUTS_VERSION,
     SYSTEM_BINDING, UNASSIGNED_BINDING,
 };
+use crate::services::binding_conflicts::{resolve_bindings, Resolution, SuppressReason};
 use crate::services::logger;
 use crate::services::preferences::{load_preferences, PreferencesError};
 
@@ -51,6 +52,7 @@ pub enum AppliedBinding {
     Bound { chord: String },
     Unassigned,
     System,
+    Suppressed { reason: SuppressReason },
 }
 
 /// Where the snapshot came from.
@@ -87,6 +89,7 @@ pub struct BindingCounts {
     pub bound: usize,
     pub unassigned: usize,
     pub system: usize,
+    pub suppressed: usize,
 }
 
 /// Counts `bindings` by state.
@@ -98,6 +101,7 @@ pub fn binding_counts(bindings: &BTreeMap<String, AppliedBinding>) -> BindingCou
                 AppliedBinding::Bound { .. } => c.bound += 1,
                 AppliedBinding::Unassigned => c.unassigned += 1,
                 AppliedBinding::System => c.system += 1,
+                AppliedBinding::Suppressed { .. } => c.suppressed += 1,
             }
             c
         })
@@ -113,7 +117,7 @@ fn as_object(k: &KeyboardShortcuts) -> serde_json::Map<String, Value> {
 
 /// Resolves every stored binding to its applied state. Pure: one entry per
 /// `KeyboardShortcuts` field, under its camelCase name.
-pub fn resolve_applied(shortcuts: &KeyboardShortcuts) -> BTreeMap<String, AppliedBinding> {
+pub fn resolve_applied_raw(shortcuts: &KeyboardShortcuts) -> BTreeMap<String, AppliedBinding> {
     let defaults = as_object(&KeyboardShortcuts::default());
     as_object(shortcuts)
         .into_iter()
@@ -143,6 +147,45 @@ pub fn resolve_applied(shortcuts: &KeyboardShortcuts) -> BTreeMap<String, Applie
         .collect()
 }
 
+/// Resolve the run's v2 binding owners, retaining every stored chord separately.
+pub fn resolve_applied(shortcuts: &KeyboardShortcuts) -> BTreeMap<String, AppliedBinding> {
+    let mut applied = resolve_applied_raw(shortcuts);
+    let platform = if cfg!(target_os = "macos") {
+        Platform::Macos
+    } else if cfg!(target_os = "windows") {
+        Platform::Windows
+    } else {
+        Platform::Linux
+    };
+    let stored: BTreeMap<String, String> = as_object(shortcuts)
+        .into_iter()
+        .filter_map(|(field, value)| value.as_str().map(|v| (field, v.to_string())))
+        .collect();
+    match resolve_bindings(platform, CURRENT_KEYBOARD_SHORTCUTS_VERSION, &stored) {
+        Ok(resolutions) => {
+            for (field, resolution) in resolutions {
+                if let Resolution::Suppressed { reason, .. } = resolution {
+                    if !matches!(
+                        reason,
+                        SuppressReason::Unavailable | SuppressReason::Unparseable
+                    ) {
+                        applied.insert(field, AppliedBinding::Suppressed { reason });
+                    }
+                }
+            }
+        }
+        Err(_) => {
+            // If the embedded owner table cannot be read, no configurable key is safe to run.
+            for binding in applied.values_mut() {
+                if matches!(binding, AppliedBinding::Bound { .. }) {
+                    *binding = AppliedBinding::Unassigned;
+                }
+            }
+        }
+    }
+    applied
+}
+
 /// The variant name of a load error: never its message, which can carry a path.
 fn error_kind(e: &PreferencesError) -> &'static str {
     match e {
@@ -152,8 +195,10 @@ fn error_kind(e: &PreferencesError) -> &'static str {
     }
 }
 
-/// Resolves the run's applied snapshot from the public guarded loader. On a
-/// load failure it resolves the defaults with `source:
+/// Resolves the run's applied snapshot from the public guarded loader.
+/// Newly displaced defaults retain their suppression reason for this launch
+/// even though the migration persisted them as unassigned. On a load failure
+/// it resolves the defaults with `source:
 /// defaultsAfterLoadFailure`, writes nothing, and logs `Fail`.
 pub fn snapshot_at_startup() -> AppliedShortcuts {
     let started = Instant::now();
@@ -169,14 +214,25 @@ pub fn snapshot_at_startup() -> AppliedShortcuts {
     });
 
     let (snapshot, failure) = match load_preferences() {
-        Ok(prefs) => (
-            AppliedShortcuts {
-                keyboard_shortcuts_version: prefs.keyboard_shortcuts_version,
-                source: AppliedSource::Loaded,
-                bindings: resolve_applied(&prefs.keyboard_shortcuts),
-            },
-            None,
-        ),
+        Ok(prefs) => {
+            let mut bindings = resolve_applied(&prefs.keyboard_shortcuts);
+            for field in &prefs.shortcut_migration_conflicts {
+                bindings.insert(
+                    field.clone(),
+                    AppliedBinding::Suppressed {
+                        reason: SuppressReason::YieldedToCustom,
+                    },
+                );
+            }
+            (
+                AppliedShortcuts {
+                    keyboard_shortcuts_version: prefs.keyboard_shortcuts_version,
+                    source: AppliedSource::Loaded,
+                    bindings,
+                },
+                None,
+            )
+        }
         Err(e) => (
             AppliedShortcuts {
                 keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,

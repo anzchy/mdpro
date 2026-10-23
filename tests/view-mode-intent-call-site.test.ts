@@ -163,7 +163,7 @@ describe("UEP-03 App.tsx and Editor.tsx call sites (source text, supplement)", (
     const altIdx = keymapBlock.indexOf("Mod-Alt-/");
     expect(altIdx, '"Mod-Alt-/" not found in the viewModeKeymap block').toBeGreaterThan(-1);
     const modSlash = keymapBlock.slice(0, altIdx);
-    expect(modSlash).toContain('"Mod-/"');
+    expect(modSlash).toContain('appliedKey(appliedShortcuts, "viewCycleViewMode"');
     expect(modSlash).toContain("userViewModeCommands.cycle(");
     expect(modSlash).not.toContain(".cycleViewMode()");
     expect(keymapBlock).toMatch(/\{\s*key:\s*"Mod-Alt-\/",\s*run:\s*toggleLineComment\s*\}/);

@@ -2,13 +2,13 @@
 
 use super::*;
 use crate::menu_layout::{menu_layout, Availability};
-use crate::models::{KeyboardShortcuts, LogLevel, LogSettings};
+use crate::models::{KeyboardShortcuts, LogLevel, LogSettings, CURRENT_KEYBOARD_SHORTCUTS_VERSION};
 use crate::services::applied_shortcuts::{resolve_applied, AppliedSource};
 use crate::services::{logger, window_restore::test_home::TestHome};
 
 fn defaults() -> AppliedShortcuts {
     AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::Loaded,
         bindings: resolve_applied(&KeyboardShortcuts::default()),
     }
@@ -25,7 +25,7 @@ fn m4_wi2_insert_table_descriptor_preserves_the_current_native_contract() {
     assert_eq!(table.menu_id.as_deref(), Some("menu.format.insert_table"));
     assert_eq!(table.path, ["Paragraph", "Table..."]);
     assert!(table.enabled);
-    assert_eq!(table.accelerator.as_deref(), Some("Cmd+Alt+T"));
+    assert_eq!(table.accelerator.as_deref(), Some("Cmd+Shift+T"));
     let source_items = menu_layout_for(menu_layout().unwrap(), &defaults(), Some(ViewMode::Source));
     let source_table = item(&source_items, "paragraph.table");
     assert!(!source_table.enabled);
@@ -68,8 +68,7 @@ fn m4_wi2_each_eligible_pair_uses_one_full_snapshot_resolution() {
         .filter(|row| {
             matches!(row.menu.macos, MenuPath::Path(_))
                 && row.pref_field.is_some()
-                && row.availability.macos.v1 != Availability::None
-                && row.id != "view.switchDocuments"
+                && row.availability.macos.v2 != Availability::None
         })
         .collect();
     let mut checked = 0;
@@ -93,14 +92,14 @@ fn m4_wi2_each_eligible_pair_uses_one_full_snapshot_resolution() {
             }
             let mode = if [first, second].iter().all(|row| {
                 matches!(
-                    row.availability.macos.v1,
+                    row.availability.macos.v2,
                     Availability::Both | Availability::W
                 )
             }) {
                 ViewMode::Wysiwyg
             } else if [first, second].iter().all(|row| {
                 matches!(
-                    row.availability.macos.v1,
+                    row.availability.macos.v2,
                     Availability::Both | Availability::S
                 )
             }) {
@@ -245,7 +244,7 @@ fn m4_wi1_extracted_edit_and_format_keep_the_baseline_order_and_properties() {
 
     let layout = crate::menu_layout::menu_layout().unwrap();
     let applied = crate::services::applied_shortcuts::AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: crate::services::applied_shortcuts::AppliedSource::Loaded,
         bindings: crate::services::applied_shortcuts::resolve_applied(
             &crate::models::KeyboardShortcuts::default(),
@@ -265,15 +264,15 @@ fn m4_wi1_extracted_edit_and_format_keep_the_baseline_order_and_properties() {
         table.menu_id.as_deref(),
         Some(super::super::MENU_FORMAT_INSERT_TABLE)
     );
-    assert_eq!(table.accelerator.as_deref(), Some("Cmd+Alt+T"));
+    assert_eq!(table.accelerator.as_deref(), Some("Cmd+Shift+T"));
     assert_eq!(highlight.path, ["Format", "Highlight Selection"]);
     assert_eq!(
         highlight.menu_id.as_deref(),
         Some(super::super::MENU_FORMAT_HIGHLIGHT)
     );
-    assert_eq!(highlight.accelerator.as_deref(), Some("Cmd+Shift+H"));
-    assert!(paragraph.contains("CmdOrCtrl+Alt+T"));
-    assert!(format.contains("CmdOrCtrl+Shift+H"));
+    assert_eq!(highlight.accelerator.as_deref(), Some("Cmd+Shift+M"));
+    assert!(paragraph.contains("CmdOrCtrl+Shift+T"));
+    assert!(format.contains("CmdOrCtrl+Shift+M"));
 }
 
 #[test]
@@ -297,7 +296,7 @@ fn m4_wi5_new_editor_menu_ids_are_guarded_and_targeted_once() {
             row.id
         );
         let mut targets = Vec::new();
-        let mode = if row.availability.macos.v1 == Availability::S {
+        let mode = if row.availability.macos.v2 == Availability::S {
             ViewMode::Source
         } else {
             ViewMode::Wysiwyg
@@ -313,7 +312,7 @@ fn m4_wi5_new_editor_menu_ids_are_guarded_and_targeted_once() {
                 Ok(())
             },
         );
-        if row.availability.macos.v1 == Availability::None {
+        if row.availability.macos.v2 == Availability::None {
             assert!(result.is_err(), "{} must be refused", row.id);
             assert!(targets.is_empty(), "{} emitted while unavailable", row.id);
         } else {

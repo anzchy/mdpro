@@ -56,6 +56,6 @@ pub(super) fn insert_table_item(
         MENU_FORMAT_INSERT_TABLE,
         "Insert Table",
         enabled,
-        Some("CmdOrCtrl+Alt+T"),
+        Some("CmdOrCtrl+Shift+T"),
     )
 }

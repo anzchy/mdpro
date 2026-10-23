@@ -59,22 +59,19 @@ describe("COMMAND_TABLE prefField bijection", () => {
   });
 });
 
-describe("v1 defaults equal today's DEFAULT_KEYBOARD_SHORTCUTS", () => {
-  it("holds for every configurable row × platform (174 checks)", () => {
+describe("v2 macOS defaults equal active DEFAULT_KEYBOARD_SHORTCUTS", () => {
+  it("holds for every configurable macOS row (58 checks)", () => {
     const mismatches: string[] = [];
     let checks = 0;
     for (const r of configurableRows()) {
-      for (const p of PLATFORMS) {
-        const k = r.key[p];
-        checks += 1;
-        const want = r.id === "format.image" && p !== "macos"
-          ? "<unassigned>" : DEFAULT_KEYBOARD_SHORTCUTS[r.prefField as Field];
-        if (k.kind !== "configurable" || k.defaults.v1 !== want) {
-          mismatches.push(`${r.id}/${p}: ${String(k.defaults.v1)} != ${want}`);
-        }
+      const k = r.key.macos;
+      checks += 1;
+      const want = DEFAULT_KEYBOARD_SHORTCUTS[r.prefField as Field];
+      if (k.kind !== "configurable" || k.defaults.v2 !== want) {
+        mismatches.push(`${r.id}/macos: ${String(k.defaults.v2)} != ${want}`);
       }
     }
-    expect(checks).toBe(174);
+    expect(checks).toBe(58);
     expect(mismatches).toEqual([]);
   });
 });
@@ -124,7 +121,7 @@ const V2: Record<Field, readonly [string, string]> = {
   formatCode: ["Cmd+Shift+`", "Cmd+Shift+`"],
   formatStrike: ["Cmd+Shift+X", "Cmd+Shift+X"],
   formatHyperlink: ["Cmd+K", "Cmd+K"],
-  formatImage: ["Cmd+Shift+I", "<unassigned>"],
+  formatImage: ["Cmd+Shift+I", "Cmd+Shift+I"],
   formatHighlight: ["Cmd+Shift+M", "Cmd+Shift+M"],
   formatClearFormat: ["Cmd+\\", "Cmd+\\"],
   viewSource: ["Ctrl+2", "<unassigned>"],
@@ -167,7 +164,7 @@ describe("v2 defaults equal the literal § 5.3.2 table", () => {
         return k !== undefined && k.defaults.v1 !== k.defaults.v2;
       });
     expect(changed("macos")).toHaveLength(15);
-    expect(changed("windows")).toHaveLength(19);
+    expect(changed("windows")).toHaveLength(20);
     expect(changed("linux")).toEqual(changed("windows"));
   });
 });
@@ -218,12 +215,12 @@ describe("named failure modes of the data", () => {
     for (const id of ids) expect(rowById(id)?.id).toBe(id);
   });
 
-  it("uses rust-hide only on macOS, and no row uses it yet (F10)", () => {
+  it("routes only macOS Hide through rust-hide", () => {
     const uses = COMMAND_TABLE.flatMap((r) =>
       PLATFORMS.filter((p) => r.route[p] === "rust-hide").map((p) => `${r.id}/${p}`),
     );
     expect(uses.filter((u) => !u.endsWith("/macos"))).toEqual([]);
-    expect(uses).toHaveLength(0);
+    expect(uses).toEqual(["app.hide/macos"]);
   });
 
   it("gives every availability-none row route unavailable or a configurable key", () => {

@@ -96,23 +96,23 @@ fn law_one(p: Platform, v: u32, stored: &Map, s: &BindingState, out: &mut Vec<St
         });
         for ctx in available_contexts(row, p, v) {
             let got = s.owner_of(ctx, chord);
-            // M1b owns D267's v2-only key. It is latent while today's Source
-            // Code Fences still binds its distinct v1 chord.
-            let v1_default = key_of(row, p).defaults.v1.as_deref().unwrap_or_default();
-            let d267_v2_only = v >= 2
+            // C17 is context priority, not a removed key: the applied table
+            // command wins in TableS, while CodeMirror keeps multi-cursor
+            // on the same chord outside the table.
+            let c17_table_priority = v >= 2
                 && at_default
-                && row.id == "paragraph.codeFences"
-                && normalise_stored(v1_default, cp).as_deref() != Some(chord.as_str())
-                && layout().editor_owned.iter().any(|r| {
-                    let owner = format!("editor:{}:{}", r.source, r.key);
-                    r.latent.as_deref() == Some("D267")
-                        && r.platforms.contains(&p)
-                        && r.contexts.contains(&ctx)
-                        && got.as_deref() == Some(owner.as_str())
-                        && super::owners::keymap_name_to_stored(&r.key, cp).as_deref()
-                            == Some(chord.as_str())
-                });
-            if d267_v2_only {
+                && ctx == OwnershipContext::TableS
+                && matches!(
+                    row.id.as_str(),
+                    "table.insertRowAbove" | "table.insertRowBelow"
+                )
+                && got.as_deref()
+                    == Some(if row.id == "table.insertRowAbove" {
+                        "editor:codemirror:defaultKeymap:Mod-Alt-ArrowUp"
+                    } else {
+                        "editor:codemirror:defaultKeymap:Mod-Alt-ArrowDown"
+                    });
+            if c17_table_priority {
                 continue;
             }
             // An implements binding present in today's v1 keymap is live.
@@ -213,7 +213,7 @@ fn d255_live_v1_italic_rejects_an_unrelated_winning_owner() {
 }
 
 #[test]
-fn d255_d267_v2_only_chord_stays_latent_for_m1b() {
+fn d255_d267_v2_only_chord_has_no_editor_owner_in_m1b() {
     let row = config_rows()
         .into_iter()
         .find(|r| r.id == "paragraph.codeFences")
@@ -231,7 +231,8 @@ fn d255_d267_v2_only_chord_stays_latent_for_m1b() {
         .iter()
         .find(|r| r.source == "codemirror:defaultKeymap" && r.key == "Shift-Mod-k")
         .expect("D267 inventory row");
-    assert_eq!(d267.latent.as_deref(), Some("D267"));
+    assert_eq!(d267.latent, None);
+    assert!(matches!(&d267.disposition, Disposition::RemoveInM1b { id } if id == "D267"));
     let stored = Map::new();
     let mut violations = Vec::new();
     law_one(

@@ -8,12 +8,14 @@
 //! Key decisions:
 //! - A value moves only when it equals **its own** from-version default; a
 //!   custom value, a sentinel and another field's default are kept verbatim.
+//!   A new default displaced by a kept custom value becomes `<unassigned>`;
+//!   its first-run notice is carried only in memory.
 //! - The stamp moves `from → to` whenever the stored stamp is `from`, even
 //!   with no value changed: the stamp is itself the change (M17).
 //! - The repair runs **before** the migration, so a `""` is read as the v1
 //!   default it stands for and migrated with it (M16).
-//! - M1a ships [`PRODUCTION_PLAN`] with `to == CURRENT == 1` and an empty map,
-//!   so a production load never moves a document and never writes.
+//! - M1b ships the complete v1 to v2 map with the version bump, so a
+//!   production load moves a document only after the map is available.
 //!
 //! @coordinates-with models/keyboard_shortcuts_version.rs — the stamp and
 //!   `CURRENT_KEYBOARD_SHORTCUTS_VERSION`
@@ -21,10 +23,12 @@
 
 use serde_json::Value;
 
+use crate::menu_layout::Platform;
 use crate::models::{
     KeyboardShortcuts, LogEntryPayload, LogLevel, LogStatus, UserPreferences,
     CURRENT_KEYBOARD_SHORTCUTS_VERSION,
 };
+use crate::services::binding_conflicts::{resolve_bindings, Resolution, SuppressReason};
 use crate::services::logger;
 use crate::services::preferences::{save_preferences, PreferencesError};
 use crate::services::prefs_guard::PrefsGuard;
@@ -55,12 +59,11 @@ pub enum MigrationOutcome {
     WriteFailed { changed_count: usize },
 }
 
-/// The v1 → v2 default changes. Empty in M1a: the real map lands with M1b,
-/// together with `CURRENT_KEYBOARD_SHORTCUTS_VERSION = 2`.
-const V1_TO_V2_DEFAULTS: &[MappedDefault] = &[];
+#[path = "preferences_migration_map.rs"]
+mod map;
+use map::V1_TO_V2_DEFAULTS;
 
-/// The plan production loads run. Its target is CURRENT, so while CURRENT is
-/// 1 it is a no-op.
+/// The plan production loads run. Its target is CURRENT.
 pub const PRODUCTION_PLAN: MigrationPlan = MigrationPlan {
     from: 1,
     to: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
@@ -81,13 +84,46 @@ pub fn migrate(
         return (prefs, MigrationOutcome::Unchanged);
     };
     let mut changed_count = 0;
+    let mut changed_fields = Vec::new();
     for mapped in plan.map {
         if bindings.get(mapped.field).and_then(Value::as_str) == Some(mapped.from) {
             bindings.insert(mapped.field.to_string(), Value::from(mapped.to));
             changed_count += 1;
+            changed_fields.push(mapped.field);
         }
     }
     if changed_count > 0 {
+        // A kept custom value takes a newly introduced default. Persist the
+        // default as unassigned, while keeping its reason for this launch only.
+        let platform = if cfg!(target_os = "macos") {
+            Platform::Macos
+        } else if cfg!(target_os = "windows") {
+            Platform::Windows
+        } else {
+            Platform::Linux
+        };
+        let stored = bindings
+            .iter()
+            .filter_map(|(field, value)| {
+                value
+                    .as_str()
+                    .map(|chord| (field.clone(), chord.to_string()))
+            })
+            .collect();
+        if let Ok(resolutions) = resolve_bindings(platform, plan.to, &stored) {
+            for field in changed_fields {
+                if matches!(
+                    resolutions.get(field),
+                    Some(Resolution::Suppressed {
+                        reason: SuppressReason::YieldedToCustom,
+                        ..
+                    })
+                ) {
+                    bindings.insert(field.to_string(), Value::from("<unassigned>"));
+                    prefs.shortcut_migration_conflicts.push(field.to_string());
+                }
+            }
+        }
         match serde_json::from_value::<KeyboardShortcuts>(Value::Object(bindings)) {
             Ok(shortcuts) => prefs.keyboard_shortcuts = shortcuts,
             Err(_) => return (prefs, MigrationOutcome::Unchanged),

@@ -118,7 +118,7 @@ pub(super) fn dispatch_if_allowed(
     let Some(row) = layout.rows.iter().find(|row| row.id == row_id) else {
         return emit(target);
     };
-    let availability = row.availability.macos.v1;
+    let availability = row.availability.macos.v2;
     if availability != Availability::Both {
         let reason = if focused.is_none() {
             "no_focus"

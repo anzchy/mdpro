@@ -21,7 +21,7 @@
 use serde::{Deserialize, Deserializer};
 
 /// The version of the shortcut defaults this build ships.
-pub const CURRENT_KEYBOARD_SHORTCUTS_VERSION: u32 = 1;
+pub const CURRENT_KEYBOARD_SHORTCUTS_VERSION: u32 = 2;
 
 /// The version a stamp-less, or unreadable, stamp stands for.
 const UNSTAMPED_VERSION: u32 = 1;

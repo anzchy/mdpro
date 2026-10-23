@@ -5,11 +5,8 @@
  * propagation, so on a German layout (key "`", code "Equal") the window
  * listener's K8 physical pass fired a stored custom Save "Cmd+Shift+=".
  *
- * The skip covers the physical pass (K8) and the off-Mac relaxed pass
- * (audit b121) only. The logical pass is unchanged: CodeMirror's searchKeymap
- * Mod-Shift-l and the add-cursor Mod-Alt-Arrow keys preventDefault on hook
- * chords today (C11, C17), and the hook still runs there until M1b removes
- * those editor bindings.
+ * M1b extends the skip to the logical pass, so an editor-consumed chord
+ * cannot also reach an app handler.
  *
  * Mock boundary: `@tauri-apps/api/core` (logging sink) and
  * `@tauri-apps/api/event` only.
@@ -113,12 +110,12 @@ describe("off-Mac relaxed pass skips a consumed keydown", () => {
   });
 });
 
-describe("the logical pass is unchanged for a consumed keydown (C11 stays M1b's)", () => {
+describe("the logical pass skips a consumed keydown (M1b)", () => {
   for (const p of PLATFORMS) {
-    it(`${p.name}: Cmd+Shift+L consumed by CodeMirror's searchKeymap still toggles the sidebar`, async () => {
+    it(`${p.name}: Cmd+Shift+L consumed by the editor does not also toggle the sidebar`, async () => {
       const hook = await loadHookFor(p.platform);
       const counts = press(hook, {}, { key: "L", code: "KeyL", shiftKey: true, ...p.mod }, true);
-      expect(counts.onToggleSidebar).toBe(1);
+      expect(counts.onToggleSidebar).toBe(0);
     });
   }
 });

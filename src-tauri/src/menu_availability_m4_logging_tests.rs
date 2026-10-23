@@ -34,7 +34,7 @@ fn m4_refusal_classes_each_log_once_without_an_emit() {
         });
         assert!(result.is_err());
     }
-    layout.rows[0].availability.macos.v1 = Availability::None;
+    layout.rows[0].availability.macos.v2 = Availability::None;
     let result = dispatch_if_allowed(
         &layout,
         action,

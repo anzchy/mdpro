@@ -17,8 +17,8 @@ import { describe, it, expect } from "vitest";
 import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
 
 describe("DEFAULT_KEYBOARD_SHORTCUTS — fields shared with Rust", () => {
-  it("carries fileOpenQuickly with the value Rust's default_open_quickly() returns", () => {
-    expect(DEFAULT_KEYBOARD_SHORTCUTS.fileOpenQuickly).toBe("Cmd+Shift+O");
+  it("carries fileOpenQuickly with the v2 value Rust's default_open_quickly() returns", () => {
+    expect(DEFAULT_KEYBOARD_SHORTCUTS.fileOpenQuickly).toBe("<unassigned>");
   });
 
   it("keeps viewSource / viewWysiwyg matching the menu.rs accelerators", () => {

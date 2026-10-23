@@ -1,15 +1,14 @@
 /**
  * Purpose: the command table (plan docs/plans/20261015-plan-menu-reorganisation.md
  * § 5.5, ADR-0114 K6): one row per command with its menu path, v1 / v2 keys,
- * ownership contexts, availability and route per platform. Data only; in M1a
- * production reads v1 through Settings' conflict check (M1A-WI-10) and the
- * M3b editor dispatcher; nothing consumes v2 until M1b (ADR-0114 Decision 9). `menu_layout.json` is generated from
- * it (M1A-WI-7).
+ * ownership contexts, availability and route per platform. M1b consumes v2
+ * through the applied snapshot in Settings, menus and editors. `menu_layout.json`
+ * is generated from this table (M1A-WI-7).
  *
  * @coordinates-with src/commands/rows/*.ts — the rows, one file per group
  * @coordinates-with src/commands/commandHelpers.ts — exhaustive helpers
  * @coordinates-with src/types/preferences.ts — `DEFAULT_KEYBOARD_SHORTCUTS`
- *   is v1; tests/command-table.test.ts holds the two together
+ *   is v2; tests/command-table.test.ts holds the two together
  */
 import type { KeyboardShortcuts } from "../types/preferences";
 import type { CommandId, CommandRow } from "./commandTable.types";

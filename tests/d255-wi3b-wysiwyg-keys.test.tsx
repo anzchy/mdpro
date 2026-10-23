@@ -22,6 +22,8 @@ import { useDocumentStore } from "../src/stores/documentStore";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
 import { useKeyboardShortcuts } from "../src/hooks/useKeyboardShortcuts";
+import { DEFAULT_KEYBOARD_SHORTCUTS } from "../src/types/preferences";
+import { v1Applied } from "./support/bindingV1Defaults";
 import { doc, seedStores } from "./support/editorGenerationDomain";
 import { mountScriptedMilkdownRig, type MilkdownRig } from "./helpers/scriptedMilkdownRig";
 import { runEditorMenuCommand } from "../src/utils/editorMenuCommands";
@@ -54,10 +56,10 @@ afterEach(async () => {
   document.getElementById("milkdown-container")?.remove();
 });
 
-async function mount(source: string) {
+async function mount(source: string, appliedShortcuts?: ReturnType<typeof v1Applied>) {
   const root = document.body.appendChild(document.createElement("div"));
   root.id = "milkdown-container";
-  rig = await mountScriptedMilkdownRig(source, { heights: [30], container: root });
+  rig = await mountScriptedMilkdownRig(source, { heights: [30], container: root, appliedShortcuts });
   unregister = useMilkdownEditorStore.getState().registerEditor(() => rig?.editor ?? null);
   return rig;
 }
@@ -73,12 +75,25 @@ function markdown() {
 }
 
 it.each([
-  ["alpha", "=", "###### alpha\n"],
-  ["## alpha", "-", "### alpha\n"],
-])("AC-11 heading key %s / Cmd+%s changes the document once", async (source, key, expected) => {
+  ["alpha", "]", "###### alpha\n"],
+  ["## alpha", "[", "### alpha\n"],
+])("AC-11 heading key %s / Cmd+Option+%s changes the document once", async (source, key, expected) => {
   await mount(source);
-  expect(press(key, { metaKey: true }).defaultPrevented).toBe(true);
+  expect(press(key, { metaKey: true, altKey: true }).defaultPrevented).toBe(true);
   expect(markdown()).toBe(expected);
+});
+
+it("M1b A11: consumed WYSIWYG Cmd+= changes the heading without a custom Save", async () => {
+  await mount("alpha", v1Applied("macos"));
+  const save = vi.fn();
+  unmountKeys = renderHook(() => useKeyboardShortcuts({
+    onSave: save,
+    shortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS, fileSave: "Cmd+=" },
+  })).unmount;
+  const event = press("=", { metaKey: true });
+  expect(event.defaultPrevented).toBe(true);
+  expect(markdown()).toBe("###### alpha\n");
+  expect(save).not.toHaveBeenCalled();
 });
 
 it("AC-11 Cmd+D selects a word and Cmd+L selects its enclosing line", async () => {
@@ -107,9 +122,9 @@ it("AC-11 Cmd+U toggles the real underline mark once", async () => {
   expect(markdown()).toBe("<u>alpha</u>\n");
 });
 
-it("AC-11 Cmd+Ctrl+I inserts a copied image through the picker", async () => {
+it("AC-11 Cmd+Shift+I inserts a copied image through the picker", async () => {
   await mount("alpha");
-  expect(press("i", { metaKey: true, ctrlKey: true }).defaultPrevented).toBe(true);
+  expect(press("i", { metaKey: true, shiftKey: true }).defaultPrevented).toBe(true);
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(markdown()).toContain("![](assets/image.png)");
   expect(ipc).toHaveBeenCalledWith("pick_image");
@@ -123,12 +138,12 @@ it("AC-11 existing Cmd+B still adds strong once", async () => {
   expect(markdown()).toBe("**alpha**\n");
 });
 
-it("A13-WindowOwner: default window bindings leave WYSIWYG Cmd+= to the editor", async () => {
+it("A13-WindowOwner: default window bindings leave WYSIWYG Cmd+Option+] to the editor", async () => {
   await mount("alpha");
   const onSave = vi.fn();
   const keys = renderHook(() => useKeyboardShortcuts({ onSave }));
   unmountKeys = keys.unmount;
-  const event = press("=", { metaKey: true });
+  const event = press("]", { metaKey: true, altKey: true });
   expect(event.defaultPrevented).toBe(true);
   expect(markdown()).toBe("###### alpha\n");
   const entries = commandLogs.filter((entry) => entry.event === "ui.editor.command" &&
@@ -141,7 +156,7 @@ it("A13-WindowOwner: default window bindings leave WYSIWYG Cmd+= to the editor",
 
 it("AC-11 refused edge key logs cancel and leaves the document unchanged", async () => {
   await mount("# alpha");
-  expect(press("=", { metaKey: true }).defaultPrevented).toBe(true);
+  expect(press("]", { metaKey: true, altKey: true }).defaultPrevented).toBe(true);
   expect(markdown()).toBe("# alpha\n");
   const entries = commandLogs.filter((entry) => entry.event === "ui.editor.command" &&
     (entry.context as { command?: string } | undefined)?.command === "paragraph.increaseHeading");
@@ -160,7 +175,7 @@ it("AC-7/11 a cancelled menu Image leaves the key path ready", async () => {
   expect(runEditorMenuCommand("format.image", captureToken("main"), "menu-cancel")).toEqual({ status: "opened" });
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(markdown()).toBe("alpha\n");
-  expect(press("i", { metaKey: true, ctrlKey: true }).defaultPrevented).toBe(true);
+  expect(press("i", { metaKey: true, shiftKey: true }).defaultPrevented).toBe(true);
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(markdown()).toContain("![](assets/image.png)");
 });

@@ -17,16 +17,20 @@ import { rowStateOf, type RowStateInput } from "../src/components/common/setting
 import type { AppliedBinding } from "../src/types/keyboardShortcuts";
 import { DEFAULT_KEYBOARD_SHORTCUTS, type KeyboardShortcuts } from "../src/types/preferences";
 import { recordedShortcut } from "../src/utils/platformLabels";
+import { v1TableDefaults } from "./support/bindingV1Defaults";
 
 const NONE = new Set<keyof KeyboardShortcuts>();
 
 function input(row: CommandRow, over: Partial<RowStateInput> = {}): RowStateInput {
+  const version = over.version ?? 1;
+  const platform = over.platform ?? "macos";
+  const defaults = version >= 2 ? DEFAULT_KEYBOARD_SHORTCUTS : v1TableDefaults(platform);
   return {
     row,
-    platform: "macos",
-    version: 1,
-    local: { ...DEFAULT_KEYBOARD_SHORTCUTS },
-    saved: { ...DEFAULT_KEYBOARD_SHORTCUTS },
+    platform,
+    version,
+    local: { ...defaults },
+    saved: { ...defaults },
     applied: null,
     conflicts: NONE,
     ...over,
@@ -149,10 +153,7 @@ describe("M7 resetDefaults(platform, version)", () => {
   const PLATFORMS: readonly Platform[] = ["macos", "windows", "linux"];
 
   it("d1 v1 is today's defaults on every platform", () => {
-    for (const p of PLATFORMS) expect(resetDefaults(p, 1)).toEqual({
-      ...DEFAULT_KEYBOARD_SHORTCUTS,
-      ...(p === "macos" ? {} : { formatImage: "<unassigned>" }),
-    });
+    for (const p of PLATFORMS) expect(resetDefaults(p, 1)).toEqual(v1TableDefaults(p));
   });
 
   it("d2 v2 is the table's v2 per platform, states included", () => {

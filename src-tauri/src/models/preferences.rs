@@ -41,6 +41,11 @@ pub struct UserPreferences {
     )]
     pub keyboard_shortcuts_version: u32,
 
+    /// Defaults displaced during this load's v1→v2 migration. In-memory only:
+    /// the first upgraded run shows a notice, while the next run starts clean.
+    #[serde(skip)]
+    pub shortcut_migration_conflicts: Vec<String>,
+
     /// Logging settings (enabled + minimum level)
     #[serde(default)]
     pub logging: LogSettings,
@@ -478,6 +483,7 @@ impl Default for UserPreferences {
             },
             keyboard_shortcuts: KeyboardShortcuts::default(),
             keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
+            shortcut_migration_conflicts: Vec::new(),
             logging: LogSettings::default(),
             window_states: HashMap::new(),
             auto_save: AutoSaveConfig::default(),

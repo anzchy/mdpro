@@ -20,15 +20,8 @@ use crate::services::window_restore::test_home::{
 use serde_json::{json, Value};
 use std::path::Path;
 
-#[path = "../host_shortcut_expectations_tests.rs"]
-mod host_shortcut_expectations;
-
 const RESOLVE_EVENT: &str = "preferences.shortcuts.applied.resolve";
 const GET_EVENT: &str = "preferences.shortcuts.applied.get";
-const PREFS_CONTRACT: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../tests/fixtures/preferences-contract.json"
-);
 
 fn block_on<F: std::future::Future>(f: F) -> F::Output {
     tokio::runtime::Builder::new_current_thread()
@@ -75,22 +68,27 @@ fn with_status(records: &[Value], status: &str) -> Vec<Value> {
 
 /// A1's bindings, built from the contract fixture rather than the code.
 fn default_bindings() -> Value {
-    let raw = std::fs::read_to_string(PREFS_CONTRACT).expect("contract fixture");
-    let contract: Value = serde_json::from_str(&raw).expect("contract JSON");
-    let chords = contract["$defaultKeyboardShortcuts"]
-        .as_object()
-        .expect("defaults object")
-        .clone();
-    let mut bindings = Value::Object(
-        chords
-            .into_iter()
-            .map(|(k, c)| (k, json!({ "state": "bound", "chord": c })))
-            .collect(),
-    );
-    if !host_shortcut_expectations::host_has_default_image_shortcut() {
-        bindings["formatImage"] = json!({ "state": "unassigned" });
+    let layout = crate::menu_layout::menu_layout().expect("committed layout");
+    let mut bindings = serde_json::Map::new();
+    for row in &layout.rows {
+        let Some(field) = &row.pref_field else {
+            continue;
+        };
+        let key = if cfg!(target_os = "macos") {
+            &row.key.macos
+        } else if cfg!(target_os = "windows") {
+            &row.key.windows
+        } else {
+            &row.key.linux
+        };
+        let value = match key.defaults.v2.as_deref().expect("v2 default") {
+            "<unassigned>" => json!({"state":"unassigned"}),
+            "<system>" => json!({"state":"system"}),
+            chord => json!({"state":"bound","chord":chord}),
+        };
+        bindings.insert(field.clone(), value);
     }
-    bindings
+    Value::Object(bindings)
 }
 
 fn as_value(s: &AppliedShortcuts) -> Value {
@@ -133,6 +131,32 @@ fn a4_a_settings_save_does_not_change_the_snapshot() {
 }
 
 #[test]
+fn m1b_yielded_default_notifies_only_the_upgrade_run() {
+    let h = TestHome::new("m1b_yielded_default_notice");
+    seed_config(&h.dir, |v| {
+        v["keyboardShortcutsVersion"] = json!(1);
+        v["keyboardShortcuts"]["fileSave"] = json!("Cmd+Shift+T");
+        v["keyboardShortcuts"]["paragraphTable"] = json!("Cmd+Option+T");
+    });
+    let first = snapshot_at_startup();
+    let disk: Value = serde_json::from_slice(&read_config_bytes(&h.dir)).expect("disk JSON");
+    assert_eq!(disk["keyboardShortcuts"]["fileSave"], json!("Cmd+Shift+T"));
+    assert_eq!(
+        disk["keyboardShortcuts"]["paragraphTable"],
+        json!("<unassigned>")
+    );
+    assert_eq!(
+        as_value(&first)["bindings"]["paragraphTable"],
+        json!({ "state": "suppressed", "reason": "yieldedToCustom" })
+    );
+    let next = snapshot_at_startup();
+    assert_eq!(
+        as_value(&next)["bindings"]["paragraphTable"],
+        json!({ "state": "unassigned" })
+    );
+}
+
+#[test]
 fn a5_a_corrupt_file_falls_back_to_defaults_and_writes_nothing() {
     let h = TestHome::new("a5_corrupt");
     let _log = logger_on(&h);
@@ -170,7 +194,10 @@ fn a6_a_missing_file_resolves_defaults_as_loaded() {
 
     assert_eq!(snap["source"], json!("loaded"));
     assert_eq!(snap["bindings"], default_bindings());
-    assert_eq!(snap["keyboardShortcutsVersion"], json!(1));
+    assert_eq!(
+        snap["keyboardShortcutsVersion"],
+        json!(CURRENT_KEYBOARD_SHORTCUTS_VERSION)
+    );
     let disk: Value = serde_json::from_slice(&read_config_bytes(&h.dir)).expect("disk JSON");
     assert_eq!(
         disk,
@@ -196,10 +223,18 @@ fn a9_startup_and_command_logs_carry_counts_only() {
     assert_eq!(with_status(&resolve, "start").len(), 1, "{resolve:?}");
     let ok = with_status(&resolve, "success");
     assert_eq!(ok.len(), 1, "{resolve:?}");
-    let image_bound = usize::from(host_shortcut_expectations::host_has_default_image_shortcut());
+    let expected_bindings = default_bindings();
+    let fields = expected_bindings.as_object().expect("binding object");
+    let count = |state: &str| {
+        fields
+            .values()
+            .filter(|binding| binding["state"] == state)
+            .count()
+    };
+    let bound_count = count("bound") - 1; // fileSave is unassigned in this fixture.
     assert_eq!(
         ok[0]["context"],
-        json!({ "source": "loaded", "boundCount": 55 + image_bound, "unassignedCount": 2 - image_bound, "systemCount": 1 })
+        json!({ "source": "loaded", "boundCount": bound_count, "unassignedCount": count("unassigned") + 1, "systemCount": count("system") })
     );
     assert_eq!(with_status(&resolve, "fail").len(), 0);
 
@@ -208,7 +243,7 @@ fn a9_startup_and_command_logs_carry_counts_only() {
     let got = with_status(&get, "success");
     assert_eq!(got.len(), 2, "{get:?}");
     for rec in &got {
-        assert_eq!(rec["context"], json!({ "boundCount": 55 + image_bound }));
+        assert_eq!(rec["context"], json!({ "boundCount": bound_count }));
     }
 
     assert_no_leak(&resolve, &h);

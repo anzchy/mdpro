@@ -28,7 +28,7 @@ const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform
 // Dispatch passes: 1 logical only; 2 the K8 physical-key match, only when no
 // binding matched logically, so a logical match on any binding beats a
 // physical one on any other (audit b186 F1); 3 off-Mac, the Shift-typed
-// symbol fallback (audit b121). Passes 2 and 3 skip a keydown an editor
+// symbol fallback (audit b121). Every pass skips a keydown an editor
 // already consumed (defaultPrevented). The sets mark the pass an event is in and
 // whether some binding has matched it.
 const physicalPass = new WeakSet<KeyboardEvent>();
@@ -64,6 +64,7 @@ export function useKeyboardShortcuts({
   const editorView = useEditorStore((state) => state.editorView);
 
   useEffect(() => {
+    if (shortcuts === null) return;
     const dispatch = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const inCodeMirror = !!target?.closest?.(".cm-editor");
@@ -101,7 +102,7 @@ export function useKeyboardShortcuts({
       }
 
       // App-level shortcuts — evaluated with exact modifier matching via matchesShortcut.
-      // Highlight reads `shortcuts.formatHighlight` (default Cmd+Shift+H) like the rest.
+      // Highlight reads the applied `formatHighlight` chord like the rest.
       if (onNew && matchesShortcut(event, shortcuts.fileNew)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileNew, { action: "file.new" });
@@ -146,7 +147,8 @@ export function useKeyboardShortcuts({
         const actionId = loggingService.logShortcut(shortcuts.fileClose, { action: "file.close" });
         // D165: a modal is up (the native accelerator path has the same check).
         if (!refuseTabActionWhileModalOpen("file.close", "shortcut", actionId)) onClose(actionId);
-      } else if (onCycleViewMode && !inCodeMirror && matchesShortcut(event, shortcuts.viewCycleViewMode)) {
+      } else if (onCycleViewMode && !inCodeMirror &&
+        (matchesShortcut(event, shortcuts.viewCycleViewMode) || matchesShortcut(event, "F6"))) {
         // CodeMirror has its own high-precedence Mod-/ binding (see Editor.tsx
         // viewModeKeymap) that calls userViewModeCommands.cycle directly. App
         // passes the same adapter here, so both paths carry the user intent
@@ -162,14 +164,14 @@ export function useKeyboardShortcuts({
         const actionId = loggingService.logShortcut(shortcuts.filePreferences, { action: "file.preferences" });
         if (!refuseModalOpenWhileModalOpen("file.preferences", "shortcut", actionId)) onOpenPreferences(actionId);
       } else if (onInsertTable && !inCodeMirror && matchesShortcut(event, shortcuts.paragraphTable)) {
-        // ⌘⌥T (paragraphTable) — opens TableInsertModal in WYSIWYG mode.
+        // The applied paragraphTable key opens TableInsertModal in WYSIWYG mode.
         // CodeMirror gets first dibs (source-mode inserts a literal table is
         // separate Phase 2 work in the table-CRUD plan).
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.paragraphTable, { action: "paragraph.table" });
         // D235: not over an open modal (Insert Link, Settings, …).
         if (!refuseModalOpenWhileModalOpen("paragraph.table", "shortcut", actionId)) onInsertTable(actionId);
-      } else if (onTableAction) {
+      } else if (onTableAction && !inCodeMirror) {
         // Phase 1.5 follow-up — table action shortcuts (Cmd+Option+arrows
         // for insert row/col directions; Cmd+Option+Backspace for delete
         // row; Cmd+Option+Shift+Backspace for delete column). The
@@ -194,11 +196,11 @@ export function useKeyboardShortcuts({
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       dispatch(event);
       // A keydown an editor keymap consumed never reaches a fallback pass
       // (audit b186 round 2: Milkdown's Mod-Shift-` on German Shift+Equal).
-      // The logical pass above still runs, as CodeMirror's Mod-Shift-l and
-      // Mod-Alt-Arrow consume hook chords today (C11, C17; M1b removes them).
+      // The logical pass is also skipped once an editor takes ownership.
       if (matched.has(event) || event.defaultPrevented) return;
       physicalPass.add(event);
       dispatch(event);

@@ -1,6 +1,6 @@
 use super::*;
 use crate::menu_layout::{menu_layout, MenuPath, Platform};
-use crate::models::{KeyboardShortcuts, LogLevel, LogSettings};
+use crate::models::{KeyboardShortcuts, LogLevel, LogSettings, CURRENT_KEYBOARD_SHORTCUTS_VERSION};
 use crate::services::applied_shortcuts::{
     resolve_applied, AppliedBinding, AppliedShortcuts, AppliedSource,
 };
@@ -9,7 +9,7 @@ use crate::services::{logger, window_restore::test_home::TestHome};
 
 fn defaults() -> AppliedShortcuts {
     AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::Loaded,
         bindings: resolve_applied(&KeyboardShortcuts::default()),
     }
@@ -27,7 +27,7 @@ fn item<'a>(items: &'a [MenuItemSpec], command_id: &str) -> &'a MenuItemSpec {
 }
 
 #[test]
-fn m4_wi2_default_v1_descriptors_follow_every_macos_row() {
+fn m1b_default_v2_descriptors_follow_every_macos_row() {
     let layout = menu_layout().unwrap();
     let items = menu_layout_for(layout, &defaults(), Some(ViewMode::Wysiwyg));
     let rows: Vec<_> = layout
@@ -76,13 +76,13 @@ fn m4_wi2_custom_snapshot_moves_save_key() {
     applied.bindings.insert(
         "fileSave".into(),
         AppliedBinding::Bound {
-            chord: "Cmd+Shift+T".into(),
+            chord: "Cmd+Option+S".into(),
         },
     );
     let custom = menu_layout_for(layout, &applied, Some(ViewMode::Wysiwyg));
     assert_eq!(
         item(&custom, "file.save").accelerator.as_deref(),
-        Some("Cmd+Shift+T")
+        Some("Cmd+Alt+S")
     );
     assert_eq!(
         item(&custom, "file.new").accelerator,
@@ -106,6 +106,7 @@ fn m4_wi2_valid_save_on_undo_chord_is_suppressed() {
             AppliedBinding::Bound { chord } => Some((field.clone(), chord.clone())),
             AppliedBinding::Unassigned => Some((field.clone(), "<unassigned>".into())),
             AppliedBinding::System => Some((field.clone(), "<system>".into())),
+            AppliedBinding::Suppressed { .. } => Some((field.clone(), "<unassigned>".into())),
         })
         .collect();
     assert!(matches!(
@@ -156,7 +157,6 @@ fn m4_wi2_unassigned_and_bad_chord_are_keyless_and_bad_value_is_not_logged() {
 fn m4_wi2_reserved_defaults_are_keyless_when_rows_gain_paths() {
     let mut layout = menu_layout().unwrap().clone();
     for (id, name) in [
-        ("paragraph.quote", "Quote"),
         ("view.switchDocuments", "Switch Documents"),
         ("view.toggleFullscreen", "Toggle Fullscreen"),
     ] {
@@ -165,11 +165,7 @@ fn m4_wi2_reserved_defaults_are_keyless_when_rows_gain_paths() {
         row.menu_id = Some(format!("menu.synthetic.{id}"));
     }
     let items = menu_layout_for(&layout, &defaults(), Some(ViewMode::Wysiwyg));
-    for id in [
-        "paragraph.quote",
-        "view.switchDocuments",
-        "view.toggleFullscreen",
-    ] {
+    for id in ["view.switchDocuments", "view.toggleFullscreen"] {
         assert_eq!(item(&items, id).accelerator, None, "{id}");
     }
     assert_eq!(
@@ -181,14 +177,21 @@ fn m4_wi2_reserved_defaults_are_keyless_when_rows_gain_paths() {
 #[test]
 fn m4_wi2_reserved_chords_stay_keyless_even_when_items_are_available() {
     let mut layout = menu_layout().unwrap().clone();
-    for id in ["paragraph.quote", "view.switchDocuments"] {
+    for id in ["view.switchDocuments"] {
         let row = layout.rows.iter_mut().find(|row| row.id == id).unwrap();
         row.menu.macos = MenuPath::Path(vec!["Injected".into(), id.into()]);
         row.menu_id = Some(format!("menu.synthetic.{id}"));
-        row.availability.macos.v1 = crate::menu_layout::Availability::Both;
+        row.availability.macos.v2 = crate::menu_layout::Availability::Both;
     }
-    let items = menu_layout_for(&layout, &defaults(), Some(ViewMode::Wysiwyg));
-    for id in ["paragraph.quote", "view.switchDocuments"] {
+    let mut applied = defaults();
+    applied.bindings.insert(
+        "viewSwitchDocuments".into(),
+        AppliedBinding::Bound {
+            chord: "Cmd+Q".into(),
+        },
+    );
+    let items = menu_layout_for(&layout, &applied, Some(ViewMode::Wysiwyg));
+    for id in ["view.switchDocuments"] {
         let spec = item(&items, id);
         assert!(spec.enabled, "{id}");
         assert_eq!(spec.accelerator, None, "{id}");
@@ -207,7 +210,7 @@ fn m4_wi2_duplicate_customs_resolve_as_one_snapshot() {
         applied.bindings.insert(
             field.into(),
             AppliedBinding::Bound {
-                chord: "Cmd+Shift+T".into(),
+                chord: "Cmd+Option+S".into(),
             },
         );
     }
@@ -221,7 +224,7 @@ fn m4_wi2_duplicate_customs_resolve_as_one_snapshot() {
     assert_eq!(item(&resolved, "file.new").accelerator, None);
     assert_eq!(
         item(&resolved, "file.save").accelerator.as_deref(),
-        Some("Cmd+Shift+T")
+        Some("Cmd+Alt+S")
     );
 }
 

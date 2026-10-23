@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useDocumentStore } from "../../stores/documentStore";
 import { useEditorStore } from "../../stores/editorStore";
 import type { HighlightRequest } from "../../utils/menuTargetToken";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
 import { Editor } from "./Editor";
 import { LinkInsertModal } from "./LinkInsertModal";
 import { SourceTableContextMenu } from "./SourceTableContextMenu";
@@ -12,6 +13,7 @@ interface SplitViewProps {
   readOnly?: boolean;
   /** Passed through to the Source editor (D261: carries the menu-target token). */
   highlightRequest?: HighlightRequest;
+  appliedShortcuts?: AppliedShortcuts | null;
 }
 
 export function SplitView({
@@ -19,6 +21,7 @@ export function SplitView({
   onChange,
   readOnly = false,
   highlightRequest,
+  appliedShortcuts = null,
 }: SplitViewProps) {
   // D203: one CodeMirror view per document. Sharing one view across tabs let
   // @uiw/react-codemirror swap `value` in as an undoable change (⌘Z then wrote the
@@ -45,6 +48,7 @@ export function SplitView({
           onChange={onChange}
           readOnly={readOnly}
           highlightRequest={highlightRequest}
+          appliedShortcuts={appliedShortcuts}
         />
       </div>
       {/* Mounted alongside Editor — listens on #source-container for

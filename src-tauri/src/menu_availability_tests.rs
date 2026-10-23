@@ -13,14 +13,14 @@ use crate::services::{logger, window_restore::test_home::TestHome};
 
 fn m4_defaults() -> AppliedShortcuts {
     AppliedShortcuts {
-        keyboard_shortcuts_version: 1,
+        keyboard_shortcuts_version: crate::models::CURRENT_KEYBOARD_SHORTCUTS_VERSION,
         source: AppliedSource::Loaded,
         bindings: resolve_applied(&KeyboardShortcuts::default()),
     }
 }
 
 #[test]
-fn m4_wi3_all_layout_rows_follow_v1_mode_and_disabled_rows_are_keyless() {
+fn m1b_all_layout_rows_follow_v2_mode_and_disabled_rows_are_keyless() {
     let mut layout = menu_layout().unwrap().clone();
     for (id, title) in [("edit.findNext", "Find Next"), ("format.strong", "Bold")] {
         let row = layout.rows.iter_mut().find(|row| row.id == id).unwrap();
@@ -48,7 +48,7 @@ fn m4_wi3_all_layout_rows_follow_v1_mode_and_disabled_rows_are_keyless() {
             .filter(|row| matches!(row.menu.macos, MenuPath::Path(_)))
         {
             let spec = specs.iter().find(|spec| spec.command_id == row.id).unwrap();
-            let expected = match row.availability.macos.v1 {
+            let expected = match row.availability.macos.v2 {
                 Availability::Both => true,
                 Availability::W => mode == Some(ViewMode::Wysiwyg),
                 Availability::S => mode == Some(ViewMode::Source),

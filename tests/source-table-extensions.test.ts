@@ -210,11 +210,11 @@ describe("WI-4: Editor.tsx installs the table extensions through the helper", ()
     expect(assigned).not.toBeNull();
     const name = assigned![1];
 
-    // The extensions memo's deps change only by that boolean.
+    // The extensions memo also changes when the applied keymap is installed.
     const memoIdx = src.indexOf("const extensions = useMemo(");
     expect(memoIdx).toBeGreaterThan(-1);
     const deps =
-      "[pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceTableTabKeymapExt, viewModeKeymap, " +
+      "[pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceDefaultKeys, sourceTableTabKeymapExt, sourceTableArrowKeymapExt, viewModeKeymap, activeSearchExtensions, " +
       `${name}]`;
     const depsIdx = src.indexOf(deps, memoIdx);
     expect(depsIdx).toBeGreaterThan(memoIdx);

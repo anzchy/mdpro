@@ -194,8 +194,7 @@ fn c6_persist_server_enabled_completes_and_flips_the_flag() {
 //
 // The same six callers on a seed without `keyboardShortcutsVersion`, i.e. the
 // path a v0.3.5 file takes. Each still finishes within `GENEROUS`; a writer
-// stamps version 1 (the production plan never moves it), and the reader
-// leaves the bytes, and so the missing key, alone.
+// stamps the current version. The reader may migrate an unstamped document.
 
 fn seed_unversioned(h: &TestHome) -> Vec<u8> {
     seed_111(h, |v| {
@@ -213,12 +212,16 @@ fn m11_writer(label: &str, call: impl FnOnce() -> Result<(), String> + Send + 's
     let got = bounded(call);
     assert_eq!(got, Ok(Ok(())), "{label}");
     let v = on_disk(&h);
-    assert_eq!(v["keyboardShortcutsVersion"], json!(1), "{label}");
+    assert_eq!(
+        v["keyboardShortcutsVersion"],
+        json!(crate::models::CURRENT_KEYBOARD_SHORTCUTS_VERSION),
+        "{label}"
+    );
     assert_eq!(v["autoSaveInterval"], json!(111), "{label}");
 }
 
 #[test]
-fn m11_the_five_writers_finish_and_stamp_version_one() {
+fn m11_the_five_writers_finish_and_stamp_current_version() {
     m11_writer("m11_c1", || {
         let partial: PartialPreferences =
             serde_json::from_value(json!({ "showSidebar": false })).expect("partial");
@@ -260,15 +263,17 @@ fn m11_the_five_writers_finish_and_stamp_version_one() {
 }
 
 #[test]
-fn m11_the_reader_finishes_and_leaves_the_key_absent() {
+fn m11_the_reader_finishes_and_migrates_an_unversioned_file() {
     let h = TestHome::new("m11_c5");
-    let before = seed_unversioned(&h);
+    seed_unversioned(&h);
     let got = bounded(|| {
         read_stored_geometry_in(preferences_rw_lock(), "/tmp/absent.md")
             .map(|g| g.is_none())
             .map_err(|e| format!("{e:?}"))
     });
     assert_eq!(got, Ok(Ok(true)));
-    assert_eq!(read_config_bytes(&h.dir), before, "bytes unchanged");
-    assert!(on_disk(&h).get("keyboardShortcutsVersion").is_none());
+    assert_eq!(
+        on_disk(&h)["keyboardShortcutsVersion"],
+        json!(crate::models::CURRENT_KEYBOARD_SHORTCUTS_VERSION)
+    );
 }

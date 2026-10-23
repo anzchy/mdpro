@@ -2,10 +2,8 @@
 //! M2, M3, M3b, M4, M5, M15 and V1 of
 //! `.claude/tdd-guardian/tests-20261016-202016.md`).
 //!
-//! **Law:** under the production plan (CURRENT = 1, empty map) a load is the
-//! identity on disk: it never writes. `keyboardShortcutsVersion` is never
-//! lowered by a load or by `set_preferences`, and a bad stamp never takes the
-//! document down.
+//! **Law:** the M1b production plan moves a v1 document once, leaves v2 and
+//! future documents untouched, and never lowers a stamp.
 
 use super::tests::TEST_PLAN;
 use super::*;
@@ -29,6 +27,10 @@ const V035_FIXTURE: &str = concat!(
 const SHIPPED_V1_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../tests/fixtures/preferences-shipped-v1.json"
+);
+const V035_DOWNGRADE_FIXTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../tests/fixtures/preferences-v0.3.5-written-after-v2.json"
 );
 
 fn block_on<F: std::future::Future>(f: F) -> F::Output {
@@ -61,8 +63,20 @@ fn load_untouched(h: &TestHome) -> UserPreferences {
     loaded.unwrap_or_else(|e| panic!("load failed: {e:?}"))
 }
 
+fn load_migrated_once(h: &TestHome) -> UserPreferences {
+    let before = read_config_bytes(&h.dir);
+    let first = load_preferences().expect("first load");
+    let after = read_config_bytes(&h.dir);
+    assert_ne!(after, before, "v1 file was not written back");
+    assert_eq!(first.keyboard_shortcuts_version, 2);
+    let second = load_preferences().expect("second load");
+    assert_eq!(read_config_bytes(&h.dir), after, "second load rewrote");
+    assert_eq!(second.keyboard_shortcuts_version, 2);
+    first
+}
+
 #[test]
-fn m1_a_v035_file_loads_with_its_bytes_unchanged() {
+fn m1_a_v035_file_migrates_once() {
     let raw = std::fs::read_to_string(V035_FIXTURE).expect("v0.3.5 fixture");
     assert!(
         !raw.contains("keyboardShortcutsVersion"),
@@ -71,26 +85,32 @@ fn m1_a_v035_file_loads_with_its_bytes_unchanged() {
     let h = TestHome::new("m1_v035");
     write_raw_config(&h.dir, &raw);
 
-    let p = load_untouched(&h);
+    let p = load_migrated_once(&h);
 
     let fixture: Value = serde_json::from_str(&raw).expect("fixture JSON");
     let expected: KeyboardShortcuts =
         serde_json::from_value(fixture["keyboardShortcuts"].clone()).expect("fixture group");
-    assert_eq!(p.keyboard_shortcuts_version, 1);
+    let (want, _) = migrate(
+        UserPreferences {
+            keyboard_shortcuts: expected.with_empty_bindings_defaulted(),
+            keyboard_shortcuts_version: 1,
+            ..UserPreferences::default()
+        },
+        &PRODUCTION_PLAN,
+    );
     assert_eq!(
         shortcuts_value(&p.keyboard_shortcuts),
-        shortcuts_value(&expected.with_empty_bindings_defaulted())
+        shortcuts_value(&want.keyboard_shortcuts)
     );
-    assert_eq!(read_config_bytes(&h.dir), raw.as_bytes());
 }
 
 #[test]
-fn m1b_the_shipped_v1_fixture_loads_without_a_write() {
+fn m1b_the_shipped_v1_fixture_stamps_v2_once() {
     let raw = std::fs::read_to_string(SHIPPED_V1_FIXTURE).expect("shipped-v1 fixture");
     let h = TestHome::new("m1b_shipped_v1");
     write_raw_config(&h.dir, &raw);
 
-    let p = load_untouched(&h);
+    let p = load_migrated_once(&h);
 
     // Spec correction after red: the matrix assumed this fixture holds 58 `""`
     // (so the repair would yield every default). It holds 56 synthetic
@@ -99,7 +119,7 @@ fn m1b_the_shipped_v1_fixture_loads_without_a_write() {
     let fixture: Value = serde_json::from_str(&raw).expect("fixture JSON");
     let expected: KeyboardShortcuts =
         serde_json::from_value(fixture["keyboardShortcuts"].clone()).expect("fixture group");
-    assert_eq!(p.keyboard_shortcuts_version, 1);
+    assert_eq!(p.keyboard_shortcuts_version, 2);
     assert_eq!(
         shortcuts_value(&p.keyboard_shortcuts),
         shortcuts_value(&expected.with_empty_bindings_defaulted())
@@ -107,14 +127,74 @@ fn m1b_the_shipped_v1_fixture_loads_without_a_write() {
 }
 
 #[test]
-fn m2_a_missing_version_reads_as_one_without_a_write() {
+fn m1b_v035_downgrade_write_reupgrades_only_old_defaults() {
+    let raw = std::fs::read_to_string(V035_DOWNGRADE_FIXTURE).expect("old-build downgrade fixture");
+    assert!(!raw.contains("keyboardShortcutsVersion"));
+    let h = TestHome::new("m1b_v035_downgrade");
+    write_raw_config(&h.dir, &raw);
+
+    let upgraded = load_migrated_once(&h);
+    let keys = &upgraded.keyboard_shortcuts;
+    assert_eq!(keys.file_save, "Cmd+Option+P", "custom Save survives");
+    assert_eq!(
+        keys.paragraph_paragraph, "Cmd+J",
+        "custom Paragraph survives"
+    );
+    assert_eq!(
+        keys.paragraph_table, "Cmd+Shift+T",
+        "old default moves again"
+    );
+    assert_eq!(
+        keys.format_highlight, "Cmd+Ctrl+H",
+        "another custom value survives"
+    );
+    assert_eq!(on_disk(&h)["keyboardShortcutsVersion"], json!(2));
+}
+
+#[test]
+fn m1b_failed_migration_write_keeps_disk_v1_and_retries() {
+    let h = TestHome::new("m1b_failed_write_retry");
+    seed_config(&h.dir, |v| {
+        v["keyboardShortcutsVersion"] = json!(1);
+        v["keyboardShortcuts"]["paragraphParagraph"] = json!("Cmd+0");
+    });
+    let original = read_config_bytes(&h.dir);
+    let tmp = h.dir.join(".mdpro").join("config.json.tmp");
+    std::fs::create_dir(&tmp).expect("block temporary file creation");
+
+    let guard = PrefsGuard::acquire().expect("guard");
+    let (in_memory, outcome) =
+        load_preferences_locked_with(&guard, &PRODUCTION_PLAN).expect("load");
+    drop(guard);
+    assert!(matches!(outcome, MigrationOutcome::WriteFailed { .. }));
+    assert_eq!(in_memory.keyboard_shortcuts_version, 2);
+    assert_eq!(
+        in_memory.keyboard_shortcuts.paragraph_paragraph,
+        "Cmd+Shift+0"
+    );
+    assert_eq!(
+        read_config_bytes(&h.dir),
+        original,
+        "failed write keeps the v1 disk document"
+    );
+
+    std::fs::remove_dir(&tmp).expect("clear test-only write blocker");
+    let retried = load_migrated_once(&h);
+    assert_eq!(
+        retried.keyboard_shortcuts.paragraph_paragraph,
+        "Cmd+Shift+0"
+    );
+}
+
+#[test]
+fn m2_a_missing_version_migrates_once() {
     let h = TestHome::new("m2_absent");
     seed_config(&h.dir, |v| {
         v.as_object_mut()
             .expect("object")
             .remove("keyboardShortcutsVersion");
     });
-    assert_eq!(load_untouched(&h).keyboard_shortcuts_version, 1);
+    assert_eq!(load_migrated_once(&h).keyboard_shortcuts_version, 2);
 }
 
 #[test]
@@ -177,9 +257,21 @@ fn m4_a_bad_version_does_not_take_the_document_down() {
         });
         let bytes = read_config_bytes(&h.dir);
         let loaded = load_preferences();
-        assert_eq!(read_config_bytes(&h.dir), bytes, "stored {stored}: rewrote");
+        if want == 1 {
+            assert_ne!(
+                read_config_bytes(&h.dir),
+                bytes,
+                "stored {stored}: missed migration"
+            );
+        } else {
+            assert_eq!(read_config_bytes(&h.dir), bytes, "stored {stored}: rewrote");
+        }
         let p = loaded.unwrap_or_else(|e| panic!("stored {stored}: {e:?}"));
-        assert_eq!(p.keyboard_shortcuts_version, want, "stored {stored}");
+        assert_eq!(
+            p.keyboard_shortcuts_version,
+            if want == 1 { 2 } else { want },
+            "stored {stored}"
+        );
         assert_eq!(p.auto_save_interval, 111, "stored {stored}");
         assert_eq!(p.logging.level, LogLevel::Warn, "stored {stored}");
         if want == u32::MAX {
@@ -214,7 +306,7 @@ fn m5_a_corrupt_file_follows_the_parse_error_path() {
 }
 
 #[test]
-fn m15_the_production_plan_never_logs_a_migration() {
+fn m15_the_production_plan_logs_only_v1_migrations() {
     let h = TestHome::new("m15_no_log");
     let restore = logger::get_log_settings();
     logger::set_log_settings(LogSettings {
@@ -240,7 +332,11 @@ fn m15_the_production_plan_never_logs_a_migration() {
 
     assert_eq!(loads, vec![true, true, true]);
     assert!(config_file(&h.dir).exists());
-    assert!(!raw.contains("preferences.shortcuts.migrate"), "log: {raw}");
+    let count = raw
+        .lines()
+        .filter(|line| line.contains("preferences.shortcuts.migrate"))
+        .count();
+    assert_eq!(count, 2, "only unstamped and stamped v1 migrate: {raw}");
 }
 
 #[test]

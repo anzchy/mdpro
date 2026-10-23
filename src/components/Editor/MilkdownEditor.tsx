@@ -12,14 +12,17 @@ import {
   rootCtx,
 } from "@milkdown/kit/core";
 import { imageAttr } from "@milkdown/kit/preset/commonmark";
-import { gfm } from "@milkdown/kit/preset/gfm";
+import { mdproGfm } from "../../plugins/milkdown/gfmPreset";
 import { history } from "@milkdown/kit/plugin/history";
 import { Plugin } from "@milkdown/kit/prose/state";
 import { TableView } from "@milkdown/kit/prose/tables";
 import { $prose } from "@milkdown/kit/utils";
 import DOMPurify from "dompurify";
 import { imagePasteMilkdownPlugin } from "../../plugins/milkdown/imagePastePlugin";
-import { typoraKeymapMilkdownPlugin } from "../../plugins/milkdown/typoraKeymapPlugin";
+import { typoraKeymapForApplied } from "../../plugins/milkdown/typoraKeymapPlugin";
+import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
+import { defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import { isMacPlatform } from "../../utils/platformLabels";
 import { inlineEditMilkdownPlugin } from "../../plugins/milkdown/inlineEditPlugin";
 import { milkdownHighlightCommand } from "../../plugins/milkdown/milkdownHighlightCommand";
 import { highlightMarkPlugin } from "../../plugins/milkdown/highlightMarkPlugin";
@@ -111,9 +114,10 @@ interface MilkdownEditorInnerProps {
   highlightRequest?: HighlightRequest;
   /** The generation this instance was keyed with (D37 FR-1): a prop, never a store read. */
   generation: number;
+  appliedShortcuts: AppliedShortcuts | null;
 }
 
-function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInnerProps) {
+function MilkdownEditorInner({ highlightRequest, generation, appliedShortcuts }: MilkdownEditorInnerProps) {
   const documents = useDocumentStore((state) => state.documents);
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
 
@@ -154,7 +158,7 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
         // preset's `remarkInlineLink` is swapped out the same way. Both swaps live in
         // mdproCommonmark, the one composition the test rigs use too.
         .use(mdproCommonmark)
-        .use(gfm)
+        .use(mdproGfm)
         .use(emptyParagraphEdgeSerializerPlugins)
         // ADR-0067: ragged tables widen at parse time; empty cells serialize blank. After gfm.
         .use(tableParityPlugins)
@@ -163,14 +167,14 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
         // D15: edits reach documentStore through the view lifecycle, bound to this
         // editor's document — never through a React effect (see editSync/plugin.ts).
         .use(editSyncMilkdownPlugin(activeDocumentId))
-        .use(typoraKeymapMilkdownPlugin)
+        .use(typoraKeymapForApplied(appliedShortcuts))
         .use(pasteHtmlSanitizerMilkdownPlugin)
         .use(imagePasteMilkdownPlugin)
         .use(highlightMarkPlugin)
         .use(underlineMarkPlugin)
         .use(inlineEditMilkdownPlugin);
     },
-    [activeDocumentId],
+    [activeDocumentId, appliedShortcuts],
   );
 
   // Log editor state
@@ -262,9 +266,12 @@ function MilkdownEditorInner({ highlightRequest, generation }: MilkdownEditorInn
 
 interface MilkdownEditorProps {
   highlightRequest?: HighlightRequest;
+  appliedShortcuts?: AppliedShortcuts | null;
 }
 
-export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
+export function MilkdownEditor({ highlightRequest, appliedShortcuts }: MilkdownEditorProps) {
+  const browserDefaults = useMemo(() => defaultAppliedShortcuts(isMacPlatform() ? "macos" : "linux"), []);
+  const effectiveShortcuts = appliedShortcuts === undefined ? browserDefaults : appliedShortcuts;
   // Get activeDocumentId to use as key - forces full recreation when document changes
   const activeDocumentId = useDocumentStore((state) => state.activeDocumentId);
   // D15-WI-5: bumped only by a wholesale replacement (reloadEditor), never by typing.
@@ -274,14 +281,17 @@ export function MilkdownEditor({ highlightRequest }: MilkdownEditorProps) {
 
   return (
     <div id="milkdown-container" className="milkdown-editor">
-      {/* Key forces MilkdownProvider to recreate on a document change or a reload */}
-      <MilkdownProvider key={`${activeDocumentId ?? "empty"}#${generation}`}>
-        <MilkdownEditorInner highlightRequest={highlightRequest} generation={generation} />
-      </MilkdownProvider>
+      {/* The applied snapshot must arrive before construction: rebuilding a live
+          editor when IPC completes would discard its selection and undo history. */}
+      {effectiveShortcuts ? (
+        <MilkdownProvider key={`${activeDocumentId ?? "empty"}#${generation}`}>
+          <MilkdownEditorInner highlightRequest={highlightRequest} generation={generation} appliedShortcuts={effectiveShortcuts} />
+        </MilkdownProvider>
+      ) : <div role="status" aria-label="Loading keyboard shortcuts">Loading keyboard shortcuts…</div>}
       {/* Inline URL modal for ⌘K link insert — replaces window.prompt (#25) */}
       <LinkInsertModal />
       {/* Inline picker modal for ⌘⌥T table insert — table-CRUD WI-1.1 (#390) */}
-      <TableInsertModal />
+      <TableInsertModal appliedShortcuts={effectiveShortcuts} />
       {/* Right-click table context menu — table-CRUD WI-1.3 (#390) */}
       <TableContextMenu />
     </div>

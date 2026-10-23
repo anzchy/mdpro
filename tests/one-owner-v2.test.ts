@@ -5,17 +5,12 @@
  * Matrix: .claude/tdd-guardian/tests-20261016-223726.md § M1A-WI-6, R1-F1, R2-D.
  */
 import { describe, expect, it } from "vitest";
-import { normaliseStored } from "../src/commands/chord";
-import { rowByPrefField } from "../src/commands/commandTable";
-import { EDITOR_OWNED_CHORDS, keymapNameToStored } from "../src/commands/editorOwnedChords";
-import type { KeyboardShortcuts } from "../src/types/preferences";
+import { EDITOR_OWNED_CHORDS } from "../src/commands/editorOwnedChords";
 import {
-  LATENT_FIELD,
   PLATFORMS,
   collisions,
   describe1,
   explanation,
-  isLiveCollision,
   oneOwnerViolations,
 } from "./support/tableBindings";
 
@@ -59,7 +54,7 @@ describe("v2 × today's inventory cross-check", () => {
     expect(all.length).toBeGreaterThanOrEqual(40);
   });
 
-  it("names the registered removals (C11, C12, C17, D269, D271, D272)", () => {
+  it("names the registered removals and C17's context priority", () => {
     has(PLATFORMS, "editor:codemirror:searchKeymap:Mod-Shift-l", "view.sidebar", "removeInM1b(C11)");
     has(["macos"], "editor:codemirror:foldKeymap:Cmd-Alt-[", "paragraph.decreaseHeading", "removeInM1b(C12)");
     has(["macos"], "editor:codemirror:foldKeymap:Cmd-Alt-]", "paragraph.increaseHeading", "removeInM1b(C12)");
@@ -67,8 +62,8 @@ describe("v2 × today's inventory cross-check", () => {
     has(OFF, "editor:codemirror:foldKeymap:Ctrl-Alt-]", "paragraph.increaseHeading", "removeInM1b(C12)");
     has(OFF, "editor:codemirror:foldKeymap:Ctrl-Shift-[", "paragraph.orderedList", "removeInM1b(C12)");
     has(OFF, "editor:codemirror:foldKeymap:Ctrl-Shift-]", "paragraph.unorderedList", "removeInM1b(C12)");
-    has(PLATFORMS, "editor:codemirror:defaultKeymap:Mod-Alt-ArrowUp", "table.insertRowAbove", "removeInM1b(C17)");
-    has(PLATFORMS, "editor:codemirror:defaultKeymap:Mod-Alt-ArrowDown", "table.insertRowBelow", "removeInM1b(C17)");
+    has(PLATFORMS, "editor:codemirror:defaultKeymap:Mod-Alt-ArrowUp", "table.insertRowAbove", "contextPriority(C17:table)");
+    has(PLATFORMS, "editor:codemirror:defaultKeymap:Mod-Alt-ArrowDown", "table.insertRowBelow", "contextPriority(C17:table)");
     has(PLATFORMS, "editor:codemirror:lintKeymap:Mod-Shift-m", "format.highlight", "removeInM1b(D269)");
     has(PLATFORMS, "editor:milkdown:preset-gfm/tableKeymap:Mod-]", "paragraph.indent", "removeInM1b(D271)");
     has(PLATFORMS, "editor:milkdown:preset-gfm/tableKeymap:Mod-[", "paragraph.outdent", "removeInM1b(D271)");
@@ -82,41 +77,11 @@ describe("v2 × today's inventory cross-check", () => {
   });
 });
 
-describe("R2-D: latent notes stay honest", () => {
+describe("R2-D: obsolete editor owners are removed", () => {
   const latentRows = EDITOR_OWNED_CHORDS.filter((r) => r.latent !== undefined);
 
-  it("D267 v2-only Ctrl+Shift+K is latent for M1b", () => {
-    const d267 = latentRows.filter((r) => r.latent === "D267");
-    const hits = collisions("v2", d267).filter((c) => c.rowId === "paragraph.codeFences");
-    expect(hits.map((c) => [c.platform, explanation(c)])).toEqual([
-      ["windows", "latent(D267:M1b)"], ["linux", "latent(D267:M1b)"],
-    ]);
-  });
-
-  it("a live v1 Code Fences collision remains unexplained", () => {
-    const synthetic = { ...latentRows.find((r) => r.latent === "D267")!, key: "Mod-Alt-c", platforms: ["macos"] as const };
-    const hits = collisions("v1", [synthetic]).filter((c) => c.rowId === "paragraph.codeFences");
-    expect(hits).toHaveLength(1);
-    expect(hits.map(explanation)).toEqual([null]);
-  });
-
-  it("covers D267; D268 and D270 are deliberate shadows", () => {
-    expect([...new Set(latentRows.map((r) => r.latent))].sort()).toEqual(["D267"]);
-  });
-
-  it("no latent row collides with an available, bound v2 row in a shared context", () => {
-    const live = collisions("v2", latentRows).filter(isLiveCollision);
-    expect(live.map(describe1)).toEqual([]);
-  });
-
-  it("each latent row's chord is its field's v2 default on at least one platform", () => {
-    for (const r of latentRows) {
-      const target = rowByPrefField(LATENT_FIELD[r.latent!] as keyof KeyboardShortcuts)!;
-      const hit = PLATFORMS.some((p) => {
-        const v2 = target.key[p].defaults.v2;
-        return r.platforms.includes(p) && v2 !== null && normaliseStored(v2, p) === keymapNameToStored(r.key, p);
-      });
-      expect(hit, `${r.source} ${r.key} → ${LATENT_FIELD[r.latent!]}`).toBe(true);
-    }
+  it("removes D267 and leaves no latent rows", () => {
+    expect(latentRows).toEqual([]);
+    expect(EDITOR_OWNED_CHORDS.filter((r) => r.disposition.kind === "removeInM1b" && r.disposition.id === "D267").map((r) => r.key)).toEqual(["Shift-Mod-k"]);
   });
 });

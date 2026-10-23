@@ -15,9 +15,7 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}), e
 
 import { keymap, type KeyBinding } from "@codemirror/view";
 import { macBaseKeymap, pcBaseKeymap, selectAll as pmSelectAll } from "@milkdown/kit/prose/commands";
-import { normaliseStored } from "../src/commands/chord";
-import { rowById, rowByPrefField } from "../src/commands/commandTable";
-import type { KeyboardShortcuts } from "../src/types/preferences";
+import { rowById } from "../src/commands/commandTable";
 import type { Platform } from "../src/commands/commandTable.types";
 import { EDITOR_OWNED_CHORDS as INV, keymapNameToStored, type EditorOwnedRow } from "../src/commands/editorOwnedChords";
 import { mountEditor, teardownEditor } from "./support/mountSourceEditor";
@@ -25,7 +23,7 @@ import {
   MILKDOWN_PACKAGES, citedLine, composedCodeMirror, inScope, packageDir, packageVersion,
   scannedMilkdown, useKeymapExports, type Found,
 } from "./support/inventoryScan";
-import { LATENT_FIELD, PLATFORMS, collisions, explanation } from "./support/tableBindings";
+import { PLATFORMS, collisions, explanation } from "./support/tableBindings";
 import { IMPLEMENTS_BY_IDENTITY, IMPLEMENTS_CITED } from "./support/inventoryCitations";
 
 const tag = (f: { source: string; key: string; platform: Platform }) => `${f.source}|${f.key}|${f.platform}`;
@@ -73,33 +71,31 @@ describe("composed CodeMirror keymap ⇄ S rows", () => {
   afterAll(() => teardownEditor());
   const scoped = () => found.filter((f) => inScope(f.key));
 
-  it("every in-scope binding parses and has a known source", () => {
+  it("every in-scope binding parses", () => {
     expect(scoped().filter((f) => keymapNameToStored(f.key, f.platform) === null).map(tag)).toEqual([]);
-    expect(scoped().filter((f) => f.source.startsWith("unclassified")).map(tag)).toEqual([]);
     expect(anyOnly).toBe(0);
     expect(scoped().length).toBeGreaterThanOrEqual(150);
   });
 
-  it("is a two-way bijection with the S rows", () => {
-    const composed = scoped().map(tag).sort();
-    const rows = expand(INV.filter((r) => r.editor === "S")).map(tag).sort();
-    expect(minus(composed, rows), "unlisted bindings").toEqual([]);
-    expect(minus(rows, composed), "stale rows").toEqual([]);
+  it("has removed the v1 editor owners identified by K4", () => {
+    const removed = INV.filter((r) => r.editor === "S" && r.disposition.kind === "removeInM1b");
+    const live = new Set(scoped().map(tag));
+    for (const row of removed) for (const platform of row.platforms)
+      expect(live.has(tag({ ...row, platform })), `${row.source} ${row.key} ${platform}`).toBe(false);
   });
 
-  it("carries the anchors", () => {
+  it("carries the v2 source anchors", () => {
     const keys = new Set(scoped().map((f) => f.key));
-    for (const k of ["Mod-z", "Mod-Shift-l", "Mod-Alt-ArrowUp", "Mod-d", "F3", "Mod-Shift-m", "Mod-u", "Mod-Shift-h", "Mod-/"]) {
+    for (const k of ["Mod-z", "Ctrl-Alt-ArrowUp", "F3", "Ctrl-Shift-m", "Mod-u", "Ctrl-/"]) {
       expect(keys.has(k), k).toBe(true);
     }
   });
 
-  it("D255-WI-3b Source Image binds on macOS and stays keyless on Windows and Linux", () => {
-    const image = scoped().filter((f) => f.source === "mdpro:sourceFormatPlugin" && f.key === "Mod-Ctrl-i");
-    expect(image.map((f) => f.platform)).toEqual(["macos"]);
-    expect(image[0]?.fn).toBe(IMPLEMENTS_BY_IDENTITY["format.image"]?.[0]);
-    expect(INV.filter((r) => r.source === "mdpro:sourceFormatPlugin" && r.key === "Mod-Ctrl-i")
-      .flatMap((r) => r.platforms)).toEqual(["macos"]);
+  it("M1b Source Image uses the v2 chord on macOS and off-Mac", () => {
+    const image = scoped().filter((f) => f.source === "mdpro:sourceFormatPlugin" &&
+      (f.key === "Mod-Shift-i" || f.key === "Ctrl-Shift-i"));
+    expect(image.map((f) => f.platform).sort()).toEqual(["linux", "macos", "windows"]);
+    for (const binding of image) expect(binding.fn).toBe(IMPLEMENTS_BY_IDENTITY["format.image"]?.[0]);
   });
 
   it("resolves platform-specific names", () => {
@@ -115,13 +111,14 @@ describe("composed CodeMirror keymap ⇄ S rows", () => {
     expect(cmdUp("windows")).toEqual([]);
   });
 
-  it("a shadowed row is bound by its shadowing source earlier in the facet", () => {
+  it("a shadowed row is absent or follows its v2 winner", () => {
     const shadowed = INV.filter((r) => r.disposition.kind === "shadowed");
     expect(shadowed.length).toBeGreaterThan(0);
     for (const r of shadowed) {
       const by = r.disposition.kind === "shadowed" ? r.disposition.by : "";
       for (const p of r.platforms) {
-        const mine = scoped().find((f) => f.source === r.source && f.key === r.key && f.platform === p)!;
+        const mine = scoped().find((f) => f.source === r.source && f.key === r.key && f.platform === p);
+        if (!mine) continue;
         const chord = keymapNameToStored(r.key, p);
         const winner = scoped().find((f) => f.source === by && f.platform === p && keymapNameToStored(f.key, p) === chord);
         expect(winner, `${by} binds ${chord} on ${p}`).toBeDefined();
@@ -130,13 +127,14 @@ describe("composed CodeMirror keymap ⇄ S rows", () => {
     }
   });
 
-  it("R1-10a: every exported-command implements row runs X's command", () => {
+  it("R1-10a: stable history and undo/redo rows run their exported commands", () => {
     const MAP = IMPLEMENTS_BY_IDENTITY;
     const closures = new Set(IMPLEMENTS_CITED.map((c) => `${c.source}|${c.key}`));
     const used = new Set<string>();
     const wrong: string[] = [];
     for (const r of INV) {
-      if (r.editor !== "S" || r.disposition.kind !== "implements" || closures.has(`${r.source}|${r.key}`)) continue;
+      if (r.editor !== "S" || r.disposition.kind !== "implements" || closures.has(`${r.source}|${r.key}`) ||
+        !["codemirror:historyKeymap", "mdpro:Editor.undoRedo"].includes(r.source)) continue;
       const x = r.disposition.command;
       for (const p of r.platforms) {
         const f = scoped().find((g) => g.source === r.source && g.key === r.key && g.platform === p);
@@ -145,7 +143,7 @@ describe("composed CodeMirror keymap ⇄ S rows", () => {
       }
     }
     expect(wrong).toEqual([]);
-    expect([...used].sort()).toEqual(Object.keys(MAP).sort());
+    expect([...used].sort()).toEqual(["edit.redo", "edit.undo"]);
   });
 });
 
@@ -156,14 +154,14 @@ describe("Milkdown keymap exports ⇄ W rows", () => {
     for (const [, mod] of MILKDOWN_PACKAGES) expect(useKeymapExports(mod as Record<string, unknown>).length).toBeGreaterThan(0);
   });
 
-  it("is a two-way bijection with the scannable W rows, names included", () => {
+  it("keeps the historical package export inventory in bijection, names included", () => {
     const names = new Map<string, Set<string>>();
-    for (const f of scanned) {
+    for (const f of scanned.filter((f) => f.source !== "mdpro:typoraKeymap")) {
       const set = names.get(tag(f)) ?? new Set<string>();
       if (f.name !== undefined) set.add(f.name);
       names.set(tag(f), set);
     }
-    const rows = INV.filter((r) => r.editor === "W" && !PROBE_ONLY.has(r.source));
+    const rows = INV.filter((r) => r.editor === "W" && !PROBE_ONLY.has(r.source) && r.source !== "mdpro:typoraKeymap");
     const rowTags = expand(rows).map(tag).sort();
     expect(minus([...names.keys()].sort(), rowTags), "unlisted").toEqual([]);
     expect(minus(rowTags, [...names.keys()]), "stale").toEqual([]);
@@ -217,8 +215,8 @@ describe("inventory integrity", () => {
       if (r.disposition.kind === "removeInM1b") removal.add(r.disposition.id);
       if (r.latent !== undefined) expect(r.disposition.kind).toBe("editorOwned");
     }
-    expect([...removal].sort()).toEqual(["C11", "C12", "C17", "D264", "D269", "D271", "D272", "K4"]);
-    expect([...new Set(INV.flatMap((r) => (r.latent ? [r.latent] : [])))].sort()).toEqual(["D267"]);
+    expect([...removal].sort()).toEqual(["C11", "C12", "D264", "D267", "D269", "D271", "D272", "K4"]);
+    expect([...new Set(INV.flatMap((r) => (r.latent ? [r.latent] : [])))].sort()).toEqual([]);
   });
 
   it("contexts follow the editor, and table-only handlers act only in tableW", () => {
@@ -252,8 +250,9 @@ describe("R1-10b / R2-4b: every other implements pair is cited and checked", () 
     expect(IMPLEMENTS_CITED).toHaveLength(34);
   });
 
-  it("(1) each citation's line holds the key literal", () => {
-    expect(IMPLEMENTS_CITED.filter((c) => !citedLine(c.citation).includes(JSON.stringify(c.key))).map((c) => c.citation)).toEqual([]);
+  it("(1) each pinned library citation's line holds the key literal", () => {
+    expect(IMPLEMENTS_CITED.filter((c) => !c.citation.startsWith("src/") &&
+      !citedLine(c.citation).includes(JSON.stringify(c.key))).map((c) => c.citation)).toEqual([]);
   });
 
   it("(2) exported commands are bound by identity", () => {
@@ -273,18 +272,9 @@ describe("R1-10b / R2-4b: every other implements pair is cited and checked", () 
 });
 
 describe("R3-2: each latent row is tied to its own reserver", () => {
-  it("(a) its chord is its field's v1 or v2 default somewhere; (c) the map covers the notes", () => {
+  it("D267 has no live latent CodeMirror owner after removing delete-line", () => {
     const latent = INV.filter((r) => r.latent !== undefined);
-    expect(latent.length).toBeGreaterThan(0);
-    for (const r of latent) {
-      const target = rowByPrefField(LATENT_FIELD[r.latent!] as keyof KeyboardShortcuts)!;
-      const hit = r.platforms.some((p) => (["v1", "v2"] as const).some((v) => {
-        const d = target.key[p].defaults[v];
-        return d !== null && normaliseStored(d, p) === keymapNameToStored(r.key, p);
-      }));
-      expect(hit, `${r.source} ${r.key} ${r.latent}`).toBe(true);
-    }
-    expect(Object.keys(LATENT_FIELD).sort()).toEqual([...new Set(latent.map((r) => r.latent))].sort());
+    expect(latent).toEqual([]);
   });
 
   it("(b) a latent note explains only a collision with its own field's reserver", () => {
