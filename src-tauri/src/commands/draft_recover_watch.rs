@@ -6,10 +6,10 @@
 //! plain `watch`: the editor holds the draft, not the disk bytes, so the
 //! baseline is a fresh snapshot of the disk (ADR-0068 decision 4).
 //!
-//! Pipeline: `recover_draft` (command) → [`recover_draft_watched_with`] →
+//! Pipeline: `recover_draft` (command) → [`recover_draft_watched_locked_with`] →
 //! `recover_draft_logged_with` (gate → `DRAFT_LOCK` → recovery) → on `Ok`
 //! with a path: `validate_file_path` + absolute check → `reserve_hold` for
-//! the caller's window → `FileWatcher::watch` → `confirm_hold`, whose gen
+//! the caller's window under the Save As/open lock → `FileWatcher::watch` → `confirm_hold`, whose gen
 //! goes back as `RecoverResult.hold_gen` (D173).
 //!
 //! Key decisions:
@@ -54,6 +54,7 @@ const WATCH_REGISTER_EVENT: &str = "file.watch.register";
 /// `open_file` would accept and is absolute, held for `caller`'s window.
 /// Returns the recover result with `hold_gen` set (0 when no hold was
 /// taken); the watch never turns a successful recover into an error.
+#[cfg(test)]
 pub(crate) fn recover_draft_watched_with(
     gate: &DraftGate,
     document_id: &str,
@@ -63,6 +64,23 @@ pub(crate) fn recover_draft_watched_with(
 ) -> Result<RecoverResult, DraftError> {
     let mut result = recover_draft_logged_with(gate, document_id, caller, make_ctx)?;
     if let Some(path) = result.original_path.as_deref() {
+        result.hold_gen = watch_recovered(path, &caller.window_label, watcher);
+    }
+    Ok(result)
+}
+
+/// Production recovery keeps draft I/O outside the Save As/open transition lock.
+/// Only the hold reservation, watch and confirmation share that transaction.
+pub(crate) async fn recover_draft_watched_locked_with(
+    gate: &DraftGate,
+    document_id: &str,
+    caller: &DraftOwner,
+    make_ctx: impl FnOnce() -> LiveContext,
+    watcher: &FileWatcher,
+) -> Result<RecoverResult, DraftError> {
+    let mut result = recover_draft_logged_with(gate, document_id, caller, make_ctx)?;
+    if let Some(path) = result.original_path.as_deref() {
+        let _guard = super::save_as_open_lock::lock().await;
         result.hold_gen = watch_recovered(path, &caller.window_label, watcher);
     }
     Ok(result)

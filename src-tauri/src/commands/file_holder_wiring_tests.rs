@@ -9,6 +9,7 @@ use crate::services::file_watcher::kinds_fixture::{code_lines, fn_slice};
 const FILE_SRC: &str = include_str!("file.rs");
 const RECOVER_SRC: &str = include_str!("draft_recover_watch.rs");
 const SAVE_AS_SRC: &str = include_str!("save_as_watch.rs");
+const TRANSACTION_SRC: &str = include_str!("save_as_transaction.rs");
 const MOD_SRC: &str = include_str!("mod.rs");
 const MAIN_SRC: &str = include_str!("../main.rs");
 
@@ -64,14 +65,16 @@ fn d173_wi1_w2_save_as_reserves_confirms_or_releases() {
         body.contains("window: Window"),
         "{anchor}: the window is used, not `_window`:\n{body}"
     );
-    assert_reserve_register_confirm(&body, anchor, "save_as_watched_with(");
+    assert!(body.contains("save_as_post_picker("));
+    let transaction = code_of(TRANSACTION_SRC, "pub(crate) async fn save_as_post_picker(");
+    assert_reserve_register_confirm(&transaction, anchor, "save_as_watched_with(");
     let refused = at(&body, "refused_save_as(", anchor);
-    let reserve = at(&body, "reserve_hold(", anchor);
-    assert!(refused < reserve, "a refused Save As reserves nothing:\n{body}");
-    let release = at(&body, "release_hold(", anchor);
+    let call = at(&body, "save_as_post_picker(", anchor);
+    assert!(refused < call, "a refused Save As reserves nothing:\n{body}");
+    let release = at(&transaction, "release_hold(", anchor);
     assert!(
-        release > at(&body, "save_as_watched_with(", anchor),
-        "a failed Save As releases its reservation:\n{body}"
+        release > at(&transaction, "save_as_watched_with(", anchor),
+        "a failed Save As releases its reservation:\n{transaction}"
     );
 }
 

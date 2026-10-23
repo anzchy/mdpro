@@ -10,7 +10,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
   invoke: async (cmd: string, args: Record<string, unknown> = {}) => {
     calls.push({ cmd, args });
     if (cmd === "save_file_dialog") {
-      if (responses.dialog instanceof Error || (responses.dialog && typeof responses.dialog === "object" && ("ExternalChangeConflict" in responses.dialog || "AlreadyOpen" in responses.dialog))) throw responses.dialog;
+      if (responses.dialog instanceof Error || (responses.dialog && typeof responses.dialog === "object" && ("ExternalChangeConflict" in responses.dialog || "AlreadyOpen" in responses.dialog || "FileTooLarge" in responses.dialog || "InvalidPath" in responses.dialog))) throw responses.dialog;
       return responses.dialog;
     }
     return null;
@@ -84,6 +84,18 @@ describe("D255 Save As", () => {
       showToast: (message) => toasts.push(message),
     });
     expect(toasts[0]).toMatch(/already open in mdpro/i);
+    expect(byId()).toMatchObject({ path: oldPath, content: "编辑\r\n", isModified: true });
+  });
+
+  it("surfaces a typed oversize snapshot error and keeps the old dirty binding", async () => {
+    responses.dialog = { FileTooLarge: { path: oldPath, size: 10 * 1024 * 1024 + 1 } };
+    const toasts: string[] = [];
+    await performSave("oversize-snapshot", {
+      saveActiveDocument: saveActiveDocumentAs,
+      updateRecentFiles: () => {},
+      showToast: (message) => toasts.push(message),
+    });
+    expect(toasts[0]).toMatch(/Save failed:.*too large/i);
     expect(byId()).toMatchObject({ path: oldPath, content: "编辑\r\n", isModified: true });
   });
 

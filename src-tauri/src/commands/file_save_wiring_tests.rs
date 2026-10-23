@@ -14,6 +14,7 @@ use crate::services::file_watcher::kinds_fixture::{code_lines, fn_slice};
 
 const FILE_SRC: &str = include_str!("file.rs");
 const SAVE_AS_SRC: &str = include_str!("save_as_watch.rs");
+const TRANSACTION_SRC: &str = include_str!("save_as_transaction.rs");
 
 fn code_of(anchor: &str) -> String {
     code_in(FILE_SRC, anchor)
@@ -160,7 +161,10 @@ fn s9_save_file_passes_the_managed_watchers_store() {
 #[test]
 fn s9_save_file_dialog_passes_the_managed_watchers_store() {
     let dialog = "pub async fn save_file_dialog(";
-    assert_passes_managed(FILE_SRC, dialog, "save_as_watched_with(", "&watcher");
+    let body = code_in(FILE_SRC, dialog);
+    assert!(body.contains("save_as_post_picker(") && body.contains("watcher: &watcher"));
+    let transaction = code_in(TRANSACTION_SRC, "pub(crate) async fn save_as_post_picker(");
+    assert!(transaction.contains("save_as_watched_with(") && transaction.contains("watcher,"));
     let seam = "pub(crate) async fn save_as_watched_with(";
     assert_passes_managed(
         SAVE_AS_SRC,

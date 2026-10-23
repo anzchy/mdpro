@@ -3,12 +3,10 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
-use tauri::{State, Window};
+use tauri::{Manager, State, Window};
 
-use super::save_as_watch::{
-    log_fenced_save_as, original_bytes_before_dialog, refuse_open_target,
-    refuse_original_changed_during_dialog, refused_save_as, save_as_watched_with,
-};
+use super::save_as_transaction::{save_as_post_picker, SaveAsTransaction};
+use super::save_as_watch::{original_bytes_before_dialog, refused_save_as};
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{
     draft::delete_draft as delete_draft_service,
@@ -107,7 +105,7 @@ pub enum FileError {
     AlreadyOpen { path: String },
 }
 
-fn to_file_error(error: std::io::Error, path: &str) -> FileError {
+pub(crate) fn to_file_error(error: std::io::Error, path: &str) -> FileError {
     use std::io::ErrorKind;
 
     match error.kind() {
@@ -1381,6 +1379,7 @@ pub async fn open_file(
             Some(file_error_message(err)),
         );
     })?;
+    let _open_guard = super::save_as_open_lock::lock().await;
     let raw = PathBuf::from(&path);
     if let Some(hold) = watcher.reserve_hold(window.label(), &raw) {
         result.changed_since_read = watcher.watch_seeded(&raw, seed).changed();
@@ -1463,6 +1462,7 @@ pub async fn open_file_dialog(
             Some(file_error_message(err)),
         );
     })?;
+    let _open_guard = super::save_as_open_lock::lock().await;
     let raw = PathBuf::from(&path_string);
     if let Some(hold) = watcher.reserve_hold(window.label(), &raw) {
         result.changed_since_read = watcher.watch_seeded(&raw, seed).changed();
@@ -1708,10 +1708,12 @@ pub(crate) async fn save_file_written(
 /// Show the Save As dialog and save to the path picked. The save and the
 /// watch registration of that path (seeded from the bytes written, only on
 /// a successful save) run in `save_as_watch::save_as_watched_with` (D69). A
-/// cancelled dialog logs a `file.save` cancel and touches nothing.
+/// cancelled dialog logs a `file.save_as` cancel and touches nothing.
 /// `refuse_path` (D111-WI-1) is the document's own path, sent only while it
 /// has an unresolved external change: a pick of that path writes nothing and
 /// returns `blocked_by_pending_change` (`save_as_watch::refused_save_as`).
+/// D255: `save_as_post_picker` holds the process-wide open/save lock across
+/// target checks, reservation, write and confirmation.
 /// D173: a save that is not refused reserves this window's hold on the
 /// picked path first, confirms it after the register (reply `hold_gen`),
 /// then tells the target's other holders (`notice_saved`, WI-2). A failed
@@ -1734,6 +1736,15 @@ pub async fn save_file_dialog(
     shadow: State<'_, SharedShadowStore>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    log_file_event(
+        "file.save_as",
+        LogStatus::Start,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({ "source": "dialog" }),
+        None,
+        None,
+    );
     // The frontend's hint cannot grant an own-path overwrite exception. Only
     // this window's registered document may name the original path.
     let registered_path = shadow
@@ -1746,7 +1757,19 @@ pub async fn save_file_dialog(
         .and_then(|state| state.documents.iter().find(|doc| doc.id == document_id))
         .and_then(|doc| doc.path.clone());
     let original_path = original_path.filter(|path| registered_path.as_deref() == Some(path));
-    let original_bytes = original_bytes_before_dialog(original_path.as_deref());
+    let original_bytes = original_bytes_before_dialog(original_path.as_deref())
+        .into_result()
+        .inspect_err(|_error| {
+            log_file_event(
+                "file.save_as",
+                LogStatus::Fail,
+                LogLevel::Warn,
+                Some(&action_id),
+                json!({ "source": "dialog", "reason": "original_snapshot_refused" }),
+                None,
+                Some("original snapshot refused".into()),
+            )
+        })?;
     let mut dialog = rfd::FileDialog::new().add_filter("Markdown", &["md", "markdown"]);
     if let Some(name) = suggested_name {
         dialog = dialog.set_file_name(&name);
@@ -1754,7 +1777,7 @@ pub async fn save_file_dialog(
 
     let Some(path) = dialog.save_file() else {
         log_file_event(
-            "file.save",
+            "file.save_as",
             LogStatus::Cancel,
             LogLevel::Warn,
             Some(&action_id),
@@ -1766,15 +1789,6 @@ pub async fn save_file_dialog(
     };
 
     let picked = path.to_string_lossy().to_string();
-    log_file_event(
-        "file.save_as",
-        LogStatus::Start,
-        LogLevel::Info,
-        Some(&action_id),
-        json!({ "source": "dialog" }),
-        None,
-        None,
-    );
     if let Some(blocked) = refused_save_as(&picked, refuse_path.as_deref(), Some(&action_id)) {
         log_file_event(
             "file.save_as",
@@ -1787,58 +1801,25 @@ pub async fn save_file_dialog(
         );
         return Ok(Some(blocked));
     }
-    refuse_original_changed_during_dialog(
-        &picked,
-        original_path.as_deref(),
-        original_bytes.as_deref(),
-        Some(&action_id),
-    )?;
-    refuse_open_target(
-        &picked,
-        original_path.as_deref(),
-        Some(&action_id),
-        &watcher,
-    )?;
-    let raw = PathBuf::from(&picked);
-    let Some(hold) = watcher
-        .reserve_hold(window.label(), &raw)
-        .map(|r| r.without_reconcile())
-    else {
-        log_fenced_save_as(Some(&action_id));
-        return Ok(None);
-    };
-    let saved = save_as_watched_with(
-        document_id.clone(),
-        content,
-        picked,
-        encoding,
-        line_ending,
-        Some(action_id.clone()),
-        &watcher,
+    let live_labels = window.app_handle().webview_windows().into_keys().collect();
+    save_as_post_picker(
+        SaveAsTransaction {
+            label: window.label(),
+            document_id,
+            content,
+            picked,
+            original_path: original_path.as_deref(),
+            original_bytes: original_bytes.as_deref(),
+            encoding,
+            line_ending,
+            action_id: &action_id,
+            watcher: &watcher,
+            shadow: &shadow,
+            live_labels: &live_labels,
+        },
+        || {},
     )
-    .await;
-    match saved {
-        Ok(mut result) => {
-            if watcher.confirm_hold(&hold) {
-                result.hold_gen = hold.gen;
-            }
-            if let Some(written_to) = &result.written_to {
-                watcher.notice_saved(
-                    &SaveOrigin::new(window.label(), &document_id),
-                    &result.path,
-                    written_to,
-                    Some(&action_id),
-                );
-            }
-            Ok(Some(result))
-        }
-        Err(err) => {
-            if !watcher.restore_hold(&hold) {
-                watcher.release_hold(window.label(), &raw, hold.gen);
-            }
-            Err(err)
-        }
-    }
+    .await
 }
 
 /// Delete the draft for `document_id` and return the close result.

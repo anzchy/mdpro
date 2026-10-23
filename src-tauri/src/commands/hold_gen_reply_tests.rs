@@ -10,6 +10,7 @@ use crate::services::file_watcher::kinds_fixture::{code_lines, fn_slice};
 use serde_json::json;
 
 const FILE_SRC: &str = include_str!("file.rs");
+const TRANSACTION_SRC: &str = include_str!("save_as_transaction.rs");
 const RECOVER_SRC: &str = include_str!("draft_recover_watch.rs");
 
 fn code_of(src: &str, anchor: &str) -> String {
@@ -76,13 +77,14 @@ fn assert_set_after_confirm(body: &str, anchor: &str) {
 
 #[test]
 fn d173_wi1_w7_acquisitions_set_hold_gen_from_the_confirmed_reservation() {
-    for anchor in [
-        "pub async fn open_file(",
-        "pub async fn open_file_dialog(",
-        "pub async fn save_file_dialog(",
-    ] {
+    for anchor in ["pub async fn open_file(", "pub async fn open_file_dialog("] {
         assert_set_after_confirm(&code_of(FILE_SRC, anchor), anchor);
     }
+    assert!(code_of(FILE_SRC, "pub async fn save_file_dialog(").contains("save_as_post_picker("));
+    assert_set_after_confirm(
+        &code_of(TRANSACTION_SRC, "pub(crate) async fn save_as_post_picker("),
+        "save_as_post_picker",
+    );
     let watch = code_of(RECOVER_SRC, "fn watch_recovered(");
     let confirm = watch
         .find("confirm_hold(")

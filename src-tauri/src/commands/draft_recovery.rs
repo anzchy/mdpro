@@ -37,7 +37,7 @@
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 
-use super::draft_recover_watch::recover_draft_watched_with;
+use super::draft_recover_watch::recover_draft_watched_locked_with;
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::draft::{
@@ -266,7 +266,8 @@ pub async fn recover_draft(
         window_label: window.label().to_string(),
     };
     let make_ctx = || live_context(window.app_handle());
-    recover_draft_watched_with(&QUIT_COMMITTED, &document_id, &caller, make_ctx, &watcher)
+    recover_draft_watched_locked_with(&QUIT_COMMITTED, &document_id, &caller, make_ctx, &watcher)
+        .await
 }
 
 #[tauri::command]

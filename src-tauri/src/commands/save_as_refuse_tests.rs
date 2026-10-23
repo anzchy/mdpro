@@ -114,7 +114,7 @@ async fn d111_wi1_e_a_deleted_own_file_is_refused_by_its_string() {
 
 /// The command runs the same refusal: `save_file_dialog` asks
 /// `refused_save_as` with its `refuse_path` before its one
-/// `save_as_watched_with` call, and returns the refused reply.
+/// `save_as_post_picker` call, and returns the refused reply.
 #[test]
 fn d111_wi1_f_save_file_dialog_refuses_before_it_saves() {
     use crate::services::file_watcher::kinds_fixture::{code_lines, fn_slice};
@@ -126,7 +126,9 @@ fn d111_wi1_f_save_file_dialog_refuses_before_it_saves() {
     let refuse = body
         .find("refused_save_as(")
         .unwrap_or_else(|| panic!("no refusal:\n{body}"));
-    let save = body.find("save_as_watched_with(").expect("the save");
+    let save = body
+        .find("save_as_post_picker(")
+        .expect("the save transaction");
     assert!(refuse < save, "refusal before the save:\n{body}");
     assert!(
         body[refuse..save].contains("refuse_path.as_deref()"),

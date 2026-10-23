@@ -6,12 +6,13 @@
 //!   through its one `save_file_with(` (s9 unchanged), and only on `Ok`
 //!   calls `notice_saved` with the window's label and the target the save
 //!   resolved; it never re-canonicalises and never fails on the notice.
-//! - w2: `save_file_dialog` notices in its `Ok` arm, after `confirm_hold`,
-//!   never in the `Err` arm that releases the hold.
+//! - w2: `save_file_dialog` delegates to `save_as_post_picker`, which notices
+//!   in its `Ok` arm, after `confirm_hold`, never in the `Err` release arm.
 //! Pure source text, so ungated.
 use crate::services::file_watcher::kinds_fixture::{code_lines, fn_slice};
 
 const FILE_SRC: &str = include_str!("file.rs");
+const TRANSACTION_SRC: &str = include_str!("save_as_transaction.rs");
 
 fn code_of(anchor: &str) -> String {
     code_lines(fn_slice(FILE_SRC, anchor))
@@ -85,7 +86,13 @@ fn d173_wi2_w1_save_file_notices_only_after_ok_with_the_written_target() {
 #[test]
 fn d173_wi2_w2_save_as_notices_in_the_ok_arm_after_confirm() {
     let anchor = "pub async fn save_file_dialog(";
-    let body = code_of(anchor);
+    assert!(code_of(anchor).contains("save_as_post_picker("));
+    let body = code_lines(fn_slice(
+        TRANSACTION_SRC,
+        "pub(crate) async fn save_as_post_picker(",
+    ))
+    .collect::<Vec<_>>()
+    .join("\n");
     assert!(body.lines().count() > 3, "non-vacuity:\n{body}");
     assert_eq!(body.matches("notice_saved(").count(), 1, "{body}");
     let confirm = at(&body, "confirm_hold(", anchor);

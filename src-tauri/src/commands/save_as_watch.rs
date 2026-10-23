@@ -5,7 +5,8 @@
 //!
 //! Pipeline: `save_file_dialog` (dialog only) → [`refused_save_as`] for
 //! pending external change on the original path → [`refuse_open_target`]
-//! for an already-open other target or an original-path disk conflict →
+//! in `save_as_post_picker` for an already-open other target or an original-path disk conflict, then
+//! [`refuse_live_open_target`] for live document paths →
 //! [`save_as_watched_with`] → `save_file_written` (the whole
 //! `save_file` body; returns the encoded bytes it wrote) → on `Ok`:
 //! `seed_for_written(path, written)` → `FileWatcher::watch_seeded(path,
@@ -43,8 +44,8 @@
 //! - `file.save_as` logs Start and Success/Fail, with enum-only refusal reasons.
 //!
 //! @coordinates-with commands/file.rs — `save_file_dialog` calls
-//!   `refused_save_as`, then this seam; `save_file_written` is the save body
-//!   it runs
+//!   `refused_save_as`, then `save_as_post_picker`, which calls this seam;
+//!   `save_file_written` is the save body it runs
 //! @coordinates-with services/file_watcher_seed.rs — `watch_seeded` and its
 //!   `SeedCheck`
 //! @coordinates-with services/file_watcher_baseline_seed.rs — `seed_for_written`
@@ -69,7 +70,8 @@ use serde_json::json;
 #[path = "save_as_target.rs"]
 mod target;
 pub(crate) use target::{
-    original_bytes_before_dialog, refuse_open_target, refuse_original_changed_during_dialog,
+    original_bytes_before_dialog, refuse_live_open_target, refuse_open_target,
+    refuse_original_changed_during_dialog,
 };
 
 /// Save `content` to `path` (the path the Save As dialog returned) exactly
@@ -136,9 +138,8 @@ pub(crate) use checked_seam::save_as_checked_with;
 /// window `label`: reserve the hold on `picked` (a fenced window returns
 /// `None` before saving, audit M2), save through [`save_as_watched_with`],
 /// then confirm and notice on `Ok`, or on `Err` put back the hold the window
-/// had (audit M1) else release the reservation. `save_file_dialog` runs the
-/// same steps inline (the D69 and D173-WI-1 wiring pin them there), so this
-/// composition is test-only; save_as_hold_wiring_tests.rs keeps them in step.
+/// had (audit M1) else release the reservation. Production runs these steps
+/// in `save_as_post_picker`; this older composition remains a D173 regression seam.
 #[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn save_as_held_with(
