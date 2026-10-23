@@ -54,7 +54,7 @@ pub use owner::{
     in_use, owner_is_live, session_id, InUseReason, LiveContext, OpenSet, ShadowUnavailable,
 };
 pub(crate) use paths::is_valid_draft_id;
-pub use protection::{delete_draft, delete_draft_with_token};
+pub use protection::{delete_draft, delete_draft_owned, delete_draft_with_token};
 use protection::{
     delete_draft_locked, preserve_if_protected_locked, preserve_legacy_if_present_locked,
     validate_claim_token,
@@ -178,7 +178,7 @@ pub fn save_draft_as_with_token(
     let _draft_lock = lock::draft_lock();
     let now = Utc::now();
     let dest = bundle_path(document_id)?;
-    preserve_if_protected_locked(document_id, token)?;
+    preserve_if_protected_locked(document_id, token, owner.as_ref())?;
     preserve_legacy_if_present_locked(document_id)?;
 
     let bundle = DraftBundle {
@@ -321,6 +321,9 @@ mod d299_claim_tests;
 #[cfg(test)]
 #[path = "d299_protection_tests.rs"]
 mod d299_protection_tests;
+#[cfg(test)]
+#[path = "d305_owned_delete_tests.rs"]
+mod d305_owned_delete_tests;
 #[cfg(test)]
 #[path = "draft_store_tests.rs"]
 mod draft_store_tests;

@@ -54,6 +54,7 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool {
         draft::save_draft,
         draft::get_draft,
         draft::delete_draft,
+        draft::delete_discarded_draft,
         draft_recovery::list_drafts,
         draft_recovery::recover_draft,
         draft_recovery::discard_recovery_draft,

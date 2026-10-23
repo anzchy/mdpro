@@ -3,12 +3,15 @@
 use super::*;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 use crate::services::logger;
+use std::sync::MutexGuard;
 
-/// Preserve a previous-session or unconsumed-claim bundle before an ordinary write/delete.
+/// Preserve a previous-session, foreign-window, or unconsumed-claim bundle
+/// before an ordinary write/delete.
 /// Caller holds DRAFT_LOCK. The source remains intact if writing the moved copy fails.
 pub(super) fn preserve_if_protected_locked(
     document_id: &str,
     token: Option<&DraftClaimToken>,
+    incoming_owner: Option<&DraftOwner>,
 ) -> Result<bool, DraftError> {
     let path = bundle_path(document_id)?;
     if !path.exists() {
@@ -25,11 +28,9 @@ pub(super) fn preserve_if_protected_locked(
     }
     // A late same-id placement must preserve a newer Own bundle before writing.
     let stale_same_id = token.is_some_and(|t| t.source_id == document_id);
-    let own = bundle
-        .owner
-        .as_ref()
-        .is_some_and(|o| o.session_id == session_id())
-        && bundle.claim.is_none()
+    let own = bundle.owner.as_ref().is_some_and(|o| {
+        o.session_id == session_id() && incoming_owner.is_none_or(|incoming| incoming == o)
+    }) && bundle.claim.is_none()
         && !stale_same_id;
     if own {
         return Ok(false);
@@ -135,6 +136,63 @@ pub fn delete_draft(document_id: &str) -> Result<bool, DraftError> {
     delete_draft_with_token(document_id, None)
 }
 
+/// Delete only an unclaimed draft currently owned by this session and window.
+/// Foreign-window and old-session bundles, including unmerged Recovery drafts,
+/// remain byte-for-byte intact.
+/// The ownership read and removal share DRAFT_LOCK, including while another
+/// window writes the same ID.
+pub fn delete_draft_owned(document_id: &str, window_label: &str) -> Result<bool, DraftError> {
+    delete_draft_owned_inner(document_id, window_label, lock::draft_lock, || {})
+}
+
+#[cfg(test)]
+pub(super) fn delete_draft_owned_with_read_hook(
+    document_id: &str,
+    window_label: &str,
+    acquire_lock: impl FnOnce() -> MutexGuard<'static, ()>,
+    before_read: impl FnOnce(),
+) -> Result<bool, DraftError> {
+    delete_draft_owned_inner(document_id, window_label, acquire_lock, before_read)
+}
+
+fn delete_draft_owned_inner(
+    document_id: &str,
+    window_label: &str,
+    acquire_lock: impl FnOnce() -> MutexGuard<'static, ()>,
+    before_read: impl FnOnce(),
+) -> Result<bool, DraftError> {
+    let held = acquire_lock();
+    let path = bundle_path(document_id)?;
+    if !path.exists() {
+        return Ok(false);
+    }
+    before_read();
+    let raw = read_owned_bundle_locked(&path, &held)?;
+    let bundle: DraftBundle = serde_json::from_str(&raw).map_err(|e| DraftError::ParseError {
+        message: e.to_string(),
+    })?;
+    let owned = bundle.owner.as_ref().is_some_and(|owner| {
+        owner.session_id == session_id() && owner.window_label == window_label
+    });
+    if !owned || bundle.claim.is_some() {
+        return Ok(false);
+    }
+    fs::remove_file(path).map_err(|e| DraftError::IoError {
+        message: e.to_string(),
+    })?;
+    Ok(true)
+}
+
+fn read_owned_bundle_locked(
+    path: &std::path::Path,
+    _held: &MutexGuard<'static, ()>,
+) -> Result<String, DraftError> {
+    let raw = fs::read_to_string(&path).map_err(|e| DraftError::IoError {
+        message: e.to_string(),
+    })?;
+    Ok(raw)
+}
+
 pub fn delete_draft_with_token(
     document_id: &str,
     token: Option<&DraftClaimToken>,
@@ -173,7 +231,7 @@ pub(super) fn delete_draft_locked(
             return Ok(false);
         }
     } else if !explicit_discard {
-        deleted = preserve_if_protected_locked(document_id, None)?;
+        deleted = preserve_if_protected_locked(document_id, None, None)?;
         deleted |= preserve_legacy_if_present_locked(document_id)?;
     }
     if path.exists() {

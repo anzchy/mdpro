@@ -79,3 +79,20 @@ async fn get_draft_returns_ok_none_for_missing_draft() {
         "expected Ok(None) for missing draft; got {result:?}"
     );
 }
+
+#[test]
+fn d305_command_rejects_invalid_id_and_uses_trusted_window_label() {
+    let _guard = HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let home = make_temp_home("d305_command_owner");
+    let _home_guard = set_home(&home);
+    let owner = DraftOwner {
+        session_id: session_id().to_string(),
+        window_label: "B".into(),
+    };
+    save_draft_as_with_token(Some(owner), "X", "B bytes", None, "B", None).unwrap();
+    let before = load_draft("X").unwrap().unwrap();
+    assert!(delete_discarded_draft_logged("../X", "A").is_err());
+    assert!(!delete_discarded_draft_logged("X", "A").unwrap());
+    assert_eq!(load_draft("X").unwrap().unwrap().content, before.content);
+    let _ = fs::remove_dir_all(&home);
+}

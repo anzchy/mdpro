@@ -4,7 +4,8 @@
  * and the confirm latch.
  *
  * Pipeline: close request → shared flush/decision → prompt or save → Rust
- * stage for a secondary window → guarded re-entry and final consent check.
+ * stage for a secondary window → drain draft writes → delete only consented
+ * owned drafts → guarded re-entry and final consent check.
  *
  * Key decisions:
  * - Subscribe once; read stores with `getState()` and use `cancelled` to
@@ -26,12 +27,16 @@
  * @coordinates-with src/utils/dataLossGuards.ts — `windowCloseDecisionAfterFlush`
  * @coordinates-with src/hooks/windowCloseAttempt.ts — consent and staging
  * @coordinates-with src/hooks/saveWindowStateOnClose.ts — state-save body
+ * @coordinates-with src/services/draftWriteCoordinator.ts — drain timer writes
+ * @coordinates-with src/services/draftDiscardService.ts — owned draft deletion
  * @coordinates-with src-tauri/src/commands/window_close_order.rs — native stage
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { windowCloseDecisionAfterFlush } from "../utils/dataLossGuards";
 import { useDocumentStore } from "../stores/documentStore";
 import { saveWindowStateOnClose } from "./saveWindowStateOnClose";
+import { suspendAndDrainDrafts, resumeDrafts } from "../services/draftWriteCoordinator";
+import { deleteDiscardedDrafts } from "../services/draftDiscardService";
 import {
   type CloseLatch,
   type DiscardConsent,
@@ -93,6 +98,7 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
   const latchRef = useRef<CloseLatch>(null);
   // What the prompt on screen showed, for its Discard (D253 consent).
   const consentRef = useRef<DiscardConsent | null>(null);
+  useEffect(() => () => resumeDrafts(consentRef.current?.contents.keys() ?? []), []);
   // The active close attempt. A continuation whose generation is stale does nothing.
   const attemptRef = useRef(0);
   const stagePendingRef = useRef<number | null>(null);
@@ -160,6 +166,7 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
           // Prevent close in all other cases until we finish async work.
           event.preventDefault();
           if (decision === "prompt") {
+            if (latch?.kind === "discard") resumeDrafts(latch.consent.contents.keys());
             if (stagePendingRef.current !== null) {
               stagePendingRef.current = null;
               await restoreSecondaryClose(windowLabel);
@@ -234,9 +241,12 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
   const confirmClose = useCallback(async () => {
     const attempt = attemptRef.current;
     const consent = consentRef.current ?? snapshotDiscardConsent();
+    const discardedIds = [...consent.contents.keys()];
     setPendingClose(null);
+    await suspendAndDrainDrafts(discardedIds);
     await saveWindowState();
     if (attempt !== attemptRef.current) {
+      resumeDrafts(discardedIds);
       logCloseRequested("cancel", { windowLabel: appWindowRef.current?.label ?? "unknown", action: "superseded" });
       return; // a cancel or a new request voided this Discard while saving
     }
@@ -251,27 +261,53 @@ export function useWindowCloseGuard({ onCloseCancelled }: WindowCloseGuardOption
         () => pendingCloseRef.current === "window" || stagePendingRef.current === null,
       );
       if (attempt !== attemptRef.current && staged === "ready") {
+        resumeDrafts(discardedIds);
         const shouldRestore = stagePendingRef.current === attempt || pendingCloseRef.current === "window";
         if (stagePendingRef.current === attempt) stagePendingRef.current = null;
         if (shouldRestore) await restoreSecondaryClose(windowLabel);
         return;
       }
       if (staged !== "ready") {
+        resumeDrafts(discardedIds);
         if (stagePendingRef.current === attempt) stagePendingRef.current = null;
         if (staged === "veto" && attempt === attemptRef.current) raisePrompt(windowLabel, "dirty_after_discard");
         return;
       }
     }
+    if (decideLatchedPass({ kind: "discard", consent }) !== "allow") {
+      resumeDrafts(discardedIds);
+      if (windowLabel && windowLabel !== "main" && stagePendingRef.current === attempt) {
+        stagePendingRef.current = null;
+        await restoreSecondaryClose(windowLabel);
+      }
+      if (attempt === attemptRef.current && windowLabel) raisePrompt(windowLabel, "dirty_after_discard");
+      return;
+    }
+    const stillConsented = () => attempt === attemptRef.current
+      && decideLatchedPass({ kind: "discard", consent }) === "allow";
+    const deleted = await deleteDiscardedDrafts(discardedIds, stillConsented);
+    if (!deleted || !stillConsented()) {
+      resumeDrafts(discardedIds);
+      if (attempt === attemptRef.current && windowLabel) {
+        if (windowLabel !== "main" && stagePendingRef.current === attempt) {
+          stagePendingRef.current = null;
+          await restoreSecondaryClose(windowLabel);
+        }
+        if (attempt === attemptRef.current) raisePrompt(windowLabel, "dirty_after_discard");
+      }
+      return;
+    }
     latchRef.current = { kind: "discard", consent };
     try { await appWindowRef.current?.close(); }
     catch {
+      resumeDrafts(discardedIds);
       if (attempt !== attemptRef.current) return;
       setLatch(null);
       if (stagePendingRef.current === attempt) stagePendingRef.current = null;
       if (windowLabel && windowLabel !== "main") await restoreSecondaryClose(windowLabel);
       logCloseRequested("fail", { windowLabel: windowLabel ?? "unknown", action: "close_rejected" });
     }
-  }, [saveWindowState, setPendingClose]);
+  }, [saveWindowState, setPendingClose, raisePrompt]);
 
   const cancelClose = useCallback(() => {
     const wasWindowPrompt = pendingCloseRef.current === "window";

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useDocumentStore } from "../stores/documentStore";
 import { loggingService } from "../services/loggingService";
 import { extractTitle } from "../utils/draftTitle";
+import { draftWritesSuspended, trackDraftWrite } from "../services/draftWriteCoordinator";
 
 export function useAutoSave(autoSaveInterval: number) {
   const activeDocumentId = useDocumentStore((s) => s.activeDocumentId);
@@ -18,6 +19,7 @@ export function useAutoSave(autoSaveInterval: number) {
       if (currentActiveId !== activeDocumentId) return;
       const activeDocument = documents.find((doc) => doc.id === currentActiveId) ?? null;
       if (!activeDocument || !activeDocument.isModified) return;
+      if (draftWritesSuspended(activeDocument.id)) return;
 
       const now = Date.now();
       if (now - lastSaveRef.current < intervalMs - 5000) {
@@ -25,12 +27,12 @@ export function useAutoSave(autoSaveInterval: number) {
       }
 
       try {
-        await invoke("save_draft", {
+        await trackDraftWrite(activeDocument.id, () => invoke("save_draft", {
           documentId: activeDocument.id,
           content: activeDocument.content,
           originalPath: activeDocument.path,
           title: extractTitle(activeDocument.content),
-        });
+        }));
         lastSaveRef.current = now;
       } catch (err) {
         loggingService.logEventSync({
