@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known issues
 
+- On Linux, after upgrading from a version where you set Save to Ctrl+Shift+M, pressing Ctrl+Shift+M highlights the selected text instead of saving, because the native menu still registers that key for Highlight. Use the File menu to save, or set a different Save shortcut in Settings. Tracked as D313; fix planned for 0.3.7.
 - On macOS, closing a secondary window can occasionally make mdpro quit unexpectedly (seen in 2 of 46 closes in device testing at the smallest window width). Unsaved edits that no automatic draft holds are lost. Drafts cover each window's active tab at the interval set in Settings (30 seconds by default), so recent edits, edits in background tabs, and everything unsaved when autosave is off can be lost. Targeted for 0.3.7 (D294).
 
 ### Changed
