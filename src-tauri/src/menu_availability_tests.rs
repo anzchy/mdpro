@@ -136,6 +136,7 @@ fn report(window: &str, mode: &str) -> Option<ModeReport> {
     Some(ModeReport {
         window: window.into(),
         mode: mode.into(),
+        tab_count: None,
     })
 }
 

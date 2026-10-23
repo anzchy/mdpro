@@ -104,8 +104,9 @@ export const fileService = {
     actionId?: string;
     /** D111-WI-1: the document's own path while it has a pending external change. */
     refusePath?: string | null;
+    originalPath?: string | null;
   }): Promise<SaveResult | null> {
-    const { documentId, content, suggestedName, encoding, lineEnding, actionId, refusePath } = options;
+    const { documentId, content, suggestedName, encoding, lineEnding, actionId, refusePath, originalPath } = options;
     const result = await invoke<SaveResult | null>("save_file_dialog", {
       documentId,
       content,
@@ -114,6 +115,15 @@ export const fileService = {
       lineEnding,
       actionId,
       refusePath: refusePath ?? null,
+      originalPath: originalPath ?? null,
+    }).catch((error: unknown) => {
+      if (error && typeof error === "object" && "ExternalChangeConflict" in error) {
+        throw new Error("external change at the selected file; your edits were not saved");
+      }
+      if (error && typeof error === "object" && "AlreadyOpen" in error) {
+        throw new Error("the selected file is already open in mdpro; your edits were not saved");
+      }
+      throw error;
     });
     noteHold(result?.path, result?.holdGen);
     return result;

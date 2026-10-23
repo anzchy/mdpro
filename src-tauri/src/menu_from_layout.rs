@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use tauri::menu::{CheckMenuItem, MenuItem};
 use tauri::{AppHandle, Manager, Wry};
 
-use super::menu_availability::{allows, ViewMode};
+use super::menu_availability::{allows, focused_tab_count, switch_documents_enabled, ViewMode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct MenuItemSpec {
@@ -81,7 +81,17 @@ pub(super) fn specs_for_app(
     let layout = menu_layout()
         .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
     let mode = active_view_mode.and_then(|value| ViewMode::parse(value).ok());
-    Ok(Some(menu_layout_for(layout, applied, mode)))
+    let mut items = menu_layout_for(layout, applied, mode);
+    if let Some(item) = items
+        .iter_mut()
+        .find(|item| item.command_id == "view.switchDocuments")
+    {
+        item.enabled = switch_documents_enabled(focused_tab_count(app));
+        if !item.enabled {
+            item.accelerator = None;
+        }
+    }
+    Ok(Some(items))
 }
 
 pub(super) fn menu_layout_for(
@@ -170,7 +180,8 @@ fn menu_layout_for_with_logger(
                 menu_id: row.menu_id.clone(),
                 path: path.clone(),
                 enabled,
-                accelerator: accelerator.filter(|_| enabled),
+                accelerator: accelerator
+                    .filter(|_| enabled && !(row.id == "view.switchDocuments" && !v2)),
             })
         })
         .collect();

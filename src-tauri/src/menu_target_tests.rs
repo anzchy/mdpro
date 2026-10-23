@@ -82,11 +82,14 @@ const EXPECTED: &[(&str, ActionClass)] = &[
     ("theme.dark", ActionClass::App),
     ("theme.system", ActionClass::App),
     ("file.save", ActionClass::Window),
+    ("file.save_as", ActionClass::Window),
     ("file.close", ActionClass::Window),
     ("file.export_html", ActionClass::Window),
     ("cycle-view-mode", ActionClass::Window),
     ("set-view-mode", ActionClass::Window),
     ("view.toggle_sidebar", ActionClass::Window),
+    ("view.switch_documents", ActionClass::Window),
+    ("view.toggle_fullscreen", ActionClass::Window),
     ("format.highlight", ActionClass::Window),
     ("paragraph.table", ActionClass::Window),
 ];
@@ -112,13 +115,13 @@ fn emitted_actions() -> BTreeSet<String> {
         .collect();
     assert_eq!(
         set.len(),
-        16,
-        "non-vacuity: 16 emitted actions, got {set:?}"
+        19,
+        "non-vacuity: 19 emitted actions, got {set:?}"
     );
     set
 }
 
-/// The 17 (action, value) pairs: each emitted action with the value(s) its
+/// The 20 (action, value) pairs: each emitted action with the value(s) its
 /// arm sends.
 fn action_values() -> Vec<(String, Option<String>)> {
     let mut out = Vec::new();
@@ -132,7 +135,7 @@ fn action_values() -> Vec<(String, Option<String>)> {
             _ => out.push((action, None)),
         }
     }
-    assert_eq!(out.len(), 17, "non-vacuity: 17 (action, value) pairs");
+    assert_eq!(out.len(), 20, "non-vacuity: 20 (action, value) pairs");
     out
 }
 
@@ -692,7 +695,7 @@ fn d261_the_payload_carries_value_for_every_emitted_action() {
             }
         }
     }
-    assert_eq!(n, 102, "non-vacuity");
+    assert_eq!(n, 120, "non-vacuity");
 }
 
 #[test]
@@ -795,7 +798,7 @@ fn d261_the_dispatch_log_line_never_carries_value() {
             n += 1;
         }
     }
-    assert_eq!(n, 16 * 6, "non-vacuity");
+    assert_eq!(n, 19 * 6, "non-vacuity");
 }
 
 #[test]
@@ -903,7 +906,7 @@ fn d261_route_decision_table_logs_one_line_per_call() {
             }
         }
     }
-    assert_eq!(n, 425, "non-vacuity");
+    assert_eq!(n, 500, "non-vacuity");
 }
 
 #[test]

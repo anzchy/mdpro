@@ -56,11 +56,11 @@ export const FILE_ROWS: readonly CommandRow[] = [
   configurable({
     id: "file.saveAs",
     menuId: "menu.file.save_as",
-    menu: macOff<MenuPath>(["File", "Save As..."], "none"),
+    menu: ["File", "Save As..."],
     field: "fileSaveAs",
     v1: "Cmd+Shift+S",
     v2: "Cmd+Shift+S",
-    availability: ["none", "none"],
+    availability: ["both", "both"],
     contexts: ["editorW", "editorS", "tableW", "tableS"],
   }),
   configurable({

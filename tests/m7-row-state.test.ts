@@ -39,7 +39,7 @@ const bound = (chord: string): AppliedBinding => ({ state: "bound", chord });
 
 describe("M7 row states", () => {
   it("s1 availability none is 'unavailable', on every platform and version it holds", () => {
-    expect(rowStateOf(input(field("fileSaveAs")))).toEqual({ kind: "unavailable" });
+    expect(rowStateOf(input(field("fileSaveAs")))).toMatchObject({ kind: "configurable", value: "Cmd+Shift+S" });
     expect(rowStateOf(input(field("fileOpenQuickly"), { version: 2, platform: "windows" }))).toEqual({ kind: "unavailable" });
   });
 

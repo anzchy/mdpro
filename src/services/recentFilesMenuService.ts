@@ -49,11 +49,13 @@ export async function syncRecentFilesMenu(
   op: RecentOp,
   viewMode: ViewMode | null,
   themeMode?: UserPreferences["themeMode"],
+  tabCount?: number,
 ): Promise<string[] | null> {
   if (!isTauri()) return null;
   try {
     const reply: unknown = await invoke(COMMAND, {
       op, viewMode, ...(themeMode === undefined ? {} : { themeMode }),
+      ...(tabCount === undefined ? {} : { tabCount }),
     });
     return isStringArray(reply) ? reply : null;
   } catch {

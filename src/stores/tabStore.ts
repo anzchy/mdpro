@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { loggingService } from "../services/loggingService";
+import type { Document } from "../types/document";
+import { mostRecentOther, nextActivationAt, reconcileDocumentTabs } from "./tabMru";
 
 /**
  * Preserved state for context restoration when switching tabs
@@ -79,6 +81,12 @@ interface TabStoreActions {
   /** Switch to a specific tab */
   switchToTab: (tabId: string) => void;
 
+  /** Mirror the real document list and activation into this window's MRU. */
+  syncDocuments: (documents: readonly Document[], activeDocumentId: string | null) => void;
+
+  /** Most recently used tab other than the active one. */
+  mostRecentOtherTab: () => Tab | null;
+
   /** Mark a tab as dirty/clean */
   setTabDirty: (tabId: string, isDirty: boolean) => void;
 
@@ -135,7 +143,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
       set({
         activeTabId: existingTab.id,
         tabs: state.tabs.map((t) =>
-          t.id === existingTab.id ? { ...t, lastActiveAt: Date.now() } : t
+          t.id === existingTab.id ? { ...t, lastActiveAt: nextActivationAt(state.tabs) } : t
         ),
       });
       return existingTab.id;
@@ -154,7 +162,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
         cursorPosition: { line: 1, column: 0 },
         viewMode: "wysiwyg",
       },
-      lastActiveAt: Date.now(),
+      lastActiveAt: nextActivationAt(state.tabs),
     };
 
     loggingService.logEventSync({
@@ -246,13 +254,22 @@ export const useTabStore = create<TabStore>((set, get) => ({
       });
     }
 
+    const at = nextActivationAt(state.tabs);
     set({
       activeTabId: tabId,
       tabs: state.tabs.map((t) =>
-        t.id === tabId ? { ...t, lastActiveAt: Date.now() } : t
+        t.id === tabId ? { ...t, lastActiveAt: at } : t
       ),
     });
   },
+
+  syncDocuments: (documents, activeDocumentId) => {
+    const state = get();
+    const next = reconcileDocumentTabs(state.tabs, documents, activeDocumentId, state.activeTabId);
+    set(next);
+  },
+
+  mostRecentOtherTab: () => mostRecentOther(get().tabs, get().activeTabId),
 
   setTabDirty: (tabId, isDirty) => {
     set((state) => ({

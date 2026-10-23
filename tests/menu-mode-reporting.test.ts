@@ -48,3 +48,16 @@ it("reports the current mode on mount, mode change, and window focus", async () 
   await settle();
   expect(unlisten).toHaveBeenCalledOnce();
 });
+
+it("reports the live tab count at the Tauri boundary after tabs change and focus returns", async () => {
+  const hook = renderHook(({ count }: { count: number }) =>
+    useRecentFilesMenuRefresh("source", undefined, count), { initialProps: { count: 1 } });
+  await settle();
+  expect(refreshes().at(-1)?.[1]).toMatchObject({ viewMode: "source", tabCount: 1 });
+  hook.rerender({ count: 2 });
+  await settle();
+  expect(refreshes().at(-1)?.[1]).toMatchObject({ viewMode: "source", tabCount: 2 });
+  await act(async () => { focusHandler.current?.({ payload: true }); });
+  expect(refreshes().at(-1)?.[1]).toMatchObject({ viewMode: "source", tabCount: 2 });
+  hook.unmount();
+});

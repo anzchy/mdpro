@@ -10,6 +10,7 @@ import type { KeyboardShortcuts } from "../types/preferences";
 export interface ShortcutHandlers {
   onOpen?: (actionId?: string) => void;
   onSave?: (actionId?: string) => void;
+  onSaveAs?: (actionId?: string) => void;
   onClose?: (actionId?: string) => void;
   onNew?: (actionId?: string) => void;
   /**
@@ -23,6 +24,7 @@ export interface ShortcutHandlers {
   onHighlight?: (actionId?: string) => void;
   onExportHtml?: (actionId?: string) => void;
   onToggleSidebar?: (actionId?: string) => void;
+  onToggleFullscreen?: (actionId?: string) => void;
   onCycleViewMode?: (actionId?: string) => void;
   onOpenPreferences?: (actionId?: string) => void;
   /**

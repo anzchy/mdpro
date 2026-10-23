@@ -45,6 +45,7 @@ const MENU_FILE_NEW: &str = "menu.file.new";
 const MENU_FILE_NEW_WINDOW: &str = "menu.file.new_window";
 const MENU_FILE_OPEN: &str = "menu.file.open";
 const MENU_FILE_SAVE: &str = "menu.file.save";
+const MENU_FILE_SAVE_AS: &str = "menu.file.save_as";
 const MENU_FILE_CLOSE: &str = "menu.file.close";
 const MENU_FILE_EXPORT_HTML: &str = "menu.file.export_html";
 const MENU_FILE_RECENT_PREFIX: &str = "menu.file.recent.";
@@ -54,6 +55,8 @@ const MENU_VIEW_CYCLE: &str = "menu.view.cycle";
 const MENU_VIEW_SOURCE: &str = "menu.view.source";
 const MENU_VIEW_WYSIWYG: &str = "menu.view.wysiwyg";
 const MENU_VIEW_TOGGLE_SIDEBAR: &str = "menu.view.toggle_sidebar";
+const MENU_VIEW_SWITCH_DOCUMENTS: &str = "menu.view.switch_documents";
+const MENU_VIEW_TOGGLE_FULLSCREEN: &str = "menu.view.toggle_fullscreen";
 
 const MENU_FORMAT_HIGHLIGHT: &str = "menu.format.highlight";
 const MENU_FORMAT_INSERT_TABLE: &str = "menu.format.insert_table";
@@ -343,6 +346,7 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
         MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
         MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
+        MENU_FILE_SAVE_AS => emit_menu_action(app, "file.save_as", None),
         MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
         MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
         MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
@@ -350,6 +354,8 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         MENU_VIEW_SOURCE => emit_menu_action(app, "set-view-mode", Some("source".to_string())),
         MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
         MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
+        MENU_VIEW_SWITCH_DOCUMENTS => emit_menu_action(app, "view.switch_documents", None),
+        MENU_VIEW_TOGGLE_FULLSCREEN => emit_menu_action(app, "view.toggle_fullscreen", None),
         MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
         MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
         MENU_THEME_LIGHT => {

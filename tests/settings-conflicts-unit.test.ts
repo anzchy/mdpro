@@ -84,10 +84,10 @@ describe("M1A-WI-10 named Settings outcomes (u1–u20)", () => {
     expect(r.refusing.get("fileSave")).toMatchObject({ kind: "hard", with: ["format.hyperlink"], names: ["Link"] });
   });
 
-  it("u9 Save = ⇧⌘S, the default of unavailable Save As, is allowed (Decision 5)", () => {
-    expect(resolveBindings("macos", 1, {}).fileSaveAs).toMatchObject({ kind: "suppressed", reason: "unavailable" });
+  it("u9 Save = ⇧⌘S is refused now that Save As is available", () => {
+    expect(resolveBindings("macos", 1, {}).fileSaveAs).toMatchObject({ kind: "bound", chord: "Cmd+Shift+S" });
     const r = findSettingsConflicts("macos", 1, { fileSave: "Cmd+Shift+S" });
-    expect(r.refusing.size).toBe(0);
+    expect(r.refusing.get("fileSave")).toMatchObject({ kind: "takesDefault", with: ["file.saveAs"] });
   });
 
   it("u10 an unparseable value and <unassigned> refuse nothing", () => {

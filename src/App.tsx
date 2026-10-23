@@ -38,6 +38,7 @@ import { exportService } from "./services/exportService";
 import { preferencesService } from "./services/preferencesService";
 import { applyEditorPref, applyCodeTheme, applyAutoPair } from "./components/common/settings/editorPrefApply";
 import { loggingService } from "./services/loggingService";
+import { windowService } from "./services/windowService";
 import { buildImageMarkdown } from "./services/imageService";
 import { performRecreateChoice, performSave } from "./services/saveService";
 import { applyWindowState } from "./services/windowStateApplier";
@@ -91,6 +92,8 @@ function App() {
     createDocument,
     updateActiveDocumentContent,
     saveActiveDocument,
+    saveActiveDocumentAs,
+    switchToMostRecentDocument,
     closeActiveDocument,
     documents,
     setActiveDocumentById,
@@ -200,7 +203,7 @@ function App() {
 
   // The Open Recent menu holds the session list Rust owns (D43); this window
   // only sends a refresh on a view-mode change, never its own list.
-  const reportThemeToMenu = useRecentFilesMenuRefresh(viewMode);
+  const reportThemeToMenu = useRecentFilesMenuRefresh(viewMode, undefined, documents.length);
   useEffect(() => { reportThemeToMenu(); }, [themeMode, reportThemeToMenu]);
 
   // Keep window title static — filename removed per #374
@@ -406,6 +409,10 @@ function App() {
   const handleSave = useCallback(async (actionId?: string) => {
     await performSave(actionId, { saveActiveDocument, updateRecentFiles, showToast, onRecreateRequired: setRecreateRequest });
   }, [saveActiveDocument, showToast, updateRecentFiles]);
+
+  const handleSaveAs = useCallback(async (actionId?: string) => {
+    await performSave(actionId, { saveActiveDocument: saveActiveDocumentAs, updateRecentFiles, showToast });
+  }, [saveActiveDocumentAs, showToast, updateRecentFiles]);
 
   const handleRecreateChoice = useCallback(async (choice: RecreateChoice) => {
     const request = recreateRequest;
@@ -794,8 +801,10 @@ function App() {
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpen: (actionId) => void handleOpenDialog(actionId),
     onSave: (actionId) => void handleSave(actionId),
+    onSaveAs: (actionId) => void handleSaveAs(actionId),
     onClose: handleCloseRequest,
     onToggleSidebar: sidebarPreference.toggle,
+    onToggleFullscreen: (actionId) => void windowService.toggleFullscreenWithFeedback(showToast, actionId),
     onCycleViewMode: userViewModeCommands.cycle,
     onOpenPreferences: handleOpenSettings,
     onInsertTable: () => triggerTableInsert(),
@@ -808,6 +817,7 @@ function App() {
     onNewWindow: () => void openNewWindow(),
     onOpen: (actionId) => void handleOpenDialog(actionId),
     onSave: (actionId, token) => void saveIfCurrent(token, actionId, () => handleSave(actionId)),
+    onSaveAs: (actionId, token) => void saveIfCurrent(token, actionId, () => handleSaveAs(actionId)),
     onClose: handleCloseRequest,
     onExportHtml: (actionId) => void handleExportHtml(actionId),
     onOpenRecent: handleOpenRecent,
@@ -819,6 +829,8 @@ function App() {
     onInsertTable: (_actionId, token) => triggerTableInsert(token),
     onViewModeChange: userViewModeCommands.set,
     onCycleViewMode: userViewModeCommands.cycle,
+    onSwitchDocuments: switchToMostRecentDocument,
+    onToggleFullscreen: (actionId) => void windowService.toggleFullscreenWithFeedback(showToast, actionId),
     onThemeModeChange: (mode) => {
       if (useThemeStore.getState().mode !== mode) void setThemeMode(mode);
     },

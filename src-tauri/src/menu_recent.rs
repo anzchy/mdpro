@@ -90,6 +90,7 @@ struct SyncState {
 pub struct ModeReport {
     pub window: String,
     pub mode: String,
+    pub tab_count: Option<u32>,
 }
 
 impl MenuState {
@@ -136,6 +137,13 @@ impl MenuState {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .for_focused(Some(label))
+    }
+
+    pub fn tab_count_for_window(&self, label: &str) -> Option<u32> {
+        self.modes
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .tab_count_for(label)
     }
 
     pub fn set_recent_files(&self, recent_files: Vec<String>) {
@@ -205,12 +213,10 @@ impl MenuState {
         let sync = self.sync.lock().unwrap_or_else(|e| e.into_inner());
         let reporter = report.as_ref().map(|report| report.window.clone());
         if let Some(report) = report {
-            if let Err(reason) = self
-                .modes
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .report(&report.window, &report.mode)
-            {
+            let mut modes = self.modes.lock().unwrap_or_else(|e| e.into_inner());
+            let outcome =
+                modes.report_with_tab_count(&report.window, &report.mode, report.tab_count);
+            if let Err(reason) = outcome {
                 log_sync(
                     LogLevel::Error,
                     LogStatus::Fail,

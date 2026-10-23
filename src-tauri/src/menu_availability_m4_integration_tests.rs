@@ -28,6 +28,7 @@ fn m4_wi3_guarded_route_emits_only_to_the_current_allowed_window() {
                 Some(ModeReport {
                     window: label.into(),
                     mode: mode.into(),
+                    tab_count: None,
                 }),
                 |_, _| Ok(()),
             )
@@ -146,6 +147,7 @@ fn m4_wi3_installation_switches_enabled_state_without_a_click() {
             Some(ModeReport {
                 window: "A".into(),
                 mode: "source".into(),
+                tab_count: None,
             }),
             &mut install,
         )
@@ -156,6 +158,7 @@ fn m4_wi3_installation_switches_enabled_state_without_a_click() {
             Some(ModeReport {
                 window: "A".into(),
                 mode: "wysiwyg".into(),
+                tab_count: None,
             }),
             &mut install,
         )
@@ -166,6 +169,7 @@ fn m4_wi3_installation_switches_enabled_state_without_a_click() {
             Some(ModeReport {
                 window: "B".into(),
                 mode: "source".into(),
+                tab_count: None,
             }),
             &mut install,
         )
@@ -207,6 +211,7 @@ fn m4_wi3_production_emit_seam_reads_focus_and_mode_at_click_time() {
             Some(ModeReport {
                 window: "A".into(),
                 mode: "wysiwyg".into(),
+                tab_count: None,
             }),
             |_, _| Ok(()),
         )
@@ -227,6 +232,7 @@ fn m4_wi3_production_emit_seam_reads_focus_and_mode_at_click_time() {
             Some(ModeReport {
                 window: "A".into(),
                 mode: "source".into(),
+                tab_count: None,
             }),
             |_, _| Ok(()),
         )

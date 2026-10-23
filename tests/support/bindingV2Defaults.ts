@@ -69,6 +69,5 @@ export const V2_DEFAULTS: Readonly<Record<string, readonly [string, string]>> = 
 
 /** Fields whose v2 availability is `none` on every platform (R1-11). */
 export const V2_UNAVAILABLE: readonly string[] = [
-  "fileOpenQuickly", "fileSaveAs", "editCopyAsMarkdown", "editPasteAsPlainText",
-  "viewToggleFullscreen", "viewSwitchDocuments",
+  "fileOpenQuickly", "editCopyAsMarkdown", "editPasteAsPlainText",
 ];

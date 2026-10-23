@@ -6,10 +6,30 @@
  *
  * @coordinates-with src/commands/commandTable.ts — assembles the rows
  */
-import type { CommandRow, OwnershipContext, MenuPath} from "../commandTable.types";
+import type { CommandRow, MenuPath, OwnershipContext } from "../commandTable.types";
 import { configurable, macOff } from "../rowBuilders";
 
 const BOTH: readonly OwnershipContext[] = ["editorW", "editorS", "tableW", "tableS"];
+
+const fullscreenBase = configurable({
+  id: "view.toggleFullscreen",
+  field: "viewToggleFullscreen",
+  menuId: "menu.view.toggle_fullscreen",
+  menu: macOff<MenuPath>("none", ["View", "Toggle Fullscreen"]),
+  v1: "Cmd+Option+F",
+  v2: macOff("<system>", "F11"),
+  availability: ["none", "none"],
+  contexts: BOTH,
+});
+const fullscreenRow: CommandRow = {
+  ...fullscreenBase,
+  availability: {
+    macos: fullscreenBase.availability.macos,
+    windows: { v1: "both", v2: "both" },
+    linux: { v1: "both", v2: "both" },
+  },
+  route: { macos: "unavailable", windows: "frontend", linux: "frontend" },
+};
 
 export const VIEW_ROWS: readonly CommandRow[] = [
   configurable({
@@ -49,22 +69,15 @@ export const VIEW_ROWS: readonly CommandRow[] = [
     v2Secondaries: ["F6"],
     availability: ["both", "both"],
   }),
-  configurable({
-    id: "view.toggleFullscreen",
-    field: "viewToggleFullscreen",
-    v1: "Cmd+Option+F",
-    v2: macOff("<system>", "F11"),
-    availability: ["none", "none"],
-    contexts: BOTH,
-  }),
+  fullscreenRow,
   configurable({
     id: "view.switchDocuments",
     menuId: "menu.view.switch_documents",
-    menu: macOff<MenuPath>(["View", "Switch Documents"], "none"),
+    menu: ["View", "Switch Documents"],
     field: "viewSwitchDocuments",
     v1: "Cmd+`",
     v2: macOff("Ctrl+Tab", "Cmd+Tab"),
-    availability: ["none", "none"],
+    availability: ["both", "both"],
     contexts: BOTH,
   }),
 ];

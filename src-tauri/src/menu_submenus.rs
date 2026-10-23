@@ -65,6 +65,14 @@ pub(super) fn file_menu(
         true,
         Some("CmdOrCtrl+S"),
     )?;
+    let save_as_offmac = menu_from_layout::menu_item_or(
+        app,
+        specs,
+        "menu.file.save_as",
+        "Save As...",
+        true,
+        Some("CmdOrCtrl+Shift+S"),
+    )?;
     let export = menu_from_layout::menu_item_or(
         app,
         specs,
@@ -113,6 +121,7 @@ pub(super) fn file_menu(
         .item(&recent)
         .separator()
         .item(&save)
+        .item(&save_as_offmac)
         .item(&export)
         .separator()
         .item(&close)
@@ -190,6 +199,24 @@ pub(super) fn view_menu(
         true,
         Some("CmdOrCtrl+Shift+L"),
     )?;
+    let switch_documents_offmac = menu_from_layout::menu_item_or(
+        app,
+        specs,
+        "menu.view.switch_documents",
+        "Switch Documents",
+        super::menu_availability::switch_documents_enabled(
+            super::menu_availability::focused_tab_count(app),
+        ),
+        None::<&str>,
+    )?;
+    let toggle_fullscreen_offmac = menu_from_layout::menu_item_or(
+        app,
+        specs,
+        "menu.view.toggle_fullscreen",
+        "Toggle Fullscreen",
+        true,
+        None::<&str>,
+    )?;
 
     if let Some(specs) = specs {
         let switch_documents = menu_from_layout::menu_item_or(
@@ -217,6 +244,8 @@ pub(super) fn view_menu(
         .item(&view_wysiwyg)
         .separator()
         .item(&view_toggle_sidebar)
+        .item(&switch_documents_offmac)
+        .item(&toggle_fullscreen_offmac)
         .build()
 }
 

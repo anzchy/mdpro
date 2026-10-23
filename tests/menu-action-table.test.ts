@@ -63,7 +63,7 @@ const REFUSED_WHILE_MODAL = new Set([
   "paragraph.table",
 ]);
 
-const EXPECTED_EMITTED_ACTIONS = 16;
+const EXPECTED_EMITTED_ACTIONS = 19;
 // vitest runs from the repo root; under jsdom `import.meta.url` is not a file: URL.
 const MENU_RS = join(process.cwd(), "src-tauri/src/menu.rs");
 const EMIT_RE = /emit_menu_action\(\s*app,\s*"([^"]+)"/g;
@@ -164,10 +164,10 @@ describe("dispatchMenuAction: a modal is open (S2)", () => {
 describe("dispatchMenuAction: deterministic and stateless (S5)", () => {
   it("seed 261: a shuffle of the rows three times (51 dispatches) runs each in order", () => {
     const seq = seededShuffle(mulberry32(261), [...ROWS, ...ROWS, ...ROWS]);
-    expect(seq).toHaveLength(51);
+    expect(seq).toHaveLength(ROWS.length * 3);
     const handlers = makeHandlers(0);
     for (const row of seq) dispatchMenuAction(payloadOf(row), handlers, logMenuSelect);
-    expect(calls).toHaveLength(51);
+    expect(calls).toHaveLength(seq.length);
     expect(calls.map((c) => c.key)).toEqual(seq.map((r) => r.key));
     expect(calls.map((c) => c.args)).toEqual(seq.map((r, i) => [...r.args, `id-${i + 1}`]));
   });

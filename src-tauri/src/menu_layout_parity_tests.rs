@@ -69,10 +69,11 @@ fn layout_menu_ids_with_a_menu_path_equal_the_menu_constants() {
         "menu.format.image",
         "menu.format.clear_format",
         "menu.view.switch_documents",
+        "menu.view.toggle_fullscreen",
     ]
     .into_iter()
     .collect();
-    assert_eq!(expected.len(), 54);
+    assert_eq!(expected.len(), 55);
 
     let layout = menu_layout().expect("the committed menu_layout.json parses");
     let with_path: BTreeSet<&str> = layout

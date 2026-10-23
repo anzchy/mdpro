@@ -151,6 +151,7 @@ fn tokens(root: &str, platform: Platform) -> &'static [&'static str] {
             "open_recent",
             "|",
             "file.save",
+            "file.saveAs",
             "file.exportHtml",
             "|",
             "file.close",
@@ -241,6 +242,8 @@ fn tokens(root: &str, platform: Platform) -> &'static [&'static str] {
             "view.wysiwyg",
             "|",
             "view.sidebar",
+            "view.switchDocuments",
+            "view.toggleFullscreen",
         ],
         ("Themes", true) | ("Theme", false) => &["theme.light", "theme.dark", "theme.system"],
         ("Window", true) => &[

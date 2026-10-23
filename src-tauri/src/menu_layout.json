@@ -2385,8 +2385,14 @@
           "File",
           "Save As..."
         ],
-        "windows": "none",
-        "linux": "none"
+        "windows": [
+          "File",
+          "Save As..."
+        ],
+        "linux": [
+          "File",
+          "Save As..."
+        ]
       },
       "key": {
         "macos": {
@@ -2431,22 +2437,22 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -5479,8 +5485,14 @@
           "View",
           "Switch Documents"
         ],
-        "windows": "none",
-        "linux": "none"
+        "windows": [
+          "View",
+          "Switch Documents"
+        ],
+        "linux": [
+          "View",
+          "Switch Documents"
+        ]
       },
       "key": {
         "macos": {
@@ -5525,31 +5537,38 @@
       ],
       "availability": {
         "macos": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
       "id": "view.toggleFullscreen",
       "prefField": "viewToggleFullscreen",
+      "menuId": "menu.view.toggle_fullscreen",
       "menu": {
         "macos": "none",
-        "windows": "none",
-        "linux": "none"
+        "windows": [
+          "View",
+          "Toggle Fullscreen"
+        ],
+        "linux": [
+          "View",
+          "Toggle Fullscreen"
+        ]
       },
       "key": {
         "macos": {
@@ -5598,18 +5617,18 @@
           "v2": "none"
         },
         "windows": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         },
         "linux": {
-          "v1": "none",
-          "v2": "none"
+          "v1": "both",
+          "v2": "both"
         }
       },
       "route": {
         "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {

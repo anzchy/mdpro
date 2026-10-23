@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { loggingService } from "./loggingService";
 
 /**
@@ -24,6 +25,31 @@ interface GetWindowGeometryResponse {
 }
 
 export const windowService = {
+  /** Toggle from the window's actual state, including changes made by the OS. */
+  async toggleFullscreen(actionId: string = loggingService.generateActionId()): Promise<void> {
+    loggingService.logEventSync({ level: "info", event: "window.fullscreen", status: "start", actionId });
+    try {
+      const window = getCurrentWindow();
+      const isFullscreen = await window.isFullscreen();
+      await window.setFullscreen(!isFullscreen);
+      loggingService.logEventSync({ level: "info", event: "window.fullscreen", status: "success", actionId });
+    } catch (error) {
+      loggingService.logEventSync({
+        level: "error", event: "window.fullscreen", status: "fail", actionId,
+        error: "window_api_failed",
+      });
+      throw error;
+    }
+  },
+
+  /** Report a failed native toggle through the app's existing toast. */
+  async toggleFullscreenWithFeedback(showToast: (message: string) => void, actionId?: string): Promise<void> {
+    try {
+      await windowService.toggleFullscreen(actionId);
+    } catch {
+      showToast("Failed to toggle full screen");
+    }
+  },
   /**
    * Create a new mdpro window
    * @param filePath Optional file to open in the new window

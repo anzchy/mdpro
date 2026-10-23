@@ -47,12 +47,14 @@ function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
 export function useKeyboardShortcuts({
   onOpen,
   onSave,
+  onSaveAs,
   onClose,
   onNew,
   onNewWindow,
   onHighlight,
   onExportHtml,
   onToggleSidebar,
+  onToggleFullscreen,
   onCycleViewMode,
   onOpenPreferences,
   onInsertTable,
@@ -123,6 +125,10 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.viewToggleSidebar, { action: "view.toggle_sidebar" });
         onToggleSidebar(actionId);
+      } else if (onToggleFullscreen && !isMac && shortcuts.viewToggleFullscreen === "F11" && matchesShortcut(event, "F11")) {
+        event.preventDefault();
+        const actionId = loggingService.logShortcut("F11", { action: "view.toggle_fullscreen" });
+        onToggleFullscreen(actionId);
       } else if (onOpen && matchesShortcut(event, shortcuts.fileOpen)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileOpen, { action: "file.open" });
@@ -131,6 +137,10 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileSave, { action: "file.save" });
         onSave(actionId);
+      } else if (onSaveAs && !isMac && matchesShortcut(event, shortcuts.fileSaveAs)) {
+        event.preventDefault();
+        const actionId = loggingService.logShortcut(shortcuts.fileSaveAs, { action: "file.save_as" });
+        onSaveAs(actionId);
       } else if (onClose && matchesShortcut(event, shortcuts.fileClose)) {
         event.preventDefault();
         const actionId = loggingService.logShortcut(shortcuts.fileClose, { action: "file.close" });
@@ -212,7 +222,9 @@ export function useKeyboardShortcuts({
     onOpen,
     onOpenPreferences,
     onSave,
+    onSaveAs,
     onToggleSidebar,
+    onToggleFullscreen,
     shortcuts,
   ]);
 }

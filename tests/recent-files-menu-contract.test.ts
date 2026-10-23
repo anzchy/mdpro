@@ -41,6 +41,6 @@ describe("recent files menu — source contract (D43 WI-4)", () => {
   it("SC-02 App.tsx no longer passes recentFiles to the menu and uses the refresh hook", () => {
     const app = readFileSync(join(SRC, "App.tsx"), "utf8");
     expect(app).not.toMatch(/invoke\([^)]*recentFiles/s);
-    expect(app).toContain("useRecentFilesMenuRefresh(viewMode)");
+    expect(app).toContain("useRecentFilesMenuRefresh(viewMode,");
   });
 });

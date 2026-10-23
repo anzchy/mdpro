@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Save As now writes through the existing dialog, rebinds the tab, and refuses a selected target already open in any mdpro window, even through a path alias, without writing it. Switch Documents follows the most recently used other tab, with a disabled one-tab menu item. Windows and Linux can toggle actual full-screen state from View; F11 works when the applied binding is F11 (D255-WI-3d; device check pending).
 - WYSIWYG now runs heading-level changes, Select Word, Select Line, Clear Format, Underline, and Image from their current shortcuts and editor commands. Underline is a real round-tripping mark in both modes; Image uses a native picker and refuses stale results after a document or mode change (D255-WI-3b; device check pending).
 - On Windows and Linux, an Image shortcut saved as the old `Cmd+Ctrl+I` default reads as keyless without rewriting preferences; other saved chords remain unchanged. Settings, conflict resolution and the applied-shortcut snapshot use the same parity cases (D255-WI-3b).
 - Source inline formatting now unwraps only recognized marker runs, and Code Fences refuses any selection range that touches an existing fenced block. Source ⌘U / Ctrl+U runs Underline ahead of CodeMirror's selection-history key (D255-WI-3b, D270).

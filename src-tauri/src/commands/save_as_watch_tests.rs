@@ -5,7 +5,7 @@
 //! external write between the save and the register lands through the
 //! module's test-only `hook`. macOS only, like the other save suites.
 use super::hook;
-use super::save_as_watched_with;
+use super::{refuse_open_target, save_as_watched_with};
 use crate::commands::file::{FileError, SaveResult};
 use crate::commands::file_save_fixture::{canon, chmod, ev, Dir, CONTENT};
 use crate::services::file_watcher::seed::kit;
@@ -20,6 +20,95 @@ fn s(p: &Path) -> String {
 /// Save As `content` to `p` with the default (UTF-8, LF) options.
 async fn save_as(p: &Path, content: &str, fw: &FileWatcher) -> Result<SaveResult, FileError> {
     save_as_watched_with("d1".into(), content.into(), s(p), None, None, None, fw).await
+}
+
+/// A selected document's own path follows the ordinary save conflict check;
+/// another open target is refused before the writer can run.
+#[tokio::test]
+async fn d255_already_open_target_is_refused_without_writing() {
+    let d = Dir::new("d255_open_target");
+    let original = d.file("a.md", b"original\n");
+    let target = d.file("b.md", b"B's bytes\n");
+    let fw = FileWatcher::for_tests();
+    fw.reserve_hold("window-a", &original).expect("A hold");
+    fw.reserve_hold("window-a", &target).expect("B tab hold");
+    let err = refuse_open_target(&s(&target), Some(&s(&original)), None, &fw)
+        .expect_err("another open tab is refused");
+    assert!(matches!(err, FileError::AlreadyOpen { .. }));
+    assert_eq!(fs::read(&target).unwrap(), b"B's bytes\n");
+    assert_eq!(fs::read(&original).unwrap(), b"original\n");
+}
+
+/// The watcher may already have processed an external write; an open target
+/// remains refused without relying on its deduplication baseline.
+#[tokio::test]
+async fn d255_watcher_event_does_not_erase_selected_targets_conflict() {
+    let d = Dir::new("d255_notified_conflict");
+    let source = d.file("a.md", b"A\n");
+    let target = d.file("b.md", b"loaded by B\n");
+    let fw = FileWatcher::for_tests();
+    fw.reserve_hold("window-a", &source).expect("A hold");
+    fw.reserve_hold("window-a", &target).expect("B hold");
+    fw.watch(&target);
+    fs::write(&target, b"external change\n").expect("external writer");
+    fw.baselines().refresh_if_present(&target);
+    assert!(
+        fw.baselines().is_unchanged(&target),
+        "watcher dedupe advanced"
+    );
+
+    let error = refuse_open_target(&s(&target), Some(&s(&source)), None, &fw)
+        .expect_err("open target is refused after watcher event");
+    assert!(matches!(error, FileError::AlreadyOpen { .. }));
+    assert_eq!(fs::read(&target).unwrap(), b"external change\n");
+}
+
+#[tokio::test]
+async fn d255_target_open_in_another_window_is_refused_through_alias() {
+    let d = Dir::new("d255_other_window");
+    let source = d.file("a.md", b"A\n");
+    let target = d.file("b.md", b"B\n");
+    let fw = FileWatcher::for_tests();
+    fw.reserve_hold("window-a", &source).expect("source hold");
+    fw.reserve_hold("window-b", &target)
+        .expect("other window hold");
+    let alias = target.parent().unwrap().join(".").join("b.md");
+    let err = refuse_open_target(&s(&alias), Some(&s(&source)), None, &fw)
+        .expect_err("other window's B is open");
+    assert!(matches!(err, FileError::AlreadyOpen { .. }));
+    assert_eq!(fs::read(&target).unwrap(), b"B\n");
+}
+
+#[tokio::test]
+async fn d255_own_path_and_unopened_target_are_allowed() {
+    let d = Dir::new("d255_allowed");
+    let source = d.file("a.md", b"A\n");
+    let target = d.file("b.md", b"B\n");
+    let fw = FileWatcher::for_tests();
+    fw.reserve_hold("window-a", &source).expect("source hold");
+    refuse_open_target(&s(&source), Some(&s(&source)), None, &fw).expect("own path");
+    refuse_open_target(&s(&target), Some(&s(&source)), None, &fw).expect("unopened target");
+
+    let saved = save_as(&target, "editor buffer\n", &fw)
+        .await
+        .expect("unopened target saves");
+
+    assert!(saved.success);
+    assert_eq!(fs::read(&target).unwrap(), b"editor buffer\n");
+}
+
+#[tokio::test]
+async fn d255_own_path_changed_during_dialog_uses_plain_save_conflict_check() {
+    let d = Dir::new("d255_own_conflict");
+    let source = d.file("a.md", b"loaded\n");
+    let fw = FileWatcher::for_tests();
+    fw.watch(&source);
+    fw.reserve_hold("window-a", &source).expect("source hold");
+    fs::write(&source, b"external\n").expect("external edit during dialog");
+    let err = refuse_open_target(&s(&source), Some(&s(&source)), None, &fw)
+        .expect_err("ordinary save conflict check must refuse");
+    assert!(matches!(err, FileError::ExternalChangeConflict { .. }));
+    assert_eq!(fs::read(&source).unwrap(), b"external\n");
 }
 
 /// a: a successful Save As to a new path registers that exact path string,

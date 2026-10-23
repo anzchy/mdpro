@@ -104,6 +104,7 @@ const FILE: &[&str] = &[
     "open_recent",
     "|",
     "file.save",
+    "file.saveAs",
     "file.exportHtml",
     "|",
     "file.close",
@@ -161,6 +162,8 @@ const VIEW: &[&str] = &[
     "view.wysiwyg",
     "|",
     "view.sidebar",
+    "view.switchDocuments",
+    "view.toggleFullscreen",
 ];
 const VIEW_MAC: &[&str] = &[
     "view.source",
@@ -305,7 +308,13 @@ fn descriptor_tree(platform: Platform, mode: ViewMode) -> Vec<String> {
                             row.availability.linux.v1
                         };
                         let on = enabled(availability, mode);
-                        let key = if matches!(id, "view.source" | "view.wysiwyg") {
+                        let key = if matches!(
+                            id,
+                            "view.source"
+                                | "view.wysiwyg"
+                                | "view.switchDocuments"
+                                | "view.toggleFullscreen"
+                        ) {
                             None
                         } else {
                             (if platform == Platform::Windows {
@@ -357,7 +366,7 @@ No Recent Files|menu.file.recent.empty|off|-
 Close|menu.file.close|on|Cmd+W
 —
 Save|menu.file.save|on|Cmd+S
-Save As...|menu.file.save_as|off|-
+Save As...|menu.file.save_as|on|Cmd+Shift+S
 —
 Export HTML...|menu.file.export_html|on|Cmd+Shift+E
 [Edit]
@@ -421,7 +430,7 @@ WYSIWYG|menu.view.wysiwyg|on|Ctrl+4
 Cycle View Mode|menu.view.cycle|on|Cmd+/
 —
 Toggle Sidebar|menu.view.toggle_sidebar|on|Cmd+Shift+L
-Switch Documents|menu.view.switch_documents|off|-
+Switch Documents|menu.view.switch_documents|on|-
 [Themes]
 Light|menu.theme.light|on|-
 Dark|menu.theme.dark|on|-
@@ -450,6 +459,7 @@ Open Recent|native.recent|on|-
 No Recent Files|menu.file.recent.empty|off|-
 —
 Save|menu.file.save|on|Ctrl+S
+Save As...|menu.file.save_as|on|Ctrl+Shift+S
 Export HTML...|menu.file.export_html|on|Ctrl+Shift+E
 —
 Close|menu.file.close|on|Ctrl+W
@@ -469,6 +479,8 @@ Source|menu.view.source|on|-
 WYSIWYG|menu.view.wysiwyg|on|-
 —
 Toggle Sidebar|menu.view.toggle_sidebar|on|Ctrl+Shift+L
+Switch Documents|menu.view.switch_documents|on|-
+Toggle Fullscreen|menu.view.toggle_fullscreen|on|-
 [Format]
 Highlight Selection|menu.format.highlight|on|Ctrl+Shift+H
 Insert Table|menu.format.insert_table|on|Ctrl+Alt+T
@@ -508,7 +520,7 @@ No Recent Files|menu.file.recent.empty|off|-
 Close|menu.file.close|on|Cmd+W
 —
 Save|menu.file.save|on|Cmd+S
-Save As...|menu.file.save_as|off|-
+Save As...|menu.file.save_as|on|Cmd+Shift+S
 —
 Export HTML...|menu.file.export_html|on|Cmd+Shift+E
 [Edit]
@@ -572,7 +584,7 @@ WYSIWYG|menu.view.wysiwyg|on|Ctrl+4
 Cycle View Mode|menu.view.cycle|on|Cmd+/
 —
 Toggle Sidebar|menu.view.toggle_sidebar|on|Cmd+Shift+L
-Switch Documents|menu.view.switch_documents|off|-
+Switch Documents|menu.view.switch_documents|on|-
 [Themes]
 Light|menu.theme.light|on|-
 Dark|menu.theme.dark|on|-

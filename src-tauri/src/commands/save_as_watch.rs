@@ -1,16 +1,12 @@
-//! Purpose: register a Save As target with the file watcher (D69). Before
-//! this, only `open_file` / `open_file_dialog` registered, so a file first
-//! saved through the Save As dialog (an untitled document's first ⌘S) was
-//! never watched: an external edit raised no prompt and the next ⌘S
-//! silently overwrote it.
+//! Purpose: register a Save As target with the file watcher (D69).
+//! An untitled document's first save must register its new path.
 //!
-//! It also holds the D111-WI-1 refusal: a Save As onto the document's own
-//! file while that document has an unresolved external change writes
-//! nothing, as ⌘S refuses.
+//! D111 also refuses the original path while its external change is unresolved.
 //!
-//! Pipeline: `save_file_dialog` (dialog only) → [`refused_save_as`] (picked
-//! path vs `refuse_path`; a match returns `blocked_by_pending_change` and
-//! stops) → [`save_as_watched_with`] → `save_file_written` (the whole
+//! Pipeline: `save_file_dialog` (dialog only) → [`refused_save_as`] for
+//! pending external change on the original path → [`refuse_open_target`]
+//! for an already-open other target or an original-path disk conflict →
+//! [`save_as_watched_with`] → `save_file_written` (the whole
 //! `save_file` body; returns the encoded bytes it wrote) → on `Ok`:
 //! `seed_for_written(path, written)` → `FileWatcher::watch_seeded(path,
 //! seed)`, which logs `file.watch.register` and returns the seed check →
@@ -34,18 +30,17 @@
 //! - **The old path is not unwatched here.** Another tab may hold it; the
 //!   frontend releases the window's hold on it once no document in the
 //!   window holds it (`release_watch_hold`, D173).
-//! - **Refuse only the own file** (D111-WI-1). The frontend sends
-//!   `refuse_path` (the document's path) only while the document has a
-//!   pending external change; the picked path is refused when it is the
-//!   same string or canonicalises to the same file. A missing file compares
-//!   by string. The refusal logs a `file.save` cancel with reason
-//!   `external_change_pending` and no path; any other target saves as before.
+//! - **An already-open other target is refused** (D255). A watcher hold in
+//!   any window, including an alias spelling, gives a typed `AlreadyOpen`
+//!   error before reservation or write. The original path uses the existing
+//!   pending-change refusal and a disk-baseline check; an unopened target
+//!   follows the native picker decision. No watcher dedupe baseline is used
+//!   to decide whether another open document may be overwritten.
 //! - **The reply reports the target's seed check** (D111-WI-2):
 //!   `changed_since_read` is true when a write landed between ours and the
 //!   register, or the check failed open. A refused reply never ran it, so
 //!   it is `false` there.
-//! - No new log line: `watch_seeded` already writes the register line,
-//!   after the `file.save` success line.
+//! - `file.save_as` logs Start and Success/Fail, with enum-only refusal reasons.
 //!
 //! @coordinates-with commands/file.rs — `save_file_dialog` calls
 //!   `refused_save_as`, then this seam; `save_file_written` is the save body
@@ -71,6 +66,12 @@ use super::file::{log_file_event, save_file_written, FileError, SaveResult};
 use crate::models::{LogLevel, LogStatus};
 use serde_json::json;
 
+#[path = "save_as_target.rs"]
+mod target;
+pub(crate) use target::{
+    original_bytes_before_dialog, refuse_open_target, refuse_original_changed_during_dialog,
+};
+
 /// Save `content` to `path` (the path the Save As dialog returned) exactly
 /// as `save_file` would, then, only if the save succeeded, watch `path`
 /// seeded from the bytes written. Returns the save result with
@@ -84,58 +85,52 @@ pub(crate) async fn save_as_watched_with(
     action_id: Option<String>,
     watcher: &FileWatcher,
 ) -> Result<SaveResult, FileError> {
+    let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let (result, written) = save_file_written(
         document_id,
         content,
         Some(path),
         encoding,
         line_ending,
-        action_id,
+        Some(action_id.clone()),
         watcher.baselines(),
     )
-    .await?;
+    .await
+    .map_err(|error| {
+        log_file_event(
+            "file.save_as",
+            LogStatus::Fail,
+            LogLevel::Error,
+            Some(&action_id),
+            json!({ "source": "dialog", "reason": "write_failed" }),
+            None,
+            Some("save as write failed".to_string()),
+        );
+        error
+    })?;
     between_save_and_register();
     let target = PathBuf::from(&result.path);
     let check = watcher.watch_seeded(&target, seed_for_written(&target, &written));
+    log_file_event(
+        "file.save_as",
+        LogStatus::Success,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({ "source": "dialog" }),
+        None,
+        None,
+    );
     Ok(SaveResult {
         changed_since_read: check.changed(),
         ..result
     })
 }
 
-/// D111-WI-1: Save As with the refusal `save_file_dialog` applies first. When
-/// `refuse_path` (the document's own path, sent only while it has an
-/// unresolved external change) names the same file as `path`, nothing is
-/// written or registered and the reply is `blocked_by_pending_change`; any
-/// other target saves through [`save_as_watched_with`]. `save_file_dialog`
-/// runs the same two steps inline (its D69 wiring pins the
-/// `save_as_watched_with` call there), so this composition is test-only.
 #[cfg(test)]
-#[allow(clippy::too_many_arguments)]
-pub(crate) async fn save_as_checked_with(
-    document_id: String,
-    content: String,
-    path: String,
-    encoding: Option<String>,
-    line_ending: Option<String>,
-    action_id: Option<String>,
-    refuse_path: Option<String>,
-    watcher: &FileWatcher,
-) -> Result<SaveResult, FileError> {
-    if let Some(blocked) = refused_save_as(&path, refuse_path.as_deref(), action_id.as_deref()) {
-        return Ok(blocked);
-    }
-    save_as_watched_with(
-        document_id,
-        content,
-        path,
-        encoding,
-        line_ending,
-        action_id,
-        watcher,
-    )
-    .await
-}
+#[path = "save_as_checked_seam.rs"]
+mod checked_seam;
+#[cfg(test)]
+pub(crate) use checked_seam::save_as_checked_with;
 
 /// D173: `save_file_dialog`'s steps after the dialog and the refusal, for
 /// window `label`: reserve the hold on `picked` (a fenced window returns

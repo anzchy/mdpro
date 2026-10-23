@@ -180,6 +180,10 @@ fn wire_literal(err: &FileError) -> Value {
         FileError::DiskFull => json!("DiskFull"),
         FileError::InvalidPath { .. } => json!({"InvalidPath": {"path": "/tmp/a.md"}}),
         FileError::IoError { .. } => json!({"IoError": {"message": "boom"}}),
+        FileError::ExternalChangeConflict { .. } => {
+            json!({"ExternalChangeConflict": {"path": "/tmp/a.md"}})
+        }
+        FileError::AlreadyOpen { .. } => json!({"AlreadyOpen": {"path": "/tmp/a.md"}}),
     }
 }
 
@@ -201,6 +205,8 @@ fn every_variant() -> Vec<FileError> {
         FileError::IoError {
             message: "boom".into(),
         },
+        FileError::ExternalChangeConflict { path: path() },
+        FileError::AlreadyOpen { path: path() },
     ]
 }
 
@@ -209,7 +215,7 @@ fn every_variant() -> Vec<FileError> {
 #[test]
 fn rs4_every_variant_has_its_wire_shape_and_round_trips() {
     let variants = every_variant();
-    assert_eq!(variants.len(), 7, "one fixture per FileError variant");
+    assert_eq!(variants.len(), 9, "one fixture per FileError variant");
 
     for err in &variants {
         let value = serde_json::to_value(err).expect("serialize");

@@ -7,27 +7,14 @@ use std::collections::BTreeMap;
 #[test]
 fn m4_known_disabled_ids_reach_one_refusal_and_no_emit() {
     let layout = menu_layout().unwrap();
-    for (menu_id, command_id) in [
-        ("menu.file.save_as", "file.saveAs"),
-        ("menu.view.switch_documents", "view.switchDocuments"),
-    ] {
-        let action = unavailable_action_for_menu_id(layout, menu_id);
-        assert_eq!(action.as_deref(), Some(command_id));
-        let mut emitted = 0;
-        let result = super::super::menu_availability::dispatch_if_allowed(
-            layout,
-            command_id,
-            "A",
-            Some("A"),
-            Some(ViewMode::Wysiwyg),
-            |_| {
-                emitted += 1;
-                Ok(())
-            },
-        );
-        assert!(result.is_err());
-        assert_eq!(emitted, 0);
-    }
+    assert_eq!(
+        unavailable_action_for_menu_id(layout, "menu.view.switch_documents"),
+        None
+    );
+    assert_eq!(
+        unavailable_action_for_menu_id(layout, "menu.file.save_as"),
+        None
+    );
     assert_eq!(unavailable_action_for_menu_id(layout, "menu.unknown"), None);
 }
 
@@ -43,6 +30,7 @@ fn m4_every_macos_custom_id_has_one_production_route() {
         ),
         ("menu.file.open", "MENU_FILE_OPEN", "file.open"),
         ("menu.file.save", "MENU_FILE_SAVE", "file.save"),
+        ("menu.file.save_as", "MENU_FILE_SAVE_AS", "file.save_as"),
         ("menu.file.close", "MENU_FILE_CLOSE", "file.close"),
         (
             "menu.file.export_html",
@@ -61,6 +49,11 @@ fn m4_every_macos_custom_id_has_one_production_route() {
             "menu.view.toggle_sidebar",
             "MENU_VIEW_TOGGLE_SIDEBAR",
             "view.toggle_sidebar",
+        ),
+        (
+            "menu.view.switch_documents",
+            "MENU_VIEW_SWITCH_DOCUMENTS",
+            "view.switch_documents",
         ),
         (
             "menu.format.highlight",

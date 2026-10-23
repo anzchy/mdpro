@@ -63,6 +63,7 @@ export interface MenuHandlers {
   onNewWindow?: Plain;
   onOpen?: Plain;
   onSave?: Plain;
+  onSaveAs?: Plain;
   onClose?: Plain;
   onExportHtml?: Plain;
   onOpenRecent?: (path: string, actionId?: string, token?: MenuTargetToken) => void;
@@ -71,6 +72,8 @@ export interface MenuHandlers {
   onInsertTable?: Plain;
   onViewModeChange?: (mode: ViewMode, actionId?: string, token?: MenuTargetToken) => void;
   onCycleViewMode?: Plain;
+  onSwitchDocuments?: Plain;
+  onToggleFullscreen?: Plain;
   onThemeModeChange?: (mode: UserPreferences["themeMode"], actionId?: string, token?: MenuTargetToken) => void;
   onOpenPreferences?: (actionId: string, page?: "keyboard-shortcuts", token?: MenuTargetToken) => void;
 }
@@ -131,6 +134,9 @@ export function dispatchMenuAction(
     case "file.save":
       handlers.onSave?.(logMenuSelect("menu.file.save"), ...t);
       break;
+    case "file.save_as":
+      handlers.onSaveAs?.(logMenuSelect("menu.file.save_as"), ...t);
+      break;
     case "file.close":
       runTabAction("file.close", "menu.file.close", handlers.onClose);
       break;
@@ -179,6 +185,12 @@ export function dispatchMenuAction(
     }
     case "view.toggle_sidebar":
       handlers.onToggleSidebar?.(logMenuSelect("menu.view.toggle_sidebar"), ...t);
+      break;
+    case "view.switch_documents":
+      handlers.onSwitchDocuments?.(logMenuSelect("menu.view.switch_documents"), ...t);
+      break;
+    case "view.toggle_fullscreen":
+      handlers.onToggleFullscreen?.(logMenuSelect("menu.view.toggle_fullscreen"), ...t);
       break;
     case "format.highlight":
       handlers.onHighlight?.(logMenuSelect("menu.format.highlight"), ...t);

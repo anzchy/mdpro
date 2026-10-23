@@ -5,7 +5,10 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{State, Window};
 
-use super::save_as_watch::{log_fenced_save_as, refused_save_as, save_as_watched_with};
+use super::save_as_watch::{
+    log_fenced_save_as, original_bytes_before_dialog, refuse_open_target,
+    refuse_original_changed_during_dialog, refused_save_as, save_as_watched_with,
+};
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{
     draft::delete_draft as delete_draft_service,
@@ -100,6 +103,8 @@ pub enum FileError {
     DiskFull,
     InvalidPath { path: String },
     IoError { message: String },
+    ExternalChangeConflict { path: String },
+    AlreadyOpen { path: String },
 }
 
 fn to_file_error(error: std::io::Error, path: &str) -> FileError {
@@ -141,6 +146,8 @@ fn file_error_message(error: &FileError) -> String {
         FileError::DiskFull => "disk full".to_string(),
         FileError::InvalidPath { path } => format!("invalid path: {path}"),
         FileError::IoError { message } => message.clone(),
+        FileError::ExternalChangeConflict { path } => format!("external change: {path}"),
+        FileError::AlreadyOpen { path } => format!("already open: {path}"),
     }
 }
 
@@ -1722,9 +1729,24 @@ pub async fn save_file_dialog(
     line_ending: Option<String>,
     action_id: Option<String>,
     refuse_path: Option<String>,
+    original_path: Option<String>,
     watcher: State<'_, FileWatcher>,
+    shadow: State<'_, SharedShadowStore>,
 ) -> Result<Option<SaveResult>, FileError> {
     let action_id = action_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    // The frontend's hint cannot grant an own-path overwrite exception. Only
+    // this window's registered document may name the original path.
+    let registered_path = shadow
+        .lock()
+        .map_err(|_| FileError::IoError {
+            message: "document registry unavailable".into(),
+        })?
+        .windows
+        .get(window.label())
+        .and_then(|state| state.documents.iter().find(|doc| doc.id == document_id))
+        .and_then(|doc| doc.path.clone());
+    let original_path = original_path.filter(|path| registered_path.as_deref() == Some(path));
+    let original_bytes = original_bytes_before_dialog(original_path.as_deref());
     let mut dialog = rfd::FileDialog::new().add_filter("Markdown", &["md", "markdown"]);
     if let Some(name) = suggested_name {
         dialog = dialog.set_file_name(&name);
@@ -1744,9 +1766,39 @@ pub async fn save_file_dialog(
     };
 
     let picked = path.to_string_lossy().to_string();
+    log_file_event(
+        "file.save_as",
+        LogStatus::Start,
+        LogLevel::Info,
+        Some(&action_id),
+        json!({ "source": "dialog" }),
+        None,
+        None,
+    );
     if let Some(blocked) = refused_save_as(&picked, refuse_path.as_deref(), Some(&action_id)) {
+        log_file_event(
+            "file.save_as",
+            LogStatus::Cancel,
+            LogLevel::Warn,
+            Some(&action_id),
+            json!({ "source": "dialog", "reason": "external_change_pending" }),
+            None,
+            None,
+        );
         return Ok(Some(blocked));
     }
+    refuse_original_changed_during_dialog(
+        &picked,
+        original_path.as_deref(),
+        original_bytes.as_deref(),
+        Some(&action_id),
+    )?;
+    refuse_open_target(
+        &picked,
+        original_path.as_deref(),
+        Some(&action_id),
+        &watcher,
+    )?;
     let raw = PathBuf::from(&picked);
     let Some(hold) = watcher
         .reserve_hold(window.label(), &raw)

@@ -24,7 +24,9 @@
  *   `ExternalChangePendingError` (performSave toasts it; the document stays dirty and its
  *   reload prompt shows). Save As (D111-WI-1) sends the document's own path as
  *   `refusePath` while a change is pending; Rust refuses only a pick of that file and the
- *   body throws the same error. Any other target is written. D111: a Save As holds the
+ *   body throws the same error. D255: Rust refuses a different target already
+ *   open in any mdpro window; the dialog sends this document's original path.
+ *   An unopened target is written. D111: a Save As holds the
  *   watcher events that arrive before its reply and, once the document has moved to the
  *   target, records them and the reply's `changedSinceRead` on it (`fileChangeCapture`).
  * - D290: an ignored deletion requires a document/path/sequence-bound choice.
@@ -126,6 +128,8 @@ async function saveDocumentAsNow(documentId: string, actionId?: string): Promise
   const doc = flushDocumentForSave(documentId, actionId);
   if (!doc) return staleSave("closed", actionId);
   const startGeneration = useDocumentStore.getState().baselineGeneration; // D214-WI-6
+  const startLifetime = useDocumentStore.getState().lifetimeEpoch[doc.id] ?? 0;
+  const startReplacement = useDocumentStore.getState().replacementEpoch[doc.id] ?? 0;
   const refuse = saveAsRefusePath(doc);
   const capture = beginCapture(null); // D111: the dialog picks the target in Rust
   try {
@@ -137,6 +141,7 @@ async function saveDocumentAsNow(documentId: string, actionId?: string): Promise
       lineEnding: doc.lineEnding,
       actionId,
       refusePath: refuse?.path ?? null,
+      originalPath: doc.path,
     });
     if (result?.blockedByPendingChange) {
       // D111-WI-1: Rust wrote nothing; the document stays dirty and its prompt shows.
@@ -144,6 +149,12 @@ async function saveDocumentAsNow(documentId: string, actionId?: string): Promise
       throw new ExternalChangePendingError();
     }
     if (result?.success) {
+      const state = useDocumentStore.getState();
+      const current = state.getDocumentById(doc.id);
+      if (!current) return staleSave("closed", actionId);
+      if (current.path !== doc.path) return staleSave("path_moved", actionId);
+      if ((state.lifetimeEpoch[doc.id] ?? 0) !== startLifetime) return staleSave("reopened", actionId);
+      if ((state.replacementEpoch[doc.id] ?? 0) !== startReplacement) return staleSave("reloaded", actionId);
       applySaveResult(doc.id, doc.content, doc.content, result, actionId, startGeneration);
       // D111: after the path moved, so the old path's slot is pruned first.
       capture.settle(saveAsCommitTarget(doc.id, result.path), result.changedSinceRead, actionId);

@@ -242,14 +242,14 @@ describe("M1A-WI-10 refused Saves", () => {
 });
 
 describe("M1A-WI-10 allowed Saves", () => {
-  it("custom vs an unavailable row's default (⇧⌘S, Save As) saves the value", async () => {
-    const { closed, user } = await open();
+  it("custom Save taking Save As's available default is refused", async () => {
+    const { closed, user, before } = await open();
     await record(user, "Save", MAC_KEYS["Cmd+Shift+S"] as string);
-    expect(conflictAlert()).toBeUndefined();
+    expect(conflictAlert()?.textContent).toContain("Save would take Save As's key");
     await clickSave(user);
-    await waitFor(() => expect(closed).toHaveLength(1));
-    expect(fake.state.store.fileSave).toBe("Cmd+Shift+S");
-    expect(fake.state.writes).toHaveLength(1);
+    expect(closed).toHaveLength(0);
+    expect(fake.state.store).toEqual(before);
+    expect(fake.state.writes).toHaveLength(0);
   });
 
   // M7: SD14's notice went with the hidden set; the two fields now have rows.

@@ -380,7 +380,11 @@ describe("R1-11: availability and contexts per row × platform × version", () =
       const [v1, v2, contexts] = AVAILABILITY[f];
       for (const p of PLATFORMS) {
         const got = r?.availability[p];
-        if (got?.v1 !== v1 || got.v2 !== v2) {
+        const nowAvailable = f === "fileSaveAs" || f === "viewSwitchDocuments"
+          || (f === "viewToggleFullscreen" && p !== "macos");
+        const expectedV1 = nowAvailable ? "both" : v1;
+        const expectedV2 = nowAvailable ? "both" : v2;
+        if (got?.v1 !== expectedV1 || got.v2 !== expectedV2) {
           mismatches.push(`${f}/${p}: ${got?.v1}/${got?.v2} != ${v1}/${v2}`);
         }
       }

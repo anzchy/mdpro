@@ -69,6 +69,7 @@ fn m4_wi2_each_eligible_pair_uses_one_full_snapshot_resolution() {
             matches!(row.menu.macos, MenuPath::Path(_))
                 && row.pref_field.is_some()
                 && row.availability.macos.v1 != Availability::None
+                && row.id != "view.switchDocuments"
         })
         .collect();
     let mut checked = 0;

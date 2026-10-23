@@ -15,11 +15,13 @@ pub fn sync_recent_files_menu(
     state: State<MenuState>,
     op: RecentOp,
     view_mode: Option<String>,
+    tab_count: Option<u32>,
     theme_mode: Option<String>,
 ) -> Result<Vec<String>, String> {
     let report = view_mode.map(|mode| ModeReport {
         window: window.label().to_string(),
         mode,
+        tab_count,
     });
     if let Some(theme_mode) = theme_mode.as_deref() {
         state.publish_op_with_theme(op, report, Some(theme_mode), |list, mode, _theme| {

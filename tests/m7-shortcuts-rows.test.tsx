@@ -132,7 +132,7 @@ describe("M7 groups and fixed rows on the page", () => {
 describe("M7 row states", () => {
   it("r1 Not available: muted name, status text in the key's place, no key button, a click records nothing", async () => {
     const { user, closed } = await open();
-    const r = row("Save As");
+    const r = row("Open Quickly");
     expect(r.classList.contains("is-unavailable")).toBe(true);
     expect(r.querySelector("button")).toBeNull();
     expect(r.querySelector(".shortcut-status")?.textContent).toBe("Not available");
@@ -141,7 +141,7 @@ describe("M7 row states", () => {
     await record(user, "Find Next", "{Meta>}j{/Meta}");
     await clickSave(user);
     await waitFor(() => expect(closed).toHaveLength(1));
-    expect(fake.state.writes[0]?.fileSaveAs).toBe(DEFAULT_KEYBOARD_SHORTCUTS.fileSaveAs);
+    expect(fake.state.writes[0]?.fileOpenQuickly).toBe(DEFAULT_KEYBOARD_SHORTCUTS.fileOpenQuickly);
   });
 
   it("r2 WYSIWYG only / Source only: the key button works and the capability line sits under the name", async () => {

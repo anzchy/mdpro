@@ -1,9 +1,9 @@
 /**
- * Purpose: report this window's view mode and, when App opts in, its theme
- * mode on change and focus. Reports are serialized to preserve tick order.
+ * Purpose: report this window's view mode, tab count and, when App opts in,
+ * its theme mode on change and focus. Reports are serialized to preserve tick order.
  * Rust owns the session list and binds the report to the injected caller.
  *
- * Pipeline: mode change / native focus → typed `syncRecentFilesMenu` refresh.
+ * Pipeline: mode or tab-count change / native focus → typed `syncRecentFilesMenu` refresh.
  *
  * Key decisions:
  * - `seed` / `record` calls from `useRecentFiles` send `null`; only this hook
@@ -26,13 +26,13 @@ import { useThemeStore } from "../stores/themeStore";
 
 type ThemeMode = UserPreferences["themeMode"];
 
-export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeMode): () => void {
-  const latestMode = useRef({ viewMode, themeMode });
-  latestMode.current = { viewMode, themeMode };
+export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeMode, tabCount?: number): () => void {
+  const latestMode = useRef({ viewMode, themeMode, tabCount });
+  latestMode.current = { viewMode, themeMode, tabCount };
   const includeTheme = useRef(themeMode !== undefined);
   includeTheme.current = themeMode !== undefined;
   const themeOnFocus = useRef(false);
-  const pending = useRef<{ mode: ViewMode; source: "change" | "focus"; withTheme: boolean }[]>([]);
+  const pending = useRef<{ mode: ViewMode; source: "change" | "focus"; withTheme: boolean; tabCount?: number }[]>([]);
   const reporting = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -40,9 +40,9 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeM
     return () => { mounted.current = false; };
   }, []);
 
-  const reportMode = useCallback((mode: ViewMode, source: "change" | "focus", withTheme: boolean) => {
+  const reportMode = useCallback((mode: ViewMode, source: "change" | "focus", withTheme: boolean, count?: number) => {
     if (!isTauri()) return;
-    const send = async (next: { mode: ViewMode; source: "change" | "focus"; withTheme: boolean }): Promise<void> => {
+    const send = async (next: { mode: ViewMode; source: "change" | "focus"; withTheme: boolean; tabCount?: number }): Promise<void> => {
       if (!mounted.current) {
         reporting.current = false;
         pending.current = [];
@@ -56,7 +56,7 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeM
         level: "info", event: "ui.menu.mode_report", status: "start",
         actionId, context: { source: next.source, mode: next.mode },
       });
-      const list = await syncRecentFilesMenu({ kind: "refresh" }, next.mode, confirmedMode);
+      const list = await syncRecentFilesMenu({ kind: "refresh" }, next.mode, confirmedMode, next.tabCount);
       loggingService.logEventSync({
         level: list ? "info" : "error", event: "ui.menu.mode_report",
         status: list ? "success" : "fail", actionId,
@@ -66,7 +66,7 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeM
       if (following) void send(following);
       else reporting.current = false;
     };
-    const next = { mode, source, withTheme };
+    const next = { mode, source, withTheme, tabCount: count };
     if (reporting.current) pending.current.push(next);
     else {
       reporting.current = true;
@@ -74,8 +74,8 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeM
     }
   }, []);
   useEffect(() => {
-    reportMode(viewMode, "change", includeTheme.current);
-  }, [viewMode, themeMode, reportMode]);
+    reportMode(viewMode, "change", includeTheme.current, tabCount);
+  }, [viewMode, themeMode, tabCount, reportMode]);
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -90,7 +90,7 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeM
     try {
       void getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (!focused || disposed) return;
-        reportMode(latestMode.current.viewMode, "focus", includeTheme.current || themeOnFocus.current);
+        reportMode(latestMode.current.viewMode, "focus", includeTheme.current || themeOnFocus.current, latestMode.current.tabCount);
       }).then((fn) => {
         if (disposed) fn();
         else unlisten = fn;
@@ -102,6 +102,6 @@ export function useRecentFilesMenuRefresh(viewMode: ViewMode, themeMode?: ThemeM
   }, [reportMode]);
   return useCallback(() => {
     themeOnFocus.current = true;
-    reportMode(latestMode.current.viewMode, "change", true);
+    reportMode(latestMode.current.viewMode, "change", true, latestMode.current.tabCount);
   }, [reportMode]);
 }

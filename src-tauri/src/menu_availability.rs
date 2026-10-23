@@ -41,6 +41,7 @@ impl ViewMode {
 #[derive(Default)]
 pub struct MenuModes {
     by_window: HashMap<String, ViewMode>,
+    tab_counts: HashMap<String, u32>,
 }
 
 impl MenuModes {
@@ -50,12 +51,34 @@ impl MenuModes {
         Ok(())
     }
 
+    pub fn report_with_tab_count(
+        &mut self,
+        label: &str,
+        mode: &str,
+        count: Option<u32>,
+    ) -> Result<(), &'static str> {
+        let mode = ViewMode::parse(mode)?;
+        if count.is_some_and(|count| count > 10_000) {
+            return Err("invalid_tab_count");
+        }
+        self.by_window.insert(label.to_string(), mode);
+        if let Some(count) = count {
+            self.tab_counts.insert(label.to_string(), count);
+        }
+        Ok(())
+    }
+
     pub fn for_focused(&self, label: Option<&str>) -> Option<ViewMode> {
         label.and_then(|label| self.by_window.get(label).copied())
     }
 
+    pub fn tab_count_for(&self, label: &str) -> Option<u32> {
+        self.tab_counts.get(label).copied()
+    }
+
     pub fn forget(&mut self, label: &str) {
         self.by_window.remove(label);
+        self.tab_counts.remove(label);
     }
 }
 
@@ -70,6 +93,15 @@ pub(super) fn allows(availability: Availability, mode: Option<ViewMode>) -> bool
         Availability::S => mode == Some(ViewMode::Source),
         Availability::None => false,
     }
+}
+
+pub(super) fn switch_documents_enabled(tab_count: Option<u32>) -> bool {
+    tab_count.is_some_and(|count| count >= 2)
+}
+
+pub(super) fn focused_tab_count(app: &AppHandle<Wry>) -> Option<u32> {
+    let label = app.try_state::<MenuFocus>()?.snapshot().0?;
+    app.try_state::<MenuState>()?.tab_count_for_window(&label)
 }
 
 /// Recheck the target's current mode inside D261's emit callback. A refused
@@ -127,6 +159,20 @@ pub(super) fn emit_to_window(
     menus: Option<&MenuState>,
     emit: impl FnOnce(&str) -> Result<(), ()>,
 ) -> Result<(), ()> {
+    if action == "view.switch_documents"
+        && !switch_documents_enabled(menus.and_then(|state| state.tab_count_for_window(target)))
+    {
+        logger::log_event(LogEntryPayload {
+            level: LogLevel::Info,
+            event: "ui.menu.availability".into(),
+            status: LogStatus::Cancel,
+            action_id: Some(uuid::Uuid::new_v4().to_string()),
+            context: Some(json!({ "action": "view.switch_documents", "reason": "one_tab" })),
+            duration_ms: None,
+            error: None,
+        });
+        return Err(());
+    }
     let current_mode = menus.and_then(|state| state.mode_for_window(target));
     let current_focus = focus.snapshot().0;
     dispatch_if_allowed(
@@ -172,6 +218,10 @@ pub fn refresh_menu_for_focus(app: &AppHandle<Wry>) {
 #[cfg(test)]
 #[path = "menu_availability_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "menu_availability_d255_tests.rs"]
+mod d255_tests;
 
 #[cfg(test)]
 #[path = "menu_availability_m4_integration_tests.rs"]

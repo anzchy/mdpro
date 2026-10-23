@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fileService, type OpenFileResult } from "../services/fileService";
 import * as documentSave from "../services/documentSave";
 import type { Document } from "../types/document";
@@ -6,6 +6,8 @@ import { useDocumentStore } from "../stores/documentStore";
 import { useTOCStore } from "../stores/tocStore";
 import { prepareWholesaleReplace } from "../utils/wholesaleReplace";
 import { useEditorStore } from "../stores/editorStore";
+import { useTabStore } from "../stores/tabStore";
+import { switchToMostRecentDocument } from "./switchDocuments";
 import {
   commitOpenedDocument,
   encodingRetryCancelled,
@@ -67,6 +69,10 @@ export function useDocument() {
     () => documents.find((doc) => doc.id === activeDocumentId) ?? null,
     [documents, activeDocumentId],
   );
+
+  useEffect(() => {
+    useTabStore.getState().syncDocuments(documents, activeDocumentId);
+  }, [documents, activeDocumentId]);
 
   /** Set the large-file warning for a written open, and hand back the document. */
   const applyOpened = useCallback((outcome: OpenWriteResult): Document => {
@@ -282,6 +288,7 @@ export function useDocument() {
     saveActiveDocumentAs,
     closeActiveDocument,
     setActiveDocumentById,
+    switchToMostRecentDocument,
     closeDocumentById,
     largeFileWarning,
     clearLargeFileWarning: () => setLargeFileWarning(null),
