@@ -9,8 +9,8 @@ import type { Editor } from "@milkdown/kit/core";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import "./FindReplacePrototype.css";
 
-type Variant = "a" | "b" | "c";
-const variants: Record<Variant, string> = { a: "A · Corner bar", b: "B · Editor strip", c: "C · Context popover" };
+type Variant = "a" | "b" | "c" | "d";
+const variants: Record<Variant, string> = { a: "A · Corner bar", b: "B · Editor strip", c: "C · Context popover", d: "D · Bottom bar" };
 const sample = `# The quiet editor
 
 The editor should keep the page calm while helping you find what matters. Search the editor for “editor” to see every match in context. Select a word in the editor, then press ⌘F to start from that selection.
@@ -46,7 +46,7 @@ Search is a way to move through a document. Replace changes it. The editor shoul
 
 export function FindReplacePrototype() {
   const initial = new URLSearchParams(location.search).get("variant");
-  const [variant, setVariant] = useState<Variant>(initial === "b" || initial === "c" ? initial : "a");
+  const [variant, setVariant] = useState<Variant>(initial === "b" || initial === "c" || initial === "d" ? initial : "a");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [open, setOpen] = useState(true);
   const [replaceOpen, setReplaceOpen] = useState(true);
@@ -163,7 +163,7 @@ export function FindReplacePrototype() {
   const choose = (next: Variant) => { history.replaceState(null, "", `?variant=${next}`); setVariant(next); log(`variant${next}`); };
 
   return <div className={`find-prototype-page variant-${variant}`}>
-    <header className="find-prototype-title"><span>Notes / <strong>Finding the right words</strong></span><span>WYSIWYG</span></header>
+    <header className="find-prototype-title"><span>Notes / <strong>Finding the right words</strong></span><nav className="find-prototype-switcher" aria-label="Prototype variants"><span>Find / Replace · U12</span>{(Object.keys(variants) as Variant[]).map((choice) => <button type="button" key={choice} className={choice === variant ? "is-active" : ""} onClick={() => choose(choice)}>{variants[choice]}</button>)}<button type="button" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? "Dark" : "Light"} theme</button></nav></header>
     <main className="find-prototype-workspace" ref={editorRef}>
       <MilkdownEditor />
       {open && <section className="find-prototype-popup" aria-label="Find and replace" style={variant === "c" ? { left: anchor.x, top: anchor.y } : undefined}>
@@ -173,6 +173,6 @@ export function FindReplacePrototype() {
       </section>}
       {!open && <button className="find-prototype-reopen" type="button" onClick={() => openFind(false)}>Find · ⌘F</button>}
     </main>
-    <footer className="find-prototype-switcher"><span>Find / Replace · U12</span>{(Object.keys(variants) as Variant[]).map((choice) => <button type="button" key={choice} className={choice === variant ? "is-active" : ""} onClick={() => choose(choice)}>{variants[choice]}</button>)}<button type="button" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? "Dark" : "Light"} theme</button></footer>
+    <footer className="find-prototype-tabs" aria-label="Document tabs"><span className="find-prototype-tab is-active">Finding the right words</span><span className="find-prototype-tab">Draft notes</span></footer>
   </div>;
 }
