@@ -154,8 +154,21 @@ alias here.
      repeated;
   6. the first prompt points at the brief or the request file.
 
-  Models: implementors `gpt-6-sol` medium; gpt-imple-3 `gpt-5.6-sol` medium; gpt-auditor
-  `gpt-6-sol` medium (since 2026-10-23; `gpt-6-astra` high before). `~/.codex/config.toml` is never edited for this. The new pane id goes into
+  Models: implementors `gpt-6-sol`; gpt-imple-3 `gpt-5.6-sol`; gpt-auditor `gpt-6-sol` (since 2026-10-23;
+  `gpt-6-astra` high before). **Effort follows the item's difficulty** ([ADR-0138](../../docs/adr/0138-effort-follows-task-difficulty-and-audits-read-from-the-diff-outward.md);
+  user, 2026-10-23: 「effort 要根据任务难度来route」, accepted 「接受 (Recommended)」). Every brief and request names
+  `routine`, `standard` or `hard` (the hardest match wins, unlisted is `standard`, ADR-0121 High-by-behaviour is at
+  least `standard`, a test-only change takes its invariant's difficulty; raise only, never lower; a raise is a new pane):
+
+  | Role | routine | standard | hard |
+  |---|---|---|---|
+  | Implementor | low | medium | high |
+  | gpt-auditor, any request | medium | medium | high |
+  | gpt-auditor confirm or challenge touching a `hard` path, or after a round that found a new High | high | high | high |
+  | `mdpro-spec-adversary` (every grant) | `mdpro-spec-adversary-std` (`gpt-6-sol` medium) | same | `mdpro-spec-adversary` (`gpt-6-astra` high) |
+
+  The pilot (ADR-0138 decision 5) runs to the second High-tier PR's landing; from the next brief on, dispatch reverts to
+  medium everywhere, the Astra adversary and full-file reading, until the user rules. `~/.codex/config.toml` is never edited for this. The new pane id goes into
   the heartbeat assignment.
 - **Challenge and confirm with gpt-auditor.** Every request, these included, follows § Fresh
   context: a new-pane reset, then a prompt pointing at a self-contained request file. Nothing relies

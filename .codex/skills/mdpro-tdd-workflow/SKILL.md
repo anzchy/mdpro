@@ -80,7 +80,9 @@ skipped per brief" in the handoff. Steps 3 and 5–8 still run.
 ## Step 3: Attack the matrix with a subagent
 
 The attack must come from a context that didn't write the matrix. **Spawn the custom agent
-`mdpro-spec-adversary`** (defined in `.codex/agents/mdpro-spec-adversary.toml`). Give it:
+`mdpro-spec-adversary`** (defined in `.codex/agents/mdpro-spec-adversary.toml`, `gpt-6-astra` high) when the
+brief's difficulty is `hard`, and **`mdpro-spec-adversary-std`** (`gpt-6-sol` medium) when it is `routine` or `standard`
+(ADR-0138). Every grant is attacked. Give it:
 - the brief path;
 - the plan and matrix paths;
 - the source files under change, and the existing tests nearby;

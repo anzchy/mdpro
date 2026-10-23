@@ -87,9 +87,13 @@ High without a reproduction or a counter-proof (a file:line trace showing the or
 never reaches it).
 
 ## Procedure by mode
-- **audit**: `git diff-tree --no-ext-diff --name-only -r <parent> <sha>`, then read each changed
-  file at `<sha>` (`git show <sha>:<path>`) and its callers. Audit the change, not the whole
-  file: a defect in untouched code counts only when the change makes it reachable.
+- **audit**: `git diff-tree --no-ext-diff --name-only -r <parent> <sha>`, then read the diff and the changed tests
+  (ADR-0138 decision 4). Treat the implementor's entry-path and await map as an index to verify, not a scope. Build your
+  own map: every acquirer of each lock the range touches or calls under, every writer and deleter of each persisted
+  value it changes, every caller, and the window, close and quit lifecycles that reach them; read those in full and name
+  them in the report. On a `hard` range also read each changed file at `<sha>` (`git show <sha>:<path>`) and its callers
+  in full. Audit the change, not the whole file: a defect in untouched code counts only when the change makes it
+  reachable.
 - **confirm**: for each named finding, CLOSED, PARTIAL or OPEN, with evidence at the new SHA.
   Review the fix diff from the previous audited SHA, or a `git range-diff` across a rebase.
   - **A class:** a finding names its bug class and every instance, and any instance left unfixed
