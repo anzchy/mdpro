@@ -2,6 +2,8 @@
 
 ## Status
 
+Partially superseded 2026-10-23 by [ADR-0134](0134-the-herdr-roster-moves-to-the-mac-mini-isolated-from-picsee.md): decision 1's "one `mdpro-wt/` worktree per item" (one persistent worktree per agent), decision 2's clause that the worktree moves with a blocked Low-tier item (the branch and receipts move, the worktree stays), and decision 4's launch line and validity check (implementors also carry `-s danger-full-access`).
+
 Accepted, 2026-10-22. Decided by the user, recorded by herdr-delegator. The user's words:
 「Accept (Recommended)」. Reviewed over three rounds by gpt-auditor (`review-plan`) and Opus
 (`mdpro-fable-auditor`, plan mode), blind in round one: r1 C0 H1 / C0 H2, r2 C0 H1 / C0 H0,

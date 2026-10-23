@@ -270,7 +270,11 @@ Sequencing for this effort lives in
 ## Worktrees
 
 Parallel work (peer sessions, verification builds) uses git worktrees, and they
-all live in **one place**: `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro-wt/`.
+all live in **one place**: `/Users/jack/Documents/mac-app/mdpro-wt/` on the Mac mini, where development runs since
+2026-10-22 ([ADR-0134](./docs/adr/0134-the-herdr-roster-moves-to-the-mac-mini-isolated-from-picsee.md)).
+**The herdr roster's Codex agents each keep one persistent worktree, `mdpro-wt/<agent-name>`**, and check out
+one item branch at a time. It is removed only when the agent is retired, after the delegator's pre-grant check
+(ADR-0134 decision 3). The naming and removal rules below cover every other worktree.
 Not as `mac-app/mdpro-*` siblings, not under the repo's `.claude/worktrees/`, and
 not in a session scratchpad, where they become broken entries when the
 scratchpad is wiped.

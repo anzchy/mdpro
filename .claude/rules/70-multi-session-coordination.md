@@ -24,7 +24,7 @@ message.
 
 | Session | Machine | Model | Owns | Commits where |
 |---|---|---|---|---|
-| **herdr-delegator** | MacBook, main checkout, herdr pane | Opus | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `master`, docs only; lands peer commits by `git merge --ff-only` and pushes `origin master` after each landing |
+| **herdr-delegator** | Mac mini, main checkout, herdr pane in session `mdpro` (ADR-0134) | Opus | Coordination: hands out D items and WIs, verifies and fast-forwards peer commits, asks the user, writes device briefs, commits device-check records and the release-freeze paragraph | Main checkout, `master`, docs only; lands peer commits by `git merge --ff-only` and pushes `origin master` after each landing |
 | **mdpro-implementor-\*** (one or more) | MacBook | Opus, or Codex `gpt-6-sol` in a herdr pane (`gpt-imple-*`) | The work items the delegator hands it, one area at a time | Its own branch and worktree in `mdpro-wt/`. It runs git only inside that worktree; the delegator does cross-tree git for it |
 | **mdpro-auditor-\*** | MacBook | Opus (the Codex job it dispatches runs `gpt-6.1-sol`) | Audits the user hands it directly (e.g. the branch audit in `docs/audit/`) and the fixes that come out of them. D items it fixes keep their sequencing rows as the authority on status | `isolation: "worktree"` subagents; the fix branch, rebased onto `master`, is handed to the delegator to land |
 | **mdpro-device-harness** | Mac mini | Opus | The device-test tooling itself: ADR-0047, the agent control channel | The mini's main checkout `/Users/jack/Documents/mac-app/mdpro` |
@@ -368,7 +368,7 @@ it removes that one when it finishes.
 
 - **ADR numbers are reserved through the delegator before the file is
   written.** Two drafts both took 0066 on 2026-10-10. Ask for the next number;
-  the delegator runs `git fetch mac-mini`,
+  the delegator runs `git fetch origin` (ADR-0134; the MacBook is no longer scanned),
   `git log --all -- docs/adr/`, and `ls docs/adr` in every path
   `git worktree list` prints (that covers `mdpro-wt/`,
   `.claude/worktrees/agent-*` and the Codex worktree), plus the numbers it
@@ -425,8 +425,11 @@ it. (User decision, 2026-10-10.)
 
 ## The Mac mini
 
-- **Don't switch branches or rebuild in the mini's main checkout**; it belongs
-  to mdpro-device-harness. Builds for device checks use a separate
+- **Since ADR-0134 the mini's main checkout belongs to herdr-delegator**; development runs on the mini, and the
+  device tester is `mac-test` (tmux `dtrack`), briefed directly by `SendMessage` (rule 71). The bullets below still
+  bind where they apply; those about SSH, `rsync` and the MacBook hook receiver now matter only for remote hosts.
+- **Don't switch branches or rebuild in the mini's main checkout** for a device check; it belongs
+  to the delegator. Builds for device checks use a separate
   `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` worktree on the mini. Tell mdpro-device-harness whenever a mini
   worktree is created or removed. Never touch `src-tauri/target/verify`, and
   never `cargo clean` there.

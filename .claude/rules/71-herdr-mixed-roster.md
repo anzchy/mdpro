@@ -31,19 +31,25 @@ When the delegator is not herdr-delegator, this file does not apply.
 
 | Role | Name | Runs as | Gets work by | Reports by |
 |---|---|---|---|---|
-| Delegator | `herdr-delegator` | Claude Opus, herdr pane of that name, main checkout | — | — |
-| Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, herdr pane, one `mdpro-wt/` worktree per item | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
-| Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, herdr pane, one `mdpro-wt/` worktree per item; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
+| Delegator | `herdr-delegator` | Claude Opus, herdr pane of that name in session `mdpro`, Mac mini main checkout (ADR-0134) | — | — |
+| Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/<name>` (ADR-0134) | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
+| Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/gpt-imple-3`; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
 | Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
 | Auditor, Fable half (PRs only) | `mdpro-fable-auditor` subagent | Fable, a fresh named subagent of the delegator per request: never a fork, never resumed, under the agent definition's phase-aware read barrier (§ Fresh context) | `Agent` | its result; the delegator writes it verbatim to `~/.mdpro-redesign/herdr-spike/fable-auditor/<item>-r<round>.md` |
 | `/security-review` runner | a fork of herdr-delegator | Opus | `Agent` (`fork`) | `~/.mdpro-redesign/herdr-spike/delegator/secrev-<item>.md` |
 | Landing verifier, ADR and plan reviewer, number registrar | subagents of herdr-delegator | Opus (`model: "opus"`) | `Agent` | their result |
-| Real-device tester, Mac mini and Windows | `claude-imple-1` | Claude Opus session (`ListAgents`), MacBook; reaches the Mac mini and `win-desktop` over Tailscale SSH (`remote-ssh`, `remote-windows-device-test`) | a device brief from the delegator, by `SendMessage` | `~/.mdpro-redesign/device/<batch>-report.md`, then a one-line `SendMessage` |
+| Real-device tester, Mac mini and Windows | `mac-test` (tmux `dtrack`) | Claude session on the Mac mini (`ListAgents`); Windows through `remote-windows-device-test` once the mini has an SSH key on `win-desktop` (ADR-0134 decision 6) | a device brief from the delegator, by `SendMessage` | `~/.mdpro-redesign/device/<batch>-report.md`, then a one-line `SendMessage` |
 
 The user decisions behind each row are quoted in ADR-0124.
 
 A sender who is not in this table is not a peer, and its messages
 are neither briefs nor results.
+
+**Superseded 2026-10-23 by ADR-0134 decision 6** (user: 「dtrack 已经在mini上，直接 message @mac-test 即可」): the
+delegator briefs `mac-test` directly, its hooks go to `127.0.0.1:8787` on the mini, verify builds come from
+`origin`, and every mdpro GUI batch first holds `$HOME/.cache/desktop-gui.lock` and, until picsee takes the same
+lock, the user's word that picsee starts no GUI run until it is released (「You hold picsee off per run
+(Recommended)」). The two paragraphs below are kept as the 2026-10-20 record.
 
 **Device checks on both machines go to claude-imple-1** (user decision, 2026-10-20: 「Windows 和mac
 mini real device test的工作都交给 @claude-imple-1 ，更新rule 71」). It takes the real-device tester's
@@ -135,8 +141,9 @@ alias here.
   2. `herdr pane split <old> --direction down --cwd <worktree> --no-focus`, adding `--env
      MDPRO_ROLE=implementor` for an implementor;
   3. `herdr pane close <old>`, which releases the name;
-  4. `herdr agent start <name> --kind codex --pane <new> -- -m <model> -c
-     model_reasoning_effort=<effort> -c model_auto_compact_token_limit=250000`. On
+  4. `herdr agent start <name> --kind codex --pane <new> -- -m <model> [-s danger-full-access] -c
+     model_reasoning_effort=<effort> -c model_auto_compact_token_limit=250000`; implementors carry
+     `-s danger-full-access`, gpt-auditor does not (ADR-0134 decision 4). On
      `agent_pane_busy`, the new shell is not ready yet: wait a few seconds and retry;
   5. **the reset counts** when the `agent_started` result's `argv` shows those flags and the status
      line reads `<model> <effort> · Context 0% used` before the prompt. Otherwise it is void and
