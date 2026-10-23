@@ -2,6 +2,8 @@
 
 ## Status
 
+Partially superseded 2026-10-24 by [ADR-0139](0139-routine-implementor-items-run-on-gpt-6-luna-high-as-a-pilot.md): decision 2, the implementor row's `routine` cell (now `gpt-6-luna` high).
+
 Accepted, 2026-10-23. Decided by the user, recorded by herdr-delegator. The user's words: 「接受 (Recommended)」, given
 to a question that stated the ADR-0121 decision 6 result (no escapes recorded, "insufficient evidence") and that recall
 under decision 4 is unmeasured; that answer is the decision 6 ruling. Reviewed over three rounds by gpt-auditor
