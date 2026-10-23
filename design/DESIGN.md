@@ -709,6 +709,29 @@ look. Where the two disagree, the plan wins and this block is corrected.
   ship. There is no command palette (Q11, closed), and ⌘K already inserts a
   link.
 
+### Find and replace bar (D255-WI-3c, U12)
+
+Chosen on the running prototype, branch `prototype/d255-find-replace` (variant D). The user's words:
+「find/replace prototype choices: D」. Drawn as scene S14 of [`mockup.html`](mockup.html).
+
+- **Where:** the last row of the editor column, above the full-width bottom tabs, never covering them. It spans
+  the column, with a centred content row no wider than 900px. No floating popover, and nothing covers the text.
+- **Rows:** Find is always on the bottom edge. ⌘H adds the Replace row **above** Find, so Find never moves. A
+  subtle hairline separates the rows; the bar has a hairline top and no shadow.
+- **Find row:** "Find" label, a text field pre-filled from the selection, the count ("3 of 12", "No matches") in
+  mono at muted colour in an `aria-live="polite"` region, ↑ / ↓ (⇧⌘G / ⌘G), the Aa and Whole word toggles
+  (pressed = `--color-accent-soft` with `--color-accent-text`), and ×.
+- **Replace row:** "Replace" label, the field, Replace (rule 32 secondary button) and Replace All (the primary).
+- **Fields:** `--color-input-bg`, a `--color-control-border` edge, `--radius-control`, 28px high; focus is rule 33
+  pattern 1 (accent edge plus `--color-accent-soft` ring).
+- **Matches:** every match takes `--color-accent-soft` with an accent underline. The current one is
+  `color-mix(in srgb, var(--color-accent) 33%, var(--color-editor-bg))` with a 1px accent outline. Matches are
+  decorations; they never change the document or its undo history.
+- **Keys and focus:** ⌘F opens it focused on Find; ⌘H opens with focus on Replace; Enter / Shift-Enter step; Esc
+  closes, clears the marks and returns focus to the text.
+- **Scope:** WYSIWYG. Whether Source mode's CodeMirror panel is restyled to this same bar (the typora-parity plan's
+  D2) is open; until then Source keeps its panel.
+
 ## States
 
 What each surface shows outside its resting look. Every event gets one
@@ -885,6 +908,7 @@ Leave these open; don't pick an answer while building.
 
 | Date | Decision | Rationale |
 |---|---|---|
+| 2026-10-23 | U12: WYSIWYG find / replace is a bar docked at the bottom of the editor column, above the tabs, with Replace added above Find. The user compared four variants on the running prototype: a top-right corner bar, a strip under the title bar, a popover at the match, and the bottom bar. The bottom bar was added at the user's request (「Add a variant docked at the bottom of the editor, next to the current top-docked bar」). The user chose 「find/replace prototype choices: D」 | It covers no text and leaves the reading column untouched, which keeps the quiet-paper register. Find stays on one edge while Replace comes and goes. What it gives up: the bar takes one or two rows of editor height while open, and it sits far from the match when the match is near the top of the window; the current match is scrolled into view to compensate. Prototype: branch `prototype/d255-find-replace` (VERDICT.md there); scene S14 of `mockup.html`. |
 | 2026-10-16 | Menu reorganisation UI: the plan's trees as written. Unavailable items are greyed in place with their keys greyed. Keyboard Shortcuts rows stay in place, marked "Not available" or "WYSIWYG only" / "Source only". Changed defaults are not announced. The user asked for prototypes: 「上面的Menu Reorganization 也涉及到UI修改，重新设计之后的UI形成Prototype （3个备选）」. The user chose 「A · Plan as written, greyed」 | It is the platforms' own disabled look, with nothing for mdpro to build or maintain on top of the plan. The recommended B (nested Paragraph submenus, no key on items with no command, a folded "Not available yet" list and a one-time banner of changed keys) was turned down. What A gives up: a no-command item and a wrong-mode item look the same in the menu, and the 14 moved default keys, among them ⌘H → Find and Replace, are not announced in the app. Prototype: `prototypes/012-menu-ui.html`, branch `prototype/menu-ui` (VERDICT.md there). |
 | 2026-10-16 | D260: Settings has no footer Close. The rail uses outline icons on Lucide's geometry at 19px, in the label's colour, a neutral grey selected row (text 9%, no accent, no bold) and 32px rows. The user's request: 「在v0.3.6 Settings 中，把左下角的`Close` button去掉，此外 每个Tab的 […] 图标我想换一下」. The user chose variant D, VMark's look: 「D · VMark outline (Recommended)」 | The header × and Esc already close the dialog, so the footer only repeated them. The user first chose Typora's solid glyphs (A), then preferred VMark's outline rail side by side, which keeps § Icons' outline contract, so no ADR. The three rail exceptions in § Icons are the cost: the rail no longer uses the rule 31 accent selection, and its icons are neither muted nor `--icon-size-md`. Prototype: `prototypes/011-d260-settings-rail.html`, branch `prototype/d260-settings-rail`. |
 | 2026-10-15 | D223: the sidebar's top band carries no text; the "Table of Contents" header and the WYSIWYG / SOURCE badge are removed, with the sidebar shown or hidden (user: 「Sidebar左上角的Table of Content 和 Mode(WYSIWYG / Source）等文本去掉，让整体界面比较清爽」; prototype ruling 「B: remove everywhere (Recommended)」) | The header repeated what the outline already shows. The mode stays visible in the View menu's check marks, and comes back to the window with the main bar's segmented control (WI-4.8, not yet built); until then the window itself does not name it. The bands stay as window drag regions for the traffic lights. |

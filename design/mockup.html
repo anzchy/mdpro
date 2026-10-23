@@ -13,6 +13,12 @@
   Open it from the repo checkout (it links ../src/...). Snapshot: S1–S6 at
   master dd603780, S7–S13 at f41ea7b8 (2026-10-17); the CSS did not change
   between the two.
+
+  S14 is the one target scene: the WYSIWYG find / replace bar the user chose on
+  2026-10-23 (prototype/d255-find-replace variant D, U12). It is not shipped
+  yet, so its styles live in the .mk-find block below, copied from the
+  prototype's FindReplacePrototype.css. D255-WI-3c builds it; when it lands,
+  S14 switches to the shipped classes and the .mk-find block is deleted.
 -->
 <link rel="stylesheet" href="../src/styles/index.css">
 <link rel="stylesheet" href="../src/components/BottomTabs/BottomTabs.css">
@@ -73,6 +79,25 @@
   .mk-cm-link { color: #219; text-decoration: underline; } .mk-cm-meta { color: #404740; }
   .theme-dark .mk-cm-link { color: #8ab4f8; } .theme-dark .mk-cm-meta { color: #a0a8a0; }
   .cm-line { padding: 0 2px 0 6px; }
+  /* S14 target only (not shipped yet): the find / replace bar, variant D of
+     prototype/d255-find-replace, copied from FindReplacePrototype.css. It uses
+     the app's tokens; D255-WI-3c replaces this block with its own stylesheet. */
+  .mk-find { flex: none; display: flex; flex-direction: column-reverse; background: var(--color-panel);
+    border-top: 1px solid var(--color-border); color: var(--color-text); font: var(--font-size-ui) var(--font-sans); }
+  .mk-find__row { display: flex; gap: 6px; align-items: center; padding: 8px; width: min(900px, 100%); margin: 0 auto; box-sizing: border-box; }
+  .mk-find__row--replace { border-bottom: 1px solid var(--color-border-subtle); }
+  .mk-find__field { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; color: var(--color-muted); }
+  .mk-find__field span { flex: none; font-size: var(--font-size-ui-sm); }
+  .mk-find__field input { width: 100%; min-width: 0; height: 28px; padding: 0 8px; border-radius: var(--radius-control);
+    border: 1px solid var(--color-control-border); background: var(--color-input-bg); color: var(--color-text); font: inherit; box-sizing: border-box; }
+  .mk-find__field input.mk-find__focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-soft); }
+  .mk-find button { min-height: 28px; padding: 0 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control);
+    background: var(--color-panel); color: var(--color-text); font: inherit; white-space: nowrap; }
+  .mk-find button.is-active { background: var(--color-accent-soft); color: var(--color-accent-text); }
+  .mk-find button.mk-find__primary { background: var(--color-accent-fill); border-color: var(--color-accent-fill); color: var(--color-on-accent); }
+  .mk-find__count { min-width: 60px; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--font-size-ui-sm); text-align: center; white-space: nowrap; }
+  .mk-find-match { background: var(--color-accent-soft); border-bottom: 1px solid var(--color-accent); }
+  .mk-find-match.is-current { background: color-mix(in srgb, var(--color-accent) 33%, var(--color-editor-bg)); outline: 1px solid var(--color-accent); }
 </style>
 </head>
 <body class="mk-page tauri-macos">
@@ -195,7 +220,16 @@
     </ol>
   </section>
 
-  <p class="mk-gap">Not drawn yet: the Source-mode table menu, the export toasts, the settings pages beyond the four in S6 (prototype 012 has Keyboard Shortcuts). Target designs with no shipped UI yet (main bar and status strip, empty state, the redesigned external change dialog, the drop target) are in the Stitch project and <a href="DESIGN.md">DESIGN.md</a>, not here.</p>
+  <section class="mk-journey">
+    <h3>J13 · Find and replace in WYSIWYG <em>(target)</em></h3>
+    <ol>
+      <li>⌘F opens the find bar at the bottom of the editor, above the tabs, pre-filled from the selection; every match is marked and the current one stands out. <a data-go="s14">S14</a></li>
+      <li>⌘G / ⇧⌘G or ↓ / ↑ move between matches; Aa and Whole word narrow them. <a data-go="s14">S14</a></li>
+      <li>⌘H opens the Replace row above Find, with focus in it; Replace or Replace All, then Esc closes and returns to the text. <a data-go="s14">S14</a></li>
+    </ol>
+  </section>
+
+  <p class="mk-gap">Not drawn yet: the Source-mode find panel (its restyle is open: typora-parity plan D2), the Source-mode table menu, the export toasts, the settings pages beyond the four in S6 (prototype 012 has Keyboard Shortcuts). Target designs with no shipped UI yet (main bar and status strip, empty state, the redesigned external change dialog, the drop target) are in the Stitch project and <a href="DESIGN.md">DESIGN.md</a>, not here.</p>
 </aside>
 
 <!-- ============ Scenes ============ -->
@@ -290,6 +324,13 @@
   <header><h2>S13 · Insert Link</h2>
     <span class="mk-src">LinkInsertModal.tsx · link-insert-modal.css</span></header>
   <div class="mk-pair" data-scene="s13"></div>
+</section>
+
+<!-- S14 -->
+<section class="mk-scene" id="s14">
+  <header><h2>S14 · Find and replace, WYSIWYG (target: D255-WI-3c, chosen 2026-10-23)</h2>
+    <span class="mk-src">prototype/d255-find-replace variant D · FindReplacePrototype.tsx/.css (not shipped yet)</span></header>
+  <div class="mk-pair" data-scene="s14"></div>
 </section>
 
 </main>
@@ -545,6 +586,25 @@ distance: 6.4 km</code></pre>
   </div>
 </template>
 
+<template id="t-find">
+  <section class="mk-find" aria-label="Find and replace">
+    <div class="mk-find__row">
+      <label class="mk-find__field"><span>Find</span><input value="kingfisher" placeholder="Find in document"></label>
+      <span class="mk-find__count" aria-live="polite">1 of 3</span>
+      <button type="button" aria-label="Previous match" title="Previous · ⇧⌘G">↑</button>
+      <button type="button" aria-label="Next match" title="Next · ⌘G">↓</button>
+      <button type="button" aria-pressed="false">Aa</button>
+      <button type="button" aria-pressed="false">Whole word</button>
+      <button type="button" aria-label="Close find">×</button>
+    </div>
+    <div class="mk-find__row mk-find__row--replace">
+      <label class="mk-find__field"><span>Replace</span><input class="mk-find__focus" value="" placeholder="Replace with"></label>
+      <button type="button">Replace</button>
+      <button type="button" class="mk-find__primary">Replace All</button>
+    </div>
+  </section>
+</template>
+
 <template id="t-settings">
   <div class="dialog-backdrop">
     <div role="dialog" aria-modal="true" aria-labelledby="settings-dialog-title" class="settings-dialog">
@@ -668,6 +728,11 @@ distance: 6.4 km</code></pre>
     s13: { sidebar: true, editor: "t-wysiwyg", overlays: ["t-link"], notes: [
       [300, 200, "Insert stays disabled while the URL is empty."],
     ]},
+    s14: { sidebar: true, editor: "t-wysiwyg", overlays: [], find: "kingfisher", notes: [
+      [206, 572, "The bar docks at the bottom of the editor column, above the document tabs, full column width with a 900 px content row (user's pick, variant D)."],
+      [206, 526, "⌘H adds the Replace row above Find, keeping Find on the bottom edge; focus goes to Replace."],
+      [466, 318, "Every match is marked with --color-accent-soft; the current one is darker and outlined. Case-insensitive by default: 3 matches here."],
+    ]},
   };
 
   // A landscape image for S11, drawn inline so the mockup needs no asset file.
@@ -715,6 +780,20 @@ distance: 6.4 km</code></pre>
       main.appendChild(area);
     }
     main.appendChild(tpl(s.editor));
+    if (s.find) {
+      main.appendChild(tpl("t-find"));
+      const re = new RegExp(s.find, "gi");
+      const walker = document.createTreeWalker(main.querySelector(".ProseMirror"), NodeFilter.SHOW_TEXT);
+      const hits = [];
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) if (re.test(n.nodeValue)) hits.push(n), re.lastIndex = 0;
+      let first = true;
+      for (const n of hits) {
+        const span = document.createElement("span");
+        span.innerHTML = n.nodeValue.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))
+          .replace(re, (m) => { const cls = first ? "mk-find-match is-current" : "mk-find-match"; first = false; return `<span class="${cls}">${m}</span>`; });
+        n.replaceWith(...span.childNodes);
+      }
+    }
     shell.appendChild(main);
     const tabs = tpl("t-tabs");
     if (!s.sidebar) {

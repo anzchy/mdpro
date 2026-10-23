@@ -1,7 +1,7 @@
 # Plan: reorganise the native menu bar on macOS and Windows
 
 **Status:** revised after the scoped Codex re-review and confirmed clean (C0 · H0 · M0 · L0, 2026-10-16, §§ 10–11). Decisions
-taken (§ 0, including the user's answers to U1–U9); U10 and U11 were answered on 2026-10-17 (D18, D19); U12 is still open.
+taken (§ 0, including the user's answers to U1–U9); U10 and U11 were answered on 2026-10-17 (D18, D19); U12 on 2026-10-23 (D20).
 **Scheduled for v0.3.6, merged with [D255](20260912-frontend-backend-sequencing-order.md#d255)**
 (2026-10-16, decision D7 in § 0) and owning [D261](20260912-frontend-backend-sequencing-order.md#d261).
 M2 is recorded ([record](../test/20261016-m2-menu-spike-device-check.md)), D255-WI-1 is done, and M0 is
@@ -45,7 +45,7 @@ so M1b cannot land until it is answered.
 | U9 | **Windows strikethrough** (survey R8) | **A.** Ctrl+Shift+X (VMark, the same shape as macOS ⇧⌘X). **B.** Keep Alt+Shift+5 (Typora, Google Docs; passed on device) | **A**, for D2. A close call: B is device-verified | **Answered:** 「A · Ctrl+Shift+X (Recommended)」 (D17) |
 | U10 | **Clipboard items on Windows** (old open question 6; C10) | **A.** Keep the predefined items unless M2(c) shows VMark #1354's symptoms. **B.** Build VMark's custom items anyway, for parity | **A.** Custom items need the § 5.7 adapter, the riskiest code in the plan | after M2 |
 | U11 | **Native keys in WYSIWYG on Windows** (old open question 7) | **A.** Keep WebView2's own Ctrl+F find bar and Ctrl+Shift+V plain paste and say so in Settings until D255 ships mdpro's find. **B.** Suppress them until then | **A.** Nothing that works today stops working. Once D255's WYSIWYG find lands, it takes Ctrl+F in WYSIWYG on both platforms | after M2 |
-| U12 | **The D255 prototypes** (D7; the user's 2026-10-16 words in [D255](20260912-frontend-backend-sequencing-order.md#d255)) | Variants of the WYSIWYG find / replace popup (and of any other new UI the triage finds, e.g. an image picker), built with `/mattpocock-skills:prototype` on a `prototype/d255-*` branch | The user picks on the running prototype (rule 70 § Questions) | D255-WI-2 |
+| U12 | **The D255 prototypes** (D7; the user's 2026-10-16 words in [D255](20260912-frontend-backend-sequencing-order.md#d255)) | Variants of the WYSIWYG find / replace popup (and of any other new UI the triage finds, e.g. an image picker), built with `/mattpocock-skills:prototype` on a `prototype/d255-*` branch | The user picks on the running prototype (rule 70 § Questions) | **Answered:** 「find/replace prototype choices: D」 (D20) |
 
 Settled after M2: **Ctrl+Shift+0** for Paragraph on Windows (old open question 4) keeps the
 key as a per-machine limitation, with the menu and a rebind as the fallback ([ADR-0114](../adr/0114-the-menu-bar-and-default-keys-follow-one-command-table-and-vmark.md)
@@ -77,6 +77,7 @@ The user answered the first draft's questions; relayed by the coordinator.
 | D8 | Menu and Settings look (2026-10-16) | 「A · Plan as written, greyed」 ([DESIGN.md](../../design/DESIGN.md) § Native menu bar and Keyboard Shortcuts page, `d907a3f6`) | The trees as drawn; unavailable items greyed in place; no banner for changed defaults. DESIGN's block is normative for M4, M5 and M7 |
 | D18 | Windows clipboard items (U10, 2026-10-17) | 「A · Keep built-in items (Recommended)」 | Edit › Cut / Copy / Paste stay the predefined items off-Mac. M2(c) found none of VMark #1354's symptoms (10/10, Microsoft Pinyin included, [record](../test/20261016-m2-menu-spike-device-check.md)), so § 5.7's custom clipboard adapter is not built |
 | D19 | Native keys in WYSIWYG on Windows (U11, 2026-10-17) | 「A · Keep, say so in Settings (Recommended)」 | Ctrl+F (WebView2's find bar) and Ctrl+Shift+V (plain paste) keep working in WYSIWYG off-Mac. Settings marks Find "WYSIWYG: browser find bar" (§ 5.2, M7). When D255's WYSIWYG find lands, it takes Ctrl+F in WYSIWYG |
+| D20 | WYSIWYG find / replace (U12, 2026-10-23) | 「find/replace prototype choices: D」 | The bar docks at the bottom of the editor column above the tabs; ⌘H adds Replace above Find. Contract in [`design/DESIGN.md`](../../design/DESIGN.md) § Find and replace bar, scene S14 of `design/mockup.html`; prototype branch `prototype/d255-find-replace`. D255-WI-3c builds it, WYSIWYG only; restyling Source's panel to match (typora-parity plan D2) stays open |
 
 ## 1. Goal
 

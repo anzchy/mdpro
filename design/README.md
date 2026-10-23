@@ -8,7 +8,7 @@ Everything about how mdpro looks and behaves on screen. Start with
 | Path | What it is | Status |
 |---|---|---|
 | [`DESIGN.md`](DESIGN.md) | The target design: product context, register, token names and roles, component contracts, states, focus, theme, motion, decisions log | **Governs.** Every UI decision cites it. `.claude/rules/30-34` win any conflict with it |
-| [`mockup.html`](mockup.html) | The whole window as it is now: six scenes, light and dark, and the user journeys that walk through them | **Current**, as a picture. Drawn with the app's own CSS from `src/`, so its styling cannot drift; its markup is copied from the components and is re-checked when they change |
+| [`mockup.html`](mockup.html) | The whole window as it is now: thirteen scenes, light and dark, plus one target scene (S14, the chosen find / replace bar), and the user journeys that walk through them | **Current**, as a picture. Drawn with the app's own CSS from `src/`, so its styling cannot drift; its markup is copied from the components and is re-checked when they change |
 | [`prototypes/`](prototypes/README.md) | One page per design question put to the user, numbered in the order they were asked | **Evidence.** The verdict is the decision; the page is how it was reached |
 | [`reviews/`](reviews/) | Outside reviews of the design, dated | **Frozen.** Read for the reasoning, not for rules |
 | [`archive/`](archive/) | Superseded material, dated | **Frozen.** Never follow it for new work |

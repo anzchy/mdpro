@@ -20,6 +20,7 @@ lands on `master`; check it out to open it.
 | 011 | Settings rail icons, without the footer Close | D: VMark-style outline rail | D260 | [`011-d260-settings-rail.html`](011-d260-settings-rail.html) |
 | 012 | Menu reorganisation | A: the plan's trees as written, disabled items greyed | Menu plan M1 | [`012-menu-ui.html`](012-menu-ui.html) |
 | 013 | Highlight in dark, and the Settings error text | 「B · fainter dark pink (Recommended)」, 「B1 · darker red, dark unchanged (Recommended)」 | D256, D257 | branch `prototype/d256-d257-contrast` |
+| 014 | WYSIWYG find / replace: where the bar sits and how Replace opens | 「find/replace prototype choices: D」: docked at the bottom of the editor, Replace above Find | U12, D255-WI-3c | branch `prototype/d255-find-replace`; drawn as S14 in [`../mockup.html`](../mockup.html) |
 
 Whether a decision has shipped is tracked in its row in
 [`docs/plans/20260912-frontend-backend-sequencing-order.md`](../../docs/plans/20260912-frontend-backend-sequencing-order.md),
