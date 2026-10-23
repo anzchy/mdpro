@@ -34,7 +34,7 @@ When the delegator is not herdr-delegator, this file does not apply.
 | Delegator | `herdr-delegator` | Claude Opus, herdr pane of that name in session `mdpro`, Mac mini main checkout (ADR-0134) | — | — |
 | Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/<name>` (ADR-0134) | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
 | Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/gpt-imple-3`; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
-| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
+| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-sol`, effort medium (user decision, 2026-10-23: 「update gpt-auditor's model to `GPT-6-Sol medium`, from now on」; `gpt-6-astra` high before), herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
 | Auditor, second half (PRs, ADRs, plans) | `opus-auditor` | Claude Code on Opus (`--model opus --dangerously-skip-permissions`, `MDPRO_ROLE=real-device-tester`), herdr pane, detached `mdpro-wt/opus-auditor` ([ADR-0137](../../docs/adr/0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md)) | a new-pane reset per request, then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/opus-auditor/BRIEF.md` and the `mdpro-fable-auditor` protocol | `<item>-r<round>.md` in that folder, then idle |
 | `/security-review` runner | a fork of herdr-delegator | Opus | `Agent` (`fork`) | `~/.mdpro-redesign/herdr-spike/delegator/secrev-<item>.md` |
 | Landing verifier, ADR and plan reviewer, number registrar | subagents of herdr-delegator | Opus (`model: "opus"`) | `Agent` | their result |
@@ -155,7 +155,7 @@ alias here.
   6. the first prompt points at the brief or the request file.
 
   Models: implementors `gpt-6-sol` medium; gpt-imple-3 `gpt-5.6-sol` medium; gpt-auditor
-  `gpt-6-astra` high. `~/.codex/config.toml` is never edited for this. The new pane id goes into
+  `gpt-6-sol` medium (since 2026-10-23; `gpt-6-astra` high before). `~/.codex/config.toml` is never edited for this. The new pane id goes into
   the heartbeat assignment.
 - **Challenge and confirm with gpt-auditor.** Every request, these included, follows § Fresh
   context: a new-pane reset, then a prompt pointing at a self-contained request file. Nothing relies
