@@ -8,7 +8,6 @@ vi.mock("@tauri-apps/api/core", async () => ({
 
 import { EditorSelection } from "@codemirror/state";
 import { dispatchEditorMenuAction } from "../src/hooks/editorMenuActionTable";
-import { runSourceEditorMenuCommand } from "../src/utils/editorMenuSourceCommands";
 import { captureToken } from "../src/utils/menuTargetToken";
 import { useEditorStore } from "../src/stores/editorStore";
 import { useToastStore } from "../src/stores/toastStore";
@@ -16,8 +15,12 @@ import { logs } from "./support/menuEventsHarness";
 import { resetMenuHarness } from "./support/menuEventsDomain";
 import { seedStores } from "./support/editorGenerationDomain";
 import { mountSourceMenuRig, type SourceMenuRig } from "./support/editorMenuRig";
+import { mountScriptedMilkdownRig, type MilkdownRig } from "./helpers/scriptedMilkdownRig";
+import { useMilkdownEditorStore } from "../src/stores/milkdownEditorStore";
+import { serializerCtx } from "@milkdown/kit/core";
 
 let rig: SourceMenuRig | null = null;
+let milkdown: MilkdownRig | null = null;
 let modal: HTMLElement | null = null;
 
 function setup(doc = "alpha", readOnly = false): SourceMenuRig {
@@ -40,7 +43,10 @@ beforeEach(() => {
   useToastStore.getState().clearToast();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await milkdown?.destroy();
+  milkdown = null;
+  useMilkdownEditorStore.getState().unregisterEditor();
   modal?.remove();
   modal = null;
   rig?.destroy();
@@ -68,21 +74,54 @@ it.each([
   expect(outcomes()[0].payload.context?.controlId).toBe(`editor.${id}`);
 });
 
-it("WI-6 Quote adapter works directly but public v1 remains hidden", () => {
+it("Fix 1 public v2 Quote applies through Source menu", () => {
   const view = setup("  a\n  b").view;
   view.dispatch({ selection: EditorSelection.single(0, view.state.doc.length) });
   const token = captureToken("main");
-  expect(runSourceEditorMenuCommand("paragraph.quote", view, token, "direct"))
-    .toEqual({ status: "applied" });
-  expect(view.state.doc.toString()).toBe("  > a\n  > b");
-  const before = view.state.doc.toString();
   expect(dispatchEditorMenuAction("editor.paragraph.quote", token)).toBe(true);
-  expect(view.state.doc.toString()).toBe(before);
-  expect(outcomes()[0].payload.status).toBe("cancel");
-  view.dispatch({ selection: EditorSelection.single(0, view.state.doc.length) });
-  expect(runSourceEditorMenuCommand("paragraph.quote", view, token, "direct-again"))
-    .toEqual({ status: "applied" });
-  expect(view.state.doc.toString()).toBe("  a\n  b");
+  expect(view.state.doc.toString()).toBe("  > a\n  > b");
+  expect(outcomes()[0].payload.status).toBe("success");
+});
+
+it("Fix 1 public v2 Replace focuses Replace from closed and open Find panels", () => {
+  const view = setup("alpha").view;
+  const token = captureToken("main");
+  for (let n = 1; n <= 2; n += 1) {
+    expect(dispatchEditorMenuAction("editor.edit.replace", token)).toBe(true);
+    const panels = view.dom.querySelectorAll(".cm-search");
+    expect(panels).toHaveLength(1);
+    expect(panels[0].querySelector('input[name="replace"]')).toBe(document.activeElement);
+    expect(view.state.doc.toString()).toBe("alpha");
+    expect(outcomes()).toHaveLength(n);
+    expect(outcomes().at(-1)?.payload.status).toBe("success");
+    (panels[0].querySelector('input[name="search"]') as HTMLInputElement).focus();
+  }
+});
+
+it.each([["paragraph.quote", "> alpha\n"], ["paragraph.orderedList", "1. alpha\n"], ["paragraph.unorderedList", "- alpha\n"]])(
+  "Fix 1 v2 WYSIWYG menu %s applies without Source-only toast", async (id, expected) => {
+    resetMenuHarness(); seedStores(); useToastStore.getState().clearToast();
+    useEditorStore.setState({ viewMode: "wysiwyg" });
+    milkdown = await mountScriptedMilkdownRig("alpha", { heights: [30] });
+    useMilkdownEditorStore.getState().registerEditor(() => milkdown?.editor ?? null);
+    const token = captureToken("main");
+    expect(dispatchEditorMenuAction(`editor.${id}`, token)).toBe(true);
+    expect(milkdown.editor.action((ctx) => ctx.get(serializerCtx)(milkdown!.view.state.doc))).toBe(expected);
+    expect(useToastStore.getState().message).toBeNull();
+    expect(outcomes()).toHaveLength(1);
+    expect(outcomes()[0].payload.status).toBe("success");
+  },
+);
+
+it("Fix 1 Replace remains unavailable in WYSIWYG without hiding the app", async () => {
+  resetMenuHarness(); seedStores(); useToastStore.getState().clearToast();
+  useEditorStore.setState({ viewMode: "wysiwyg" });
+  milkdown = await mountScriptedMilkdownRig("alpha", { heights: [30] });
+  useMilkdownEditorStore.getState().registerEditor(() => milkdown?.editor ?? null);
+  expect(dispatchEditorMenuAction("editor.edit.replace", captureToken("main"))).toBe(true);
+  expect(milkdown.editor.action((ctx) => ctx.get(serializerCtx)(milkdown!.view.state.doc))).toBe("alpha\n");
+  expect(outcomes()).toHaveLength(1);
+  expect(outcomes()[0].payload.context?.reason).toBe("wrong_mode");
 });
 
 it("WI-6 public Select Line dispatch selects the current Source line once", () => {

@@ -1,6 +1,6 @@
 /**
  * Purpose: resolve M3b's `editor.<table id>` wire aliases, enforce the live
- * v1 route/mode/token gates, and write one `ui.menu.select` outcome per click.
+ * v2 route/mode/token gates, and write one `ui.menu.select` outcome per click.
  * Unknown aliases preserve the native action table's silent no-op contract.
  *
  * @coordinates-with menuActionTable.ts
@@ -69,14 +69,14 @@ export function dispatchEditorMenuAction(action: string, token?: MenuTargetToken
   const mode = useEditorStore.getState().viewMode;
   let reason: CancelReason | undefined;
   if (!frontendRoute(row.route[platform])) reason = "non_frontend";
-  else if (!modeAllowed(row.availability[platform].v1, mode)) reason = "wrong_mode";
+  else if (!modeAllowed(row.availability[platform].v2, mode)) reason = "wrong_mode";
   else if (!token) reason = "missing_token";
   else if (token.documentId === null) reason = "missing_document";
   else if (!isTokenCurrent(token)) reason = "stale";
   else if (isModalOpen()) reason = "modal_open";
   if (reason) {
     if (reason === "wrong_mode") {
-      const required = row.availability[platform].v1 === "S" ? "Source" : "WYSIWYG";
+      const required = row.availability[platform].v2 === "S" ? "Source" : "WYSIWYG";
       useToastStore.getState().showToast(`Available in ${required} mode only`);
     }
     logOutcome(actionId, row.id, reason);

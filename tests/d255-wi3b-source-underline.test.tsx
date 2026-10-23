@@ -104,9 +104,9 @@ it("AC-6 composed Source Cmd+U owns the chord ahead of history undoSelection", (
   expect(editor.state.doc.toString()).toBe("<u>alpha</u>");
 });
 
-it("AC-6 classifies D270 as a deliberate shadow while preserving the alternate undo keys", () => {
+it("AC-6 removes history Mod-u while preserving alternate undo keys", () => {
   const historyRows = CODEMIRROR_ROWS.filter((row) => row.source === "codemirror:historyKeymap");
-  expect(historyRows.find((row) => row.key === "Mod-u")?.disposition).toEqual({ kind: "shadowed", by: "mdpro:sourceFormatPlugin" });
+  expect(historyRows.find((row) => row.key === "Mod-u")?.disposition).toEqual({ kind: "removeInM1b", id: "K4" });
   expect(historyRows.find((row) => row.key === "Mod-u")?.latent).toBeUndefined();
   expect(historyRows.some((row) => row.key === "Alt-u")).toBe(true);
   expect(historyRows.some((row) => row.key === "Mod-Shift-u")).toBe(true);

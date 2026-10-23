@@ -21,8 +21,7 @@ export function sourceTableArrowKeymap(applied: AppliedShortcuts | null, platfor
   return ACTIONS.flatMap(([field, action]) => {
     const chord = appliedKey(applied, field, platform);
     if (!chord) return [];
-    const key = chord.replace(/-(Up|Down|Left|Right)$/, "-Arrow$1");
-    return [{ key, run: (view) => {
+    return [{ key: chord, run: (view) => {
       const pos = view.state.selection.main.head;
       if (!computeSourceTableContext(view.state, pos)) return false;
       const actionId = loggingService.logShortcut(applied!.bindings[field].state === "bound" ? applied!.bindings[field].chord : "", { action: `editor.table.${action}` });

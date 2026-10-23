@@ -22,6 +22,7 @@ import { useLinkInsertStore } from "../stores/linkInsertStore";
 import type { MenuTargetToken } from "./menuTargetToken";
 import type { EditorMenuResult } from "./editorMenuCommands";
 import { startEditorImageInsert } from "./editorImageInsert";
+import { openReplacePanel } from "../components/Editor/extensions/search";
 
 const TABLE_ACTIONS: Readonly<Record<string, TableActionId>> = {
   "table.insertRowAbove": "insert_row_before",
@@ -121,6 +122,8 @@ export function runSourceEditorMenuCommand(
       return runEffect(view, selectNextOccurrence);
     case "edit.find":
       return openSearchPanel(view) ? { status: "opened" } : refused("no_change");
+    case "edit.replace":
+      return openReplacePanel(view) ? { status: "opened" } : refused("no_change");
     case "edit.findNext":
       return moveSearch(view, "next");
     case "edit.findPrevious":

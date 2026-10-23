@@ -23,6 +23,31 @@ pub(super) const CONTEXTS: [OwnershipContext; 7] = [
 ];
 
 #[test]
+fn m1b_fix1_retained_source_owners_refuse_custom_save() {
+    for (platform, chord) in [
+        (Platform::Macos, "Cmd+Up"),
+        (Platform::Windows, "Cmd+Home"),
+        (Platform::Linux, "Cmd+Home"),
+    ] {
+        let stored = Map::from([
+            ("fileSave".to_string(), chord.to_string()),
+            ("formatUnderline".to_string(), "Cmd+J".to_string()),
+        ]);
+        let resolved = resolve_with(layout(), platform, 2, &stored, &Overrides::new());
+        assert!(
+            matches!(
+                resolved.resolutions.get("fileSave"),
+                Some(Resolution::Suppressed {
+                    reason: SuppressReason::EditorOwned,
+                    ..
+                })
+            ),
+            "{platform:?} {chord}"
+        );
+    }
+}
+
+#[test]
 fn image_conflict_resolution_matches_shared_parity_fixture() {
     let cases: Vec<Value> = serde_json::from_str(include_str!(
         "../../../tests/fixtures/legacy-image-shortcut-cases.json"

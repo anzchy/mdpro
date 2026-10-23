@@ -86,7 +86,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     // § 5.8 row 3: built in Source only.
     contexts: ["editorS", "tableS"],
   }),
-  configurable({
+  { ...configurable({
     id: "paragraph.quote",
     menuId: "menu.paragraph.quote",
     menu: macOff<MenuPath>(["Paragraph", "Quote"], "none"),
@@ -95,7 +95,7 @@ export const PARAGRAPH_ROWS: readonly CommandRow[] = [
     v2: macOff("Cmd+Shift+B", "Cmd+Shift+Q"),
     availability: ["none", "both"],
     contexts: BOTH,
-  }),
+  }), route: { macos: "frontend", windows: "frontend", linux: "frontend" } },
   configurable({
     id: "paragraph.orderedList",
     menuId: "menu.paragraph.ordered_list",

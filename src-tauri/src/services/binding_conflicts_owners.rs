@@ -11,7 +11,9 @@
 //! - The committed layout's stored-independent indexes are built once per
 //!   process ([`shared_index`]); secondaries depend on availability
 //!   overrides, so the filter adds them per call.
-//! - Every function is total: an unparseable chord owns nothing.
+//! - Every function is total: an unparseable chord owns nothing. A retained
+//!   editor-owned inventory row remains hard-owned in v2; only rows marked
+//!   removed, shadowed, or implemented by a configurable command are projected out.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};

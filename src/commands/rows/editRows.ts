@@ -105,7 +105,7 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     v2Secondaries: ["Shift+F3"],
     availability: ["S", "S"],
   }),
-  configurable({
+  { ...configurable({
     id: "edit.replace",
     menuId: "menu.edit.replace",
     menu: macOff<MenuPath>(["Edit", "Find", "Replace..."], "none"),
@@ -114,5 +114,5 @@ export const EDIT_ROWS: readonly CommandRow[] = [
     v2: "Cmd+H",
     availability: ["none", "S"],
     contexts: BOTH,
-  }),
+  }), route: { macos: "frontend", windows: "frontend", linux: "frontend" } },
 ];

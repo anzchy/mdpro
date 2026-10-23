@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
-import { defaultKeymap, redo, toggleLineComment, undo } from "@codemirror/commands";
+import { defaultKeymap, historyKeymap, redo, toggleLineComment, undo } from "@codemirror/commands";
 import { markdownExtension } from "./extensions/markdown";
 import { syntaxHighlightingExtension } from "./extensions/syntax";
 import { searchExtensionsFor } from "./extensions/search";
@@ -36,7 +36,6 @@ import { restoreSourceScrollAnchor } from "../../utils/scrollAnchor/source";
 import { loggingService } from "../../services/loggingService";
 import { abandonIfStale, type HighlightRequest } from "../../utils/menuTargetToken";
 import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
-
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -89,7 +88,6 @@ export function Editor({
     [],
   );
 
-  // Memoize undo/redo keymap — identity-stable, no deps change
   const undoRedoKeymap = useMemo(
     () =>
       keymap.of([
@@ -99,6 +97,8 @@ export function Editor({
       ]),
     [],
   );
+  // Keep secondary history keys; release Mod-u for a custom app command.
+  const sourceHistoryKeys = useMemo(() => keymap.of(historyKeymap.filter((b) => b.key !== "Mod-u")), []);
   const sourceDefaultKeys = useMemo(
     () => {
       const appOwned = new Set(["Shift-Mod-k", "Mod-i", "Mod-[", "Mod-]", "Mod-/"]);
@@ -180,12 +180,13 @@ export function Editor({
       initialCloseBrackets(true),
       initialCodeTheme("default"),
       undoRedoKeymap,
+      sourceHistoryKeys,
       sourceDefaultKeys,
       EditorState.allowMultipleSelections.of(true),
     ],
     // The applied snapshot and table verdict both change these extensions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceDefaultKeys, sourceTableTabKeymapExt, sourceTableArrowKeymapExt, viewModeKeymap, activeSearchExtensions, sourceTablesWithheld],
+    [pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceHistoryKeys, sourceDefaultKeys, sourceTableTabKeymapExt, sourceTableArrowKeymapExt, viewModeKeymap, activeSearchExtensions, sourceTablesWithheld],
   );
 
   // A request whose document or editor has gone since it was made (a switch,
@@ -279,6 +280,7 @@ export function Editor({
           lintKeymap: false,
           foldKeymap: false,
           searchKeymap: false,
+          historyKeymap: false,
           lineNumbers: true,
           highlightActiveLine: true,
           highlightSelectionMatches: true,

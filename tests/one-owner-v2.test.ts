@@ -70,8 +70,8 @@ describe("v2 × today's inventory cross-check", () => {
     has(OFF, "editor:codemirror:defaultKeymap:Ctrl-m", "window.minimize", "removeInM1b(D272)");
   });
 
-  it("names D270's Underline shadow and core Mod-a", () => {
-    has(PLATFORMS, "editor:codemirror:historyKeymap:Mod-u", "format.underline", "shadowed(mdpro:sourceFormatPlugin)");
+  it("names D270's released Underline history owner and core Mod-a", () => {
+    has(PLATFORMS, "editor:codemirror:historyKeymap:Mod-u", "format.underline", "removeInM1b(K4)");
     has(PLATFORMS, "editor:milkdown:core/baseKeymap:Mod-a", "edit.selectAll", "implements");
     has(PLATFORMS, "editor:codemirror:defaultKeymap:Mod-/", "view.cycleViewMode", "shadowed(mdpro:Editor.viewModeKeymap)");
   });

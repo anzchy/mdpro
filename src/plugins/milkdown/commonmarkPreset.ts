@@ -54,14 +54,28 @@ const releaseListModBrackets: MilkdownPlugin = (ctx) => {
   return () => {};
 };
 
+/** Keep DowngradeHeading on Delete/Backspace while releasing configurable heading chords. */
+const releaseHeadingChords: MilkdownPlugin = (ctx) => {
+  ctx.update(headingKeymap.key, (entries) => {
+    const next = { ...entries };
+    for (const level of [1, 2, 3, 4, 5, 6] as const) {
+      const name = `TurnIntoH${level}` as const;
+      next[name] = { ...entries[name], shortcuts: [] };
+    }
+    return next;
+  });
+  return () => {};
+};
+
 /** preset-commonmark with mdpro's definition, empty-line and list-spread plugins. */
 export const mdproCommonmark: MilkdownPlugin[] = [
   ...commonmark.flatMap((plugin) => {
     // The app keymap binds these fields from the applied run snapshot. Retaining
     // a preset shortcut here would resurrect a disabled or customised key.
     if ([blockquoteKeymap, bulletListKeymap, codeBlockKeymap, emphasisKeymap,
-      headingKeymap, inlineCodeKeymap, orderedListKeymap, paragraphKeymap,
+      inlineCodeKeymap, orderedListKeymap, paragraphKeymap,
       strongKeymap].some((entry) => plugin === entry.shortcuts)) return [];
+    if (plugin === headingKeymap.shortcuts) return [releaseHeadingChords, plugin];
     if (plugin === listItemKeymap.shortcuts) return [releaseListModBrackets, plugin];
     if (plugin === remarkInlineLinkPlugin.options) return linkDefinitionPlugins;
     if (plugin === remarkInlineLinkPlugin.plugin) return [];

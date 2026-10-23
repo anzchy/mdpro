@@ -64,7 +64,8 @@ export function appliedKey(
   if (chord.ctrl) parts.push("Ctrl");
   if (chord.option) parts.push("Alt");
   if (chord.shift) parts.push("Shift");
-  parts.push(chord.key.length === 1 ? chord.key.toLowerCase() : chord.key);
+  const key = /^(Up|Down|Left|Right)$/.test(chord.key) ? `Arrow${chord.key}` : chord.key;
+  parts.push(key.length === 1 ? key.toLowerCase() : key);
   return parts.join("-");
 }
 

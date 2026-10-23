@@ -1,4 +1,4 @@
-/** Keep printable AltGr input out of every Source keymap before dispatch. */
+/** Keep printable AltGr input out of Source and WYSIWYG keymaps before dispatch. */
 const CODE_BASE: Readonly<Record<string, string>> = {
   BracketLeft: "[", BracketRight: "]", Backslash: "\\", IntlBackslash: "\\",
   Minus: "-", Equal: "=", Semicolon: ";", Quote: "'", Backquote: "`", Slash: "/",
@@ -17,7 +17,7 @@ export function isPrintableAltGr(event: KeyboardEvent, isMac: boolean): boolean 
   return base !== null && base.toLowerCase() !== event.key.toLowerCase();
 }
 
-/** Capture before CodeMirror's keymap listener; leave browser text input intact. */
+/** Capture before either editor's keymap listener; leave browser text input intact. */
 export function installAltGrGuard(element: HTMLElement, isMac: boolean): () => void {
   const guard = (event: KeyboardEvent) => {
     if (!isPrintableAltGr(event, isMac)) return;

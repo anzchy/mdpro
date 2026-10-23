@@ -43,7 +43,7 @@ import { loggingService } from "../../services/loggingService";
 import { abandonIfStale, type HighlightRequest } from "../../utils/menuTargetToken";
 import { getMilkdownView, readyMilkdown } from "../../utils/focusActiveEditor";
 import { getImageResizeDomAttrs } from "../../plugins/milkdown/imageResizePlugin";
-
+import { installAltGrGuard } from "../../plugins/codemirror/altGrGuard";
 // ---------------------------------------------------------------------------
 // Security helpers — exported for unit testing
 // ---------------------------------------------------------------------------
@@ -205,14 +205,14 @@ function MilkdownEditorInner({ highlightRequest, generation, appliedShortcuts }:
     const getter = () => editorRef.current.get() ?? null;
     return useMilkdownEditorStore.getState().registerEditor(getter);
   }, []);
-
-  // A Recovery return may be waiting for this keyed document/generation's view.
-  // Register only after Milkdown's context exists; the cleanup cannot erase a
-  // later replacement's registration.
+  // Register only after context exists; cleanup cannot erase a later view.
   useEffect(() => {
     if (!activeDocumentId || editor.loading) return;
     const view = getMilkdownView(editorRef.current.get());
-    return view ? readyMilkdown(activeDocumentId, generation, view) : undefined;
+    if (!view) return;
+    const releaseReady = readyMilkdown(activeDocumentId, generation, view);
+    const releaseAltGr = installAltGrGuard(view.dom, isMacPlatform());
+    return () => { releaseAltGr(); releaseReady(); };
   }, [activeDocumentId, generation, editor.loading]);
 
   // Resolve local image paths to Tauri asset:// URLs after Milkdown renders

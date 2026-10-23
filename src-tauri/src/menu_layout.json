@@ -1442,9 +1442,9 @@
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -4360,9 +4360,9 @@
         }
       },
       "route": {
-        "macos": "unavailable",
-        "windows": "unavailable",
-        "linux": "unavailable"
+        "macos": "frontend",
+        "windows": "frontend",
+        "linux": "frontend"
       }
     },
     {
@@ -6162,8 +6162,7 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "implements",
-        "command": "edit.jumpToBottom"
+        "kind": "editorOwned"
       }
     },
     {
@@ -6208,8 +6207,7 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "implements",
-        "command": "edit.jumpToTop"
+        "kind": "editorOwned"
       }
     },
     {
@@ -6663,8 +6661,7 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "implements",
-        "command": "edit.jumpToBottom"
+        "kind": "editorOwned"
       }
     },
     {
@@ -6698,8 +6695,7 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "implements",
-        "command": "edit.jumpToTop"
+        "kind": "editorOwned"
       }
     },
     {
@@ -7545,8 +7541,8 @@
         "tableS"
       ],
       "disposition": {
-        "kind": "shadowed",
-        "by": "mdpro:sourceFormatPlugin"
+        "kind": "removeInM1b",
+        "id": "K4"
       }
     },
     {

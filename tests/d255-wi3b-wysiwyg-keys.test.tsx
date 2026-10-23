@@ -156,7 +156,7 @@ it("A13-WindowOwner: default window bindings leave WYSIWYG Cmd+Option+] to the e
 
 it("AC-11 refused edge key logs cancel and leaves the document unchanged", async () => {
   await mount("# alpha");
-  expect(press("]", { metaKey: true, altKey: true }).defaultPrevented).toBe(true);
+  expect(press("]", { metaKey: true, altKey: true }).defaultPrevented).toBe(false);
   expect(markdown()).toBe("# alpha\n");
   const entries = commandLogs.filter((entry) => entry.event === "ui.editor.command" &&
     (entry.context as { command?: string } | undefined)?.command === "paragraph.increaseHeading");

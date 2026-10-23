@@ -31,12 +31,16 @@ const UNREACHABLE: Record<"mac" | "off", Readonly<Record<string, string>>> = {
     "Cmd+Y": "redo: a fresh state has no history",
     "Cmd+Shift+Z": "redo: a fresh state has no history",
     "Cmd+K": "typora link returns false by design; the link modal takes the key",
+    "Cmd+Option+[": "decrease heading has no effect in the probe's H1/paragraph states",
+    "Cmd+\\": "clear format has no effect in the probe's plain-text states",
   },
   off: {
     "Cmd+Z": "undo: a fresh state has no history",
     "Cmd+Y": "redo: a fresh state has no history",
     "Cmd+Shift+Z": "redo: a fresh state has no history",
     "Cmd+K": "typora link returns false by design; the link modal takes the key",
+    "Cmd+Option+[": "decrease heading has no effect in the probe's H1/paragraph states",
+    "Cmd+\\": "clear format has no effect in the probe's plain-text states",
   },
 };
 
@@ -130,7 +134,7 @@ export function runProbeSuite(p: Platform, lane: "unit" | "slow"): void {
         .filter((c) => (result.get(c)?.size ?? 0) === 0 && !(c in unreachable));
       expect(missing).toEqual([]);
       expect(Object.keys(unreachable).filter((c) => (result.get(c)?.size ?? 0) > 0)).toEqual([]);
-      expect(Object.keys(unreachable)).toHaveLength(4);
+      expect(Object.keys(unreachable)).toHaveLength(6);
       expect(activeChords().length).toBeGreaterThan(0);
     });
 

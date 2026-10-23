@@ -231,7 +231,7 @@ describe("inventory integrity", () => {
     const k4 = INV.filter((r) => r.disposition.kind === "removeInM1b" && r.disposition.id === "K4");
     expect(k4.flatMap((r) => r.platforms.map((p) => `${r.key} ${p}`)).sort()).toEqual(
       [...["0", "1", "2", "3", "4", "5", "6", "7", "8"].flatMap((d) => PLATFORMS.map((p) => `Mod-Alt-${d} ${p}`)),
-        "Mod-Shift-b linux", "Mod-Shift-b windows"].sort(),
+        "Mod-Shift-b linux", "Mod-Shift-b windows", ...PLATFORMS.map((p) => `Mod-u ${p}`)].sort(),
     );
     const d264 = INV.filter((r) => r.disposition.kind === "removeInM1b" && r.disposition.id === "D264");
     expect(d264.map((r) => `${r.source} ${r.key} ${r.platforms.join(",")}`)).toEqual([

@@ -9,13 +9,10 @@
  * `parseTableAtOffset` (precedent: tests/table-write-guard.test.ts:54-57):
  * nothing is replaced, the real return value is forwarded unaltered.
  *
- * C18 is a source-text Gate on `Editor.tsx`, which has no render harness. The
- * behavioural check for Editor's withheld boolean is X7
- * (tests/use-source-tables-withheld.test.ts).
+ * The mounted Source editor and shortcut tests exercise the installed keymaps;
+ * X7 (tests/use-source-tables-withheld.test.ts) exercises the withheld verdict.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as fs from "fs";
-import * as path from "path";
 import { EditorSelection, EditorState, StateEffect, type Extension } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
@@ -183,48 +180,6 @@ describe("WI-4: sourceTableExtensions", () => {
 
     expect(await count(true)).toBe(0);
     expect(await count(false)).toBe(2);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// C18 — Editor.tsx wiring (Gate; Editor has no render harness).
-// ---------------------------------------------------------------------------
-function readSrc(relativeToTestsDir: string): string {
-  const testPath = expect.getState().testPath;
-  if (!testPath) throw new Error("testPath unavailable");
-  return fs.readFileSync(path.resolve(path.dirname(testPath), relativeToTestsDir), "utf-8");
-}
-
-describe("WI-4: Editor.tsx installs the table extensions through the helper", () => {
-  it("C18: one helper call, no bare extension calls, the hook boolean in the memo deps", () => {
-    const src = readSrc("../src/components/Editor/Editor.tsx");
-
-    expect(src.match(/sourceTableExtensions\(/g) ?? []).toHaveLength(1);
-    expect(src).not.toMatch(/\btableDetectionExtension\(\)/);
-    expect(src).not.toMatch(/\bsourceTableCellHighlightExtension\(\)/);
-    expect(src).not.toMatch(/\btableColumnCountLinter\(\)/);
-
-    // The withheld boolean comes from the subscribing hook, exactly once.
-    expect(src.match(/useSourceTablesWithheld\(/g) ?? []).toHaveLength(1);
-    const assigned = src.match(/const\s+(\w+)\s*=\s*useSourceTablesWithheld\(\s*\)/);
-    expect(assigned).not.toBeNull();
-    const name = assigned![1];
-
-    // The extensions memo also changes when the applied keymap is installed.
-    const memoIdx = src.indexOf("const extensions = useMemo(");
-    expect(memoIdx).toBeGreaterThan(-1);
-    const deps =
-      "[pluginEventExtension, pluginExtensions, undoRedoKeymap, sourceDefaultKeys, sourceTableTabKeymapExt, sourceTableArrowKeymapExt, viewModeKeymap, activeSearchExtensions, " +
-      `${name}]`;
-    const depsIdx = src.indexOf(deps, memoIdx);
-    expect(depsIdx).toBeGreaterThan(memoIdx);
-    // ...and it is the extensions memo's own deps, not a later hook's.
-    expect(src.slice(memoIdx, depsIdx).match(/useMemo\(/g) ?? []).toHaveLength(1);
-
-    // Absence pin (adversary Gap 2): no non-subscribing read inlined back.
-    expect(src.replace(/\s+/g, "")).not.toContain(
-      "isSourceTablesWithheld(useEditorStore.getState()",
-    );
   });
 });
 

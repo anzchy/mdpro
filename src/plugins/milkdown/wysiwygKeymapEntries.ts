@@ -26,7 +26,7 @@ function logged(id: string, command: Command): Command {
       actionId: loggingService.generateActionId(),
       context: { command: id, mode: "wysiwyg", via: "key" },
     });
-    return true;
+    return changed;
   };
 }
 
