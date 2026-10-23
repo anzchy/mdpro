@@ -1,11 +1,13 @@
 use super::{save_as_post_picker, SaveAsTransaction};
 use crate::commands::file::FileError;
 use crate::commands::file_save_fixture::Dir;
+use crate::commands::save_as_watch::original_bytes_before_dialog;
 use crate::models::mcp::WindowState;
 use crate::models::{DocumentState, ShadowStore};
 use crate::services::file_watcher::FileWatcher;
 use std::collections::HashSet;
 use std::fs;
+use std::os::unix::fs::symlink;
 use std::sync::{Arc, Mutex};
 
 #[tokio::test]
@@ -45,6 +47,157 @@ async fn new_open_between_decision_and_reservation_is_refused_without_write() {
         "{result:?}"
     );
     assert_eq!(fs::read(&target).unwrap(), b"target\n");
+}
+
+#[tokio::test]
+async fn deleted_original_saves_to_unopened_path_without_recreating_it() {
+    let dir = Dir::new("d255_deleted_original_save_as");
+    let source = dir.file("deleted.md", b"old\n");
+    let target = dir.path().join("new.md");
+    fs::remove_file(&source).unwrap();
+    let original = source.to_string_lossy().into_owned();
+    let before = original_bytes_before_dialog(Some(&original))
+        .into_result()
+        .unwrap();
+    let watcher = FileWatcher::for_tests();
+    let shadow = Arc::new(Mutex::new(ShadowStore::default()));
+    let labels = HashSet::from(["window-a".to_string()]);
+    let saved = save_as_post_picker(
+        SaveAsTransaction {
+            label: "window-a",
+            document_id: "a".into(),
+            content: "edited\n".into(),
+            picked: target.to_string_lossy().into_owned(),
+            original_path: Some(&original),
+            original_bytes: before.as_deref(),
+            encoding: None,
+            line_ending: None,
+            action_id: "d255-deleted-save-as",
+            watcher: &watcher,
+            shadow: &shadow,
+            live_labels: &labels,
+        },
+        || {},
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(saved.success);
+    assert_eq!(fs::read(&target).unwrap(), b"edited\n");
+    assert!(!source.exists());
+}
+
+async fn held_retargeted_path_without_shadow_is_refused(replace_link: bool, pick_new: bool) {
+    let dir = Dir::new("d255_held_retarget_no_shadow");
+    let old = dir.file("old.md", b"held original\n");
+    let new = dir.file("new.md", b"new target\n");
+    let link = dir.path().join("link.md");
+    symlink(&old, &link).unwrap();
+    let watcher = FileWatcher::for_tests();
+    let hold = watcher.reserve_hold("window-b", &link).unwrap();
+    watcher.watch(&link);
+    watcher.confirm_hold(&hold);
+    fs::remove_file(&link).unwrap();
+    if replace_link {
+        fs::write(&link, b"replacement\n").unwrap();
+    } else {
+        symlink(&new, &link).unwrap();
+    }
+    let picked = if pick_new { &new } else { &link };
+    let before = fs::read(picked).unwrap();
+    // This is also the CloseRequested-before-Destroyed state: shadow removed,
+    // while the native window hold still exists.
+    let shadow = Arc::new(Mutex::new(ShadowStore::default()));
+    let labels = HashSet::from(["window-a".to_string(), "window-b".to_string()]);
+    let result = save_as_post_picker(
+        SaveAsTransaction {
+            label: "window-a",
+            document_id: "a".into(),
+            content: "save A\n".into(),
+            picked: picked.to_string_lossy().into_owned(),
+            original_path: None,
+            original_bytes: None,
+            encoding: None,
+            line_ending: None,
+            action_id: "d255-no-shadow-held",
+            watcher: &watcher,
+            shadow: &shadow,
+            live_labels: &labels,
+        },
+        || {},
+    )
+    .await;
+    assert!(
+        matches!(result, Err(FileError::AlreadyOpen { .. })),
+        "{result:?}"
+    );
+    assert_eq!(fs::read(picked).unwrap(), before);
+    assert_eq!(fs::read(&old).unwrap(), b"held original\n");
+}
+
+#[tokio::test]
+async fn retargeted_held_link_without_shadow_refuses_link_pick() {
+    held_retargeted_path_without_shadow_is_refused(false, false).await;
+}
+
+#[tokio::test]
+async fn retargeted_held_link_without_shadow_refuses_physical_pick() {
+    held_retargeted_path_without_shadow_is_refused(false, true).await;
+}
+
+#[tokio::test]
+async fn replaced_held_link_during_close_prompt_refuses_without_shadow() {
+    held_retargeted_path_without_shadow_is_refused(true, false).await;
+}
+
+#[tokio::test]
+async fn own_link_retargeted_to_shadowless_held_link_is_refused() {
+    let dir = Dir::new("d255_own_link_shadowless_hold");
+    let own_old = dir.file("own-old.md", b"equal\n");
+    let held_old = dir.file("held-old.md", b"held\n");
+    let new = dir.file("new.md", b"equal\n");
+    let own_link = dir.path().join("own-link.md");
+    let held_link = dir.path().join("held-link.md");
+    symlink(&own_old, &own_link).unwrap();
+    symlink(&held_old, &held_link).unwrap();
+    let original = own_link.to_string_lossy().into_owned();
+    let before = original_bytes_before_dialog(Some(&original))
+        .into_result()
+        .unwrap();
+    let watcher = FileWatcher::for_tests();
+    let hold = watcher.reserve_hold("window-b", &held_link).unwrap();
+    watcher.watch(&held_link);
+    watcher.confirm_hold(&hold);
+    fs::remove_file(&own_link).unwrap();
+    fs::remove_file(&held_link).unwrap();
+    symlink(&new, &own_link).unwrap();
+    symlink(&new, &held_link).unwrap();
+    let shadow = Arc::new(Mutex::new(ShadowStore::default()));
+    let labels = HashSet::from(["window-a".to_string(), "window-b".to_string()]);
+    let result = save_as_post_picker(
+        SaveAsTransaction {
+            label: "window-a",
+            document_id: "a".into(),
+            content: "overwrite\n".into(),
+            picked: original.clone(),
+            original_path: Some(&original),
+            original_bytes: before.as_deref(),
+            encoding: None,
+            line_ending: None,
+            action_id: "d255-own-shadowless-hold",
+            watcher: &watcher,
+            shadow: &shadow,
+            live_labels: &labels,
+        },
+        || {},
+    )
+    .await;
+    assert!(
+        matches!(result, Err(FileError::AlreadyOpen { .. })),
+        "{result:?}"
+    );
+    assert_eq!(fs::read(&new).unwrap(), b"equal\n");
+    assert_eq!(fs::read(&own_old).unwrap(), b"equal\n");
 }
 
 #[tokio::test]

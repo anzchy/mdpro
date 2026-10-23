@@ -13,6 +13,23 @@ use super::fixture::{
     acquire, assert_nothing_left, group_count, group_of, holds, home, route, s, W1, W2,
 };
 
+#[test]
+fn held_raw_spellings_survive_retarget_until_the_hold_is_released() {
+    let _home = home("held_raw_spellings");
+    let d = TempDir::new("d255_held_raw_spellings");
+    let old = d.file("old.md", b"old");
+    let new = d.file("new.md", b"new");
+    let link = d.path().join("link.md");
+    std::os::unix::fs::symlink(&old, &link).unwrap();
+    let fw = FileWatcher::for_tests();
+    let gen = acquire(&fw, W2, &link);
+    std::fs::remove_file(&link).unwrap();
+    std::os::unix::fs::symlink(&new, &link).unwrap();
+    assert_eq!(fw.held_raw_spellings(), vec![(W2.to_string(), s(&link))]);
+    fw.release_hold(W2, &link, gen);
+    assert!(fw.held_raw_spellings().is_empty());
+}
+
 /// a (the registered D173 regression): windows A and B hold one file; A
 /// closes. B's watch and baseline remain, and an external write routes
 /// `EmittedModified`. Red before D173: `close_document` unwatched the path

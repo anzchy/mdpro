@@ -6,7 +6,7 @@
 //! the notify watch: notify `unwatch` runs only when the group has no
 //! consumer (notify 6.1.1 keeps one canonical filter entry per file).
 //! `HoldMap` decides with no I/O. Siblings `file_watcher_holders_*.rs`:
-//! `teardown` (the locked `FileWatcher` API, bar `consumer_spellings`),
+//! `teardown` (the locked `FileWatcher` API, bar the read-only spelling queries),
 //! `reconcile`, `outcomes`, `fanout` (the callback's `HoldsLeaf`, D185).
 //!
 //! Pipeline: `reserve_hold` → the legacy register (`watch` / `watch_seeded`)
@@ -154,6 +154,17 @@ impl HoldMap {
         distinct.into_iter().collect()
     }
 
+    /// Raw paths and window labels from current holds, independent of the
+    /// canonical group recorded when each hold was acquired.
+    fn all_held_spellings(&self) -> Vec<(String, String)> {
+        let distinct: BTreeSet<(String, String)> = self
+            .holds
+            .iter()
+            .map(|((label, _), hold)| (label.clone(), hold.spelling.clone()))
+            .collect();
+        distinct.into_iter().collect()
+    }
+
     fn is_current(&self, label: &str, raw: &Path, gen: u64) -> bool {
         let key = (label.to_string(), raw.to_path_buf());
         self.holds.get(&key).is_some_and(|h| h.gen == gen)
@@ -249,6 +260,14 @@ impl Holders {
 }
 
 impl super::FileWatcher {
+    /// Every current held raw spelling and its window label, under H only.
+    /// The caller can resolve each spelling against the current filesystem.
+    pub(crate) fn held_raw_spellings(&self) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        self.holders.with_map(|m| out = m.all_held_spellings());
+        out
+    }
+
     /// Every distinct raw string held in the canonical group `target`
     /// (already a group key), in a stable order: the save notice's and the
     /// reconcile's recipients (D173-WI-2, WI-4). Lock H only, no I/O.

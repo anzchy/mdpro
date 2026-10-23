@@ -5,8 +5,9 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tauri::{Manager, State, Window};
 
+use super::save_as_picker::pick_registered_save_as;
 use super::save_as_transaction::{save_as_post_picker, SaveAsTransaction};
-use super::save_as_watch::{original_bytes_before_dialog, refused_save_as};
+use super::save_as_watch::refused_save_as;
 use crate::models::{Document, Draft, LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
 use crate::services::{
     draft::delete_draft as delete_draft_service,
@@ -1745,37 +1746,20 @@ pub async fn save_file_dialog(
         None,
         None,
     );
-    // The frontend's hint cannot grant an own-path overwrite exception. Only
-    // this window's registered document may name the original path.
-    let registered_path = shadow
-        .lock()
-        .map_err(|_| FileError::IoError {
-            message: "document registry unavailable".into(),
-        })?
-        .windows
-        .get(window.label())
-        .and_then(|state| state.documents.iter().find(|doc| doc.id == document_id))
-        .and_then(|doc| doc.path.clone());
-    let original_path = original_path.filter(|path| registered_path.as_deref() == Some(path));
-    let original_bytes = original_bytes_before_dialog(original_path.as_deref())
-        .into_result()
-        .inspect_err(|_error| {
-            log_file_event(
-                "file.save_as",
-                LogStatus::Fail,
-                LogLevel::Warn,
-                Some(&action_id),
-                json!({ "source": "dialog", "reason": "original_snapshot_refused" }),
-                None,
-                Some("original snapshot refused".into()),
-            )
-        })?;
     let mut dialog = rfd::FileDialog::new().add_filter("Markdown", &["md", "markdown"]);
     if let Some(name) = suggested_name {
         dialog = dialog.set_file_name(&name);
     }
 
-    let Some(path) = dialog.save_file() else {
+    let Some(selection) = pick_registered_save_as(
+        &shadow,
+        window.label(),
+        &document_id,
+        original_path,
+        &action_id,
+        || dialog.save_file(),
+    )?
+    else {
         log_file_event(
             "file.save_as",
             LogStatus::Cancel,
@@ -1788,7 +1772,7 @@ pub async fn save_file_dialog(
         return Ok(None);
     };
 
-    let picked = path.to_string_lossy().to_string();
+    let picked = selection.picked.to_string_lossy().to_string();
     if let Some(blocked) = refused_save_as(&picked, refuse_path.as_deref(), Some(&action_id)) {
         log_file_event(
             "file.save_as",
@@ -1808,8 +1792,8 @@ pub async fn save_file_dialog(
             document_id,
             content,
             picked,
-            original_path: original_path.as_deref(),
-            original_bytes: original_bytes.as_deref(),
+            original_path: selection.original_path.as_deref(),
+            original_bytes: selection.original_bytes.as_deref(),
             encoding,
             line_ending,
             action_id: &action_id,

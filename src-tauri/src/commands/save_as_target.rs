@@ -1,7 +1,7 @@
 //! D255 Save As preflight: refuse live open targets and unsafe original snapshots.
 //! The original path uses a bounded before/after-picker read and the existing
 //! disk-baseline conflict check. The caller holds the Save As/open lock while
-//! checking live shadow documents, reserving and writing.
+//! checking Rust-owned held spellings and live shadow documents, reserving and writing.
 use super::super::file::{
     log_file_event, to_file_error, validate_file_path, FileError, MAX_FILE_SIZE,
 };
@@ -37,6 +37,11 @@ pub(crate) enum OriginalSnapshot {
     Error(FileError),
 }
 
+enum SnapshotRead {
+    MissingAtOpen,
+    Bytes(Vec<u8>),
+}
+
 impl OriginalSnapshot {
     pub(crate) fn as_deref(&self) -> Option<&[u8]> {
         match self {
@@ -54,27 +59,33 @@ impl OriginalSnapshot {
     }
 }
 
-/// Bounded, typed snapshot before the native picker. A shadow path authorises nothing.
+/// Bounded, typed snapshot before the native picker. A missing original at
+/// open is eligible for Save As; failure after opening remains an error.
 pub(crate) fn original_bytes_before_dialog(path: Option<&str>) -> OriginalSnapshot {
     let Some(path) = path else {
         return OriginalSnapshot::Missing;
     };
     match read_snapshot(path) {
-        Ok(bytes) => OriginalSnapshot::Bytes(bytes),
+        Ok(SnapshotRead::Bytes(bytes)) => OriginalSnapshot::Bytes(bytes),
+        Ok(SnapshotRead::MissingAtOpen) => OriginalSnapshot::Missing,
         Err(error) => OriginalSnapshot::Error(error),
     }
 }
 
-fn read_snapshot(path: &str) -> Result<Vec<u8>, FileError> {
+fn read_snapshot(path: &str) -> Result<SnapshotRead, FileError> {
     validate_file_path(path)?;
     let raw = Path::new(path);
     let mut options = OpenOptions::new();
     options.read(true);
     #[cfg(unix)]
     options.custom_flags(libc::O_NONBLOCK);
-    let mut file = options
-        .open(raw)
-        .map_err(|error| to_file_error(error, path))?;
+    let mut file = match options.open(raw) {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(SnapshotRead::MissingAtOpen);
+        }
+        Err(error) => return Err(to_file_error(error, path)),
+    };
     let metadata = file
         .metadata()
         .map_err(|error| to_file_error(error, path))?;
@@ -124,7 +135,7 @@ fn read_snapshot(path: &str) -> Result<Vec<u8>, FileError> {
             });
         }
     }
-    Ok(bytes)
+    Ok(SnapshotRead::Bytes(bytes))
 }
 
 #[cfg(not(test))]
@@ -175,7 +186,11 @@ pub(crate) fn refuse_original_changed_during_dialog(
             Some("original snapshot refused".into()),
         );
     })?;
-    if Some(current.as_slice()) != before {
+    let current = match &current {
+        SnapshotRead::MissingAtOpen => None,
+        SnapshotRead::Bytes(bytes) => Some(bytes.as_slice()),
+    };
+    if current != before {
         log_file_event(
             "file.save_as",
             LogStatus::Fail,
@@ -225,7 +240,12 @@ pub(crate) fn refuse_open_target(
     }
     let target = PathBuf::from(picked);
     let group = holder_group_key(&target);
-    if !watcher.consumer_spellings(&group).is_empty() {
+    let incoming = lookup::canonical(picked);
+    let held_matches = watcher
+        .held_raw_spellings()
+        .iter()
+        .any(|(_, raw)| lookup::same_file(picked, incoming.as_ref(), raw));
+    if !watcher.consumer_spellings(&group).is_empty() || held_matches {
         log_file_event(
             "file.save_as",
             LogStatus::Fail,

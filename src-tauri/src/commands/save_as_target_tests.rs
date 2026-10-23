@@ -66,6 +66,30 @@ fn snapshot_refuses_device_before_dialog() {
 }
 
 #[test]
+fn missing_registered_original_can_reach_picker_and_cancel_without_write() {
+    let d = Dir::new("d255_missing_original_picker");
+    let original = d.file("deleted.md", b"old\n");
+    fs::remove_file(&original).unwrap();
+    let snapshot = original_bytes_before_dialog(Some(&original.to_string_lossy()));
+    assert!(matches!(snapshot, super::OriginalSnapshot::Missing));
+    assert!(snapshot.into_result().unwrap().is_none());
+    // Cancelling the picker returns before the post-picker transaction.
+    assert!(!original.exists());
+    assert_eq!(fs::read_dir(d.path()).unwrap().count(), 0);
+}
+
+#[test]
+fn missing_original_stays_missing_through_own_path_comparison() {
+    let d = Dir::new("d255_missing_original_compare");
+    let original = d.file("deleted.md", b"old\n");
+    fs::remove_file(&original).unwrap();
+    let path = original.to_string_lossy();
+    let outcome = super::refuse_original_changed_during_dialog(&path, Some(&path), None, None);
+    assert!(outcome.is_ok(), "{outcome:?}");
+    assert!(!original.exists());
+}
+
+#[test]
 fn snapshot_refuses_fifo_before_dialog_without_waiting_for_writer() {
     let d = Dir::new("d255_fifo_snapshot");
     let path = d.path().join("pipe.md");

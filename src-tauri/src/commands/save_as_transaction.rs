@@ -1,11 +1,14 @@
 //! Post-picker Save As transaction: validate, reserve, write and confirm together.
-use super::file::{FileError, SaveResult};
+use super::file::{log_file_event, FileError, SaveResult};
 use super::save_as_watch::{
     log_fenced_save_as, refuse_live_open_target, refuse_open_target,
     refuse_original_changed_during_dialog, save_as_watched_with,
 };
 use crate::models::SharedShadowStore;
+use crate::models::{LogLevel, LogStatus};
 use crate::services::file_watcher::{save_notice::SaveOrigin, FileWatcher};
+use crate::services::open_route::lookup;
+use serde_json::json;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -22,6 +25,41 @@ pub(crate) struct SaveAsTransaction<'a> {
     pub watcher: &'a FileWatcher,
     pub shadow: &'a SharedShadowStore,
     pub live_labels: &'a HashSet<String>,
+}
+
+/// An own-path selection is a plain Save only while it still names this
+/// document alone. Retargeted held spellings remain authoritative even when
+/// the renderer shadow has already been removed during a close request.
+fn refuse_other_held_own_target(
+    picked: &str,
+    original_path: Option<&str>,
+    own_window: &str,
+    watcher: &FileWatcher,
+    action_id: &str,
+) -> Result<(), FileError> {
+    let incoming = lookup::canonical(picked);
+    if !original_path.is_some_and(|own| lookup::same_file(picked, incoming.as_ref(), own)) {
+        return Ok(());
+    }
+    let held_elsewhere = watcher.held_raw_spellings().iter().any(|(label, raw)| {
+        (label != own_window || Some(raw.as_str()) != original_path)
+            && lookup::same_file(picked, incoming.as_ref(), raw)
+    });
+    if held_elsewhere {
+        log_file_event(
+            "file.save_as",
+            LogStatus::Fail,
+            LogLevel::Warn,
+            Some(action_id),
+            json!({ "source": "dialog", "reason": "already_open" }),
+            None,
+            Some("selected target is already open in mdpro".into()),
+        );
+        return Err(FileError::AlreadyOpen {
+            path: picked.into(),
+        });
+    }
+    Ok(())
 }
 
 /// The test seam runs after the first eligibility check, before reservation.
@@ -45,6 +83,7 @@ pub(crate) async fn save_as_post_picker(
         live_labels,
     } = transaction;
     refuse_original_changed_during_dialog(&picked, original_path, original_bytes, Some(action_id))?;
+    refuse_other_held_own_target(&picked, original_path, label, watcher, action_id)?;
     refuse_open_target(&picked, original_path, Some(action_id), watcher)?;
     refuse_live_open_target(
         &picked,
@@ -57,6 +96,7 @@ pub(crate) async fn save_as_post_picker(
     between_check_and_reserve();
     // A test can inject a hold at the seam without taking this lock. Recheck
     // at the reservation boundary; real open routes serialize on the lock.
+    refuse_other_held_own_target(&picked, original_path, label, watcher, action_id)?;
     refuse_open_target(&picked, original_path, Some(action_id), watcher)?;
     refuse_live_open_target(
         &picked,

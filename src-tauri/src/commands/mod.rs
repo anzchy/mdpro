@@ -14,6 +14,7 @@ pub mod menu;
 pub mod preferences;
 pub mod quit_guard;
 pub(crate) mod save_as_open_lock;
+pub(crate) mod save_as_picker;
 pub(crate) mod save_as_transaction;
 pub mod save_as_watch;
 pub mod shortcuts;
