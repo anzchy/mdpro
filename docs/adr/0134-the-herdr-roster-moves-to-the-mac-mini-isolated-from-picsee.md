@@ -2,6 +2,9 @@
 
 ## Status
 
+Partially superseded: decision 7's clause "Both projects share the heavy lock" by
+[ADR-0135](0135-one-heavy-lock-tool-serves-every-project-queues-in-arrival-order-and-admits-by-memory.md) (2026-10-23).
+
 Accepted, 2026-10-23, with one finding open. Decided by the user, recorded by herdr-delegator. The user's words:
 「Land open, fix later」. The ruling followed ADR-0129, after the ADR-0120 cap.
 - **Reviewed over three rounds**, blind in round one, by gpt-auditor (`review-plan`) and Opus (`mdpro-fable-auditor`,
