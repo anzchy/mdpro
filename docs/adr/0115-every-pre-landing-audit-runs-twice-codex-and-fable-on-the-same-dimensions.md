@@ -1,5 +1,7 @@
 # 0115. Every pre-landing audit runs twice, Codex and Fable, on the same dimensions, and the delegator merges them
 
+**Status note**: partially superseded: the clause naming Fable as the second auditor by [ADR-0137](0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md) (2026-10-23).
+
 **Status**: Accepted (2026-10-16). Decided by the user, recorded by
 mdpro-delegator. The user's words: 「更改 rule 70 audit 规则，对于每一个 pr，在
 merge 之前，除了让 codex-audit 来启用 codex Audit 之外，还应当由 subagent 启动

@@ -35,7 +35,7 @@ When the delegator is not herdr-delegator, this file does not apply.
 | Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/<name>` (ADR-0134) | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
 | Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/gpt-imple-3`; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
 | Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-astra`, effort high, herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
-| Auditor, Fable half (PRs only) | `mdpro-fable-auditor` subagent | Fable, a fresh named subagent of the delegator per request: never a fork, never resumed, under the agent definition's phase-aware read barrier (§ Fresh context) | `Agent` | its result; the delegator writes it verbatim to `~/.mdpro-redesign/herdr-spike/fable-auditor/<item>-r<round>.md` |
+| Auditor, second half (PRs, ADRs, plans) | `opus-auditor` | Claude Code on Opus (`--model opus --dangerously-skip-permissions`, `MDPRO_ROLE=real-device-tester`), herdr pane, detached `mdpro-wt/opus-auditor` ([ADR-0137](../../docs/adr/0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md)) | a new-pane reset per request, then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/opus-auditor/BRIEF.md` and the `mdpro-fable-auditor` protocol | `<item>-r<round>.md` in that folder, then idle |
 | `/security-review` runner | a fork of herdr-delegator | Opus | `Agent` (`fork`) | `~/.mdpro-redesign/herdr-spike/delegator/secrev-<item>.md` |
 | Landing verifier, ADR and plan reviewer, number registrar | subagents of herdr-delegator | Opus (`model: "opus"`) | `Agent` | their result |
 | Real-device tester, Mac mini and Windows | `mac-test` (tmux `dtrack`) | Claude session on the Mac mini (`ListAgents`); Windows through `remote-windows-device-test` once the mini has an SSH key on `win-desktop` (ADR-0134 decision 6) | a device brief from the delegator, by `SendMessage` | `~/.mdpro-redesign/device/<batch>-report.md`, then a one-line `SendMessage` |
@@ -179,7 +179,7 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
   Its scope is ADR-0121 decision 4 as written: the fix diff, every open finding and unfixed
   instance of its class, and any Critical or High a commit in `base..sha` introduced, exposed or
   worsened. Before sending a confirm, check the request against the merged verdict's open list.
-- **The Fable half** is a new `Agent` call to `mdpro-fable-auditor` for every request: Fable model
+- **The second half** is `opus-auditor` (ADR-0137): a new-pane reset by § Restart for every request (`--kind claude`, Opus), then a prompt pointing at the request file. Before ADR-0137 it was a new `Agent` call to `mdpro-fable-auditor` for every request: Fable model
   for PRs, `model: "opus"` in `plan` mode. Never a fork, which would inherit the Codex verdict, and
   never resumed with `SendMessage`.
 - **Read barrier, by phase, for both auditors:**
@@ -301,7 +301,7 @@ before any audit starts.
 
 - **PRs.** In one turn the delegator sends:
   - gpt-auditor its request;
-  - a fresh `mdpro-fable-auditor` subagent its request (§ Fresh context), on the same range and the
+  - opus-auditor its request, in a fresh pane (§ Fresh context, ADR-0137), on the same range and the
     same dimensions;
   - and, on the High tier, a fork that runs `/security-review` on the range's diff, the job
     ADR-0121 gave mdpro-codex-audit.
@@ -313,7 +313,7 @@ before any audit starts.
     `herdr-spike/delegator/`, or any PR comment.
   - Once both are in, the delegator posts each report, then the merged verdict.
 - **ADRs and plans.** gpt-auditor (the `review-plan` dimensions: consistency, completeness,
-  feasibility, ambiguity, risk) and an Opus subagent (`mdpro-fable-auditor` in `plan` mode,
+  feasibility, ambiguity, risk) and opus-auditor in `plan` mode (ADR-0137; before it, an Opus `mdpro-fable-auditor` subagent,
   `model: "opus"`). Both are blind, and their verdicts are merged as for PRs. Fable does not review
   ADRs (ADR-0118).
 

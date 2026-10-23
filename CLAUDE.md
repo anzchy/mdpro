@@ -247,7 +247,7 @@ Sequencing for this effort lives in
 
 - **Branch**: every work item lands on `master`, the single trunk, and only
   through the delegator's `git merge --ff-only` of a short-lived branch that
-  has passed `mdpro-landing-verifier`, the two audits (Codex and Fable,
+  has passed `mdpro-landing-verifier`, the two audits (Codex and Opus, the latter as the `opus-auditor` pane since ADR-0137;
   [ADR-0115](./docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md)) with no Critical
   or High finding, **and** a green `ci-gate` check on its PR's head (rule 70,
   [ADR-0085](./docs/adr/0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md),

@@ -2,6 +2,8 @@
 
 ## Status
 
+Partially superseded: the clause "Fable reviews PRs only" by [ADR-0137](0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md) (2026-10-23).
+
 Accepted, 2026-10-17. Decided by the user, recorded by mdpro-delegator. The user's words:
 「Slot 改为3个试试，目前有几个implementer，codex-audit因为用cli，可以同时接很多个需求，不会成为瓶颈。另外Fable只参与审计pr，不参与adr等其他的，adr原先由fable审计的，改为由opus审计。」
 

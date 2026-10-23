@@ -230,7 +230,9 @@ handoff. Each item is tagged `prep` or `impl`.
    2026-10-16: 「后续每次降级都附上复现或者反证」). The
    auditor reports to the delegator, not to the implementor.
 
-   **Every audit runs twice, on the same dimensions**
+   **Every audit runs twice, on the same dimensions** (the second auditor is `opus-auditor` on Opus since
+   [ADR-0137](../../docs/adr/0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md), 2026-10-23; "Fable" below names that
+   half as it was first set up)
    ([ADR-0115](../../docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md);
    user decision, 2026-10-16: 「除了让 codex-audit 来启用 codex Audit 之外，
    还应当由 subagent 启动 fable 进行 Audit，维度参考 Codex audit 的维度，

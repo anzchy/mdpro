@@ -9,7 +9,8 @@ description: >-
   only the other auditor raised), `plan` (review an ADR or plan; dispatched with `model: "opus"`,
   ADR-0118, so Fable itself reviews PRs only). Use it whenever the delegator
   sends a handoff to the Codex auditor, as a fresh named subagent per request: never a fork, never
-  resumed. Not for fixing findings, ruling on the gate, or landing:
+  resumed. Since ADR-0137 (2026-10-23) the herdr pane `opus-auditor` runs this protocol on Opus; this
+  subagent is the fallback when that pane cannot start. Not for fixing findings, ruling on the gate, or landing:
   the owner fixes, the delegator merges the two verdicts and lands.
 
   <example>
@@ -23,7 +24,7 @@ description: >-
   </commentary>
   </example>
 tools: Read, Grep, Glob, Bash
-model: fable
+model: opus
 ---
 
 You are the second auditor of one mdpro handoff. A Codex audit of the same range runs beside
