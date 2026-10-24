@@ -105,7 +105,7 @@ fn expected_class(action: &str) -> ActionClass {
 /// Every action string `handle_menu_event` passes to `emit_menu_action`.
 fn emitted_actions() -> BTreeSet<String> {
     let src = code(MENU_SRC);
-    let needle = "emit_menu_action(app, \"";
+    let needle = "emit_menu_action(app, id, \"";
     let set: BTreeSet<String> = src
         .match_indices(needle)
         .map(|(i, _)| {
@@ -358,6 +358,7 @@ fn d261_a_stale_blur_after_another_focus_is_harmless() {
         resolve_target(&mf.snapshot(), ActionClass::Window, &lv(&[A, B])),
         Ok((B.to_string(), Via::Focused))
     );
+    d261_main_feeds_menu_focus_into_the_one_on_focus_event_call();
 }
 
 #[test]
@@ -380,9 +381,9 @@ fn d261_forget_has_no_fallback_chain() {
         resolve_target(&mf.snapshot(), ActionClass::App, &lv(&[C, B])),
         Ok((B.to_string(), Via::AnyLive))
     );
+    d261_main_forgets_only_on_destroyed_and_manages_menu_focus();
 }
 
-#[test]
 fn d261_main_forgets_only_on_destroyed_and_manages_menu_focus() {
     let main = code(MAIN_SRC);
     let destroyed = slice(&main, "WindowEvent::Destroyed =>", "_ => {}");
@@ -405,7 +406,6 @@ fn d261_main_forgets_only_on_destroyed_and_manages_menu_focus() {
     );
 }
 
-#[test]
 fn d261_main_feeds_menu_focus_into_the_one_on_focus_event_call() {
     let main = code(MAIN_SRC);
     let from = main.find("app.run(").expect("main.rs has no `app.run(`");
@@ -472,9 +472,9 @@ fn d261_an_unknown_action_classifies_as_window() {
     ] {
         assert_eq!(classify(action), ActionClass::Window, "{action:?}");
     }
+    d261_quit_and_escape_arms_still_emit_nothing();
 }
 
-#[test]
 fn d261_quit_and_escape_arms_still_emit_nothing() {
     let menu = code(MENU_SRC);
     let handler = body_of(&menu, "handle_menu_event");
@@ -670,6 +670,7 @@ fn d261_success_emits_once_to_the_resolved_label_with_target() {
         }
     );
     assert_eq!(*logs.borrow(), vec![entry_json("file.save", &out)]);
+    d261_no_menu_action_broadcast_remains_under_src();
 }
 
 #[test]
@@ -799,9 +800,9 @@ fn d261_the_dispatch_log_line_never_carries_value() {
         }
     }
     assert_eq!(n, 19 * 6, "non-vacuity");
+    d261_dispatch_logs_exactly_one_dispatch_log_entry();
 }
 
-#[test]
 fn d261_dispatch_logs_exactly_one_dispatch_log_entry() {
     let src = code(TARGET_SRC);
     let body = body_of(&src, "dispatch");
@@ -817,7 +818,6 @@ fn d261_dispatch_logs_exactly_one_dispatch_log_entry() {
 
 // ------------------------------------------------------- route and the glue
 
-#[test]
 fn d261_no_menu_action_broadcast_remains_under_src() {
     fn rs_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
         for entry in std::fs::read_dir(dir).unwrap() {
@@ -846,7 +846,7 @@ fn d261_no_menu_action_broadcast_remains_under_src() {
         "menu:action goes through emit_to"
     );
 
-    let route_body = body_of(&code(TARGET_SRC), "route");
+    let route_body = body_of(&code(TARGET_SRC), "route_selected");
     let at = |t: &str| {
         route_body
             .find(t)
@@ -907,12 +907,16 @@ fn d261_route_decision_table_logs_one_line_per_call() {
         }
     }
     assert_eq!(n, 500, "non-vacuity");
+    d261_emit_menu_action_supplies_managed_focus_live_labels_and_the_logger();
 }
 
-#[test]
 fn d261_emit_menu_action_supplies_managed_focus_live_labels_and_the_logger() {
     let body = body_of(&code(MENU_SRC), "emit_menu_action");
-    assert_eq!(body.matches("route(").count(), 1, "one route call:\n{body}");
+    assert_eq!(
+        body.matches("route_for_event(").count(),
+        1,
+        "one id-aware route call:\n{body}"
+    );
     for token in [
         "classify(",
         "resolve_target(",
@@ -935,7 +939,7 @@ fn d261_emit_menu_action_supplies_managed_focus_live_labels_and_the_logger() {
             .any(|l| l.contains("emit_to(") && l.contains("\"menu:action\"")),
         "{body}"
     );
-    let call = &body[body.find("route(").unwrap()..];
+    let call = &body[body.find("route_for_event(").unwrap()..];
     let call = &call[..call.find(");").expect("route call ends")];
     let last_arg = call
         .trim_end()

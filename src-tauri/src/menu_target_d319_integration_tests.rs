@@ -130,3 +130,64 @@ fn d319_appkit_observer_is_installed_for_native_selection() {
     }
     assert!(bridge_source.contains("customAction:"));
 }
+
+#[test]
+fn d319_f1_unrelated_capture_cannot_stale_guard_table_in_new_window() {
+    use crate::menu::menu_availability::emit_to_window;
+    use crate::menu::menu_recent_merge::RecentOp;
+    use crate::menu::{MenuState, ModeReport};
+    use crate::menu_layout::menu_layout;
+    use std::cell::Cell;
+
+    let layout = menu_layout().unwrap();
+    let modes = MenuState::default();
+    for (window, mode) in [("A", "source"), ("B", "wysiwyg")] {
+        modes.publish_op(
+            RecentOp::Refresh,
+            Some(ModeReport { window: window.into(), mode: mode.into(), tab_count: None }),
+            |_, _| Ok(()),
+        ).unwrap();
+    }
+    let run = |unrelated: bool| {
+        let focus = MenuFocus::default();
+        focus.apply("A", true);
+        if unrelated {
+            focus.begin_tracking();
+            focus.will_send_action_id("menu.file.open");
+            focus.end_tracking();
+        }
+        focus.apply("B", true);
+        let guard_capture = focus.peek_capture()
+            .filter(|_| focus.capture_matches("menu.format.insert_table"))
+            .map(MenuFocus::from_snapshot);
+        let guard_focus = guard_capture.as_ref().unwrap_or(&focus);
+        let emitted = RefCell::new(Vec::<String>::new());
+        let logs = RefCell::new(Vec::<Value>::new());
+        let attempted = Cell::new(false);
+        let refused = Cell::new(false);
+        let result = focus.route_for_event(
+            "menu.format.insert_table", "paragraph.table", None,
+            &["A".into(), "B".into()],
+            |label, _| {
+                let output = emit_to_window(layout, "paragraph.table", label, guard_focus, Some(&modes), |target| {
+                    attempted.set(true);
+                    emitted.borrow_mut().push(target.into());
+                    Ok(())
+                });
+                if output.is_err() && !attempted.get() { refused.set(true); }
+                output
+            },
+            |entry| if !refused.get() { logs.borrow_mut().push(to_value(entry).unwrap()); },
+        );
+        (result, emitted.into_inner(), logs.into_inner(), refused.get())
+    };
+    let with_capture = run(true);
+    let baseline = run(false);
+    assert_eq!(with_capture.1, vec!["B"]);
+    assert_eq!(with_capture.1, baseline.1);
+    assert_eq!(with_capture.2, baseline.2);
+    assert!(!with_capture.3);
+    assert_eq!(with_capture.2.len(), 1);
+    assert_eq!(with_capture.2[0]["context"]["target"], "B");
+    assert_eq!(with_capture.2[0]["context"]["via"], "focused");
+}

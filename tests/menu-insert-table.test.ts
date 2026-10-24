@@ -41,7 +41,7 @@ describe("Insert Table menu", () => {
     expect(paragraphRs).toMatch(/MENU_FORMAT_INSERT_TABLE[\s\S]*"Insert Table"[\s\S]*"CmdOrCtrl\+Shift\+T"/);
     expect(paragraphRs).toMatch(/SubmenuBuilder::new\(app,\s*"Paragraph"\)[\s\S]*MENU_FORMAT_INSERT_TABLE/);
     expect(formatRs).toMatch(/SubmenuBuilder::new\(app,\s*"Format"\)[\s\S]*format_insert_table/);
-    expect(menuRs).toMatch(/MENU_FORMAT_INSERT_TABLE\s*=>\s*emit_menu_action\(app,\s*"paragraph\.table",\s*None\)/);
+    expect(menuRs).toMatch(/MENU_FORMAT_INSERT_TABLE\s*=>\s*emit_menu_action\(app,\s*id,\s*"paragraph\.table",\s*None\)/);
   });
 
   it("opens exactly one real pending table insert and logs its control id", () => {
