@@ -71,3 +71,17 @@ fn d217_on_focus_event_without_a_store_does_not_panic() {
     on_focus_event(None, None, "main", true);
     on_focus_event(None, None, "main", false);
 }
+
+#[cfg(target_os = "macos")]
+#[test]
+fn d319_only_muda_custom_action_is_queued() {
+    use objc2::sel;
+
+    assert!(super::menu_capture::is_custom_action(Some(
+        sel!(customAction:)
+    )));
+    assert!(!super::menu_capture::is_custom_action(Some(
+        sel!(customShowAboutPanel:)
+    )));
+    assert!(!super::menu_capture::is_custom_action(None));
+}

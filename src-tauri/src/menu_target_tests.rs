@@ -958,3 +958,7 @@ fn d261_only_the_three_emitted_theme_actions_are_app_class() {
         assert_eq!(classify(action), ActionClass::Window, "{action:?}");
     }
 }
+
+mod d319_tests {
+    include!("menu_target_d319_tests.rs");
+}
