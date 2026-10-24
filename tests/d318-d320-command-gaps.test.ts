@@ -11,6 +11,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
 
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { history, undo } from "@milkdown/kit/prose/history";
+import { serializerCtx } from "@milkdown/kit/core";
 import { dispatchEditorMenuAction } from "../src/hooks/editorMenuActionTable";
 import { captureToken } from "../src/utils/menuTargetToken";
 import { useEditorStore } from "../src/stores/editorStore";
@@ -53,6 +54,147 @@ function listShape() {
   const list = rig!.view.state.doc.firstChild!;
   return { kind: list.type.name, items: list.childCount, content: list.textContent };
 }
+
+function savedMarkdown(): string {
+  return rig!.editor.action((ctx) => ctx.get(serializerCtx)(rig!.view.state.doc));
+}
+
+function invokeList(route: "menu" | "key", target: "bullet" | "ordered"): void {
+  if (route === "menu") {
+    expect(dispatchEditorMenuAction(`editor.paragraph.${target === "bullet" ? "unorderedList" : "orderedList"}`, captureToken("main"))).toBe(true);
+    return;
+  }
+  const event = new KeyboardEvent("keydown", {
+    key: target === "bullet" ? "u" : "o", metaKey: true, altKey: true, bubbles: true, cancelable: true,
+  });
+  rig!.view.dom.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+}
+
+function selectAcross(first: string, last: string, reverse = false): void {
+  const view = rig!.view;
+  const positions = new Map<string, number>();
+  view.state.doc.descendants((node, pos) => {
+    if (node.isText && (node.text === first || node.text === last)) positions.set(node.text!, pos + 1);
+  });
+  const a = positions.get(first);
+  const b = positions.get(last);
+  if (a === undefined || b === undefined) throw new Error(`Missing selection endpoints: ${first}, ${last}`);
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, reverse ? b : a, reverse ? a : b)));
+}
+
+it.each(["menu", "key"] as const)("D318-F1-2 %s searches past an already-ordered inner list", async (route) => {
+  const view = await mount("- outer\n  1. inner a\n  2. inner b\n- sibling");
+  selectAcross("inner a", "sibling");
+  const before = view.state.doc.toJSON();
+  const beforeItems = view.state.doc.firstChild!.content.toJSON();
+  invokeList(route, "ordered");
+  expect(view.state.doc.firstChild!.type.name).toBe("ordered_list");
+  expect(view.state.doc.firstChild!.content.toJSON()).toEqual(beforeItems);
+  expect(view.state.doc.firstChild!.firstChild!.lastChild!.type.name).toBe("ordered_list");
+  expect(undo(view.state, view.dispatch)).toBe(true);
+  expect(view.state.doc.toJSON()).toEqual(before);
+});
+
+it.each(["menu", "key"] as const)("D318-F1-2 %s handles reverse nested-to-sibling selection", async (route) => {
+  const view = await mount("- outer\n  1. inner a\n  2. inner b\n- sibling");
+  selectAcross("inner a", "sibling", true);
+  const before = view.state.doc.toJSON();
+  const beforeItems = view.state.doc.firstChild!.content.toJSON();
+  invokeList(route, "ordered");
+  expect(view.state.doc.firstChild!.type.name).toBe("ordered_list");
+  expect(view.state.doc.firstChild!.content.toJSON()).toEqual(beforeItems);
+  expect(undo(view.state, view.dispatch)).toBe(true);
+  expect(view.state.doc.toJSON()).toEqual(before);
+});
+
+it.each(["menu", "key"] as const)("D318-F1-2 %s chooses the nearest common middle list", async (route) => {
+  const view = await mount("- root\n  1. mid-a\n     - leaf\n  2. mid-b\n- root sibling");
+  selectAcross("leaf", "mid-b");
+  const before = view.state.doc.toJSON();
+  const beforeOuterAttrs = view.state.doc.firstChild!.attrs;
+  invokeList(route, "bullet");
+  const outer = view.state.doc.firstChild!;
+  expect(outer.type.name).toBe("bullet_list");
+  expect(outer.attrs).toEqual(beforeOuterAttrs);
+  expect(outer.firstChild!.lastChild!.type.name).toBe("bullet_list");
+  const expected = structuredClone(before);
+  expected.content[0].content[0].content[1].type = "bullet_list";
+  expected.content[0].content[0].content[1].attrs = {
+    marker: null, spread: before.content[0].content[0].content[1].attrs.spread,
+  };
+  expect(view.state.doc.toJSON()).toEqual(expected);
+  expect(undo(view.state, view.dispatch)).toBe(true);
+  expect(view.state.doc.toJSON()).toEqual(before);
+});
+
+it.each(["menu", "key"] as const)("D318-F1-2 %s refuses adjacent lists in both directions", async (route) => {
+  for (const reverse of [false, true]) {
+    const view = await mount("1. first\n\n- second");
+    expect(view.state.doc.childCount).toBe(2);
+    selectAcross("first", "second", reverse);
+    const before = view.state.doc.toJSON();
+    const beforeMarkdown = savedMarkdown();
+    invokeList(route, "bullet");
+    expect(view.state.doc.toJSON()).toEqual(before);
+    expect(savedMarkdown()).toBe(beforeMarkdown);
+    expect(undo(view.state, view.dispatch)).toBe(false);
+    await rig!.destroy();
+    rig = null;
+    useMilkdownEditorStore.getState().unregisterEditor();
+  }
+});
+
+it.each([
+  ["1. 汉字\n2. second", "bullet", false, "- 汉字\n- second\n"],
+  ["1. 汉字\n\n2. second", "bullet", true, "- 汉字\n\n- second\n"],
+  ["1. 汉字\n   - child\n2. second", "bullet", false, "- 汉字\n\n  - child\n- second\n"],
+  ["1. 汉字\n\n   - child\n\n2. second", "bullet", true, "- 汉字\n\n  - child\n\n- second\n"],
+  ["- 汉字\n- second", "ordered", false, "1. 汉字\n2. second\n"],
+  ["- 汉字\n\n- second", "ordered", true, "1. 汉字\n\n2. second\n"],
+  ["- 汉字\n  - child\n- second", "ordered", false, "1. 汉字\n\n   - child\n2. second\n"],
+  ["- 汉字\n\n  - child\n\n- second", "ordered", true, "1. 汉字\n\n   - child\n\n2. second\n"],
+] as const)("D318-F1-1 %s to %s preserves spread through %s", async (markdown, target, loose, expected) => {
+  for (const route of ["menu", "key"] as const) {
+    const view = await mount(markdown);
+    const before = view.state.doc.toJSON();
+    const beforeItems = view.state.doc.firstChild!.content.toJSON();
+    const spread = view.state.doc.firstChild!.attrs.spread;
+    expect(spread === true || spread === "true").toBe(loose);
+    invokeList(route, target);
+    const list = view.state.doc.firstChild!;
+    expect(list.type.name).toBe(target === "bullet" ? "bullet_list" : "ordered_list");
+    expect(list.attrs.spread).toBe(spread);
+    expect(list.content.toJSON()).toEqual(beforeItems);
+    expect(savedMarkdown()).toBe(expected);
+    expect(undo(view.state, view.dispatch)).toBe(true);
+    expect(view.state.doc.toJSON()).toEqual(before);
+    await rig!.destroy();
+    rig = null;
+    useMilkdownEditorStore.getState().unregisterEditor();
+  }
+});
+
+it.each([
+  ["7) first\n8) second", "bullet", "ordered_list", 7, ")", "- first\n- second\n"],
+  ["* first\n* second", "ordered", "bullet_list", null, "*", "1. first\n2. second\n"],
+] as const)("D318-F1-1 conversion resets incompatible %s marker while conserving spacing", async (markdown, target, sourceKind, order, marker, expected) => {
+  const view = await mount(markdown);
+  const before = view.state.doc.toJSON();
+  const list = view.state.doc.firstChild!;
+  expect(list.type.name).toBe(sourceKind);
+  expect(sourceKind === "ordered_list" ? list.attrs.order : null).toBe(order);
+  expect(sourceKind === "ordered_list" ? list.attrs.delimiter : list.attrs.marker).toBe(marker);
+  const beforeItems = list.content.toJSON();
+  const spread = list.attrs.spread;
+  invokeList("menu", target);
+  const converted = view.state.doc.firstChild!;
+  expect(converted.attrs.spread).toBe(spread);
+  expect(converted.content.toJSON()).toEqual(beforeItems);
+  expect(savedMarkdown()).toBe(expected);
+  expect(undo(view.state, view.dispatch)).toBe(true);
+  expect(view.state.doc.toJSON()).toEqual(before);
+});
 
 it.each([
   ["1. 汉字\n2. second\n   1. nested", "paragraph.unorderedList", "bullet_list", 0],
@@ -127,7 +269,7 @@ it.each(["menu", "key"] as const)("D318 %s converts the selected nested list onl
   const expected = structuredClone(beforeDoc);
   const outer = expected.content[0];
   outer.content[0].content[1].type = "bullet_list";
-  outer.content[0].content[1].attrs = { marker: null, spread: false };
+  outer.content[0].content[1].attrs = { marker: null, spread: beforeDoc.content[0].content[0].content[1].attrs.spread };
   expect(afterDoc).toEqual(expected);
   expect(undo(view.state, view.dispatch)).toBe(true);
   expect(view.state.doc.toJSON()).toEqual(beforeDoc);
