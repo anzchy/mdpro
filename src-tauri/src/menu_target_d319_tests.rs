@@ -20,6 +20,27 @@ impl RedCaptureSeam for MenuFocus {
     fn discard_capture(&self) {}
 }
 
+// RED compatibility for id-aware event routing. Inherent methods take
+// precedence once the production implementation exists.
+#[allow(dead_code)]
+trait RedIdRouting {
+    fn will_send_action_id(&self, _id: &str);
+    fn route_for_event<E, F, L>(
+        &self, _id: &str, action: &str, value: Option<String>, live: &[String], emit: F, log: L,
+    ) -> DispatchOutcome
+    where F: FnOnce(&str, &MenuActionPayload) -> Result<(), E>, L: FnOnce(LogEntryPayload);
+}
+
+impl RedIdRouting for MenuFocus {
+    fn will_send_action_id(&self, _id: &str) { self.will_send_action(true); }
+    fn route_for_event<E, F, L>(
+        &self, _id: &str, action: &str, value: Option<String>, live: &[String], emit: F, log: L,
+    ) -> DispatchOutcome
+    where F: FnOnce(&str, &MenuActionPayload) -> Result<(), E>, L: FnOnce(LogEntryPayload) {
+        route(action, value, self, live, emit, log)
+    }
+}
+
 type Emission = (String, MenuActionPayload);
 
 fn send(
@@ -42,6 +63,20 @@ fn send(
             if fail { Err("/private/emitter/path") } else { Ok(()) }
         },
         |entry: LogEntryPayload| logs.borrow_mut().push(to_value(entry).unwrap()),
+    );
+    (outcome, emitted.into_inner(), logs.into_inner())
+}
+
+fn send_id(
+    focus: &MenuFocus, id: &str, action: &str, live: &[&str],
+) -> (DispatchOutcome, Vec<Emission>, Vec<Value>) {
+    let emitted = RefCell::new(Vec::new());
+    let logs = RefCell::new(Vec::new());
+    let labels = live.iter().map(|label| (*label).to_string()).collect::<Vec<_>>();
+    let outcome = focus.route_for_event(
+        id, action, None, &labels,
+        |label, payload| { emitted.borrow_mut().push((label.to_string(), payload.clone())); Ok::<(), ()>(()) },
+        |entry| logs.borrow_mut().push(to_value(entry).unwrap()),
     );
     (outcome, emitted.into_inner(), logs.into_inner())
 }
@@ -138,20 +173,121 @@ fn d319_cancelled_tracking_does_not_poison_shortcut() {
 }
 
 #[test]
-fn d319_captures_are_consumed_fifo_once() {
+fn d319_f1_old_selection_expires_at_next_begin_and_ids_do_not_pair_fifo() {
     let focus = MenuFocus::default();
     focus.apply("A", true);
     focus.begin_tracking();
-    focus.will_send_action(true);
+    focus.will_send_action_id("menu.file.open");
     focus.end_tracking();
     focus.apply("B", true);
     focus.begin_tracking();
-    focus.will_send_action(true);
+    focus.will_send_action_id("menu.file.save");
     focus.end_tracking();
-    let (_, first, first_logs) = send(&focus, "file.save", None, &["A", "B"], false);
-    let (_, second, second_logs) = send(&focus, "file.save", None, &["A", "B"], false);
+    let (_, first, first_logs) = send_id(&focus, "menu.file.open", "file.open", &["A", "B"]);
+    let (_, second, second_logs) = send_id(&focus, "menu.file.save", "file.save", &["A", "B"]);
+    assert_target(&first, &first_logs, "B", "focused");
+    assert_target(&second, &second_logs, "B", "focused");
+}
+
+#[test]
+fn d319_f1_unrelated_custom_selection_cannot_redirect_later_save() {
+    let focus = MenuFocus::default();
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.edit.copy");
+    focus.end_tracking();
+    focus.apply("B", true);
+    let (_, emitted, logs) = send_id(&focus, "menu.file.save", "file.save", &["A", "B"]);
+    assert_target(&emitted, &logs, "B", "focused");
+    let (_, again, again_logs) = send_id(&focus, "menu.edit.copy", "file.save", &["A", "B"]);
+    assert_target(&again, &again_logs, "B", "focused");
+}
+
+#[test]
+fn d319_f1_unbalanced_begin_and_end_cannot_keep_old_owner() {
+    let focus = MenuFocus::default();
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.save");
+    focus.apply("B", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.save");
+    focus.end_tracking();
+    focus.end_tracking();
+    focus.end_tracking();
+    let (_, emitted, logs) = send_id(&focus, "menu.file.save", "file.save", &["A", "B"]);
+    assert_target(&emitted, &logs, "B", "focused");
+}
+
+#[test]
+fn d319_f1_matching_id_is_consumed_once() {
+    let focus = MenuFocus::default();
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.save");
+    focus.end_tracking();
+    focus.apply("B", true);
+    let (_, first, first_logs) = send_id(&focus, "menu.file.save", "file.save", &["A", "B"]);
+    let (_, second, second_logs) = send_id(&focus, "menu.file.save", "file.save", &["A", "B"]);
     assert_target(&first, &first_logs, "A", "click_time");
     assert_target(&second, &second_logs, "B", "focused");
+}
+
+#[test]
+fn d319_f1_dead_captured_owner_uses_live_app_fallback() {
+    let focus = MenuFocus::default();
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.new");
+    focus.end_tracking();
+    focus.forget("A");
+    let (_, emitted, logs) = send_id(&focus, "menu.file.new", "file.new", &["C", "B"]);
+    assert_target(&emitted, &logs, "B", "any_live");
+}
+
+#[test]
+fn d319_f1_dead_captured_owner_uses_live_last_focused_or_cancels_window() {
+    let focus = MenuFocus::default();
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.new");
+    focus.end_tracking();
+    focus.forget("A");
+    focus.apply("C", true);
+    focus.apply("C", false);
+    let (_, emitted, logs) = send_id(&focus, "menu.file.new", "file.new", &["B", "C"]);
+    assert_target(&emitted, &logs, "C", "last_focused");
+
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.save");
+    focus.end_tracking();
+    focus.forget("A");
+    let (outcome, emitted, logs) = send_id(&focus, "menu.file.save", "file.save", &["B", "C"]);
+    assert_eq!(outcome, DispatchOutcome::Cancel { reason: crate::menu::menu_target::CancelReason::NoFocusedWindow });
+    assert!(emitted.is_empty());
+    assert_eq!(logs.len(), 1);
+    assert_eq!(logs[0]["error"], "no_focused_window");
+}
+
+#[test]
+fn d319_f1_dead_captured_owner_with_no_live_window_cancels_app_action() {
+    let focus = MenuFocus::default();
+    focus.apply("A", true);
+    focus.begin_tracking();
+    focus.will_send_action_id("menu.file.new");
+    focus.end_tracking();
+    focus.forget("A");
+    let (outcome, emitted, logs) = send_id(&focus, "menu.file.new", "file.new", &[]);
+    assert_eq!(
+        outcome,
+        DispatchOutcome::Cancel {
+            reason: crate::menu::menu_target::CancelReason::NoLiveWindow
+        }
+    );
+    assert!(emitted.is_empty());
+    assert_eq!(logs.len(), 1);
+    assert_eq!(logs[0]["error"], "no_live_window");
 }
 
 #[test]
