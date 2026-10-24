@@ -1,0 +1,3 @@
+interface:
+  display_name: "mdpro delegator"
+  short_description: "Run the mdpro herdr roster: briefs, blind audits, merges, landings, device batches"
