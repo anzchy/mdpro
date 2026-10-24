@@ -1,5 +1,6 @@
 /**
- * Purpose: bind the applied Source format shortcuts ahead of CodeMirror defaults.
+ * Purpose: bind the applied Source format shortcuts ahead of CodeMirror defaults,
+ * including a visible refusal for WYSIWYG-only commands pressed in Source.
  *
  * @coordinates-with sourceFormatCommands.ts
  * @coordinates-with ../../commands/editorOwnedChords.ts
@@ -13,6 +14,7 @@ import { startEditorImageInsert } from "../../utils/editorImageInsert";
 import { currentWindowLabel } from "../../utils/currentWindowLabel";
 import { captureToken } from "../../utils/menuTargetToken";
 import { appliedKey, currentAppliedShortcuts, defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import { dispatchEditorMenuAction } from "../../hooks/editorMenuActionTable";
 import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
 import type { KeyboardShortcuts } from "../../types/preferences";
 import { createPlugin } from "../core/pluginTypes";
@@ -63,6 +65,8 @@ export const sourceFormatRunners = {
   outdent: logged("paragraph.outdent", indentLess),
   selectLine: logged("edit.selectLine", selectLine),
   deleteWord: logged("edit.deleteWord", deleteWordCommand),
+  table: () => dispatchEditorMenuAction("editor.paragraph.table"),
+  clearFormat: () => dispatchEditorMenuAction("editor.format.clearFormat"),
 } as const;
 
 /** Bind the Source commands supplied by this run's applied v2 snapshot. */
@@ -83,6 +87,7 @@ export function sourceFormatKeymap(
     ["paragraphIndent", sourceFormatRunners.indent],
     ["paragraphOutdent", sourceFormatRunners.outdent],
     ["editSelectLine", sourceFormatRunners.selectLine], ["editDeleteWord", sourceFormatRunners.deleteWord],
+    ["paragraphTable", sourceFormatRunners.table], ["formatClearFormat", sourceFormatRunners.clearFormat],
   ];
   return rows.flatMap(([field, run]) => {
     const key = appliedKey(applied, field, platform);

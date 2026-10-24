@@ -2,7 +2,8 @@
  * Typora-style Keymap Plugin for Milkdown WYSIWYG mode
  *
  * Purpose: register Typora-style heading, paragraph, mark, link, table and
- * code-block keys in Milkdown. Shared command factories live in
+ * code-block keys in Milkdown. List-kind conversion shares one transaction
+ * with the menu path; other command factories live in
  * `typoraCommandFactories.ts` and `typoraTableNavigationCommands.ts`; the link modal flow lives in
  * `typoraLinkCommand.ts` for menu and keyboard use (M3b).
  *
@@ -43,6 +44,7 @@ import type { Command } from "@milkdown/kit/prose/state";
 import { createPlugin } from "../core/pluginTypes";
 import { useLinkInsertStore } from "../../stores/linkInsertStore";
 import { makeCodeBlockIndentCommand } from "./codeBlockIndentCommand";
+import { convertListKind } from "./listKindCommand";
 import {
   makeBoldCommand,
   makeHeadingCommand,
@@ -145,11 +147,13 @@ const TYPORA_KEYMAP_ENTRIES: Record<string, CommandEntry> = {
   },
   orderedList: {
     shortcuts: "Mod-Alt-o",
-    command: (ctx) => loggedPresetCommand("paragraph.orderedList", () => ctx.get(commandsCtx).call(wrapInOrderedListCommand.key)),
+    command: (ctx): Command => (state, dispatch) => loggedPresetCommand("paragraph.orderedList", () =>
+      convertListKind(state, dispatch, "ordered_list") ?? ctx.get(commandsCtx).call(wrapInOrderedListCommand.key))(state, dispatch),
   },
   unorderedList: {
     shortcuts: "Mod-Alt-u",
-    command: (ctx) => loggedPresetCommand("paragraph.unorderedList", () => ctx.get(commandsCtx).call(wrapInBulletListCommand.key)),
+    command: (ctx): Command => (state, dispatch) => loggedPresetCommand("paragraph.unorderedList", () =>
+      convertListKind(state, dispatch, "bullet_list") ?? ctx.get(commandsCtx).call(wrapInBulletListCommand.key))(state, dispatch),
   },
   bold: { shortcuts: "Mod-b", command: () => makeBoldCommand() },
   italic: { shortcuts: "Mod-i", command: () => makeItalicCommand() },

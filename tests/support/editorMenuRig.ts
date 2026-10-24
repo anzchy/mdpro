@@ -7,7 +7,8 @@ import { EditorView as CodeMirrorView, keymap } from "@codemirror/view";
 import { search } from "@codemirror/search";
 import { mdproCommonmark } from "../../src/plugins/milkdown/commonmarkPreset";
 import { highlightMarkPlugin } from "../../src/plugins/milkdown/highlightMarkPlugin";
-import { typoraKeymapMilkdownPlugin } from "../../src/plugins/milkdown/typoraKeymapPlugin";
+import { typoraKeymapMilkdownPlugin, typoraKeymapForApplied } from "../../src/plugins/milkdown/typoraKeymapPlugin";
+import type { AppliedShortcuts } from "../../src/types/keyboardShortcuts";
 import { heading2Command, paragraphCommand } from "../../src/plugins/codemirror/headingPlugin";
 import { insertLinkCommand } from "../../src/plugins/codemirror/linkPlugin";
 
@@ -17,7 +18,7 @@ export interface MilkdownMenuRig {
   destroy(): Promise<void>;
 }
 
-export async function mountMilkdownMenuRig(markdown: string): Promise<MilkdownMenuRig> {
+export async function mountMilkdownMenuRig(markdown: string, applied?: AppliedShortcuts): Promise<MilkdownMenuRig> {
   const root = document.body.appendChild(document.createElement("div"));
   const editor = await Editor.make()
     .config((ctx) => {
@@ -26,7 +27,7 @@ export async function mountMilkdownMenuRig(markdown: string): Promise<MilkdownMe
     })
     .use(mdproCommonmark)
     .use(gfm)
-    .use(typoraKeymapMilkdownPlugin)
+    .use(applied ? typoraKeymapForApplied(applied) : typoraKeymapMilkdownPlugin)
     .use(highlightMarkPlugin)
     .create();
   const view = editor.action((ctx) => ctx.get(editorViewCtx));

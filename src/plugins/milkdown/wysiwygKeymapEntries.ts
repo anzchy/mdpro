@@ -1,5 +1,6 @@
 /**
- * Purpose: applied WYSIWYG formatting and find keys after M1b and D255-WI-3c.
+ * Purpose: applied WYSIWYG formatting and find keys after M1b and D255-WI-3c,
+ * including a visible refusal for Source-only commands pressed in WYSIWYG.
  * @coordinates-with typoraKeymapPlugin.ts
  * @coordinates-with find/findPlugin.ts
  * @coordinates-with ../../utils/editorImageInsert.ts
@@ -12,6 +13,7 @@ import { currentWindowLabel } from "../../utils/currentWindowLabel";
 import { startEditorImageInsert } from "../../utils/editorImageInsert";
 import { captureToken } from "../../utils/menuTargetToken";
 import { appliedMilkdownKey, defaultAppliedShortcuts } from "../../commands/appliedKeymap";
+import { dispatchEditorMenuAction } from "../../hooks/editorMenuActionTable";
 import { getFindState, moveFind, openFind } from "./find/findPlugin";
 import type { AppliedShortcuts } from "../../types/keyboardShortcuts";
 import {
@@ -40,7 +42,13 @@ export function wysiwygEntries(
   const platform = isMac ? "macos" : "linux";
   const bind = (field: Parameters<typeof appliedMilkdownKey>[1], command: Entry["command"]): Entry | null => {
     const shortcuts = appliedMilkdownKey(applied, field, platform);
-    return shortcuts ? { shortcuts, command } : null;
+    if (!shortcuts) return null;
+    // On Windows, ProseMirror skips its keyCode fallback for Ctrl+Alt (AltGr).
+    // A shifted letter then arrives as uppercase, so its binding must match.
+    const key = !isMac && shortcuts.includes("Alt-") && shortcuts.includes("Shift-")
+      ? shortcuts.replace(/-([a-z])$/, (_match, letter: string) => `-${letter.toUpperCase()}`)
+      : shortcuts;
+    return { shortcuts: key, command };
   };
   const imageKey = appliedMilkdownKey(applied, "formatImage", platform);
   const imageEntry: Record<string, Entry> = imageKey ? {
@@ -61,6 +69,8 @@ export function wysiwygEntries(
     },
   } : {};
   const candidates = {
+    mathBlock: bind("paragraphMathBlock", () => () => dispatchEditorMenuAction("editor.paragraph.mathBlock")),
+    deleteWord: bind("editDeleteWord", () => () => dispatchEditorMenuAction("editor.edit.deleteWord")),
     increaseHeading: bind("paragraphIncreaseHeading", () => logged("paragraph.increaseHeading", makeHeadingLevelCommand("increase"))),
     decreaseHeading: bind("paragraphDecreaseHeading", () => logged("paragraph.decreaseHeading", makeHeadingLevelCommand("decrease"))),
     selectWord: bind("editSelectWord", () => logged("edit.selectWord", selectWordCommand())),

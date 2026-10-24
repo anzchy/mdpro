@@ -2,6 +2,7 @@
  * Purpose: run M3b editor menu commands on the currently mounted editor.
  * Exact ID, route and mode availability are checked by editorMenuActionTable;
  * this module performs the real command and reports an effect or refusal.
+ * Opposite-kind lists convert their containing list in one undo step.
  *
  * @coordinates-with ../hooks/editorMenuActionTable.ts
  * @coordinates-with editorMenuSourceCommands.ts
@@ -23,6 +24,7 @@ import type { EditorView as MilkdownView } from "@milkdown/kit/prose/view";
 import { milkdownHighlightCommand } from "../plugins/milkdown/milkdownHighlightCommand";
 import { getFindState, moveFind, openFind } from "../plugins/milkdown/find/findPlugin";
 import { makeCodeBlockIndentCommand } from "../plugins/milkdown/codeBlockIndentCommand";
+import { convertListKind } from "../plugins/milkdown/listKindCommand";
 import { dispatchTableActionFromKeyboard } from "../plugins/milkdown/table/contextMenu";
 import {
   makeBoldCommand,
@@ -88,6 +90,12 @@ function runPreset(editor: Editor, key: typeof createCodeBlockCommand.key): Edit
   return editor.action((ctx) => ctx.get(commandsCtx).call(key)) ? applied : refused("no_change");
 }
 
+function runListKind(editor: Editor, view: MilkdownView, kind: "bullet_list" | "ordered_list"): EditorMenuResult {
+  const converted = convertListKind(view.state, (tr) => view.dispatch(tr), kind);
+  if (converted !== null) return converted ? applied : refused("no_change");
+  return runPreset(editor, kind === "bullet_list" ? wrapInBulletListCommand.key : wrapInOrderedListCommand.key);
+}
+
 function moveSelection(view: MilkdownView, end: "top" | "bottom"): EditorMenuResult {
   const next: Selection = end === "top"
     ? ProseSelection.atStart(view.state.doc)
@@ -150,9 +158,9 @@ function runMilkdownCommand(
     case "paragraph.quote":
       return runPreset(editor, wrapInBlockquoteCommand.key);
     case "paragraph.orderedList":
-      return runPreset(editor, wrapInOrderedListCommand.key);
+      return runListKind(editor, view, "ordered_list");
     case "paragraph.unorderedList":
-      return runPreset(editor, wrapInBulletListCommand.key);
+      return runListKind(editor, view, "bullet_list");
     case "paragraph.indent":
       return runProse(view, makeCodeBlockIndentCommand("indent")).status === "applied"
         ? applied : runPreset(editor, sinkListItemCommand.key);
