@@ -129,13 +129,13 @@ fn main() {
             app.manage(watcher);
             app.manage(tauri_app_lib::menu::MenuState::default());
             app.manage(tauri_app_lib::menu::MenuFocus::default());
-
+            #[cfg(target_os = "macos")]
+            window_focus::install_menu_capture(app.handle()).map_err(std::io::Error::other)?;
             // The quit guard. Managed state, so the ack timer and the reply
             // command both reach the one guard without an Arc cycle.
             app.manage(AppQuitGuard::new(TauriQuitEffects::new(
                 app.handle().clone(),
             )));
-
             // Initialize MCP Shadow Store
             let mcp_shadow_store: SharedShadowStore = shadow_store::create_shadow_store();
             app.manage(mcp_shadow_store.clone());
