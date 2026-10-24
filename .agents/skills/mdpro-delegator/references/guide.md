@@ -121,7 +121,7 @@ force-push anything but a PR branch with `--force-with-lease`.
 | `echo ====` errored | zsh `=` expansion | quote it |
 | Full lane failed only in `tests/tooling/d187-receipt-rustfmt-guard.test.ts` | `rustfmt` not on the pane's PATH | prefix gates with the stable toolchain bin dir; never edit that test |
 | Receipt id in my fix brief replaced an existing record | the id was already taken | check `receipts.json` for the id before briefing; restore byte-for-byte and re-home under a new id |
-| `git merge --ff-only` would clobber my dirty docs edit | the PR touched the same path | `git stash push -q -m <n> <path>`, merge, `stash pop` |
+| `git merge --ff-only` would clobber my dirty docs edit | the PR touched the same path | stash under a unique message and pop that entry by name (landing checklist); the stash stack is shared by all worktrees |
 | A device run tested v0.3.5, not the verify build | launched by bundle id | launch by exact path; check the process path and `releaseId` |
 | picsee drove the GUI during mdpro's lock | picsee did not know the lock | agreed shared lock; re-run steps inside the overlap window |
 | B5 marked Switch Documents FAIL | my brief misdescribed it | read the plan before writing a card-less item; grade against the plan |

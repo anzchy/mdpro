@@ -27,10 +27,16 @@ case $cmd in
     for i in $(seq 1 $maxw); do "$0" acquire "$b" "${3:-45}" "${4:-device batch}" "${5:-herdr-delegator}" >/dev/null && { echo "ACQUIRED $b"; exit 0; }; sleep 60; done
     echo "TIMEOUT: still held; report to the user, do not remove it"; show; exit 75 ;;
   release)
+    # Atomic: rename the directory aside first (one winner), then check the owner in the renamed copy. If it is not
+    # ours, put it back with os.rename, which fails rather than nesting if someone has taken the lock meanwhile.
     b=${2:?batch}; [[ -d $L ]] || { echo FREE; exit 0; }
-    if grep -qx 'project=mdpro' "$L/owner" 2>/dev/null && grep -qx "batch=$b" "$L/owner" 2>/dev/null; then
-      rm "$L/owner" && rmdir "$L" && echo "RELEASED $b"; exit $?
+    T="$L.release.$$"
+    mv "$L" "$T" 2>/dev/null || { echo "FREE or released concurrently"; exit 0; }
+    if grep -qx 'project=mdpro' "$T/owner" 2>/dev/null && grep -qx "batch=$b" "$T/owner" 2>/dev/null; then
+      rm "$T/owner" && rmdir "$T" && echo "RELEASED $b"; exit $?
     fi
-    echo "REFUSED: not our lock ($b)"; show; exit 1 ;;
+    python3 -c 'import os,sys; os.rename(sys.argv[1], sys.argv[2])' "$T" "$L" \
+      && { echo "REFUSED: not our lock ($b); left in place"; show; exit 1; } \
+      || { echo "ALERT: not our lock and the path was retaken; the foreign lock is at $T: tell the user"; exit 1; } ;;
   *) echo "usage: gui-lock.sh acquire|wait|release|status"; exit 2 ;;
 esac

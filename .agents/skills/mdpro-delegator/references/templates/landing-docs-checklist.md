@@ -10,6 +10,8 @@
 - Device records: `docs/test/<date>-<batch>-<area>-device-check.md` = header, the delegator's check against the cards
   (corrections of the brief stated plainly), then each tester report verbatim. New findings get a D row in the same
   commit, numbers reserved in `~/.mdpro-redesign/herdr-spike/delegator/reservations.md` first.
-- Before a landing: if your dirty docs touch a path the PR also touches, `git stash push -q -m <name> <path>`, merge,
-  `git stash pop`.
+- Before a landing: if your dirty docs touch a path the PR also touches, stash them under a unique name and pop
+  **that entry by name**, never a bare `git stash pop`: the stash stack is shared by every worktree of the repo, and
+  implementors stash too. `m=land-$(date +%s)`; `git stash push -q -m "$m" <path>`; merge; then
+  `git stash pop "$(git stash list | grep -m1 -F "$m" | cut -d: -f1)"`, and stop if that finds nothing.
 - Commit messages end with the attribution line; push at once. Then tell peers to fast-forward.
