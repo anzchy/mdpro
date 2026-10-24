@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- On macOS, native menu routing now reads the selected AppKit MenuItem, accepts only mdpro custom items, and matches the selected Muda id to its Tauri event. Stale selections expire at the next tracking session or unrelated event; a selected action survives menu replacement. If its window closes, App-class actions use a live fallback while Window-class actions cancel. The D261 rapid-switch device check remains pending (D319).
+
 - WYSIWYG Find and Replace now open a bottom docked bar above the tabs. Matches track edits without changing the document, navigation wraps, and Replace / Replace All are separate undo steps. Applied v2 shortcuts and native Edit menu commands work in both editor modes (D255-WI-3c; device check pending).
 - Discard in the window close prompt now removes drafts written while the prompt was open. A saved revision fence prevents an older discard from erasing a newer same-window draft; other windows’ and unmerged recovery drafts remain protected (D305; device check pending).
 

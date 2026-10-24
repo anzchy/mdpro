@@ -124,7 +124,7 @@ fn m4_wi3_guarded_route_emits_only_to_the_current_allowed_window() {
     let source = include_str!("menu.rs");
     assert!(source.contains("emit_to_window("));
     assert!(source.contains("menus.as_deref()"));
-    assert!(source.contains("route(action, value, focus, &live, emit, log_event)"));
+    assert!(source.contains("focus.route_for_event(id, action, value, &live, emit, log_event)"));
 }
 
 #[test]

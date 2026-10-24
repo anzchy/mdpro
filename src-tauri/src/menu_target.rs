@@ -1,10 +1,10 @@
 //! Purpose: binds each native menu action to one window (D261). Records
-//! which window has focus (`MenuFocus`), classifies the action, resolves its
-//! target window when the click arrives, emits `menu:action` to that window
+//! which window has focus (`MenuFocus`), captures it during native menu
+//! tracking, resolves the selected target from that capture, emits to it
 //! only, and logs exactly one `menu.action.dispatch` line per click.
 //!
-//! Pipeline: `menu.rs::emit_menu_action` → `route` → `classify` →
-//! `resolve_target` (from `MenuFocus::snapshot` and the live labels) →
+//! Pipeline: AppKit begin/will-send → `MenuFocus` id capture →
+//! `menu.rs::emit_menu_action` → `route_for_event` → `classify` → `resolve_target` →
 //! `dispatch` → one `emit_to(label)` and one log line.
 //!
 //! Key decisions:
@@ -16,6 +16,9 @@
 //!   `last_focused` empty, and any_live answers from there.
 //! - Only `WindowEvent::Destroyed` forgets a window. `CloseRequested` can be
 //!   vetoed, so it leaves focus alone.
+//! - A present capture may contain no focused window. Consume it once by
+//!   matching menu id. A dead captured owner cancels Window-class actions;
+//!   App-class actions use the live last-focused or lowest live window.
 //! - The target is fixed at resolution; `dispatch` never re-reads focus, and
 //!   an `emit_to` error is logged as `fail` with no retry and no broadcast.
 //! - The log line carries `action`, `target` and `via`, never `value`: an
@@ -28,73 +31,15 @@
 
 use serde::Serialize;
 use serde_json::json;
-use std::sync::{Mutex, MutexGuard};
 use tauri::{Manager, Runtime};
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 
-/// `(focused, last_focused)` as read under the lock.
-pub type FocusSnapshot = (Option<String>, Option<String>);
-
-#[derive(Debug, Default)]
-struct FocusState {
-    focused: Option<String>,
-    last_focused: Option<String>,
-}
-
-/// Which window has focus now, and which had it last, for menu routing.
-/// Deliberately separate from the shadow store's `focused_window`, which the
-/// vetoable `CloseRequested` clears (D217).
-#[derive(Debug, Default)]
-pub struct MenuFocus(Mutex<FocusState>);
-
-impl MenuFocus {
-    pub const fn new() -> Self {
-        Self(Mutex::new(FocusState {
-            focused: None,
-            last_focused: None,
-        }))
-    }
-
-    fn state(&self) -> MutexGuard<'_, FocusState> {
-        self.0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    /// A focus sets both fields; a blur clears `focused` only while `label`
-    /// still holds it, so a late blur after another window's focus is
-    /// harmless.
-    pub fn apply(&self, label: &str, focused: bool) {
-        let mut state = self.state();
-        if focused {
-            state.focused = Some(label.to_string());
-            state.last_focused = Some(label.to_string());
-        } else if state.focused.as_deref() == Some(label) {
-            state.focused = None;
-        }
-    }
-
-    /// Clears whichever field holds `label`. No fallback to an earlier window.
-    pub fn forget(&self, label: &str) {
-        let mut state = self.state();
-        if state.focused.as_deref() == Some(label) {
-            state.focused = None;
-        }
-        if state.last_focused.as_deref() == Some(label) {
-            state.last_focused = None;
-        }
-    }
-
-    pub fn snapshot(&self) -> FocusSnapshot {
-        let state = self.state();
-        (state.focused.clone(), state.last_focused.clone())
-    }
-}
-
-/// Read when no `MenuFocus` is managed (setup never finished): nothing is
-/// focused, so only any_live can answer.
-pub static UNMANAGED_FOCUS: MenuFocus = MenuFocus::new();
+#[path = "menu_capture_state.rs"]
+mod menu_capture_state;
+#[cfg(target_os = "macos")]
+pub use menu_capture_state::NativeTree;
+pub use menu_capture_state::{FocusSnapshot, MenuFocus, UNMANAGED_FOCUS};
 
 /// The `Destroyed` hook: forgets `label` in the managed `MenuFocus`, if any.
 pub fn forget_window<R: Runtime, M: Manager<R>>(manager: &M, label: &str) {
@@ -261,8 +206,8 @@ pub fn dispatch_log_entry(action: &str, outcome: &DispatchOutcome) -> LogEntryPa
     }
 }
 
-/// The seam `emit_menu_action` calls: classify, resolve from `focus` as it
-/// stands now, then dispatch.
+/// Legacy and off-Mac seam: consume a click capture when present, otherwise
+/// use current focus, then dispatch. Native events use `route_for_event`.
 pub fn route<E>(
     action: &str,
     value: Option<String>,
@@ -271,9 +216,61 @@ pub fn route<E>(
     emit: impl FnOnce(&str, &MenuActionPayload) -> Result<(), E>,
     log: impl FnOnce(LogEntryPayload),
 ) -> DispatchOutcome {
+    route_selected(None, action, value, focus, live, emit, log)
+}
+
+impl MenuFocus {
+    /// Route one Tauri menu event by item id. A mismatched pending selection
+    /// expires and uses arrival focus; a dead captured App owner uses a live
+    /// fallback, while a Window action cancels.
+    pub fn route_for_event<E>(
+        &self,
+        id: &str,
+        action: &str,
+        value: Option<String>,
+        live: &[String],
+        emit: impl FnOnce(&str, &MenuActionPayload) -> Result<(), E>,
+        log: impl FnOnce(LogEntryPayload),
+    ) -> DispatchOutcome {
+        route_selected(Some(id), action, value, self, live, emit, log)
+    }
+}
+
+fn route_selected<E>(
+    id: Option<&str>,
+    action: &str,
+    value: Option<String>,
+    focus: &MenuFocus,
+    live: &[String],
+    emit: impl FnOnce(&str, &MenuActionPayload) -> Result<(), E>,
+    log: impl FnOnce(LogEntryPayload),
+) -> DispatchOutcome {
     let class = classify(action);
-    let resolved = resolve_target(&focus.snapshot(), class, live);
-    dispatch(action, value, resolved, emit, log)
+    let arrived = focus.snapshot();
+    let captured = focus.take_capture(id);
+    let selected = captured.as_ref().unwrap_or(&arrived);
+    let captured_owner_dead = captured.is_some()
+        && selected
+            .0
+            .as_ref()
+            .is_some_and(|label| !live.contains(label));
+    let click_time = captured.is_some() && !captured_owner_dead && selected.0 != arrived.0;
+    let resolved = match (captured_owner_dead, class) {
+        (true, ActionClass::Window) => Err(CancelReason::NoFocusedWindow),
+        (true, ActionClass::App) => {
+            let fallback = (None, arrived.1.clone().filter(|label| live.contains(label)));
+            resolve_target(&fallback, class, live)
+        }
+        (false, _) => resolve_target(selected, class, live),
+    };
+    dispatch(action, value, resolved, emit, |mut entry| {
+        if click_time && entry.status != LogStatus::Cancel {
+            if let Some(context) = entry.context.as_mut() {
+                context["via"] = json!("click_time");
+            }
+        }
+        log(entry);
+    })
 }
 
 #[cfg(test)]

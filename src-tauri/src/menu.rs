@@ -17,7 +17,8 @@
 //! - The quit escape follows Quit; off macOS Exit uses the quit guard.
 //! - macOS custom items derive labels, ids, keys and enabled state from the
 //!   command layout and applied snapshot. A mode-limited click is checked
-//!   against its resolved window before emit (M4-WI-2/3).
+//!   against its resolved window before emit (M4-WI-2/3). D319 keeps the
+//!   selected focus snapshot for this check when later focus differs.
 //!
 //! @coordinates-with src/menu_about.rs
 //! @coordinates-with src/menu_target.rs
@@ -118,13 +119,18 @@ use menu_about::about_metadata_for;
 pub mod menu_target;
 pub(crate) use menu_quit::{app_menu_has_macos_items, log_menu_exit, quit_item_for, QuitItem};
 pub use menu_target::{forget_window, MenuFocus};
-use menu_target::{route, MenuActionPayload, UNMANAGED_FOCUS};
+use menu_target::{MenuActionPayload, UNMANAGED_FOCUS};
 
-fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
+fn emit_menu_action(app: &AppHandle, id: &str, action: &str, value: Option<String>) {
     let availability_cancelled = std::cell::Cell::new(false);
     let attempted_native_emit = std::cell::Cell::new(false);
     let managed = app.try_state::<MenuFocus>();
     let focus = managed.as_deref().unwrap_or(&UNMANAGED_FOCUS);
+    let pending = focus.peek_capture();
+    let guard_capture = pending
+        .filter(|_| focus.capture_matches(id))
+        .map(MenuFocus::from_snapshot);
+    let guard_focus = guard_capture.as_ref().unwrap_or(focus);
     let live: Vec<String> = app.webview_windows().into_keys().collect();
     let emit = |label: &str, p: &MenuActionPayload| {
         let menus = app.try_state::<MenuState>();
@@ -133,7 +139,7 @@ fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
                 layout,
                 action,
                 label,
-                focus,
+                guard_focus,
                 menus.as_deref(),
                 |target| {
                     attempted_native_emit.set(true);
@@ -157,7 +163,7 @@ fn emit_menu_action(app: &AppHandle, action: &str, value: Option<String>) {
             logger::log_event(entry);
         }
     };
-    route(action, value, focus, &live, emit, log_event);
+    focus.route_for_event(id, action, value, &live, emit, log_event);
 }
 
 pub fn build_menu(
@@ -335,13 +341,16 @@ pub fn build_menu(
 
 pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
     let id = event.id().as_ref();
+    if let Some(focus) = app.try_state::<MenuFocus>() {
+        discard_native_only_capture(&focus, id);
+    }
     if let Ok(layout) = menu_layout() {
         if let Some(action) = menu_from_layout::editor_action_for_menu_id(layout, id) {
-            emit_menu_action(app, &action, None);
+            emit_menu_action(app, id, &action, None);
             return;
         }
         if let Some(action) = menu_from_layout::unavailable_action_for_menu_id(layout, id) {
-            emit_menu_action(app, &action, None);
+            emit_menu_action(app, id, &action, None);
             return;
         }
     }
@@ -351,36 +360,39 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
         }
         MENU_APP_QUIT => request_guarded_quit(app),
         MENU_APP_HIDE => hide_app(app),
-        MENU_FILE_NEW => emit_menu_action(app, "file.new", None),
-        MENU_FILE_NEW_WINDOW => emit_menu_action(app, "file.new_window", None),
-        MENU_FILE_OPEN => emit_menu_action(app, "file.open", None),
-        MENU_FILE_SAVE => emit_menu_action(app, "file.save", None),
-        MENU_FILE_SAVE_AS => emit_menu_action(app, "file.save_as", None),
-        MENU_FILE_CLOSE => emit_menu_action(app, "file.close", None),
-        MENU_FILE_EXPORT_HTML => emit_menu_action(app, "file.export_html", None),
-        MENU_FILE_PREFERENCES => emit_menu_action(app, "file.preferences", None),
-        MENU_VIEW_CYCLE => emit_menu_action(app, "cycle-view-mode", None),
-        MENU_VIEW_SOURCE => emit_menu_action(app, "set-view-mode", Some("source".to_string())),
-        MENU_VIEW_WYSIWYG => emit_menu_action(app, "set-view-mode", Some("wysiwyg".to_string())),
-        MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, "view.toggle_sidebar", None),
-        MENU_VIEW_SWITCH_DOCUMENTS => emit_menu_action(app, "view.switch_documents", None),
-        MENU_VIEW_TOGGLE_FULLSCREEN => emit_menu_action(app, "view.toggle_fullscreen", None),
-        MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, "format.highlight", None),
-        MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, "paragraph.table", None),
+        MENU_FILE_NEW => emit_menu_action(app, id, "file.new", None),
+        MENU_FILE_NEW_WINDOW => emit_menu_action(app, id, "file.new_window", None),
+        MENU_FILE_OPEN => emit_menu_action(app, id, "file.open", None),
+        MENU_FILE_SAVE => emit_menu_action(app, id, "file.save", None),
+        MENU_FILE_SAVE_AS => emit_menu_action(app, id, "file.save_as", None),
+        MENU_FILE_CLOSE => emit_menu_action(app, id, "file.close", None),
+        MENU_FILE_EXPORT_HTML => emit_menu_action(app, id, "file.export_html", None),
+        MENU_FILE_PREFERENCES => emit_menu_action(app, id, "file.preferences", None),
+        MENU_VIEW_CYCLE => emit_menu_action(app, id, "cycle-view-mode", None),
+        MENU_VIEW_SOURCE => emit_menu_action(app, id, "set-view-mode", Some("source".to_string())),
+        MENU_VIEW_WYSIWYG => {
+            emit_menu_action(app, id, "set-view-mode", Some("wysiwyg".to_string()))
+        }
+        MENU_VIEW_TOGGLE_SIDEBAR => emit_menu_action(app, id, "view.toggle_sidebar", None),
+        MENU_VIEW_SWITCH_DOCUMENTS => emit_menu_action(app, id, "view.switch_documents", None),
+        MENU_VIEW_TOGGLE_FULLSCREEN => emit_menu_action(app, id, "view.toggle_fullscreen", None),
+        MENU_FORMAT_HIGHLIGHT => emit_menu_action(app, id, "format.highlight", None),
+        MENU_FORMAT_INSERT_TABLE => emit_menu_action(app, id, "paragraph.table", None),
         MENU_THEME_LIGHT => {
-            emit_menu_action(app, "theme.light", None);
+            emit_menu_action(app, id, "theme.light", None);
             refresh_menu_for_focus(app);
         }
         MENU_THEME_DARK => {
-            emit_menu_action(app, "theme.dark", None);
+            emit_menu_action(app, id, "theme.dark", None);
             refresh_menu_for_focus(app);
         }
         MENU_THEME_SYSTEM => {
-            emit_menu_action(app, "theme.system", None);
+            emit_menu_action(app, id, "theme.system", None);
             refresh_menu_for_focus(app);
         }
         MENU_HELP_KEYBOARD_SHORTCUTS => emit_menu_action(
             app,
+            id,
             "file.preferences",
             Some("keyboard-shortcuts".to_string()),
         ),
@@ -390,11 +402,26 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: MenuEvent) {
                     let state = app.state::<MenuState>();
                     let recent_files = state.recent_files();
                     if let Some(path) = recent_files.get(idx) {
-                        emit_menu_action(app, "file.open_recent", Some(path.to_string()));
+                        emit_menu_action(app, id, "file.open_recent", Some(path.to_string()));
+                        return;
                     }
                 }
             }
+            if let Some(focus) = app.try_state::<MenuFocus>() {
+                focus.discard_capture();
+            }
         }
+    }
+}
+
+/// Native Rust-only actions consume their AppKit capture without a frontend
+/// dispatch; otherwise the next queued menu event could inherit their owner.
+fn discard_native_only_capture(focus: &MenuFocus, id: &str) {
+    if matches!(
+        id,
+        MENU_APP_STOP_WAITING_QUIT | MENU_APP_QUIT | MENU_APP_HIDE
+    ) {
+        focus.discard_capture();
     }
 }
 

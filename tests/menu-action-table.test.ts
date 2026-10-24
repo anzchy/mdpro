@@ -66,7 +66,7 @@ const REFUSED_WHILE_MODAL = new Set([
 const EXPECTED_EMITTED_ACTIONS = 19;
 // vitest runs from the repo root; under jsdom `import.meta.url` is not a file: URL.
 const MENU_RS = join(process.cwd(), "src-tauri/src/menu.rs");
-const EMIT_RE = /emit_menu_action\(\s*app,\s*"([^"]+)"/g;
+const EMIT_RE = /emit_menu_action\(\s*app,\s*id,\s*"([^"]+)"/g;
 const VALUE_FOR: Record<string, string> = { "set-view-mode": "source", "file.open_recent": "/tmp/a.md" };
 
 let modal: HTMLElement | null = null;
@@ -95,15 +95,9 @@ describe("dispatchMenuAction: each row reaches its one handler (S2)", () => {
 describe("dispatchMenuAction: totality over the actions menu.rs emits (S4)", () => {
   const emitted = new Set([...readFileSync(MENU_RS, "utf8").matchAll(EMIT_RE)].map((m) => m[1]));
 
-  it(`reads exactly ${EXPECTED_EMITTED_ACTIONS} distinct emitted actions (non-vacuity)`, () => {
+  it(`reads exactly ${EXPECTED_EMITTED_ACTIONS} actions and dispatches each once`, () => {
     expect(emitted.size).toBe(EXPECTED_EMITTED_ACTIONS);
-  });
-
-  it("the emitted set equals the rows' action set, both directions", () => {
     expect([...emitted].sort()).toEqual([...new Set(ROWS.map((r) => r.action))].sort());
-  });
-
-  it("every emitted action reaches exactly one handler call", () => {
     for (const action of emitted) {
       calls.length = 0;
       const value = VALUE_FOR[action];

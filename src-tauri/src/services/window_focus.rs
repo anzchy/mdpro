@@ -1,7 +1,8 @@
 //! Purpose: records which window has focus: one `window.focus` /
 //! `window.blur` log line, the MCP shadow store's focused window (D217) and
 //! the menu's `MenuFocus`, which picks the window a menu action goes to
-//! (D261).
+//! (D261). On macOS an AppKit observer records menu tracking/action
+//! notifications before Tauri routes the delayed native action (D319).
 //!
 //! Key decisions: `main.rs` calls this from `app.run`'s
 //! `RunEvent::WindowEvent`, never from `Builder::on_window_event`. Tauri
@@ -18,6 +19,7 @@
 //!
 //! @coordinates-with main.rs (the `app.run` callback), shadow_store.rs
 //! @coordinates-with menu_target.rs (`MenuFocus`)
+//! @coordinates-with menu.rs (`handle_menu_event` consumes captures)
 
 use crate::menu::MenuFocus;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
@@ -70,6 +72,252 @@ pub fn on_focus_event(
     if let Some(menu_focus) = menu_focus {
         menu_focus.apply(label, focused);
     }
+}
+
+/// AppKit menu notifications, reduced to the fields needed by routing.
+pub enum NativeMenuNotice {
+    BeginTracking,
+    WillSendAction { custom: bool },
+    EndTracking,
+}
+
+/// Apply one native notice to the same capture state consumed by Tauri.
+pub fn on_native_menu_notice(focus: &MenuFocus, notice: NativeMenuNotice) {
+    match notice {
+        NativeMenuNotice::BeginTracking => focus.begin_tracking(),
+        NativeMenuNotice::WillSendAction { custom } => focus.will_send_action(custom),
+        NativeMenuNotice::EndTracking => focus.end_tracking(),
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod menu_capture {
+    use super::MenuFocus;
+    use crate::menu::menu_target::NativeTree;
+    use objc2::rc::Retained;
+    use objc2::runtime::{AnyObject, ClassBuilder, NSObject, Sel};
+    use objc2::{msg_send, sel, ClassType};
+    use objc2_app_kit::{
+        NSApplication, NSMenu, NSMenuDidBeginTrackingNotification,
+        NSMenuDidEndTrackingNotification, NSMenuWillSendActionNotification,
+    };
+    use objc2_foundation::{MainThreadMarker, NSNotification, NSNotificationCenter, NSString};
+    use std::collections::HashMap;
+    use std::ffi::CString;
+    use std::sync::OnceLock;
+    use tauri::menu::MenuItemKind;
+    use tauri::{AppHandle, Manager, Wry};
+
+    static APP: OnceLock<AppHandle<Wry>> = OnceLock::new();
+    static INSTALLED: OnceLock<()> = OnceLock::new();
+
+    extern "C-unwind" fn begin(_observer: &AnyObject, _cmd: Sel, note: *mut AnyObject) {
+        let Some(app) = APP.get() else { return };
+        let Some(focus) = app.try_state::<MenuFocus>() else {
+            return;
+        };
+        let Some(tree) = installed_items(app) else {
+            return;
+        };
+        // SAFETY: AppKit supplies a live NSNotification during this callback.
+        let note = unsafe { (note as *const NSNotification).as_ref() };
+        focus.native_begin_notification(note, &tree);
+    }
+
+    extern "C-unwind" fn end(_observer: &AnyObject, _cmd: Sel, note: *mut AnyObject) {
+        let Some(app) = APP.get() else { return };
+        let Some(focus) = app.try_state::<MenuFocus>() else {
+            return;
+        };
+        // SAFETY: AppKit supplies a live NSNotification during this callback.
+        let note = unsafe { (note as *const NSNotification).as_ref() };
+        focus.native_end_notification(note);
+    }
+
+    pub(super) fn is_custom_action(action: Option<Sel>) -> bool {
+        action == Some(sel!(customAction:))
+    }
+
+    // The installed Tauri tree and AppKit tree have the same append order:
+    // Muda creates one NSMenuItem per Tauri child (muda 0.20.0 macos/mod.rs
+    // 130-138, 408-420). Compare counts at every level and fail closed if a
+    // native insertion ever breaks that correspondence.
+    fn map_items(
+        native: &NSMenu,
+        tauri_items: Vec<MenuItemKind<Wry>>,
+        out: &mut NativeTree,
+        parent: Option<usize>,
+    ) -> Option<()> {
+        if native.numberOfItems() as usize != tauri_items.len() {
+            return None;
+        }
+        let menu = native as *const NSMenu as usize;
+        out.menus.insert(menu);
+        if let Some(parent) = parent {
+            out.parent_menu.insert(menu, parent);
+        }
+        for (index, item) in tauri_items.into_iter().enumerate() {
+            let native_item = native.itemAtIndex(index as isize)?;
+            out.items.insert(
+                Retained::as_ptr(&native_item) as usize,
+                item.id().as_ref().to_string(),
+            );
+            if let MenuItemKind::Submenu(submenu) = item {
+                let native_submenu = native_item.submenu()?;
+                map_items(&native_submenu, submenu.items().ok()?, out, Some(menu))?;
+            }
+        }
+        Some(())
+    }
+
+    fn installed_items(app: &AppHandle<Wry>) -> Option<NativeTree> {
+        let marker = MainThreadMarker::new()?;
+        let native = NSApplication::sharedApplication(marker).mainMenu()?;
+        let mut items = NativeTree::default();
+        map_items(&native, app.menu()?.items().ok()?, &mut items, None)?;
+        Some(items)
+    }
+
+    fn note_menu(note: Option<&NSNotification>) -> Option<usize> {
+        let note = note?;
+        let menu: *mut AnyObject = unsafe { msg_send![note, object] };
+        (!menu.is_null()).then_some(menu as usize)
+    }
+
+    fn selected_item(note: Option<&NSNotification>) -> Option<usize> {
+        let note = note?;
+        let user_info: *mut AnyObject = unsafe { msg_send![note, userInfo] };
+        if user_info.is_null() {
+            return None;
+        }
+        let key = NSString::from_str("MenuItem");
+        let item: *mut AnyObject = unsafe { msg_send![&*user_info, objectForKey: &*key] };
+        if item.is_null() {
+            return None;
+        }
+        let action: Option<Sel> = unsafe { msg_send![&*item, action] };
+        is_custom_action(action).then_some(item as usize)
+    }
+
+    impl MenuFocus {
+        /// Decode AppKit's actual selected item; a highlighted neighbor never
+        /// identifies the action. Only an installed Muda custom item can queue.
+        pub(super) fn capture_will_send(
+            &self,
+            note: Option<&NSNotification>,
+            items: &HashMap<usize, String>,
+        ) {
+            if let Some(item) = selected_item(note) {
+                if let Some(id) = items.get(&item) {
+                    self.will_send_action_id(id);
+                }
+            }
+        }
+
+        /// Ignore Begin notices from menus outside the installed tree.
+        pub(super) fn native_begin_notification(
+            &self,
+            note: Option<&NSNotification>,
+            tree: &NativeTree,
+        ) {
+            if let Some(menu) = note_menu(note) {
+                self.begin_native_menu(menu, tree);
+            }
+        }
+
+        /// Ignore End notices outside the active tracking tree.
+        pub(super) fn native_end_notification(&self, note: Option<&NSNotification>) {
+            if let Some(menu) = note_menu(note) {
+                self.end_native_menu(menu);
+            }
+        }
+
+        /// The active pre-replacement tree may authorize one selected item.
+        pub(super) fn native_will_send_notification(
+            &self,
+            note: Option<&NSNotification>,
+            current: &NativeTree,
+        ) {
+            let (Some(menu), Some(item)) = (note_menu(note), selected_item(note)) else {
+                return;
+            };
+            if let Some(id) = self.native_selection_id(menu, item, current) {
+                self.capture_will_send(note, &HashMap::from([(item, id)]));
+            }
+        }
+    }
+
+    extern "C-unwind" fn will_send(_observer: &AnyObject, _cmd: Sel, note: *mut AnyObject) {
+        let Some(app) = APP.get() else { return };
+        let Some(focus) = app.try_state::<MenuFocus>() else {
+            return;
+        };
+        let Some(items) = installed_items(app) else {
+            return;
+        };
+        // SAFETY: AppKit supplies a live NSNotification during this callback.
+        let note = unsafe { (note as *const NSNotification).as_ref() };
+        focus.native_will_send_notification(note, &items);
+    }
+
+    /// Install once after `MenuFocus` is managed and before the menu is used.
+    pub fn install(app: &AppHandle<Wry>) -> Result<(), String> {
+        if INSTALLED.get().is_some() {
+            return Ok(());
+        }
+        APP.set(app.clone())
+            .map_err(|_| "menu capture app already installed".to_string())?;
+        let name = CString::new("MdproMenuCaptureObserver").map_err(|e| e.to_string())?;
+        let mut builder = ClassBuilder::new(&name, NSObject::class())
+            .ok_or_else(|| "menu capture observer class unavailable".to_string())?;
+        // SAFETY: each IMP has the ObjC -(void)selector:(NSNotification *) ABI.
+        unsafe {
+            builder.add_method(
+                sel!(mdproMenuBegin:),
+                begin as extern "C-unwind" fn(_, _, _),
+            );
+            builder.add_method(sel!(mdproMenuEnd:), end as extern "C-unwind" fn(_, _, _));
+            builder.add_method(
+                sel!(mdproMenuWillSend:),
+                will_send as extern "C-unwind" fn(_, _, _),
+            );
+        }
+        let class = builder.register();
+        // SAFETY: NSObject supplies +new and the class is registered above.
+        let observer: Retained<AnyObject> = unsafe { msg_send![class, new] };
+        let center = NSNotificationCenter::defaultCenter();
+        // SAFETY: the observer implements all three selectors and is retained
+        // for the app lifetime below; the notification names are AppKit statics.
+        unsafe {
+            center.addObserver_selector_name_object(
+                &observer,
+                sel!(mdproMenuBegin:),
+                Some(NSMenuDidBeginTrackingNotification),
+                None,
+            );
+            center.addObserver_selector_name_object(
+                &observer,
+                sel!(mdproMenuWillSend:),
+                Some(NSMenuWillSendActionNotification),
+                None,
+            );
+            center.addObserver_selector_name_object(
+                &observer,
+                sel!(mdproMenuEnd:),
+                Some(NSMenuDidEndTrackingNotification),
+                None,
+            );
+        }
+        std::mem::forget(observer);
+        let _ = INSTALLED.set(());
+        Ok(())
+    }
+}
+
+/// Bind macOS native menu notifications to the managed click capture state.
+#[cfg(target_os = "macos")]
+pub fn install_menu_capture(app: &tauri::AppHandle<tauri::Wry>) -> Result<(), String> {
+    menu_capture::install(app)
 }
 
 #[cfg(test)]
