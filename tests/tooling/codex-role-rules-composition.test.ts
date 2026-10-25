@@ -85,7 +85,7 @@ it("rejects each missing absolute Node script entry while bare entries remain", 
   }
 });
 
-for (const role of ["implementor", "auditor", "delegator"]) it(`${role} composes with the shared policy${hasCodex ? "" : ` (${skipReason})`}`, async ctx => {
+for (const role of ["implementor", "auditor", "delegator"]) it(`${role} composes with the shared policy`, async ctx => {
   ctx.skip(!hasCodex, skipReason);
   const overlay = await roleRules(role);
   const restrictedRole = role !== "delegator";

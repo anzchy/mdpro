@@ -17,6 +17,7 @@ export function hasPrerequisite(tag) {
     const folders = [...(process.env.PATH ?? "").split(path.delimiter), path.join(os.homedir(), ".cargo/bin")];
     return folders.some((folder) => folder && fs.existsSync(path.join(folder, "rustfmt")));
   }
+  if (tag === "codex-cli") return spawnSync("codex", ["--version"], { encoding: "utf8", timeout: 5_000 }).status === 0;
   return false;
 }
 

@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const tags = new Set(["plugin", "macos", "hook-token", "rustfmt"]);
+const tags = new Set(["plugin", "macos", "hook-token", "rustfmt", "codex-cli"]);
 const key = (id) => JSON.stringify(id);
 function validId(id) {
   return Array.isArray(id) && id.length >= 2 && id.every((part) => typeof part === "string" && part.length > 0) && id[0].startsWith("tests/");
@@ -44,10 +44,11 @@ export function parseReport(value, root) {
 }
 
 export function profileFor(name) {
-  if (!/^(ubuntu|macos)(\+rustfmt)?$/.test(name)) throw Error(`Unknown runner profile: ${name}`);
+  if (!/^(ubuntu|macos)(\+rustfmt)?(\+codex-cli)?$/.test(name)) throw Error(`Unknown runner profile: ${name}`);
   const available = new Set();
   if (name.startsWith("macos")) available.add("macos");
-  if (name.endsWith("+rustfmt")) available.add("rustfmt");
+  if (name.split("+").includes("rustfmt")) available.add("rustfmt");
+  if (name.endsWith("+codex-cli")) available.add("codex-cli");
   return available;
 }
 

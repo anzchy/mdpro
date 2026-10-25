@@ -91,12 +91,12 @@ describe("shared Codex command policy", () => {
       expect(() => assertSharedContract(added)).toThrow();
     }
   });
-  for (const argv of forbidden) it(`forbids ${argv.join(" ")}${hasCodex ? "" : ` (${codexAbsentReason})`}`, async ctx => {
+  for (const argv of forbidden) it(`forbids ${argv.join(" ")}`, async ctx => {
     ctx.skip(!hasCodex, codexAbsentReason);
     expect(await decision(argv)).toBe("forbidden");
   });
   for (const argv of [["gh", "pr", "create"], ["gh", "pr", "view", "1"], ["gh", "workflow", "run", "release.yml"]]) {
-    it(`does not forbid ${argv.join(" ")}${hasCodex ? "" : ` (${codexAbsentReason})`}`, async ctx => {
+    it(`does not forbid ${argv.join(" ")}`, async ctx => {
       ctx.skip(!hasCodex, codexAbsentReason);
       expect(await decision(argv)).not.toBe("forbidden");
     });

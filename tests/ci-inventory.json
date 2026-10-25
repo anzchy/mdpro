@@ -3,6 +3,70 @@
   "generatedFrom": "local Vitest JSON run 2026-10-21, 12367 passed; reviewed against skip gates; D302 heartbeat/probe entries reviewed after gated tests were added",
   "tests": [
     {
+      "id": ["tests/tooling/codex-role-rules-composition.test.ts", "auditor composes with the shared policy"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules-composition.test.ts", "delegator composes with the shared policy"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules-composition.test.ts", "implementor composes with the shared policy"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "does not forbid gh pr create"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "does not forbid gh pr view 1"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "does not forbid gh workflow run release.yml"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids gh pr merge 1"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids gh release create v1"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git push --force origin master"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git push --force-with-lease=a:b origin a"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git push origin +HEAD:x"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git push origin --force master"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git push origin --mirror"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git push origin x"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids git reset --hard"],
+      "prerequisite": "codex-cli"
+    },
+    {
+      "id": ["tests/tooling/codex-role-rules.test.ts", "shared Codex command policy", "forbids rm -rf src"],
+      "prerequisite": "codex-cli"
+    },
+    {
       "id": [
         "tests/control/control-launcher-procfacts-scan-real.test.ts",
         "D82-WI-6 the real verify scan",

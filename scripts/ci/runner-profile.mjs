@@ -11,5 +11,6 @@ if (os !== "Linux" && os !== "macOS") {
 } else {
   const candidates = ["rustfmt", join(homedir(), ".cargo/bin/rustfmt")];
   const hasRustfmt = candidates.some((candidate) => spawnSync(candidate, ["--version"], { encoding: "utf8", timeout: 5_000 }).status === 0);
-  process.stdout.write(`${os === "macOS" ? "macos" : "ubuntu"}${hasRustfmt ? "+rustfmt" : ""}\n`);
+  const hasCodex = spawnSync("codex", ["--version"], { encoding: "utf8", timeout: 5_000 }).status === 0;
+  process.stdout.write(`${os === "macOS" ? "macos" : "ubuntu"}${hasRustfmt ? "+rustfmt" : ""}${hasCodex ? "+codex-cli" : ""}\n`);
 }
