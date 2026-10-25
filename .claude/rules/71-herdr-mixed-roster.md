@@ -23,6 +23,7 @@ Unchanged from rule 70:
 - landing (the three conditions, `--ff-only`, push);
 - the merge of two verdicts and its challenges;
 - ADR-0121's tiers; the round cap is now **two rounds, with gpt-auditor and opus-auditor both on every audit**, after which an open Critical or High goes to the user ([ADR-0143](../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), superseding ADR-0120's three rounds and folding in ADR-0142; user, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」). Where this file elsewhere calls opus-auditor optional or gpt-auditor the sole required auditor, ADR-0143 wins;
+- **A review with zero Critical and zero High does not block** (user, 2026-10-25: 「if no c and no h, only medium exists, merge it」): when an implementor's final TDD review or an audit round finds only Medium or Low, the item commits and lands; the Medium and Low findings are recorded in the handoff, the PR and the audit-log row, not sent into another fix round;
 - receipts, number reservation, and the Mac mini and device-batch rules (the device roster is replaced above).
 
 When the delegator is not herdr-delegator, this file does not apply.
