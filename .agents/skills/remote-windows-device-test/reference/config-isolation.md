@@ -27,7 +27,8 @@ the device by launching with `APPDATA` changed and checking that `%APPDATA%\mdpr
 
 ## Steps
 
-Run each on the PC (`ssh win-desktop "<command>"`). Each one changes state, so a lost connection
+Run each on the PC, passing a PowerShell command as one single-quoted SSH argument from the Mac
+so local zsh does not expand `$env:...` (`ssh win-desktop '<command>'`). Each one changes state, so a lost connection
 is an unknown outcome: check before you run it again (pitfalls 21). mdpro must be **closed**
 for both snapshot and restore, which needs the user's OK (SKILL.md); otherwise config.json and
 the drafts can change under the copy.

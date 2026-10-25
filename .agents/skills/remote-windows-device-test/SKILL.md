@@ -1,14 +1,19 @@
 ---
 name: remote-windows-device-test
-description: Drive and test the installed mdpro on the Windows desktop (`win-desktop`) entirely over SSH from the MacBook — page control through the WebView2 DevTools port, native menus / real keys / file dialogs / screenshots through a desktop-session PowerShell driver, mdpro.log evidence. Use to device-test, audit or reproduce anything in mdpro on Windows, check a feature-ledger row on Windows, or verify a Windows-only fix.
+description: Drive and test the installed mdpro on the Windows desktop (`win-desktop`) over SSH from the Mac — page control through the WebView2 DevTools port, native menus / real keys / file dialogs / screenshots through a desktop-session PowerShell driver, mdpro.log evidence. Use to device-test, audit or reproduce anything in mdpro on Windows, check a feature-ledger row on Windows, or verify a Windows-only fix.
 ---
 
 # Remote Windows device test
 
+The canonical skill directory is `.agents/skills/remote-windows-device-test/`; the entry under
+`.claude/skills/` is a symlink to it. The current tester assignment is in rule 71. The Mac mini
+drives `win-desktop` for the v0.3.6 B7 batch.
+
 ## Read first
 
 1. **No computer use, no TeamViewer.** Everything goes over SSH; the user keeps working on
-   the Mac (user decision, 2026-10-12). Connection basics:
+   the Mac (user decision, 2026-10-12). Verify the host key through an independent Windows-console
+   fingerprint before adding it to `known_hosts`; never bypass host-key checking. Connection basics:
    `.claude/skills/remote-ssh/reference/windows-desktop.md`.
 2. **`mdpro.sh debug --yes` restarts the user's running mdpro.** Ask the user first and pass
    `--yes` only after they confirm nothing in mdpro is unsaved. On 0.3.1 the window-close
@@ -25,8 +30,14 @@ description: Drive and test the installed mdpro on the Windows desktop (`win-des
 
 ## 1. Setup
 
+**Prove the build before testing a change.** Record the locked source SHA, the Windows build
+workflow run's actual `head_sha`, the downloaded installer's SHA-256 on both machines, and the
+installed executable's path, hash and version. A matching version string or
+`app.ready releaseId:"unknown"` alone does not identify the source commit. The current 0.3.5
+installation predates the v0.3.6 B7 menu work; use a new verified installer for that batch.
+
 ```bash
-S="$(git rev-parse --show-toplevel)/.claude/skills/remote-windows-device-test/scripts/mac"
+S="$(git rev-parse --show-toplevel)/.agents/skills/remote-windows-device-test/scripts/mac"
 $S/deploy.sh            # copies scripts/windows/* to C:\Users\jack\mdpro-audit (hash-checked); run in background
 $S/mdpro.sh debug --yes # (after the user confirms nothing is unsaved) restart with DevTools port 9222, maximize, print innerWidth
 $S/mdpro.sh status      # 1 tauri-app, 9222 on 127.0.0.1, one page http://tauri.localhost/
@@ -72,6 +83,11 @@ $S/log.sh raw run1.jsonl                                       # raw JSONL to ju
 
 A result obtained on one route says nothing about the other.
 
+**Current driver limits:** `ui.sh` cannot bind a native HWND to a Tauri window label, so
+multi-window native-menu and focus-race cases remain unverified until that binding is built and
+proved. A foreground window alone is not a label. The `chord` op sends virtual keys with scan
+code zero; physical `event.code` and German AltGr cases need a verified scan-code driver.
+
 ## 3. Reporting
 
 - **Verdicts:** one per row: 通过 / Windows 不通过 / 与 ledger 不符 / 一致（无入口） / 部分 /
@@ -89,8 +105,10 @@ A result obtained on one route says nothing about the other.
   - through a different route than the one the row names.
 - **Platform triage:** macOS-only rows (Finder, `.dmg`, ADR-0047 verify builds) are
   平台不适用. A Mac-only item that shows up on Windows is checked like any other, in one run.
-- **Where it goes:** the report goes in `docs/`, the evidence in
-  `docs/test/windows-audit-<date>-<who>/`.
+- **Where it goes:** for a delegator batch, write the report and evidence under
+  `~/.mdpro-redesign/device/`; the delegator checks the report and records the verified result
+  under `docs/test/`. A standalone Windows audit can write its report under `docs/` and evidence
+  under `docs/test/windows-audit-<date>-<who>/`.
 - **Never commit a full-screen shot:** it shows the user's private desktop.
 - **Reference:** the 2026-10-12 run is `docs/feature-ledger-windows-audit-claude.md`.
 

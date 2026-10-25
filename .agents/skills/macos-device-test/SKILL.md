@@ -5,6 +5,9 @@ description: Run empirical GUI acceptance QA for mdpro by driving the real app w
 
 # macOS Device Test (computer use)
 
+The canonical skill directory is `.agents/skills/macos-device-test/`; the entry under
+`.claude/skills/` is a symlink. The current GUI tester assignment is in rule 71.
+
 Formerly `gui-acceptance` (renamed 2026-10-21). ADRs, dated `docs/test/` records,
 release notes and the Q&A file keep the old name, as written at the time.
 

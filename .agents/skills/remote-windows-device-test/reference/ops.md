@@ -58,7 +58,8 @@ nothing. One page and no label behaves as before.
 
 An expression that throws prints `{"exception": "…"}` **and exits 1**, so `cdp.sh eval … && next`
 stops there.
-`"CDP_PORT_CLOSED: …"` means mdpro is running without the debugging port: run `mdpro.sh debug`.
+`"CDP_PORT_CLOSED: …"` means mdpro is running without the debugging port. After confirming
+that nothing in mdpro is unsaved and clearing the restart, run `mdpro.sh debug --yes`.
 `"CDP_TIMEOUT"` means no answer within 25 s; see the triage in `pitfalls.md`.
 `cdp.mjs` closes every socket it opened before it exits, so a multi-window probe no longer aborts
 Node on Windows after printing the answer (D248).
@@ -96,7 +97,7 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 | 1 | It ran and failed: an eval threw, the DevTools protocol answered with an error instead of a result (`CDP_ERROR`, e.g. "Execution context was destroyed"; the eval may or may not have run), a `ui.sh` step failed (`ABORTED at step N`), a scheduled task left no readable result (`runi: … has no result`), a restart step failed, a pulled file did not decode or write (`pull failed`), or the output was empty (`NO OUTPUT`). | Read the printed log or exception; after `CDP_ERROR`, check the page's state before re-running. |
 | 2 | Refused before running: usage, a validator, a missing `--yes`, no page. | Fix the call. |
 | 3 | **Unknown outcome**: the connection dropped after the command was sent (`UNKNOWN OUTCOME`), or `cdp.mjs` timed out (`CDP_TIMEOUT`). The command may or may not have run. | Check the state on the PC before anything else (pitfalls 21). |
-| 4 | The DevTools port is closed. | `mdpro.sh debug --yes`. |
+| 4 | The DevTools port is closed. | After confirming nothing in mdpro is unsaved and clearing the restart, run `mdpro.sh debug --yes`. |
 | 5 | `cdp.sh --window`: no page has the label, or the page's label changed before the eval. Nothing was evaluated. | Pick a label from the printed candidates. |
 | 6 | `cdp.sh`: several mdpro windows and no `--window`, or several with that label. Nothing was evaluated. | Pass `--window <label>`. |
 | 7 | `log.sh raw` / `since`: the mark no longer fits the log. It is `truncated` (the file is smaller than the mark), `replaced` (another creation time or first line), a v1 line-count mark, or the bytes returned don't match the size. Nothing is written. | `log.sh mark` again and repeat the action. |

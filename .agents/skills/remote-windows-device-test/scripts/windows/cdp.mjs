@@ -96,7 +96,7 @@ const fail = (code, error, extra) => { say({ error, ...extra }); throw new Stop(
 async function main() {
 let list;
 try { list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json(); }
-catch { say(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT}; start mdpro with scripts/mac/mdpro.sh debug`); throw new Stop(4); }
+catch { say(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT}; after unsaved-work clearance run scripts/mac/mdpro.sh debug --yes`); throw new Stop(4); }
 const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
 if (!pages.length) { if (!ending) console.error(`no page starting with ${PREFIX} on port ${PORT}`); throw new Stop(2); }
 let page = pages[0];

@@ -92,9 +92,10 @@ produced **wrong verdicts**; the rest cost time.
     - It hung for about a minute twice, then recovered, and the renderer CPU was idle.
     - Check in this order: `ssh win-desktop hostname`, then `Invoke-WebRequest
       127.0.0.1:9222/json/list` on the PC, then `node cdp.mjs eval 1+1` on the PC, then retry.
-19. **The Claude Code Bash tool:**
-    - Calls over 120 s move to the background, so keep each call to one action plus its check.
-    - Run `deploy.sh` with `run_in_background`.
+19. **Long-running shell calls:**
+    - Claude Code Bash calls over 120 s move to the background; in Codex, keep an exec session and
+      wait on that session. Keep each call to one action plus its check.
+    - Run `deploy.sh` in the background or in a resumable exec session.
     - Wait with a bounded loop:
       `end=$((SECONDS+600)); until <check> || [ $SECONDS -ge $end ]; do sleep 3; done`.
       Never `sleep N; cat`, which is blocked. When the wait reads a background task's output,
@@ -104,7 +105,7 @@ produced **wrong verdicts**; the rest cost time.
     - Before reporting, stop every background shell the run no longer needs.
     - `rm -rf` of a scratch folder is denied, so use a new folder name.
     - A backgrounded command can leave the shell in another directory, so set
-      `S="$(git rev-parse --show-toplevel)/.claude/skills/remote-windows-device-test/scripts/mac"`.
+      `S="$(git rev-parse --show-toplevel)/.agents/skills/remote-windows-device-test/scripts/mac"`.
 20. **Screenshots on the Mac:** `sips -c` crops around the centre, not the top. Downscale with
     `sips -Z 1300` before reading. A full-screen shot shows the user's private desktop: delete
     it after use and never commit it.
