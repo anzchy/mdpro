@@ -120,6 +120,7 @@ fn d319_appkit_observer_is_installed_for_native_selection() {
 
     let main_source = include_str!("main.rs");
     let bridge_source = include_str!("services/window_focus.rs");
+    let mapping_source = include_str!("services/window_focus_mapping.rs");
     assert!(main_source.contains("install_menu_capture(app.handle())"));
     for notification in [
         "NSMenuDidBeginTrackingNotification",
@@ -128,7 +129,8 @@ fn d319_appkit_observer_is_installed_for_native_selection() {
     ] {
         assert!(bridge_source.contains(notification), "{notification}");
     }
-    assert!(bridge_source.contains("customAction:"));
+    assert!(bridge_source.contains("include!(\"window_focus_mapping.rs\")"));
+    assert!(mapping_source.contains("customAction:"));
 }
 
 #[test]

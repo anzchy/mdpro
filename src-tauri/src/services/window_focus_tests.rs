@@ -430,4 +430,84 @@ mod d319_native_item_regressions {
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0]["context"]["via"], "click_time");
     }
+
+    fn routed_id_with_c(focus: &MenuFocus) -> (Vec<String>, Vec<serde_json::Value>) {
+        let mut emitted = Vec::new();
+        let mut logs = Vec::new();
+        focus.route_for_event(
+            "menu.file.save",
+            "file.save",
+            None,
+            &["A".into(), "B".into(), "C".into()],
+            |label, _: &MenuActionPayload| {
+                emitted.push(label.to_string());
+                Ok::<(), ()>(())
+            },
+            |entry| logs.push(serde_json::to_value(entry).unwrap()),
+        );
+        (emitted, logs)
+    }
+
+    #[test]
+    fn d319_f2_replacement_shortcut_without_begin_uses_m2_selection_focus() {
+        for delayed_m1_end in [false, true] {
+            let (m1, _, old_tree) = menu_with_save();
+            let (m2, new_save, new_tree) = menu_with_save();
+            let focus = MenuFocus::default();
+            focus.apply("A", true);
+            focus.native_begin_notification(Some(&tracking_note(&m1, true)), &old_tree);
+            focus.apply("B", true);
+            focus.native_will_send_notification(Some(&native_send_note(&m2, &new_save)), &new_tree);
+            if delayed_m1_end {
+                focus.native_end_notification(Some(&tracking_note(&m1, false)));
+            }
+            let (emitted, logs) = routed_id(&focus);
+            assert_eq!(emitted, ["B"]);
+            assert_eq!(logs.len(), 1);
+            assert_eq!(logs[0]["event"], "menu.action.dispatch");
+            assert_eq!(logs[0]["context"]["target"], "B");
+            assert_eq!(logs[0]["context"]["via"], "focused");
+            assert!(logs[0]["context"].get("value").is_none());
+        }
+    }
+
+    #[test]
+    fn d319_f2_replacement_selection_survives_focus_change_and_consumes_once() {
+        for old_selection_consumed in [false, true] {
+            for delayed_m1_end in [false, true] {
+                let (m1, old_save, old_tree) = menu_with_save();
+                let (m2, new_save, new_tree) = menu_with_save();
+                let focus = MenuFocus::default();
+                focus.apply("A", true);
+                focus.native_begin_notification(Some(&tracking_note(&m1, true)), &old_tree);
+                if old_selection_consumed {
+                    focus.native_will_send_notification(
+                        Some(&native_send_note(&m1, &old_save)),
+                        &old_tree,
+                    );
+                    let (old, _) = routed_id_with_c(&focus);
+                    assert_eq!(old, ["A"]);
+                }
+                focus.apply("B", true);
+                focus.native_will_send_notification(
+                    Some(&native_send_note(&m2, &new_save)),
+                    &new_tree,
+                );
+                if delayed_m1_end {
+                    focus.native_end_notification(Some(&tracking_note(&m1, false)));
+                }
+                focus.apply("C", true);
+                let (first, first_logs) = routed_id_with_c(&focus);
+                let (second, second_logs) = routed_id_with_c(&focus);
+                assert_eq!(first, ["B"]);
+                assert_eq!(second, ["C"]);
+                assert_eq!(first_logs.len(), 1);
+                assert_eq!(second_logs.len(), 1);
+                assert_eq!(first_logs[0]["context"]["via"], "click_time");
+                assert_eq!(second_logs[0]["context"]["via"], "focused");
+                assert!(first_logs[0]["context"].get("value").is_none());
+                assert!(second_logs[0]["context"].get("value").is_none());
+            }
+        }
+    }
 }

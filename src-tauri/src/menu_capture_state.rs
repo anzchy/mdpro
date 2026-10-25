@@ -201,8 +201,9 @@ impl MenuFocus {
         }
     }
 
-    /// Map a selected NSMenuItem to the matching Tauri id. An active M1
-    /// selection survives replacement by M2, then M1 loses authority.
+    /// Map a selected NSMenuItem to the matching Tauri id. A retained M1 item
+    /// keeps M1's owner through replacement; a current M2 item without Begin
+    /// drops M1's tracking owner and captures M2's selection-time focus.
     #[cfg(target_os = "macos")]
     pub fn native_selection_id(
         &self,
@@ -211,14 +212,28 @@ impl MenuFocus {
         current: &NativeTree,
     ) -> Option<String> {
         let mut state = self.state();
-        if state.native_session.as_ref().is_some_and(|s| s.selected) {
-            return None;
-        }
         let current_id = current
             .menus
             .contains(&menu)
             .then(|| current.items.get(&item).cloned())
             .flatten();
+        if current_id.is_some()
+            && state.native_session.as_ref().is_some_and(|active| {
+                active.tree.menus != current.menus
+                    || active.tree.items != current.items
+                    || active.tree.parent_menu != current.parent_menu
+            })
+        {
+            // M2's key equivalent need not post Begin. M1 End may be delayed;
+            // neither its snapshot nor its selected flag belongs to M2.
+            state.native_session = None;
+            state.tracking_depth = 0;
+            state.tracking_snapshot = None;
+            state.pending = None;
+        }
+        if state.native_session.as_ref().is_some_and(|s| s.selected) {
+            return None;
+        }
         let id = current_id.or_else(|| {
             state.native_session.as_ref().and_then(|active| {
                 active
@@ -273,9 +288,18 @@ impl MenuFocus {
             .is_some_and(|(selected, _)| selected.as_deref() == Some(id))
     }
 
-    /// Consume a native action handled entirely in Rust, such as Hide.
+    /// Reject a native selection or consume an action handled entirely in
+    /// Rust. Neither a pending id nor its old tracking owner may carry into
+    /// the next selection without a new Begin.
     pub fn discard_capture(&self) {
-        self.state().pending = None;
+        let mut state = self.state();
+        state.pending = None;
+        #[cfg(target_os = "macos")]
+        {
+            state.native_session = None;
+            state.tracking_depth = 0;
+            state.tracking_snapshot = None;
+        }
     }
 
     pub(super) fn take_capture(&self, id: Option<&str>) -> Option<FocusSnapshot> {

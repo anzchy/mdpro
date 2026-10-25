@@ -20,6 +20,7 @@
 //! @coordinates-with main.rs (the `app.run` callback), shadow_store.rs
 //! @coordinates-with menu_target.rs (`MenuFocus`)
 //! @coordinates-with menu.rs (`handle_menu_event` consumes captures)
+//! @coordinates-with window_focus_mapping.rs (native installed-menu identity)
 
 use crate::menu::MenuFocus;
 use crate::models::{LogEntryPayload, LogLevel, LogStatus, SharedShadowStore};
@@ -111,6 +112,8 @@ mod menu_capture {
     static APP: OnceLock<AppHandle<Wry>> = OnceLock::new();
     static INSTALLED: OnceLock<()> = OnceLock::new();
 
+    include!("window_focus_mapping.rs");
+
     extern "C-unwind" fn begin(_observer: &AnyObject, _cmd: Sel, note: *mut AnyObject) {
         let Some(app) = APP.get() else { return };
         let Some(focus) = app.try_state::<MenuFocus>() else {
@@ -134,48 +137,9 @@ mod menu_capture {
         focus.native_end_notification(note);
     }
 
-    pub(super) fn is_custom_action(action: Option<Sel>) -> bool {
-        action == Some(sel!(customAction:))
-    }
-
-    // The installed Tauri tree and AppKit tree have the same append order:
-    // Muda creates one NSMenuItem per Tauri child (muda 0.20.0 macos/mod.rs
-    // 130-138, 408-420). Compare counts at every level and fail closed if a
-    // native insertion ever breaks that correspondence.
-    fn map_items(
-        native: &NSMenu,
-        tauri_items: Vec<MenuItemKind<Wry>>,
-        out: &mut NativeTree,
-        parent: Option<usize>,
-    ) -> Option<()> {
-        if native.numberOfItems() as usize != tauri_items.len() {
-            return None;
-        }
-        let menu = native as *const NSMenu as usize;
-        out.menus.insert(menu);
-        if let Some(parent) = parent {
-            out.parent_menu.insert(menu, parent);
-        }
-        for (index, item) in tauri_items.into_iter().enumerate() {
-            let native_item = native.itemAtIndex(index as isize)?;
-            out.items.insert(
-                Retained::as_ptr(&native_item) as usize,
-                item.id().as_ref().to_string(),
-            );
-            if let MenuItemKind::Submenu(submenu) = item {
-                let native_submenu = native_item.submenu()?;
-                map_items(&native_submenu, submenu.items().ok()?, out, Some(menu))?;
-            }
-        }
-        Some(())
-    }
-
-    fn installed_items(app: &AppHandle<Wry>) -> Option<NativeTree> {
-        let marker = MainThreadMarker::new()?;
-        let native = NSApplication::sharedApplication(marker).mainMenu()?;
-        let mut items = NativeTree::default();
-        map_items(&native, app.menu()?.items().ok()?, &mut items, None)?;
-        Some(items)
+    #[cfg(test)]
+    mod mapping_tests {
+        include!("window_focus_mapping_tests.rs");
     }
 
     fn note_menu(note: Option<&NSNotification>) -> Option<usize> {
@@ -239,10 +203,15 @@ mod menu_capture {
             current: &NativeTree,
         ) {
             let (Some(menu), Some(item)) = (note_menu(note), selected_item(note)) else {
+                self.discard_capture();
                 return;
             };
             if let Some(id) = self.native_selection_id(menu, item, current) {
                 self.capture_will_send(note, &HashMap::from([(item, id)]));
+            } else {
+                // A selection we cannot identify must not inherit an older
+                // pending id, even when menu generations reuse that id.
+                self.discard_capture();
             }
         }
     }
@@ -253,6 +222,7 @@ mod menu_capture {
             return;
         };
         let Some(items) = installed_items(app) else {
+            focus.discard_capture();
             return;
         };
         // SAFETY: AppKit supplies a live NSNotification during this callback.
