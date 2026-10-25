@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,10 +7,10 @@ import { describe, expect, it } from "vitest";
 const root = path.resolve(__dirname, "../..");
 const shared = path.join(root, ".codex/rules/mdpro.rules");
 const source = () => readFileSync(shared, "utf8");
-const codex = spawnSync("codex", ["--version"], { encoding: "utf8" });
-const hasCodex = !codex.error && codex.status === 0;
 const codexAbsentReason = "codex CLI absent: execpolicy checks run on a provisioned host";
-const checked = hasCodex ? it : it.skip;
+const hasCodex = await new Promise<boolean>(resolve => {
+  execFile("codex", ["--version"], { encoding: "utf8" }, error => resolve(!error));
+});
 
 function activeRules(content: string) {
   const uncommented = content.split("\n").filter(line => !/^\s*#/.test(line)).join("\n");
@@ -39,11 +39,13 @@ function assertSharedContract(content: string) {
     /^\["gh", "pr", "(?:create|close)"\]$/.test(rule.pattern ?? ""))).toEqual([]);
 }
 
-function decision(argv: string[], role?: string) {
+async function decision(argv: string[], role?: string) {
   const args = ["execpolicy", "check", "--rules", shared];
   if (role) args.push("--rules", path.join(root, "scripts/codex-rules", role));
-  const result = spawnSync("codex", [...args, "--", ...argv], { cwd: root, encoding: "utf8" });
-  expect(result.status, result.stderr).toBe(0);
+  const result = await new Promise<{ error: Error | null; stdout: string; stderr: string }>(resolve => {
+    execFile("codex", [...args, "--", ...argv], { cwd: root, encoding: "utf8" }, (error, stdout, stderr) => resolve({ error, stdout, stderr }));
+  });
+  expect(result.error, result.stderr).toBeNull();
   return JSON.parse(result.stdout).decision as string | undefined;
 }
 
@@ -89,10 +91,14 @@ describe("shared Codex command policy", () => {
       expect(() => assertSharedContract(added)).toThrow();
     }
   });
-  for (const argv of forbidden) checked(`forbids ${argv.join(" ")}${hasCodex ? "" : ` (${codexAbsentReason})`}`, () => {
-    expect(decision(argv)).toBe("forbidden");
+  for (const argv of forbidden) it(`forbids ${argv.join(" ")}${hasCodex ? "" : ` (${codexAbsentReason})`}`, async ctx => {
+    ctx.skip(!hasCodex, codexAbsentReason);
+    expect(await decision(argv)).toBe("forbidden");
   });
   for (const argv of [["gh", "pr", "create"], ["gh", "pr", "view", "1"], ["gh", "workflow", "run", "release.yml"]]) {
-    checked(`does not forbid ${argv.join(" ")}${hasCodex ? "" : ` (${codexAbsentReason})`}`, () => expect(decision(argv)).not.toBe("forbidden"));
+    it(`does not forbid ${argv.join(" ")}${hasCodex ? "" : ` (${codexAbsentReason})`}`, async ctx => {
+      ctx.skip(!hasCodex, codexAbsentReason);
+      expect(await decision(argv)).not.toBe("forbidden");
+    });
   }
 });

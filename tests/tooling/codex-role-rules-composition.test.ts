@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,25 +9,31 @@ const root = path.resolve(__dirname, "../..");
 const installer = path.join(root, "scripts/codex-rules/install-role.mjs");
 const restricted = path.join(root, "scripts/codex-rules/restricted-role.rules");
 const common = path.join(root, ".codex/rules/mdpro.rules");
-const hasCodex = spawnSync("codex", ["--version"], { encoding: "utf8" }).status === 0;
-const checked = hasCodex ? it : it.skip;
 const skipReason = "codex CLI absent: composition requires execpolicy";
+function child(file: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
+  return new Promise<{ status: number; stdout: string; stderr: string }>(resolve => {
+    execFile(file, args, { encoding: "utf8", ...options }, (error, stdout, stderr) => {
+      resolve({ status: error ? 1 : 0, stdout, stderr });
+    });
+  });
+}
+const hasCodex = (await child("codex", ["--version"])).status === 0;
 const made: string[] = [];
 afterEach(() => { for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
-function roleRules(role: string) {
+async function roleRules(role: string) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "adr141-composition-"));
   made.push(dir);
-  spawnSync("git", ["init", "-q", dir]);
+  expect((await child("git", ["init", "-q", dir])).status).toBe(0);
   fs.mkdirSync(path.join(dir, ".codex/rules"), { recursive: true });
   fs.copyFileSync(common, path.join(dir, ".codex/rules/mdpro.rules"));
-  const r = spawnSync(process.execPath, [installer, "--worktree", dir, "--role", role], {
-    encoding: "utf8", env: { ...process.env, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: dir },
+  const r = await child(process.execPath, [installer, "--worktree", dir, "--role", role], {
+    env: { ...process.env, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: dir },
   });
   expect(r.status, r.stderr).toBe(0);
   return path.join(dir, ".codex/rules/mdpro-role.rules");
 }
-function decision(overlay: string, argv: string[]) {
-  const r = spawnSync("codex", ["execpolicy", "check", "--rules", common, "--rules", overlay, "--", ...argv], { encoding: "utf8" });
+async function decision(overlay: string, argv: string[]) {
+  const r = await child("codex", ["execpolicy", "check", "--rules", common, "--rules", overlay, "--", ...argv]);
   expect(r.status, r.stderr).toBe(0);
   return JSON.parse(r.stdout).decision;
 }
@@ -79,8 +85,9 @@ it("rejects each missing absolute Node script entry while bare entries remain", 
   }
 });
 
-for (const role of ["implementor", "auditor", "delegator"]) checked(`${role} composes with the shared policy${hasCodex ? "" : ` (${skipReason})`}`, () => {
-  const overlay = roleRules(role);
+for (const role of ["implementor", "auditor", "delegator"]) it(`${role} composes with the shared policy${hasCodex ? "" : ` (${skipReason})`}`, async ctx => {
+  ctx.skip(!hasCodex, skipReason);
+  const overlay = await roleRules(role);
   const restrictedRole = role !== "delegator";
   for (const argv of [
     ["git", "push", "origin", "x"], ["git", "push", "origin", "--force", "master"],
@@ -88,13 +95,13 @@ for (const role of ["implementor", "auditor", "delegator"]) checked(`${role} com
     ["git", "push", "origin", "+HEAD:x"], ["git", "push", "origin", "--mirror"],
     ["gh", "pr", "merge", "1"], ["gh", "release", "create", "v1"],
     ["rm", "-rf", "src"], ["git", "reset", "--hard"],
-  ]) expect(decision(overlay, argv)).toBe("forbidden");
-  for (const action of ["create", "close"]) expect(decision(overlay, ["gh", "pr", action])).toBe(restrictedRole ? "forbidden" : undefined);
-  expect(decision(overlay, ["gh", "workflow", "run", "release.yml"])).toBe(restrictedRole ? "forbidden" : "prompt");
+  ]) expect(await decision(overlay, argv)).toBe("forbidden");
+  for (const action of ["create", "close"]) expect(await decision(overlay, ["gh", "pr", action])).toBe(restrictedRole ? "forbidden" : undefined);
+  expect(await decision(overlay, ["gh", "workflow", "run", "release.yml"])).toBe(restrictedRole ? "forbidden" : "prompt");
   if (restrictedRole) for (const name of ["install-role", "push-guard", "land-guard"]) {
     for (const script of [`scripts/codex-rules/${name}.mjs`, `/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/${name}.mjs`]) {
-      expect(decision(overlay, ["node", script, "--help"])).toBe("forbidden");
-      expect(decision(overlay, [script, "--help"])).toBe("forbidden");
+      expect(await decision(overlay, ["node", script, "--help"])).toBe("forbidden");
+      expect(await decision(overlay, [script, "--help"])).toBe("forbidden");
     }
   }
 });
