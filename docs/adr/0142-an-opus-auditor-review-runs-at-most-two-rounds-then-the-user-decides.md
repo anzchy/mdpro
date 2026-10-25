@@ -2,6 +2,8 @@
 
 ## Status
 
+Superseded 2026-10-25 by [ADR-0143](0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), which puts both auditors on every audit with the same two-round cap.
+
 Accepted, 2026-10-25. Decided by the user, recorded by herdr-delegator (Claude route). The user's words:
 「opus-auditor 最多2个round，之后如果还有critical/high，交给user来抉择是否继续」.
 
