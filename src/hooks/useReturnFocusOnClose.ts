@@ -7,8 +7,9 @@
  *
  * Pipeline: first render → save `document.activeElement` (the prior element) · unmount
  * (every dismissal path: button, Escape, backdrop, an external resolve) → if focus is
- * inside the closing container or on body/null: focus the first saved prior element
- * that is still connected (`preventScroll`), else `fallback()`'s element · otherwise
+ * inside the closing container or on body/null, and `shouldReturn()` (when given) allows
+ * this close: focus the first saved prior element that is still connected and passes
+ * `acceptPrior` (when given) (`preventScroll`), else `fallback()`'s element · otherwise
  * leave focus alone.
  *
  * Key decisions:
@@ -24,7 +25,14 @@
  * - **Never steals** (RF-4): focus that moved outside the container is left alone, and
  *   the fallback is not even called.
  * - **Body fallback is opt-in** (D291): ordinary dialogs keep RF-9's body-open
- *   no-focus behavior; Recovery explicitly opts in to target its editor.
+ *   no-focus behavior; Recovery and Encoding (D317) explicitly opt in to target an editor.
+ * - **Per-close gate and prior filter are opt-in** (D317): `shouldReturn` lets a dialog
+ *   return focus on some closes only (Encoding: a cancel, not a retry that opened a
+ *   document), and `acceptPrior` lets it skip a saved element it must not focus
+ *   directly (Encoding skips an editor surface, so its fallback refocuses the live view
+ *   of the intended document through `view.focus()`, which restores the selection).
+ *   All options, `fromBody` included, are read from the latest render at close (a ref,
+ *   not effect deps); without them every close behaves as before.
  * - **Never throws**: a throwing fallback or focus call is contained.
  * - **Queryable and redirectable** (D38, ADR-0060):`pendingReturnTarget` tells the D37 focus capture
  *   where an open container holding focus will return it; `redirectReturnFocus` lets the
@@ -41,6 +49,7 @@
  * @module hooks/useReturnFocusOnClose
  * @coordinates-with src/components/common/McpWriteConfirmDialog.tsx — the first adopter
  * @coordinates-with src/utils/focusActiveMilkdownAtEnd.ts — that dialog's fallback
+ * @coordinates-with src/components/common/EncodingDialog.tsx — `shouldReturn` / `acceptPrior` (D317)
  * @coordinates-with src/utils/milkdownFocusCarry.ts — capture reads `pendingReturnTarget` (D38)
  * @coordinates-with src/hooks/useMilkdownFocusRestore.ts — restore calls `redirectReturnFocus` (D38),
  *   `wouldReturnIntoGone` and `describeReturnFocus` (D38R)
@@ -141,10 +150,22 @@ function focusOrBodyIn(container: HTMLElement): boolean {
   return !active || active === document.body || container.contains(active);
 }
 
-function returnFocus(container: HTMLElement, priors: readonly HTMLElement[], fallback?: FocusFallback, fromBody = false): void {
-  if ((priors.length === 0 && !fromBody) || !focusOrBodyIn(container)) return;
+/** Options for `useReturnFocusOnClose`; all are read at close time, from the latest render. */
+export interface ReturnFocusOptions {
+  /** Return to the fallback even when the dialog opened from `<body>` (D291). */
+  fromBody?: boolean;
+  /** False skips this close's return entirely (D317). */
+  shouldReturn?: () => boolean;
+  /** False skips a saved element; the next one, or the fallback, is used (D317). */
+  acceptPrior?: (el: HTMLElement) => boolean;
+}
+
+function returnFocus(container: HTMLElement, priors: readonly HTMLElement[], fallback?: FocusFallback, options: ReturnFocusOptions = {}): void {
+  if ((priors.length === 0 && !options.fromBody) || !focusOrBodyIn(container)) return;
   try {
-    const target = priors.find((el) => el.isConnected) ?? fallback?.() ?? null;
+    if (options.shouldReturn && !options.shouldReturn()) return;
+    const accept = options.acceptPrior ?? (() => true);
+    const target = priors.find((el) => el.isConnected && accept(el)) ?? fallback?.() ?? null;
     target?.focus({ preventScroll: true });
   } catch {
     // Never throw from an unmount: a failed return leaves focus where it is.
@@ -159,13 +180,15 @@ function returnFocus(container: HTMLElement, priors: readonly HTMLElement[], fal
 export function useReturnFocusOnClose(
   containerRef: RefObject<HTMLElement | null>,
   fallback?: FocusFallback,
-  options?: { fromBody?: boolean },
+  options?: ReturnFocusOptions,
 ): void {
   const [priors] = useState(capturePriors);
   const fallbackRef = useRef(fallback);
+  const optionsRef = useRef(options);
 
   useLayoutEffect(() => {
     fallbackRef.current = fallback;
+    optionsRef.current = options;
   });
 
   useLayoutEffect(() => {
@@ -175,7 +198,7 @@ export function useReturnFocusOnClose(
     openContainers.add(entry);
     return () => {
       openContainers.delete(entry);
-      returnFocus(container, entry.priors, fallbackRef.current, options?.fromBody);
+      returnFocus(container, entry.priors, fallbackRef.current, optionsRef.current);
     };
-  }, [containerRef, priors, options?.fromBody]);
+  }, [containerRef, priors]);
 }

@@ -9,7 +9,7 @@
  *   (`encoding::hinted_decode_refusal`) and App shows the refusal toast.
  * - **Cancel is the initial focus; Escape and a backdrop click take Cancel**
  *   (decision 1), so Enter never commits a retry. Focus is one visible focus request
- *   (`useVisibleInitialFocus`, D53/D63), called before the early return.
+ *   (`useVisibleInitialFocus`, D53/D63), in the card, which mounts only while open.
  * - **Escape goes through the shared `useDialogEscape` stack** (D140, as ConfirmDialog
  *   since D34), dialog `"encoding"`, outcome `"cancel"`, calling the same `handleCancel`
  *   as the button and the backdrop, so App's `onCancel` aborts a pending retry (D121).
@@ -21,19 +21,40 @@
  *   to first, Shift+Tab first to last. Without it Tab left the dialog.
  * - Every string comes from `ENCODING_DIALOG_COPY`. The dialog takes no `detected`
  *   prop: the approved copy does not name a detected encoding.
+ * - **A cancel gives focus back** (D317, B4: after Esc focus sat on the page root and a
+ *   typed key edited nothing). The card mounts only while open, so each opening captures
+ *   what held focus and the active document (`useReturnFocusOnClose`). Only a cancel
+ *   returns: a retry that opened its document, or App clearing the issue, changes no
+ *   focus. A saved non-editor control gets focus back; a saved editor surface is skipped,
+ *   and the live view in the current mode is refocused through `view.focus()` (selection
+ *   kept, `focusActiveEditor(…, "preserve")`) only while the document captured at open
+ *   is still active and no other modal is open. That same path covers B4's open from
+ *   `<body>`. Focus that moved outside the card is left alone.
+ * - **One content-free line per cancel**, after the return:
+ *   `ui.dialog.focus-return { controlId: "dialog.encoding.cancel", focus }`, where
+ *   `focus` is where focus is now (`editor` / `other-control` / `none`), never a path
+ *   or text, so a device run can tell the outcomes apart.
  *
  * @coordinates-with src/components/common/encodingDialogCopy.ts — the copy and options
  * @coordinates-with src/hooks/useVisibleInitialFocus.ts — the initial focus on Cancel
  * @coordinates-with src/hooks/useDialogEscape.ts — document-level capture-phase Escape stack
+ * @coordinates-with src/hooks/useReturnFocusOnClose.ts — the focus return on cancel (D317)
+ * @coordinates-with src/utils/focusActiveEditor.ts — the live editor, selection preserved (D317)
  * @coordinates-with tests/d52-encoding-dialog.test.tsx — ED-1 … ED-9
  * @coordinates-with tests/focus-trap.test.ts — FT-D121-1 … FT-D121-3
  * @coordinates-with tests/d140-dialog-escape-device-path.test.tsx — DP-1 … DP-6
+ * @coordinates-with tests/d317-encoding-cancel-focus.test.tsx — D317-WI-1 … WI-3 (with -lifecycle, -focus-log)
  */
-import { useCallback, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useReturnFocusOnClose } from "../../hooks/useReturnFocusOnClose";
 import { useVisibleInitialFocus } from "../../hooks/useVisibleInitialFocus";
 import { loggingService } from "../../services/loggingService";
+import { useDocumentStore } from "../../stores/documentStore";
+import { useEditorStore } from "../../stores/editorStore";
+import { focusActiveEditor } from "../../utils/focusActiveEditor";
+import { isModalOpen } from "../../utils/modalTabActionGuard";
 import { ENCODING_DIALOG_COPY, ENCODING_DIALOG_OPTIONS } from "./encodingDialogCopy";
 
 interface EncodingDialogProps {
@@ -43,13 +64,58 @@ interface EncodingDialogProps {
   onCancel: () => void;
 }
 
-export function EncodingDialog({ open, path, onSelect, onCancel }: EncodingDialogProps) {
+const CANCEL_CONTROL_ID = "dialog.encoding.cancel";
+/** This card, excluded when asking whether another modal is open. */
+const CARD_SELECTOR = '[data-dialog="encoding"]';
+const EDITOR_SELECTOR = ".ProseMirror, .cm-editor";
+
+type FocusOutcome = "editor" | "other-control" | "none";
+
+/** Where focus is now, as a log category (rule 20: no content). */
+function focusOutcome(card: HTMLElement | null): FocusOutcome {
+  const active = document.activeElement;
+  if (!active || active === document.body || card?.contains(active)) return "none";
+  return active.closest(EDITOR_SELECTOR) ? "editor" : "other-control";
+}
+
+export function EncodingDialog(props: EncodingDialogProps) {
+  if (!props.open) return null;
+  return <EncodingDialogCard {...props} />;
+}
+
+function EncodingDialogCard({ open, path, onSelect, onCancel }: EncodingDialogProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelled = useRef(false);
+  // D317: the document this opening belongs to; a return never targets another one.
+  const [openedFor] = useState(() => useDocumentStore.getState().activeDocumentId);
+
+  const focusIntendedEditor = () => {
+    const active = useDocumentStore.getState().activeDocumentId;
+    if (!active || active !== openedFor || isModalOpen(CARD_SELECTOR)) return null;
+    return focusActiveEditor(useEditorStore.getState().viewMode, "preserve");
+  };
+  useReturnFocusOnClose(backdropRef, focusIntendedEditor, {
+    fromBody: true,
+    shouldReturn: () => cancelled.current,
+    acceptPrior: (el) => !el.closest(EDITOR_SELECTOR),
+  });
+  // Declared after the hook, so its cleanup runs after the hook's return.
+  useLayoutEffect(() => {
+    const card = backdropRef.current;
+    return () => {
+      if (!cancelled.current) return;
+      loggingService.logUiEvent("ui.dialog.focus-return", {
+        controlId: CANCEL_CONTROL_ID,
+        focus: focusOutcome(card),
+      });
+    };
+  }, []);
 
   const handleCancel = () => {
-    loggingService.logDialogAction("dialog.encoding.cancel", "cancel");
+    loggingService.logDialogAction(CANCEL_CONTROL_ID, "cancel");
+    cancelled.current = true;
     onCancel();
   };
 
@@ -87,8 +153,6 @@ export function EncodingDialog({ open, path, onSelect, onCancel }: EncodingDialo
     }
   }, []);
 
-  if (!open) return null;
-
   return (
     <div
       ref={backdropRef}
@@ -101,6 +165,7 @@ export function EncodingDialog({ open, path, onSelect, onCancel }: EncodingDialo
       <div
         ref={dialogRef}
         className="dialog-card"
+        data-dialog="encoding"
         role="dialog"
         aria-modal="true"
         aria-label={ENCODING_DIALOG_COPY.ariaLabel}
