@@ -510,4 +510,7 @@ mod d319_native_item_regressions {
             }
         }
     }
+
+    include!("window_focus_d319_f3_race_tests.rs");
+    include!("window_focus_d319_f3_guard_tests.rs");
 }

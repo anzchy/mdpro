@@ -3,7 +3,8 @@
 //! tracking, resolves the selected target from that capture, emits to it
 //! only, and logs exactly one `menu.action.dispatch` line per click.
 //!
-//! Pipeline: AppKit begin/will-send → `MenuFocus` id capture →
+//! Pipeline: AppKit begin/will-send/end → `MenuFocus` id capture (an ended,
+//! unselected session keeps its Begin owner for one WillSend, D319-F3) →
 //! `menu.rs::emit_menu_action` → `route_for_event` → `classify` → `resolve_target` →
 //! `dispatch` → one `emit_to(label)` and one log line.
 //!
@@ -22,7 +23,8 @@
 //! - The target is fixed at resolution; `dispatch` never re-reads focus, and
 //!   an `emit_to` error is logged as `fail` with no retry and no broadcast.
 //! - The log line carries `action`, `target` and `via`, never `value`: an
-//!   Open Recent value is a file path.
+//!   Open Recent value is a file path. Each route also writes one
+//!   content-free `menu.capture` `route` line (capture taken, decision).
 //!
 //! @coordinates-with src/menu.rs (`emit_menu_action`)
 //! @coordinates-with src/services/window_focus.rs (`on_focus_event` feeds it)
@@ -35,11 +37,13 @@ use tauri::{Manager, Runtime};
 
 use crate::models::{LogEntryPayload, LogLevel, LogStatus};
 
+#[path = "menu_target_capture_log.rs"]
+pub(crate) mod capture_log;
 #[path = "menu_capture_state.rs"]
 mod menu_capture_state;
-#[cfg(target_os = "macos")]
-pub use menu_capture_state::NativeTree;
 pub use menu_capture_state::{FocusSnapshot, MenuFocus, UNMANAGED_FOCUS};
+#[cfg(target_os = "macos")]
+pub use menu_capture_state::{NativeRef, NativeTree};
 
 /// The `Destroyed` hook: forgets `label` in the managed `MenuFocus`, if any.
 pub fn forget_window<R: Runtime, M: Manager<R>>(manager: &M, label: &str) {
@@ -247,7 +251,7 @@ fn route_selected<E>(
 ) -> DispatchOutcome {
     let class = classify(action);
     let arrived = focus.snapshot();
-    let captured = focus.take_capture(id);
+    let (captured, capture) = focus.take_capture(id);
     let selected = captured.as_ref().unwrap_or(&arrived);
     let captured_owner_dead = captured.is_some()
         && selected
@@ -255,6 +259,18 @@ fn route_selected<E>(
             .as_ref()
             .is_some_and(|label| !live.contains(label));
     let click_time = captured.is_some() && !captured_owner_dead && selected.0 != arrived.0;
+    let decision = if captured_owner_dead {
+        "owner_closed"
+    } else if click_time {
+        "click_time"
+    } else {
+        "arrival"
+    };
+    capture_log::emit(vec![capture_log::entry(json!({
+        "step": "route",
+        "capture": capture,
+        "decision": decision,
+    }))]);
     let resolved = match (captured_owner_dead, class) {
         (true, ActionClass::Window) => Err(CancelReason::NoFocusedWindow),
         (true, ActionClass::App) => {

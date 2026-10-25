@@ -94,15 +94,16 @@ pub fn on_native_menu_notice(focus: &MenuFocus, notice: NativeMenuNotice) {
 #[cfg(target_os = "macos")]
 mod menu_capture {
     use super::MenuFocus;
-    use crate::menu::menu_target::NativeTree;
+    use crate::menu::menu_target::{NativeRef, NativeTree};
     use objc2::rc::Retained;
     use objc2::runtime::{AnyObject, ClassBuilder, NSObject, Sel};
-    use objc2::{msg_send, sel, ClassType};
+    use objc2::{msg_send, sel, ClassType, Message};
     use objc2_app_kit::{
         NSApplication, NSMenu, NSMenuDidBeginTrackingNotification,
         NSMenuDidEndTrackingNotification, NSMenuWillSendActionNotification,
     };
     use objc2_foundation::{MainThreadMarker, NSNotification, NSNotificationCenter, NSString};
+    #[cfg(test)]
     use std::collections::HashMap;
     use std::ffi::CString;
     use std::sync::OnceLock;
@@ -119,12 +120,9 @@ mod menu_capture {
         let Some(focus) = app.try_state::<MenuFocus>() else {
             return;
         };
-        let Some(tree) = installed_items(app) else {
-            return;
-        };
         // SAFETY: AppKit supplies a live NSNotification during this callback.
         let note = unsafe { (note as *const NSNotification).as_ref() };
-        focus.native_begin_notification(note, &tree);
+        on_begin(&focus, note, installed_items(app));
     }
 
     extern "C-unwind" fn end(_observer: &AnyObject, _cmd: Sel, note: *mut AnyObject) {
@@ -140,6 +138,7 @@ mod menu_capture {
     #[cfg(test)]
     mod mapping_tests {
         include!("window_focus_mapping_tests.rs");
+        include!("window_focus_d319_f3_map_tests.rs");
     }
 
     fn note_menu(note: Option<&NSNotification>) -> Option<usize> {
@@ -166,6 +165,8 @@ mod menu_capture {
     impl MenuFocus {
         /// Decode AppKit's actual selected item; a highlighted neighbor never
         /// identifies the action. Only an installed Muda custom item can queue.
+        /// Production queues through `native_will_send`; this is the F1 seam.
+        #[cfg(test)]
         pub(super) fn capture_will_send(
             &self,
             note: Option<&NSNotification>,
@@ -196,23 +197,20 @@ mod menu_capture {
             }
         }
 
-        /// The active pre-replacement tree may authorize one selected item.
+        /// Queue the selected item under its owner (current, active or
+        /// ended tree); an item we cannot identify drops every capture.
         pub(super) fn native_will_send_notification(
             &self,
             note: Option<&NSNotification>,
             current: &NativeTree,
         ) {
             let (Some(menu), Some(item)) = (note_menu(note), selected_item(note)) else {
-                self.discard_capture();
-                return;
-            };
-            if let Some(id) = self.native_selection_id(menu, item, current) {
-                self.capture_will_send(note, &HashMap::from([(item, id)]));
-            } else {
                 // A selection we cannot identify must not inherit an older
                 // pending id, even when menu generations reuse that id.
-                self.discard_capture();
-            }
+                self.discard_because("no_item", true);
+                return;
+            };
+            self.native_will_send(menu, item, current);
         }
     }
 
@@ -221,13 +219,9 @@ mod menu_capture {
         let Some(focus) = app.try_state::<MenuFocus>() else {
             return;
         };
-        let Some(items) = installed_items(app) else {
-            focus.discard_capture();
-            return;
-        };
         // SAFETY: AppKit supplies a live NSNotification during this callback.
         let note = unsafe { (note as *const NSNotification).as_ref() };
-        focus.native_will_send_notification(note, &items);
+        on_will_send(&focus, note, installed_items(app));
     }
 
     /// Install once after `MenuFocus` is managed and before the menu is used.
