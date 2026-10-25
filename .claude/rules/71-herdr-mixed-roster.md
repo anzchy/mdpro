@@ -22,7 +22,7 @@ Unchanged from rule 70:
 - the slot cap, which is two everywhere (ADR-0124);
 - landing (the three conditions, `--ff-only`, push);
 - the merge of two verdicts and its challenges;
-- ADR-0120's round cap and ADR-0121's tiers;
+- ADR-0120's round cap and ADR-0121's tiers, except that an opus-auditor review stops after two rounds and the user decides whether to continue ([ADR-0142](../../docs/adr/0142-an-opus-auditor-review-runs-at-most-two-rounds-then-the-user-decides.md); user, 2026-10-25: 「opus-auditor 最多2个round，之后如果还有critical/high，交给user来抉择是否继续」);
 - receipts, number reservation, and the Mac mini and device-batch rules (the device roster is replaced above).
 
 When the delegator is not herdr-delegator, this file does not apply.
