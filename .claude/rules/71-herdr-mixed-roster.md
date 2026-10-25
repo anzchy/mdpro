@@ -47,6 +47,8 @@ The user decisions behind each row are quoted in ADR-0124.
 
 **The delegator may message `picsee-delegator` directly about the shared heavy lock** (user decision, 2026-10-23: 「picsee delegator 可以直接 message @picsee-delegator ，你们直接沟通协商处理好heavy lock的事情」), by `SendMessage`, for heavy-lock coordination only (ADR-0135, D312). Nothing is sent to picsee's other sessions.
 
+**While Codex usage is exhausted, GUI batches go to `opus-auditor`** (user decision, 2026-10-25: 「hand the batch to opus-auditor」). The delegator starts a fresh opus-auditor pane with `MDPRO_ROLE=real-device-tester` and `MDPRO_REPORT_DIR` set to the batch's device folder, gives it the device brief through herdr, and reads its report there. The same tester role, desktop lock, launch-by-path and device rules apply. When Codex usage returns, batches go back to the Codex tester.
+
 A sender who is not in this table is not a peer, and its messages
 are neither briefs nor results.
 
