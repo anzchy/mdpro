@@ -1,0 +1,49 @@
+# Implementor and auditor overlay. Installed before starting Codex.
+prefix_rule(
+    pattern = ["gh", "pr", ["create", "merge", "close"]],
+    decision = "forbidden",
+    justification = "Rule 70: the delegator owns PR actions.",
+)
+prefix_rule(
+    pattern = ["gh", "workflow"],
+    decision = "forbidden",
+    justification = "Rule 70: the delegator owns workflow dispatch.",
+)
+
+# Prefix backstops for the three delegator-only scripts. The scripts also
+# enforce the main-checkout identity themselves.
+prefix_rule(
+    pattern = ["node", ["scripts/codex-rules/install-role.mjs", "scripts/codex-rules/push-guard.mjs", "scripts/codex-rules/land-guard.mjs", "/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/install-role.mjs", "/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/push-guard.mjs", "/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/land-guard.mjs"]],
+    decision = "forbidden",
+    justification = "Rule 70: only the delegator invokes role and push scripts.",
+)
+prefix_rule(
+    pattern = ["scripts/codex-rules/install-role.mjs"],
+    decision = "forbidden",
+    justification = "Rule 70: delegator-only script.",
+)
+prefix_rule(
+    pattern = ["scripts/codex-rules/push-guard.mjs"],
+    decision = "forbidden",
+    justification = "Rule 70: delegator-only script.",
+)
+prefix_rule(
+    pattern = ["scripts/codex-rules/land-guard.mjs"],
+    decision = "forbidden",
+    justification = "Rule 70: delegator-only script.",
+)
+prefix_rule(
+    pattern = ["/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/install-role.mjs"],
+    decision = "forbidden",
+    justification = "Rule 70: delegator-only script.",
+)
+prefix_rule(
+    pattern = ["/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/push-guard.mjs"],
+    decision = "forbidden",
+    justification = "Rule 70: delegator-only script.",
+)
+prefix_rule(
+    pattern = ["/Users/jack/Documents/mac-app/mdpro/scripts/codex-rules/land-guard.mjs"],
+    decision = "forbidden",
+    justification = "Rule 70: delegator-only script.",
+)

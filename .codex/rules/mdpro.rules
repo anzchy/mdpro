@@ -1,8 +1,6 @@
 # mdpro command rules for Codex (execpolicy, Starlark).
 #
-# Codex port of the command guards in .claude/rules/25-careful-mode.md and the
-# implementor limits that .claude/hooks/role-guard.sh enforces for Claude Code
-# (rule 70). Codex does not run that hook, so these prefix rules stand in for it.
+# Shared command guards; role-specific limits live in mdpro-role.rules.
 # Instruction-only rules (10, 20, 22, 30-34, 40, 41, 50, 60) cannot be expressed
 # as command prefixes; AGENTS.md § "Rules Codex must read" routes Codex to them.
 #
@@ -27,7 +25,7 @@ prefix_rule(
 prefix_rule(
     pattern = ["git", "push"],
     decision = "forbidden",
-    justification = "Rule 70: only the delegator pushes. Commit on your branch and hand the SHA to the delegator.",
+    justification = "Every role uses scripts/codex-rules/push-guard.mjs or land-guard.mjs; direct git push is forbidden.",
     match = ["git push", "git push -f origin master", "git push origin fix/d1-x"],
 )
 
@@ -71,7 +69,7 @@ prefix_rule(
     not_match = ["git worktree list"],
 )
 
-# --- Rule 70: implementor limits (role-guard.sh equivalents) -----------------
+# --- Shared staging, branch and release limits ------------------------------
 
 prefix_rule(
     pattern = ["git", "add", ["-A", "--all", ".", "-u", "--update"]],
@@ -98,16 +96,16 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["gh", ["release", "workflow"]],
+    pattern = ["gh", "release"],
     decision = "forbidden",
-    justification = "Rule 40 / ADR-0073: releases and workflow dispatch belong to the delegator.",
-    match = ["gh release create v1", "gh workflow run release.yml"],
+    justification = "Rule 40 / ADR-0073: releases require the delegator's approved workflow.",
+    match = ["gh release create v1"],
 )
 
 prefix_rule(
-    pattern = ["gh", "pr", ["merge", "create", "close"]],
+    pattern = ["gh", "pr", "merge"],
     decision = "forbidden",
-    justification = "Rule 70: the delegator opens, merges and closes PRs.",
-    match = ["gh pr merge 12", "gh pr create"],
+    justification = "ADR-0085: land the audited SHA through land-guard.mjs, never through GitHub merge.",
+    match = ["gh pr merge 12"],
     not_match = ["gh pr view 12", "gh pr diff 12"],
 )

@@ -12,6 +12,7 @@
     "tauri": "tauri",
     "test": "vitest",
     "test:run": "vitest run",
+    "rules:check": "vitest run tests/tooling/codex-role-rules.test.ts tests/tooling/codex-role-rules-installer.test.ts tests/tooling/codex-role-rules-composition.test.ts tests/tooling/codex-push-guard.test.ts tests/tooling/codex-land-guard.test.ts tests/tooling/codex-land-guard-docs.test.ts",
     "verify:inventory": "node scripts/ci/verify-inventory.mjs",
     "red": "node scripts/tdd/red-receipt.mjs",
     "coverage": "vitest run --coverage",
