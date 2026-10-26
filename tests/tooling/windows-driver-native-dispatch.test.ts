@@ -3,9 +3,12 @@ import { writeFileSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { startFakeCdp, type FakePage } from "../support/fakeCdp";
 import { runNative } from "./windows-driver-native-harness";
+
+// Each case starts PowerShell and several Node helpers; CI startup can exceed Vitest's 5 s default.
+vi.setConfig({ testTimeout: 30_000 });
 
 describe("B7 native PowerShell dispatch against controlled OS observations", () => {
   it("binds the labelled page to the challenged native title and restores it", async () => {
@@ -221,5 +224,253 @@ describe("B7 native PowerShell dispatch against controlled OS observations", () 
       downAt === 1 ? ["mouse:2", "mouse:4"] : ["mouse:2", "mouse:4", "mouse:2", "mouse:4"],
     );
     expect(result.trace.filter((line) => line === "logical:66:0")).toEqual([]);
+  });
+
+  it.each([
+    ["bar over B", [950, 100], [150, 150], {}],
+    ["item over B", [100, 100], [950, 150], {}],
+    ["item in B popup", [100, 100], [150, 150], { popupAtItem: "B" as const }],
+  ])("refuses menuat %s before any down reaches B", async (_name, bar, item, scenario) => {
+    const result = await runNative([
+      { op: "menuat", bar, item, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], scenario);
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toMatch(/IDENTITY_POINT_OUTSIDE.*ABORTED at step 1/);
+    expect(result.trace).not.toContain("mouse-target:B:2");
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace.filter((line) => line.startsWith("logical:"))).toEqual([]);
+  });
+
+  it("accepts a menu item popup belonging to A's thread", async () => {
+    const result = await runNative([{ op: "menuat", bar: [100, 100], item: [150, 150] }], { popupAtItem: "A" });
+    expect(result.status, JSON.stringify(result)).toBe(0);
+    expect(result.trace.filter((line) => line === "mouse:2")).toHaveLength(2);
+    expect(result.trace).not.toContain("effect:B");
+  });
+
+  it.each([
+    ["B", 950, 100],
+    ["another A control", 150, 100],
+  ])("refuses clickat cursor drift to %s after the wait", async (_name, driftX, driftY) => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { driftDuringWait: true, driftX, driftY });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line.startsWith("mouse:"))).toEqual([]);
+    expect(result.trace.filter((line) => line.startsWith("logical:"))).toEqual([]);
+    expect(result.trace).not.toContain("effect:B");
+  });
+
+  it.each([
+    ["cursor read", { failCursorRead: true }],
+    ["hit read", { nullHit: true }],
+    ["root read", { nullRoot: true }],
+  ])("refuses clickat after a failed %s", async (_name, scenario) => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], scenario);
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line.startsWith("mouse:"))).toEqual([]);
+    expect(result.trace.filter((line) => line.startsWith("logical:"))).toEqual([]);
+  });
+
+  it("releases a held mouse over A after a post-down focus change", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { focusChangesAfterMouseDown: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line.startsWith("mouse-target:"))).toEqual([
+      "mouse-target:A:2", "mouse-target:A:4",
+    ]);
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace.filter((line) => line.startsWith("logical:"))).toEqual([]);
+  });
+
+  it("refuses a B menu popup even when it shares A's UI thread", async () => {
+    const result = await runNative([
+      { op: "menuat", bar: [100, 100], item: [150, 150], onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { popupAtItem: "B", popupBSharedThread: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace).not.toContain("mouse-target:B:2");
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("does not release over B when B covers A after a valid mouse down", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { overlayAfterMouseDown: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace).not.toContain("mouse-target:B:4");
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it.each([
+    ["bar", { overlayAtA: true }],
+    ["item", { popupAtItem: "B" as const }],
+  ])("guards menuclick %s from a B recipient", async (_name, scenario) => {
+    const result = await runNative([
+      { op: "menuclick", path: ["File", "Save"], onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], scenario);
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace).not.toContain("mouse-target:B:2");
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("completes a valid menuclick bar and A popup path", async () => {
+    const result = await runNative([{ op: "menuclick", path: ["File", "Save"] }]);
+    expect(result.status, JSON.stringify(result)).toBe(0);
+    expect(result.trace.filter((line) => line === "mouse:2")).toHaveLength(2);
+    expect(result.trace).not.toContain("effect:B");
+  });
+
+  it("rejects same-window drift at the menu item after a valid bar click", async () => {
+    const result = await runNative([
+      { op: "menuat", bar: [100, 100], item: [150, 150], onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { driftDuringWait: true, driftAtSleep: 4, driftX: 160, driftY: 150 });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line === "mouse:2")).toHaveLength(1);
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("does not release into B if A becomes covered during cleanup", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { focusChangesAfterMouseDown: true, overlayAfterMouseDown: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_MOUSE_RELEASE_FAILED");
+    expect(result.trace).not.toContain("mouse-target:B:4");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("binds label A among two mdpro windows but refuses menuat coordinates over B", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mdpro-labelled-hit-"));
+    const titlePath = path.join(dir, "title.txt");
+    await fs.writeFile(titlePath, "mdpro");
+    const page: FakePage = { id: "p1", evaluate: (expression) => {
+      if (expression.includes("IDENTITY_STALE_BEFORE_BIND")) {
+        const nonce = /mdpro-b7:([a-f0-9]{32})/.exec(expression)?.[1];
+        if (!nonce) return { result: { type: "object" }, exceptionDetails: { text: "no nonce" } };
+        const challenge = `mdpro [mdpro-b7:${nonce}]`;
+        writeFileSync(titlePath, challenge);
+        return { result: { type: "object", value: { label: "A", rect: [0, 0, 800, 600], challenge } } };
+      }
+      if (expression.includes("IDENTITY_UNBIND_MARKER_MISSING")) {
+        writeFileSync(titlePath, "mdpro");
+        return { result: { type: "object", value: { label: "A", restored: true } } };
+      }
+      return { result: { type: "string", value: "A" } };
+    } };
+    const server = await startFakeCdp([page]);
+    try {
+      const result = await runNative([
+        { op: "menuat", window: "A", _identity: [
+          { label: "A", pageId: "p1", rect: [0, 0, 800, 600] },
+          { label: "B", pageId: "p2", rect: [900, 0, 1700, 600] },
+        ], bar: [950, 100], item: [150, 150], onError: "continue" },
+        { op: "chord", keys: ["ctrl+b"], nofocus: true },
+      ], { secondMdpro: true }, { cdpPort: server.port, titlePath });
+      expect(result.status, JSON.stringify(result)).toBe(1);
+      expect(result.log.join(" ")).toContain("IDENTITY_POINT_OUTSIDE");
+      expect(result.trace).not.toContain("mouse-target:B:2");
+      expect(result.trace).not.toContain("effect:B");
+      expect(result.trace).not.toContain("logical:66:0");
+      expect(await fs.readFile(titlePath, "utf8")).toBe("mdpro");
+    } finally { await server.close(); }
+  });
+
+  it("rejects a hit changed during the final identity helper", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { overlayAtRectCall: 5 });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line.startsWith("mouse:"))).toEqual([]);
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("refuses a popup when its thread observation fails", async () => {
+    const result = await runNative([
+      { op: "menuat", bar: [100, 100], item: [150, 150], onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { popupAtItem: "A", failPopupThread: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line === "mouse:2")).toHaveLength(1);
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("reports a failed safe mouse relocation without an up over B", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { focusChangesAfterMouseDown: true, failSetCursorAt: 2 });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_MOUSE_RELEASE_FAILED");
+    expect(result.trace).not.toContain("mouse-target:B:4");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("rejects a right click into B covering a point inside A's rectangle", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, right: true, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { overlayAtA: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line.startsWith("mouse:"))).toEqual([]);
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("does not release into a replacement that reuses A's HWND after mouse down", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { staleAfterMouseDown: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_MOUSE_RELEASE_FAILED");
+    expect(result.trace).not.toContain("mouse-target:B:4");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("relocates a held mouse from B's cursor position before releasing over A", async () => {
+    const result = await runNative([
+      { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { driftAfterMouseDownToB: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line.startsWith("mouse-target:"))).toEqual([
+      "mouse-target:A:2", "mouse-target:A:4",
+    ]);
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("rejects a changed hit at the menu item's final observation", async () => {
+    const result = await runNative([
+      { op: "menuat", bar: [100, 100], item: [150, 150], onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { hitChangeAt: 3 });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.trace.filter((line) => line === "mouse:2")).toHaveLength(1);
+    expect(result.trace).not.toContain("mouse-target:B:2");
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("retains the raw Alt key trace for logical chords", async () => {
+    const result = await runNative([{ op: "chord", keys: ["alt+a"], nofocus: true }]);
+    expect(result.status, JSON.stringify(result)).toBe(0);
+    expect(result.trace.filter((line) => line.startsWith("key:"))).toEqual([
+      "key:18:0", "key:65:0", "key:65:2", "key:18:2",
+    ]);
   });
 });

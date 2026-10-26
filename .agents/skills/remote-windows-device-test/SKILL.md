@@ -89,7 +89,11 @@ physical outer bounds, then challenges the exact page with a temporary nonce tit
 one native run. It matches one visible HWND by the title and exact bounds, rechecks identity
 before input, and restores the title when its marker still exists. Ambiguous/maximized equal
 rectangles, a moved/closed window or a wrong foreground abort; never infer a label from a title
-or the foreground window. Actual A/B effects and DPI alignment remain 未验证 until the locked
+or the foreground window. Before every native mouse down, it also rechecks the exact cursor
+coordinate and its hit window; menu items must hit a popup owned by that HWND's menu thread.
+An unsafe point aborts before the down. If identity changes after a down, it relocates the
+release onto the bound window; an unprovable safe release reports an error for manual recovery.
+Actual A/B effects and DPI alignment remain 未验证 until the locked
 Windows build's cleared device run. See `reference/ops.md` for the operation and error codes.
 For physical `event.code` and AltGr, read the target-thread HKL with `layout`, then send
 `physicalChord` using physical names and that exact HKL. The logical `chord` retains its

@@ -11,8 +11,15 @@ using System.IO;
 using System.Text.Json;
 public static class W32 {
   public struct RECT { public int L, T, R, B; }
+  public struct POINT { public int X, Y; }
   public static int RectCalls, ForegroundCalls, HklCalls, SendCalls, LogicalCalls, MouseCalls, ThreadCalls, ProcessCalls;
+  public static int CursorX, CursorY, SetCursorCalls, HitCalls, SleepCalls;
   public static int RectChangeAt, ForegroundChangeAt, HklChangeAt, ShortSendAt, ThrowSendAt, ThrowReleaseAt, ThreadChangeAt, WrongExeAt, FocusChangesAfterMouseDownAt;
+  public static int DriftX, DriftY, HitChangeAt, OverlayAtRectCall, FailSetCursorAt;
+  public static bool DriftDuringWait, DriftAfterMouseDownToB, OverlayAtA, OverlayAfterMouseDown, StaleAfterMouseDown, NativeStale, FailCursorRead, NullHit, NullRoot, FailPopupThread, PopupBSharedThread, SecondMdpro;
+  public static int DriftAtSleep;
+  public static string PopupAtItem = "";
+  public static string HeldRecipient = "";
   public static bool FocusChangesAfterLogicalDown, FocusChangesAfterMouseDown;
   public static long Foreground = 101;
   public static string TracePath;
@@ -28,13 +35,25 @@ public static class W32 {
     FocusChangesAfterMouseDownAt = number("focusChangesAfterMouseDownAt");
     FocusChangesAfterLogicalDown = flag("focusChangesAfterLogicalDown");
     FocusChangesAfterMouseDown = flag("focusChangesAfterMouseDown");
+    DriftDuringWait = flag("driftDuringWait"); DriftAtSleep = number("driftAtSleep"); DriftX = number("driftX"); DriftY = number("driftY");
+    OverlayAtA = flag("overlayAtA"); HitChangeAt = number("hitChangeAt"); OverlayAtRectCall = number("overlayAtRectCall");
+    OverlayAfterMouseDown = flag("overlayAfterMouseDown"); PopupBSharedThread = flag("popupBSharedThread");
+    StaleAfterMouseDown = flag("staleAfterMouseDown");
+    DriftAfterMouseDownToB = flag("driftAfterMouseDownToB");
+    SecondMdpro = flag("secondMdpro");
+    FailSetCursorAt = number("failSetCursorAt"); FailCursorRead = flag("failCursorRead");
+    NullHit = flag("nullHit"); NullRoot = flag("nullRoot"); FailPopupThread = flag("failPopupThread");
+    PopupAtItem = root.TryGetProperty("popupAtItem", out var popup) ? popup.GetString() ?? "" : "";
   }
   static void Trace(string s) { File.AppendAllText(TracePath, s + "\\n"); }
   public static bool SetProcessDPIAware() { return true; }
-  public static bool IsWindowVisible(IntPtr h) { return h.ToInt64() == 101; }
+  public static bool IsWindowVisible(IntPtr h) { return h.ToInt64() == 101 || SecondMdpro && h.ToInt64() == 202; }
   public static uint GetWindowThreadProcessId(IntPtr h, out uint pid) {
-    ThreadCalls++; pid = ThreadChangeAt > 0 && ThreadCalls >= ThreadChangeAt ? 22u : 11u;
-    return h.ToInt64() == 101 ? 7u : 0u;
+    ThreadCalls++;
+    if (h.ToInt64() == 302) { pid = PopupBSharedThread ? 11u : 22u; return FailPopupThread ? 0u : PopupBSharedThread ? 7u : 8u; }
+    if (h.ToInt64() == 301) { pid = 11; return FailPopupThread ? 0u : 7u; }
+    pid = NativeStale || ThreadChangeAt > 0 && ThreadCalls >= ThreadChangeAt ? 22u : 11u;
+    return h.ToInt64() == 101 ? 7u : h.ToInt64() == 202 && SecondMdpro ? 8u : 0u;
   }
   public static string ProcessPath() {
     ProcessCalls++;
@@ -42,8 +61,11 @@ public static class W32 {
   }
   public static bool GetWindowRect(IntPtr h, out RECT r) {
     RectCalls++;
+    if (OverlayAtRectCall > 0 && RectCalls >= OverlayAtRectCall) OverlayAtA = true;
     int x = RectChangeAt > 0 && RectCalls >= RectChangeAt ? 1 : 0;
-    r = new RECT { L = x, T = 0, R = 800 + x, B = 600 };
+    r = h.ToInt64() == 202
+      ? new RECT { L = 900, T = 0, R = 1700, B = 600 }
+      : new RECT { L = x, T = 0, R = 800 + x, B = 600 };
     Trace("observe:rect:" + RectCalls + ":" + x);
     return true;
   }
@@ -55,7 +77,7 @@ public static class W32 {
   }
   public static string Title(IntPtr h) {
     var titlePath = Environment.GetEnvironmentVariable("MDPRO_TEST_TITLE");
-    return titlePath != null ? File.ReadAllText(titlePath) : "mdpro";
+    return h.ToInt64() == 202 ? "mdpro B" : titlePath != null ? File.ReadAllText(titlePath) : "mdpro";
   }
   public static IntPtr GetKeyboardLayout(uint threadId) {
     HklCalls++;
@@ -64,7 +86,8 @@ public static class W32 {
     return new IntPtr(value);
   }
   public static void keybd_event(byte key, byte scan, uint flags, UIntPtr extra) {
-    LogicalCalls++; Trace("logical:" + key + ":" + flags);
+    LogicalCalls++; Trace("key:" + key + ":" + flags);
+    Trace((key == 18 ? "focus:" : "logical:") + key + ":" + flags);
     if (FocusChangesAfterLogicalDown && flags == 0) Foreground = 202;
   }
   public static uint SendScan(ushort scan, bool up, bool extended) {
@@ -75,10 +98,61 @@ public static class W32 {
   }
   public static void mouse_event(uint flags, int x, int y, uint data, UIntPtr extra) {
     MouseCalls++; Trace("mouse:" + flags);
+    string recipient = HitRecipient();
+    Trace("mouse-target:" + recipient + ":" + flags);
+    if (flags == 2 || flags == 8) HeldRecipient = recipient;
+    if ((flags == 2 || flags == 8) && OverlayAfterMouseDown) OverlayAtA = true;
+    if ((flags == 2 || flags == 8) && StaleAfterMouseDown) NativeStale = true;
+    if ((flags == 2 || flags == 8) && DriftAfterMouseDownToB) { CursorX = 950; CursorY = 100; Trace("drift:950:100"); }
+    if (flags == 4 || flags == 16) {
+      if (HeldRecipient == recipient && recipient == "B") Trace("effect:B");
+      if (HeldRecipient == recipient && recipient == "A") Trace("effect:A");
+      HeldRecipient = "";
+      if (CursorX == 100 && CursorY == 100 && PopupAtItem == "") PopupAtItem = "A";
+    }
     if ((FocusChangesAfterMouseDown || (FocusChangesAfterMouseDownAt > 0 && MouseCalls == FocusChangesAfterMouseDownAt)) &&
         (flags == 2 || flags == 8)) Foreground = 202;
   }
-  public static bool SetCursorPos(int x, int y) { Trace("cursor:" + x + ":" + y); return true; }
+  static string HitRecipient() {
+    if (OverlayAtA || NativeStale || CursorX >= 900 || PopupAtItem == "B" && CursorX == 150 && CursorY == 150) return "B";
+    return "A";
+  }
+  public static bool SetCursorPos(int x, int y) {
+    SetCursorCalls++; Trace("cursor:" + x + ":" + y);
+    if (FailSetCursorAt > 0 && SetCursorCalls >= FailSetCursorAt) return false;
+    CursorX = x; CursorY = y; return true;
+  }
+  public static bool GetCursorPos(out POINT point) {
+    Trace("observe:cursor:" + CursorX + ":" + CursorY);
+    point = new POINT { X = CursorX, Y = CursorY }; return !FailCursorRead;
+  }
+  public static IntPtr WindowFromPoint(POINT point) {
+    HitCalls++;
+    if (HitChangeAt > 0 && HitCalls >= HitChangeAt) OverlayAtA = true;
+    if (NullHit) return IntPtr.Zero;
+    if (OverlayAtA) return new IntPtr(202);
+    if (point.X == 150 && point.Y == 150 && PopupAtItem != "") return new IntPtr(PopupAtItem == "A" ? 301 : 302);
+    return new IntPtr(NativeStale ? 101 : HitRecipient() == "A" ? 101 : 202);
+  }
+  public static IntPtr GetAncestor(IntPtr h, uint mode) { return NullRoot ? IntPtr.Zero : h; }
+  public static string ClassName(IntPtr h) { return h.ToInt64() == 301 || h.ToInt64() == 302 ? "#32768" : "mdpro"; }
+  public static IntPtr MenuOwner(uint threadId) { return new IntPtr(PopupAtItem == "B" ? 202 : 101); }
+  public static IntPtr GetMenu(IntPtr h) { return new IntPtr(400); }
+  public static int GetMenuItemCount(IntPtr m) { return 1; }
+  public static string Item(IntPtr m, int index) { return m.ToInt64() == 400 ? "File" : "Save"; }
+  public static IntPtr GetSubMenu(IntPtr m, int index) { return m.ToInt64() == 400 ? new IntPtr(401) : IntPtr.Zero; }
+  public static bool GetMenuItemRect(IntPtr owner, IntPtr menu, uint index, out RECT r) {
+    r = menu.ToInt64() == 400
+      ? new RECT { L = 90, T = 90, R = 110, B = 110 }
+      : new RECT { L = 140, T = 140, R = 160, B = 160 };
+    return true;
+  }
+  public static void Sleep(int ms) {
+    SleepCalls++;
+    if (DriftDuringWait && ms >= 120 && (DriftAtSleep == 0 || SleepCalls == DriftAtSleep)) {
+      CursorX = DriftX; CursorY = DriftY; Trace("drift:" + CursorX + ":" + CursorY);
+    }
+  }
   public static bool SetForegroundWindow(IntPtr h) { Foreground = h.ToInt64(); return true; }
   public static bool ShowWindow(IntPtr h, int command) { return true; }
 }
@@ -96,6 +170,24 @@ export interface NativeScenario {
   focusChangesAfterMouseDownAt?: number;
   focusChangesAfterLogicalDown?: boolean;
   focusChangesAfterMouseDown?: boolean;
+  driftDuringWait?: boolean;
+  driftAtSleep?: number;
+  driftX?: number;
+  driftY?: number;
+  overlayAtA?: boolean;
+  overlayAtRectCall?: number;
+  overlayAfterMouseDown?: boolean;
+  staleAfterMouseDown?: boolean;
+  driftAfterMouseDownToB?: boolean;
+  secondMdpro?: boolean;
+  hitChangeAt?: number;
+  popupAtItem?: "A" | "B";
+  failSetCursorAt?: number;
+  failCursorRead?: boolean;
+  nullHit?: boolean;
+  nullRoot?: boolean;
+  failPopupThread?: boolean;
+  popupBSharedThread?: boolean;
 }
 
 export async function runNative(
@@ -114,9 +206,12 @@ export async function runNative(
     .replaceAll("$PSScriptRoot\\cdp.mjs", path.join(WINDOWS, "cdp.mjs"));
   const fixture = `
 [W32]::Configure($env:MDPRO_TEST_SCENARIO, $env:MDPRO_TEST_TRACE)
-function MdproWindows { return ,([pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 101; ProcessId = 11 } }) }
+function MdproWindows {
+  [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 101; ProcessId = 11 } }
+  if ([W32]::SecondMdpro) { [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 202; ProcessId = 11 } } }
+}
 function Get-Process { param($Id, $ErrorAction) return [pscustomobject]@{ Path = [W32]::ProcessPath(); Id = 11 } }
-function Start-Sleep { param($Milliseconds) }
+function Start-Sleep { param($Milliseconds) [W32]::Sleep([int]$Milliseconds) }
 `;
   script = script.replace("$failed = $false; $n = 0", fixture + "\n$failed = $false; $n = 0");
   const scriptPath = path.join(dir, "ui-test.ps1");

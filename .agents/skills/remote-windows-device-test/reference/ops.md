@@ -23,6 +23,15 @@ mdpro windows, an unlabeled window-targeted step fails even when one is foregrou
 unlabeled call still works. **Exact rectangles are required** until a cleared Windows run measures
 Tauri versus Win32 physical bounds at 270% and on a secondary monitor. Coordinates are **physical screen pixels**, the same space
 as a `shot` with `"screen":true`.
+For `clickat`, `menuat` and `menuclick`, a mouse down requires the cursor still at the requested
+coordinate after the wait and resolver, with `WindowFromPoint` rooted in the bound HWND. A menu
+item must instead hit a `#32768` popup whose thread and active menu owner identify that HWND.
+An occluding window, another control under a moved cursor, an unavailable hit observation or a
+wrong popup aborts before down. If identity changes after down, cleanup moves to a verified
+point on the bound HWND before releasing. If it cannot prove a safe point, it reports
+`IDENTITY_MOUSE_RELEASE_FAILED`; the button state then needs manual inspection before another call.
+Cleanup revalidates the native process, bounds, visibility and title challenge before relocation
+and again immediately before release, so a reused numeric HWND is not enough.
 
 | Op | Arguments | What it does |
 |---|---|---|
@@ -139,6 +148,11 @@ when the native observation is missing, ambiguous or stale. `cdp.mjs identity-na
 `IDENTITY_NATIVE_CHALLENGE_CHANGED`, or `IDENTITY_TITLE_RESTORE_FAILED`. A failed restore is
 reported even if an earlier input completed; inspect the title before another labelled run.
 Neither failure authorizes later input.
+Native mouse ownership failures exit **1** with `ABORTED`: `IDENTITY_CURSOR_READ_FAILED`
+or `IDENTITY_CURSOR_MOVED` means the pointer could not be confirmed at the requested pixel;
+`IDENTITY_POINT_OUTSIDE` means the hit HWND or popup owner was not the bound target.
+`IDENTITY_MOUSE_RELEASE_FAILED` means a held button could not be safely released over the bound
+window. Stop and inspect pointer/button state and both documents before any further input.
 `physicalChord`/`layout` abort with **1** and `ABORTED` for missing or changed target HKL
 (`PHYSICAL_HKL_REQUIRED`, `PHYSICAL_HKL_MISMATCH`), an unknown physical name
 (`PHYSICAL_KEY_UNKNOWN`), wrong foreground (`PHYSICAL_FOCUS_MISMATCH`), or a short

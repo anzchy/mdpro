@@ -140,6 +140,13 @@ produced **wrong verdicts**; the rest cost time.
       input, then restores the title only if the marker remains. A missing label, identical rectangles,
       move, close or foreground mismatch aborts. With two windows, every window-targeted native
       step needs its label; foreground alone is never a substitute.
+    - Mouse coordinates are separately guarded: `WindowFromPoint` and the exact cursor position
+      are read after the wait and resolver, just before down. The menu item must be a popup owned
+      by the bound HWND's thread. A point over B, an occluding window or cursor drift aborts
+      without a down. If a button was already pressed and a safe release over A cannot be
+      confirmed, `IDENTITY_MOUSE_RELEASE_FAILED` leaves button state uncertain; inspect the
+      desktop before acting again. Cleanup checks the original process, bounds and title
+      challenge again; a reused HWND never authorizes release by number alone.
     - A title marker may remain after a lost SSH outcome or interrupted cleanup. Inspect the
       title and document effects before another call; never replay a title challenge or native
       mutation merely because the response was lost.

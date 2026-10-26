@@ -52,6 +52,20 @@ public static class W32 {
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr SendMessageW(IntPtr h, uint msg, IntPtr w, string l);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr h, System.Text.StringBuilder s, int n);
+  public static string ClassName(IntPtr h) { var s = new System.Text.StringBuilder(256); return GetClassName(h, s, 256) > 0 ? s.ToString() : ""; }
+  [StructLayout(LayoutKind.Sequential)] public struct GUITHREADINFO {
+    public uint cbSize, flags; public IntPtr hwndActive, hwndFocus, hwndCapture, hwndMenuOwner, hwndMoveSize, hwndCaret; public RECT rcCaret;
+  }
+  [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(uint threadId, ref GUITHREADINFO info);
+  public static IntPtr MenuOwner(uint threadId) {
+    var info = new GUITHREADINFO { cbSize = (uint)Marshal.SizeOf(typeof(GUITHREADINFO)) };
+    return GetGUIThreadInfo(threadId, ref info) ? info.hwndMenuOwner : IntPtr.Zero;
+  }
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, int x, int y, uint d, UIntPtr e);
   [DllImport("user32.dll")] public static extern bool GetMenuItemRect(IntPtr h, IntPtr m, uint i, out RECT r);
   public static string Item(IntPtr m, int i) { var sb = new System.Text.StringBuilder(256); GetMenuString(m, (uint)i, sb, 256, 0x400); return sb.ToString(); }
@@ -145,17 +159,57 @@ function Focus($el) {
   finally { [W32]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero) } # Alt tap unlocks SetForegroundWindow
   [void][W32]::SetForegroundWindow($h); Start-Sleep -Milliseconds 250
 }
-function MouseClick($step, [uint32]$down, [uint32]$up) {
-  [void](Target $step $true)
+function MousePoint($step, [int]$x, [int]$y, [bool]$popup, [bool]$afterDown = $false) {
+  $el = Target $step $true # resolver may run Node; no cursor observation before it is authoritative
+  $h = [IntPtr]$el.Current.NativeWindowHandle
+  $point = New-Object W32+POINT
+  if (-not [W32]::GetCursorPos([ref]$point)) { throw "IDENTITY_CURSOR_READ_FAILED" }
+  if ($point.X -ne $x -or $point.Y -ne $y) { throw "IDENTITY_CURSOR_MOVED" }
+  $hit = [W32]::WindowFromPoint($point)
+  if ($hit -eq [IntPtr]::Zero) { throw "IDENTITY_POINT_OUTSIDE" }
+  $root = [W32]::GetAncestor($hit, 2) # GA_ROOT; a child in A is still A
+  if ($root -eq [IntPtr]::Zero) { throw "IDENTITY_POINT_OUTSIDE" }
+  if (-not $popup) {
+    if ($root -ne $h) { throw "IDENTITY_POINT_OUTSIDE" }
+  } elseif (-not $afterDown -or $root -ne $h) {
+    $targetPid = [uint32]0; $popupPid = [uint32]0
+    $targetThread = [W32]::GetWindowThreadProcessId($h, [ref]$targetPid)
+    $popupThread = [W32]::GetWindowThreadProcessId($root, [ref]$popupPid)
+    if ([W32]::ClassName($root) -cne "#32768" -or $targetThread -eq 0 -or
+        $popupThread -eq 0 -or $popupThread -ne $targetThread -or $popupPid -ne $targetPid -or
+        [W32]::MenuOwner($targetThread) -ne $h) {
+      throw "IDENTITY_POINT_OUTSIDE"
+    }
+  }
+}
+function ReleaseMouseOnTarget($step, [uint32]$up) {
+  $key = if ($null -ne $step.window) { "label:$($step.window)" } else { "sole" }
+  $token = $script:bindings[$key]
+  if (-not $token) { throw "IDENTITY_MOUSE_RELEASE_FAILED" }
+  [void](ValidateNative $token $false)
+  $x = [int][math]::Floor(([int]$token.rect[0] + [int]$token.rect[2]) / 2)
+  $y = [int][math]::Floor(([int]$token.rect[1] + [int]$token.rect[3]) / 2)
+  if (-not [W32]::SetCursorPos($x, $y)) { throw "IDENTITY_MOUSE_RELEASE_FAILED" }
+  $point = New-Object W32+POINT
+  if (-not [W32]::GetCursorPos([ref]$point) -or $point.X -ne $x -or $point.Y -ne $y) { throw "IDENTITY_MOUSE_RELEASE_FAILED" }
+  $hit = [W32]::WindowFromPoint($point)
+  if ($hit -eq [IntPtr]::Zero -or [W32]::GetAncestor($hit, 2) -ne [IntPtr]([int64]::Parse($token.hwnd))) {
+    throw "IDENTITY_MOUSE_RELEASE_FAILED"
+  }
+  [void](ValidateNative $token $false) # reject a closed/reused HWND even when its numeric handle matches
+  [W32]::mouse_event($up, 0, 0, 0, [UIntPtr]::Zero)
+}
+function MouseClick($step, [uint32]$down, [uint32]$up, [int]$x, [int]$y, [bool]$popup) {
+  MousePoint $step $x $y $popup # final observation after the wait and resolver, immediately before down
   $held = $true
   try {
     [W32]::mouse_event($down, 0, 0, 0, [UIntPtr]::Zero)
-    [void](Target $step $true)
+    MousePoint $step $x $y $popup $true
     [W32]::mouse_event($up, 0, 0, 0, [UIntPtr]::Zero)
     $held = $false
   } finally {
     if ($held) {
-      try { [W32]::mouse_event($up, 0, 0, 0, [UIntPtr]::Zero) }
+      try { ReleaseMouseOnTarget $step $up }
       catch { throw "IDENTITY_MOUSE_RELEASE_FAILED" }
     }
   }
@@ -326,12 +380,14 @@ foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
                   if (-not [W32]::GetWindowRect([IntPtr]$targetEl.Current.NativeWindowHandle, [ref]$pointRect) -or
                       [int]$s.x -lt $pointRect.L -or [int]$s.x -ge $pointRect.R -or [int]$s.y -lt $pointRect.T -or [int]$s.y -ge $pointRect.B) { throw "IDENTITY_POINT_OUTSIDE" }
                   if (-not [W32]::SetCursorPos([int]$s.x, [int]$s.y)) { throw "IDENTITY_CURSOR_FAILED" }; Start-Sleep -Milliseconds 120; $f = if ($s.right) { 0x8, 0x10 } else { 0x2, 0x4 }
-                  MouseClick $s $f[0] $f[1]; Start-Sleep -Milliseconds 300; L ("clickat " + $s.x + "," + $s.y) }
+                  MouseClick $s $f[0] $f[1] ([int]$s.x) ([int]$s.y) $false; Start-Sleep -Milliseconds 300; L ("clickat " + $s.x + "," + $s.y) }
       "menuat"  {
         # Open a menu by its bar position and click an item, in ONE run (coordinates from a screen shot).
         Focus (Target $s); [void](Target $s $true)
-        foreach ($pt in @($s.bar, $s.item)) { if (-not [W32]::SetCursorPos([int]$pt[0], [int]$pt[1])) { throw "IDENTITY_CURSOR_FAILED" }; Start-Sleep -Milliseconds 150
-          MouseClick $s 0x2 0x4; Start-Sleep -Milliseconds 500 }
+        $points = @($s.bar, $s.item)
+        for ($k = 0; $k -lt $points.Count; $k++) { $pt = $points[$k]
+          if (-not [W32]::SetCursorPos([int]$pt[0], [int]$pt[1])) { throw "IDENTITY_CURSOR_FAILED" }; Start-Sleep -Milliseconds 150
+          MouseClick $s 0x2 0x4 ([int]$pt[0]) ([int]$pt[1]) ($k -gt 0); Start-Sleep -Milliseconds 500 }
         L ("menuat bar=" + ($s.bar -join ",") + " item=" + ($s.item -join ","))
       }
       "menuclick" {
@@ -345,7 +401,7 @@ foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
           if (-not [W32]::GetMenuItemRect($owner, $m, [uint32]$hit, [ref]$r) -or $r.R -le $r.L -or $r.B -le $r.T) { throw "IDENTITY_MENU_RECT_INVALID" }
           $x = [int](($r.L + $r.R) / 2); $y = [int](($r.T + $r.B) / 2)
           if (-not [W32]::SetCursorPos($x, $y)) { throw "IDENTITY_CURSOR_FAILED" }; Start-Sleep -Milliseconds 150
-          MouseClick $s 0x2 0x4; Start-Sleep -Milliseconds 450
+          MouseClick $s 0x2 0x4 $x $y ($k -gt 0); Start-Sleep -Milliseconds 450
           L ("click '$name' at $x,$y")
           $sub = [W32]::GetSubMenu($m, $hit); if ($sub -ne [IntPtr]::Zero) { $m = $sub }
         }
