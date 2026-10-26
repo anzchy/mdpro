@@ -83,10 +83,18 @@ $S/log.sh raw run1.jsonl                                       # raw JSONL to ju
 
 A result obtained on one route says nothing about the other.
 
-**Current driver limits:** `ui.sh` cannot bind a native HWND to a Tauri window label, so
-multi-window native-menu and focus-race cases remain unverified until that binding is built and
-proved. A foreground window alone is not a label. The `chord` op sends virtual keys with scan
-code zero; physical `event.code` and German AltGr cases need a verified scan-code driver.
+**Native window binding:** supply `"window":"<Tauri label>"` on every window-targeted native
+step when multiple mdpro windows are open. The driver reads current CDP page IDs and Tauri
+physical outer bounds, then challenges the exact page with a temporary nonce title inside the
+one native run. It matches one visible HWND by the title and exact bounds, rechecks identity
+before input, and restores the title when its marker still exists. Ambiguous/maximized equal
+rectangles, a moved/closed window or a wrong foreground abort; never infer a label from a title
+or the foreground window. Actual A/B effects and DPI alignment remain 未验证 until the locked
+Windows build's cleared device run. See `reference/ops.md` for the operation and error codes.
+For physical `event.code` and AltGr, read the target-thread HKL with `layout`, then send
+`physicalChord` using physical names and that exact HKL. The logical `chord` retains its
+existing virtual-key behavior. The German-layout effect remains 未验证 until the separately
+cleared de-DE device proof, including restored language settings and saved-byte controls.
 
 ## 3. Reporting
 

@@ -9,22 +9,34 @@ Each step logs one line. **An error stops the run**: it logs `ERROR <op>: …` a
 `ABORTED at step N`, no later step runs, and `ui.sh` exits 1 after printing the log. So
 `ui.sh '[…click…, …type…]' && cdp.sh eval …` never types or evaluates after a failed click. A
 read-only step can opt out with `"onError":"continue"`, e.g. `{"op":"windows","onError":"continue"}`:
-its error is logged and the run goes on. **`ui.sh` cannot bind a window by label yet**: a step
-with a `"window"` field is refused, and with several mdpro windows open and none in front it
-refuses rather than taking the first (pitfalls 22). Coordinates are **physical screen pixels**, the same space
+its error is logged and the run goes on. An **identity failure always aborts**, even with
+`"onError":"continue"`. A window-targeted native step may specify `"window":"<Tauri label>"`.
+`ui.sh` first reads fresh labels, CDP page IDs and physical outer rectangles. Inside the single
+native run, `ui.ps1` asks that exact page to place a fresh nonce marker in its Tauri window title;
+the marker is a cross-process challenge, **not** an inferred label. It binds only the HWND with
+that exact title and rectangle, then rechecks HWND, process, title, rectangle and foreground after
+the resolver and before input. The driver restores the original title at the end of the run only
+if the nonce marker is still present. A lost `ui-run` SSH result is never replayed: the title
+change and input may already have happened, so inspect the title and effects first. Equal rectangles (including two identical maximized
+windows), a moved/closed window, or an uncertain read aborts without later input. With multiple
+mdpro windows, an unlabeled window-targeted step fails even when one is foreground. A sole-window
+unlabeled call still works. **Exact rectangles are required** until a cleared Windows run measures
+Tauri versus Win32 physical bounds at 270% and on a secondary monitor. Coordinates are **physical screen pixels**, the same space
 as a `shot` with `"screen":true`.
 
 | Op | Arguments | What it does |
 |---|---|---|
 | `windows` | — | Lists mdpro's visible top-level windows: title, hwnd, rect. |
-| `focus` | — | Brings mdpro to the foreground (taps Alt to unlock `SetForegroundWindow`). |
+| `focus` | `window?` | Brings the selected mdpro window to the foreground (taps Alt to unlock `SetForegroundWindow`). |
 | `max` / `restore` | — | Maximizes or restores the mdpro window. **Run `max` after every start** (see pitfalls). |
 | `menuclick` | `path: ["File","Save"]` | **Real mouse clicks** on the native menu: opens each level and clicks the item, all in this run. Item names come from `menus`. |
 | `menuat` | `bar: [x,y], item: [x,y]` | Same idea by coordinates. Use it when `menuclick` can't read the menu: after a second window has closed, `GetMenu` returns an invalid handle (see `menuinfo`). |
 | `menus` | — | Dumps the native menu tree: names, accelerator text, `[disabled]`, `[checked]`. |
 | `menuinfo` | — | hwnd, HMENU and item count. A count of `-1` means the handle is invalid, so use `menuat`. |
 | `clickat` | `x, y, right?` | One real mouse click at screen coordinates. |
-| `chord` | `keys: ["ctrl+s","esc"], nofocus?` | Real key events (keybd_event). Key names: `ctrl shift alt win enter esc tab back del up down left right home end space pageup pagedown f1–f12 backtick slash minus equals period comma semicolon quote lbracket rbracket backslash`, letters and digits. Anything else is refused. Use `nofocus:true` after a `clickat` into the editor, so `focus` doesn't disturb keyboard focus. |
+| `chord` | `keys: ["ctrl+s","esc"], nofocus?, window?` | Logical real key events (`keybd_event`, scan code zero). Key names: `ctrl shift alt win enter esc tab back del up down left right home end space pageup pagedown f1–f12 backtick slash minus equals period comma semicolon quote lbracket rbracket backslash`, letters and digits. Anything else is refused. Use `nofocus:true` after a `clickat` into the editor, so `focus` doesn't disturb keyboard focus. Pressed keys are released if an identity check fails mid-chord. This op cannot prove physical `event.code` or AltGraph. |
+| `layout` | `window?` | Reads the selected HWND's thread HKL as 16 hex digits. Capture it immediately before a physical chord; a layout change invalidates the recorded value. |
+| `physicalChord` | `window?, keys: ["AltRight","KeyQ"], hkl: "0000000004070407", nofocus?` | Sends one ordered physical chord through `SendInput` scan codes. `keys` uses physical DOM-style names from the allowlist, including `KeyQ`, `KeyE`, `KeyK`, `BracketLeft`, `BracketRight`, `Digit7`, `ControlLeft`, `ShiftLeft`, `AltLeft`, `AltRight`. `hkl` must equal the selected window thread's `layout` output. Right Alt is extended for AltGr. Events are released in reverse order; a short injection aborts, attempts reverse cleanup of every pressed key even if one release fails, and stops following steps. This is the route for real `event.code`/AltGraph proof. |
 | `filedialog` | `path` or `cancel:true` | Drives the foreground common Open / 另存为 dialog. It sets the Win32 `Edit` by `WM_SETTEXT` and presses Enter (or Esc). |
 | `shot` | `out, screen?` | PNG of the mdpro window, or of the whole screen with `screen:true`. A whole-screen shot shows the user's private desktop: never commit it. |
 | `open` | `path` | Starts `tauri-app.exe <path>`, which routes into the running app through **single-instance**. Paths opened this way carry `\\?\` on 0.3.1; File → Open does not. |
@@ -38,6 +50,18 @@ as a `shot` with `"screen":true`.
 **The one rule:** open a menu and click its item **in one run**. Starting the next run's
 scheduled task dismisses a menu the previous run left open, so the item click hits nothing.
 On 2026-10-12 this split produced a false "Hide does nothing" verdict.
+
+Example with two distinct, restored windows: `ui.sh '[{"op":"menuclick","window":"main","path":["File","Save"]}]'`.
+For German physical input, first read `ui.sh '[{"op":"layout","window":"A"}]'`, then
+use that exact HKL in a separately checked `physicalChord` call, such as
+`ui.sh '[{"op":"physicalChord","window":"A","keys":["AltRight","KeyQ"],"hkl":"0000000004070407","nofocus":true}]'`.
+The HKL shown is an example; use the observed value. A `clickat` in the target editor should
+establish focus first. Keep the old logical `chord` for checks that do not require physical code.
+Do not infer the Tauri label from a native title. A CDP identity read failure stops before
+`ui-run.ps1` is sent. The read is retriable; the native mutation is never retried after an
+uncertain SSH outcome. The binding is fresh per `ui.sh` invocation; moving or maximizing a
+window within one invocation makes a subsequent step fail closed. Re-run from a newly read
+identity only after checking the first step's effect.
 
 ## Page client: `scripts/mac/cdp.sh`
 
@@ -105,6 +129,22 @@ native menu accelerators. For real-key tests, do `clickat` into the editor, then
 | 255 | ssh never got through, even after the one retry a read gets. | `ssh win-desktop hostname`. |
 
 A read never returns 0 with an empty answer: a failed read keeps ssh's status.
+
+`ui.sh` identity refusal uses **2** for an invalid caller step or malformed/ambiguous CDP
+record before native dispatch, and **1** with `ERROR <op>: IDENTITY_FAILURE: …` plus `ABORTED`
+when the native observation is missing, ambiguous or stale. `cdp.mjs identity-native` uses **1**
+(`IDENTITY_READ_FAILED` or `IDENTITY_INVALID`) for a failed page/bounds read and **6**
+(`IDENTITY_DUPLICATE_LABEL`) for duplicate labels. The native title challenge also refuses
+`IDENTITY_PAGE_REPLACED`, `IDENTITY_STALE_BEFORE_BIND`, `IDENTITY_TITLE_BIND_FAILED`,
+`IDENTITY_NATIVE_CHALLENGE_CHANGED`, or `IDENTITY_TITLE_RESTORE_FAILED`. A failed restore is
+reported even if an earlier input completed; inspect the title before another labelled run.
+Neither failure authorizes later input.
+`physicalChord`/`layout` abort with **1** and `ABORTED` for missing or changed target HKL
+(`PHYSICAL_HKL_REQUIRED`, `PHYSICAL_HKL_MISMATCH`), an unknown physical name
+(`PHYSICAL_KEY_UNKNOWN`), wrong foreground (`PHYSICAL_FOCUS_MISMATCH`), or a short
+`SendInput` count (`PHYSICAL_SEND_SHORT`). A failed modifier cleanup is
+`PHYSICAL_RELEASE_FAILED`; reconcile keyboard state before further input. A transport exit
+**3**, **70** or **124** is still an uncertain outcome and is never replayed automatically.
 
 ## Safety rules in the scripts
 

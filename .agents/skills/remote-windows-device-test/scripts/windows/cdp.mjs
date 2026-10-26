@@ -5,6 +5,11 @@
 //   node cdp.mjs eval64 <base64>    same, expression base64-encoded (no quoting issues; ssh line ~8 KB)
 //   node cdp.mjs evalfile <path>    same, expression read from a UTF-8 file (no size limit)
 //   node cdp.mjs shot <out.png>     capture the page viewport
+//   node cdp.mjs identity           read every page's Tauri label and physical outer rect
+//   node cdp.mjs identity-native    same, plus page id for closed/recreated-page rejection
+//   node cdp.mjs --window <label> bind <base64 JSON {rect,nonce}>
+//   node cdp.mjs --window <label> unbind <base64 JSON {nonce}>
+//                                    temporarily challenge/restore this page's native title
 //   node cdp.mjs --window <label> … run in the page whose Tauri window label is <label> (WI-E2E-W
 //                                     item 3). Each page is asked for its label, and the chosen page is
 //                                     asked again on the eval's own connection just before the eval.
@@ -89,6 +94,19 @@ const connect = (url) => new Promise((open, lost) => {
 });
 // Tauri 2 puts the window's label in its injected metadata (to be confirmed on WebView2 in demo W6).
 const LABEL_PROBE = "window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label ?? null";
+const IDENTITY_PROBE = `(async () => {
+  const internals = window.__TAURI_INTERNALS__;
+  const label = internals?.metadata?.currentWindow?.label;
+  if (!label) throw new Error("IDENTITY_LABEL_MISSING");
+  const [position, size] = await Promise.all([
+    internals.invoke("plugin:window|outer_position", { label }),
+    internals.invoke("plugin:window|outer_size", { label }),
+  ]);
+  return { label, rect: [position.x, position.y, position.x + size.width, position.y + size.height] };
+})()`;
+const validRect = (rect) => Array.isArray(rect) && rect.length === 4 &&
+  rect.every(Number.isSafeInteger) && rect[2] > rect[0] && rect[3] > rect[1];
+const sameRect = (a, b) => validRect(a) && validRect(b) && a.every((n, i) => n === b[i]);
 const labelOf = async (send) => (await send("Runtime.evaluate", { expression: LABEL_PROBE, returnByValue: true })).result?.result?.value ?? null;
 // Prints only before end() starts: after it, the outcome is already printed and decided.
 const say = (v) => { if (!ending) console.log(JSON.stringify(v, null, 1)); };
@@ -99,6 +117,21 @@ try { list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json(); }
 catch { say(`CDP_PORT_CLOSED: nothing on 127.0.0.1:${PORT}; after unsaved-work clearance run scripts/mac/mdpro.sh debug --yes`); throw new Stop(4); }
 const pages = list.filter((t) => t.type === "page" && t.url.startsWith(PREFIX));
 if (!pages.length) { if (!ending) console.error(`no page starting with ${PREFIX} on port ${PORT}`); throw new Stop(2); }
+if (mode === "identity" || mode === "identity-native") {
+  const records = [];
+  for (const page of pages) {
+    const connection = await connect(page.webSocketDebuggerUrl);
+    const response = await connection.send("Runtime.evaluate", { expression: IDENTITY_PROBE, awaitPromise: true, returnByValue: true });
+    await closed(connection.ws);
+    if (response.error || response.result?.exceptionDetails) fail(1, "IDENTITY_READ_FAILED", { page: page.id });
+    const record = response.result?.result?.value;
+    if (!record || typeof record.label !== "string" || !record.label || !validRect(record.rect)) fail(1, "IDENTITY_INVALID", { page: page.id });
+    records.push(mode === "identity-native" ? { ...record, pageId: page.id } : record);
+  }
+  if (new Set(records.map((r) => r.label)).size !== records.length) fail(6, "IDENTITY_DUPLICATE_LABEL");
+  say(records);
+  return 0;
+}
 let page = pages[0];
 if (label || pages.length > 1) {
   const candidates = [];
@@ -170,7 +203,48 @@ if (label) { const now = await labelOf(send); if (now !== label) fail(5, "WINDOW
 let code = 0;
 // A top-level CDP `error` is a failed call, never an `undefined` answer (audit b163 H1).
 const cdpError = (r) => { if (r.error || !r.result) fail(1, "CDP_ERROR", { code: r.error?.code ?? null, message: r.error?.message ?? "no result" }); };
-if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
+if (mode === "bind" || mode === "unbind") {
+  if (!label) fail(2, "IDENTITY_LABEL_REQUIRED");
+  let request;
+  try { request = JSON.parse(Buffer.from(arg ?? "", "base64").toString("utf8")); }
+  catch { fail(2, "IDENTITY_ARGUMENT_INVALID"); }
+  if (!request || typeof request.nonce !== "string" || !/^[a-f0-9]{32}$/.test(request.nonce) ||
+      (mode === "bind" && (!validRect(request.rect) || typeof request.pageId !== "string" || !request.pageId)))
+    fail(2, "IDENTITY_ARGUMENT_INVALID");
+  if (mode === "bind" && page.id !== request.pageId) fail(1, "IDENTITY_PAGE_REPLACED");
+  const suffix = ` [mdpro-b7:${request.nonce}]`;
+  const expression = mode === "bind" ? `(async () => {
+    const i = window.__TAURI_INTERNALS__, label = i?.metadata?.currentWindow?.label;
+    if (label !== ${JSON.stringify(label)}) throw new Error("IDENTITY_LABEL_CHANGED");
+    const [p, s, title] = await Promise.all([
+      i.invoke("plugin:window|outer_position", { label }), i.invoke("plugin:window|outer_size", { label }),
+      i.invoke("plugin:window|title", { label })]);
+    const rect = [p.x, p.y, p.x + s.width, p.y + s.height];
+    if (JSON.stringify(rect) !== ${JSON.stringify(JSON.stringify(request.rect))} || title.includes("[mdpro-b7:"))
+      throw new Error("IDENTITY_STALE_BEFORE_BIND");
+    const challenge = title + ${JSON.stringify(suffix)};
+    await i.invoke("plugin:window|set_title", { label, value: challenge });
+    if (await i.invoke("plugin:window|title", { label }) !== challenge) throw new Error("IDENTITY_BIND_NOT_VISIBLE");
+    return { label, rect, challenge };
+  })()` : `(async () => {
+    const i = window.__TAURI_INTERNALS__, label = i?.metadata?.currentWindow?.label;
+    if (label !== ${JSON.stringify(label)}) throw new Error("IDENTITY_LABEL_CHANGED");
+    const title = await i.invoke("plugin:window|title", { label }), suffix = ${JSON.stringify(suffix)};
+    if (!title.endsWith(suffix)) throw new Error("IDENTITY_UNBIND_MARKER_MISSING");
+    const original = title.slice(0, -suffix.length);
+    await i.invoke("plugin:window|set_title", { label, value: original });
+    if (await i.invoke("plugin:window|title", { label }) !== original) throw new Error("IDENTITY_UNBIND_NOT_VISIBLE");
+    return { label, restored: true };
+  })()`;
+  const r = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
+  cdpError(r);
+  if (r.result?.exceptionDetails) fail(1, "IDENTITY_TITLE_FAILED", { detail: r.result.exceptionDetails.text });
+  const value = r.result?.result?.value;
+  if (mode === "bind" && (!value || value.label !== label || !sameRect(value.rect, request.rect) ||
+      typeof value.challenge !== "string" || !value.challenge.endsWith(suffix))) fail(1, "IDENTITY_BIND_INVALID");
+  if (mode === "unbind" && (!value || value.label !== label || value.restored !== true)) fail(1, "IDENTITY_UNBIND_INVALID");
+  say(value);
+} else if (mode === "eval" || mode === "eval64" || mode === "evalfile") {
   const expr = mode === "eval64" ? Buffer.from(arg, "base64").toString("utf8") : mode === "evalfile" ? fs.readFileSync(arg, "utf8") : arg;
   const r = await send("Runtime.evaluate", { expression: `(async () => { ${/\breturn\b/.test(expr) ? expr : "return (" + expr + ")"} })()`, awaitPromise: true, returnByValue: true });
   cdpError(r);

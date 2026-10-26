@@ -57,7 +57,11 @@ produced **wrong verdicts**; the rest cost time.
    - A CDP click doesn't move OS keyboard focus into the WebView, so do a real `clickat` into
      the editor first.
    - The 微软拼音 IME composes letters (`zq7` became `q7前`), so type text only with `__a.text`.
-   - Ctrl / Alt chords are safe.
+   - Ctrl / Alt logical chords are useful controls, but `chord` uses zero scan codes and cannot
+     prove a physical `event.code` or German AltGr. Use `layout` on the target HWND, then
+     `physicalChord` with that exact HKL and DOM physical key names for those cases. Right Alt
+     is distinct from left Alt. Recheck foreground and layout; a failed or uncertain injection
+     is not a reason to send the chord again before inspecting the app and keyboard state.
 10. **Native menus:**
     - Real clicks work. Posted `WM_COMMAND` / `WM_MENUCOMMAND` are ignored.
     - After a second window has been closed, `GetMenu` on the main window returns an invalid
@@ -128,10 +132,18 @@ produced **wrong verdicts**; the rest cost time.
     - What happened: `cdp.mjs` evaluated in the first page `/json/list` returned, and `ui.ps1`'s
       `MainWin` took the first mdpro window when none was in front, so a run could type into a
       window it never meant to.
-    - Now: `cdp.sh --window <label>` binds the eval to a Tauri window label and re-checks it on
-      the eval's own connection; without a label, several pages exit 6. `ui.ps1` refuses a step
-      with a `"window"` field and refuses to guess among several windows with none in front.
-    - Not built yet: binding a label to an HWND for `ui.sh` (option (a) match the page's screen
-      rectangle to `GetWindowRect`, (b) set a distinctive title through Tauri and match the UIA
-      name; measure both in demo W6). Until then multi-window cases on Windows are `BLOCKED`, and
-      the window in front does not stand in for a label.
+    - Now: `cdp.sh --window <label>` binds an eval to a Tauri label. For native steps,
+      `ui.sh` reads all page labels, CDP page IDs and Tauri physical outer rectangles. In the
+      same native run, the exact page places a fresh nonce marker in its Tauri title; `ui.ps1`
+      requires that marker and an exact Win32 rectangle before pinning the HWND/process. It
+      rechecks title, bounds, process and foreground after the resolver and before mouse/key
+      input, then restores the title only if the marker remains. A missing label, identical rectangles,
+      move, close or foreground mismatch aborts. With two windows, every window-targeted native
+      step needs its label; foreground alone is never a substitute.
+    - A title marker may remain after a lost SSH outcome or interrupted cleanup. Inspect the
+      title and document effects before another call; never replay a title challenge or native
+      mutation merely because the response was lost.
+    - Device proof is still owed: measure Tauri and Win32 rectangles at 270% scaling and on a
+      secondary monitor before accepting any tolerance. Two identically maximized windows stay
+      ambiguous, so record that binding subcase as 未验证. Native A/B effects on a locked installer
+      remain 未验证 until the cleared Windows run.
