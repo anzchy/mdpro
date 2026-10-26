@@ -28,9 +28,7 @@ use tauri_app_lib::services::quit_guard::{
 };
 use tauri_app_lib::services::{app_ready, http_server, logger, shadow_store, window_focus};
 const BUILD_ID_RAW: Option<&str> = option_env!("MDPRO_BUILD_ID");
-// D175/D322: release.yml sets `<version>@<sha>`; development app builds set
-// `<version>-dev@<sha>` (or `-dev.dirty@` with explicit local opt-in); read
-// here, not in the lib, so a new id recompiles only this bin (release_info.rs).
+// D175/D322: release.yml sets <version>@<sha>, dev builds set <version>-dev@<sha>; read here, not in the lib, so a new id recompiles only this bin (release_info.rs).
 const RELEASE_ID_RAW: Option<&str> = option_env!("MDPRO_RELEASE_ID");
 
 // Track whether app has fully initialized (setup complete, main window ready)
