@@ -32,8 +32,12 @@ drives `win-desktop` for the v0.3.6 B7 batch.
 
 **Prove the build before testing a change.** Record the locked source SHA, the Windows build
 workflow run's actual `head_sha`, the downloaded installer's SHA-256 on both machines, and the
-installed executable's path, hash and version. A matching version string or
-`app.ready releaseId:"unknown"` alone does not identify the source commit. The current 0.3.5
+installed executable's path, hash and version. The development artifact is
+`mdpro-windows-<version>-dev-<sha7>`; match its sha7 to the workflow run's
+full `head_sha`. On every launch, `app.ready.releaseId` must equal
+`<resolved-version>-dev@<head_sha>`; `releaseId:"unknown"` means the wrong build.
+The filename and log identity supplement the installer's and executable's
+SHA-256 evidence. The current 0.3.5
 installation predates the v0.3.6 B7 menu work; use a new verified installer for that batch.
 
 ```bash

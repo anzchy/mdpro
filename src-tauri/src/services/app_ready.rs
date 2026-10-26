@@ -9,7 +9,8 @@
 //!   only the `tauri-app` bin, not the lib or `mdpro_mcp`.
 //! - The raw id goes through `build_info::normalize_build_id`, so a missing
 //!   or malformed id is logged as `unknown`.
-//! - D175: the bin reads `MDPRO_RELEASE_ID` (set only by `release.yml`) the
+//! - D175/D322: the bin reads `MDPRO_RELEASE_ID` (set by release and dev app
+//!   build workflows, plus local verify bundle commands) the
 //!   same way and passes it as `raw_release_id`; it goes through
 //!   `release_info::normalize_release_id` and is logged as `releaseId`. The
 //!   two ids are independent: neither one's value or validity affects the

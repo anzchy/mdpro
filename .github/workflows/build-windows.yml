@@ -67,6 +67,16 @@ jobs:
             echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           fi
 
+      # Resolve while the checkout is still clean. The following manifest
+      # patches may change tracked files; only the app build receives this ID.
+      - name: Resolve development release ID
+        id: dev-release-id
+        shell: bash
+        run: |
+          release_id="$(node scripts/release/devReleaseId.mjs --version "${{ steps.version.outputs.VERSION }}")" || exit 1
+          echo "RELEASE_ID=$release_id" >> "$GITHUB_OUTPUT"
+          echo "SHA7=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
       - name: Patch version in tauri.conf.json
         shell: pwsh
         run: |
@@ -81,7 +91,7 @@ jobs:
         run: |
           $v = "${{ steps.version.outputs.VERSION }}"
           $content = Get-Content src-tauri/Cargo.toml -Raw
-          $content = $content -replace '^version = "[^"]*"', "version = `"$v`""
+          $content = $content -replace '(?m)^version = "[^"]*"', "version = `"$v`""
           Set-Content src-tauri/Cargo.toml $content
           Write-Host "Cargo.toml version: $v"
 
@@ -105,6 +115,7 @@ jobs:
       - name: Build NSIS installer
         shell: bash
         env:
+          MDPRO_RELEASE_ID: ${{ steps.dev-release-id.outputs.RELEASE_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: pnpm tauri build --bundles nsis
@@ -113,7 +124,7 @@ jobs:
       - name: Upload NSIS installer
         uses: actions/upload-artifact@v4
         with:
-          name: mdpro-windows-${{ steps.version.outputs.VERSION }}
+          name: mdpro-windows-${{ steps.version.outputs.VERSION }}-dev-${{ steps.dev-release-id.outputs.SHA7 }}
           path: src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 30

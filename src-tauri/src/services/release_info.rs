@@ -1,11 +1,12 @@
 //! Purpose: normalise the compiled-in release id (`MDPRO_RELEASE_ID`, D175)
 //! to a value that is safe to log as `releaseId` in `app.ready`.
 //!
-//! The only setter of `MDPRO_RELEASE_ID` is `.github/workflows/release.yml`,
-//! on the app build step only (never the sidecar), as
-//! `<version>@<preflight 40-hex SHA>`, e.g.
-//! `0.3.1@0123456789abcdef0123456789abcdef01234567`. A local build, or a
-//! missing or malformed value, logs the literal `unknown`.
+//! `.github/workflows/release.yml` sets `MDPRO_RELEASE_ID` on the release app
+//! build as `<version>@<preflight 40-hex SHA>`, e.g.
+//! `0.3.1@0123456789abcdef0123456789abcdef01234567`. Development app builds
+//! (`build-windows.yml` and local verify bundles) set `<version>-dev@<sha>`;
+//! explicit dirty local builds use `-dev.dirty@`. The sidecar receives none.
+//! A build without an id, or with a malformed value, logs `unknown`.
 //!
 //! Key decisions:
 //! - A separate id, not a new `buildId` format (D175 option B): `buildId`

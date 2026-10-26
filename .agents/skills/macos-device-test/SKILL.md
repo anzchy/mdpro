@@ -112,7 +112,7 @@ scrolling all work).
 
 ```bash
 # Fastest path: bundle only the .app, skip the DMG.
-pnpm tauri build --bundles app
+( set -e; release_id="$(node scripts/release/devReleaseId.mjs)"; MDPRO_RELEASE_ID="$release_id" pnpm tauri build --bundles app )
 # → src-tauri/target/release/bundle/macos/mdpro.app
 ```
 
@@ -187,7 +187,7 @@ A genuine cold launch has `appReady: false` and takes the window label `main`.
 
 ```bash
 pkill -f 'bundle/macos/mdpro.app/Contents/MacOS/tauri-app' ; sleep 1
-pnpm tauri build --bundles app
+( set -e; release_id="$(node scripts/release/devReleaseId.mjs)"; MDPRO_RELEASE_ID="$release_id" pnpm tauri build --bundles app )
 ```
 
 This cost a full QA run on 2026-09-20. Run 1 of the WI-6 sweep reproduced the
@@ -232,6 +232,12 @@ open -a "$PWD/src-tauri/target/release/bundle/macos/mdpro.app" \
 
 Then confirm the running process is the one you built — not the installed copy,
 not a leftover from a previous run:
+
+For every launch, read the new `app.ready` line in `~/.mdpro/mdpro.log`.
+`app.ready.releaseId` must equal the value printed by
+`node scripts/release/devReleaseId.mjs` for this checkout (or the recorded
+value from the build). `releaseId:"unknown"` means the wrong build; stop the
+device check and rebuild before drawing a verdict.
 
 ```bash
 ps -Ao pid,lstart,comm | grep -i mdpro | grep -v grep
@@ -438,7 +444,7 @@ mdpro acts on Escape at `keydown`. Two things on this machine stop that
   ([ADR-0048](../../../docs/adr/0048-escape-swallowed-by-an-ime-is-not-recovered-from-keyup.md)).
 
 If Esc still does nothing, build the debug bundle
-(`pnpm tauri build --debug --bundles app`), open Web Inspector, and log both
+(`( set -e; release_id="$(node scripts/release/devReleaseId.mjs)"; MDPRO_RELEASE_ID="$release_id" pnpm tauri build --debug --bundles app )`), open Web Inspector, and log both
 `keydown` and `keyup` on `window`. A `keyup` with no `keydown` means the key
 was eaten before the page, not that the handler is wrong.
 
@@ -480,7 +486,7 @@ follow-up**:
 
 ```
 [ ] Confirmed the criteria genuinely need layout (§1)
-[ ] pnpm tauri build --bundles app                      ← NOT pnpm tauri dev
+[ ] ( set -e; release_id="$(node scripts/release/devReleaseId.mjs)"; MDPRO_RELEASE_ID="$release_id" pnpm tauri build --bundles app ) ← NOT pnpm tauri dev
 [ ] Bundle mtime postdates every source file under test (§3)
 [ ] One up-front request_access listing every app the run needs (§9)
 [ ] Killed stray mdpro / mdpro_mcp processes
