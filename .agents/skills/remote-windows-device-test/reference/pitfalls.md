@@ -137,7 +137,10 @@ produced **wrong verdicts**; the rest cost time.
       same native run, the exact page places a fresh nonce marker in its Tauri title; `ui.ps1`
       requires that marker and an exact Win32 rectangle before pinning the HWND/process. It
       rechecks title, bounds, process and foreground after the resolver and before mouse/key
-      input, then restores the title only if the marker remains. A missing label, identical rectangles,
+      input, then restores the title only if the marker remains. Focus requests
+      `SetForegroundWindow` without a global Alt tap; if activation is refused or lost during
+      its settling wait, `IDENTITY_FOCUS_REFUSED` aborts even with `onError:"continue"`.
+      A missing label, identical rectangles,
       move, close or foreground mismatch aborts. With two windows, every window-targeted native
       step needs its label; foreground alone is never a substitute.
     - Mouse coordinates are separately guarded: `WindowFromPoint` and the exact cursor position

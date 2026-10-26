@@ -14,8 +14,11 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeSsh, PS51_HEAD, PS51_TAIL, type FakeSsh, type SshReply } from "../support/fakeSsh";
+
+// Each case launches a shell and the fake SSH process; slower CI workers can exceed 5 s.
+vi.setConfig({ testTimeout: 30_000 });
 
 const MAC = path.resolve(__dirname, "../../.claude/skills/remote-windows-device-test/scripts/mac");
 

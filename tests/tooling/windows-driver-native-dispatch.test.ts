@@ -5,10 +5,123 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { startFakeCdp, type FakePage } from "../support/fakeCdp";
-import { runNative } from "./windows-driver-native-harness";
+import { runNative, type NativeScenario } from "./windows-driver-native-harness";
 
 // Each case starts PowerShell and several Node helpers; CI startup can exceed Vitest's 5 s default.
 vi.setConfig({ testTimeout: 30_000 });
+
+const focusOps = [
+  { op: "focus" },
+  { op: "menuat", bar: [100, 100], item: [150, 150] },
+  { op: "menuclick", path: ["File", "Save"] },
+  { op: "chord", keys: ["ctrl+a"] },
+  { op: "physicalChord", keys: ["AltRight", "KeyQ"], hkl: "0000000004070407" },
+] as const;
+
+async function runLabelledFocus(op: object, scenario: NativeScenario) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mdpro-focus-recipient-"));
+  const titlePath = path.join(dir, "title.txt");
+  await fs.writeFile(titlePath, "mdpro");
+  const page: FakePage = { id: "p1", evaluate: (expression) => {
+    if (expression.includes("IDENTITY_STALE_BEFORE_BIND")) {
+      const nonce = /mdpro-b7:([a-f0-9]{32})/.exec(expression)?.[1];
+      if (!nonce) return { result: { type: "object" }, exceptionDetails: { text: "no nonce" } };
+      const challenge = `mdpro [mdpro-b7:${nonce}]`;
+      writeFileSync(titlePath, challenge);
+      return { result: { type: "object", value: { label: "A", rect: [0, 0, 800, 600], challenge } } };
+    }
+    if (expression.includes("IDENTITY_UNBIND_MARKER_MISSING")) {
+      writeFileSync(titlePath, "mdpro");
+      return { result: { type: "object", value: { label: "A", restored: true } } };
+    }
+    return { result: { type: "string", value: "A" } };
+  } };
+  const server = await startFakeCdp([page]);
+  try {
+    return await runNative([
+      { ...op, window: "A", _identity: [
+        { label: "A", pageId: "p1", rect: [0, 0, 800, 600] },
+        { label: "B", pageId: "p2", rect: [900, 0, 1700, 600] },
+      ], onError: "continue" },
+      { op: "chord", window: "A", _identity: [
+        { label: "A", pageId: "p1", rect: [0, 0, 800, 600] },
+        { label: "B", pageId: "p2", rect: [900, 0, 1700, 600] },
+      ], keys: ["ctrl+b"], nofocus: true },
+    ], { secondMdpro: true, ...scenario }, { cdpPort: server.port, titlePath });
+  } finally { await server.close(); }
+}
+
+describe("B7 post-cap focus recipient isolation", () => {
+  it.each(focusOps)("refuses $op when B stays foreground without key input to B", async (op) => {
+    const result = await runLabelledFocus(op, { initialForeground: 202, refuseFocus: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_FOCUS_REFUSED");
+    expect(result.log.join(" ")).toContain("ABORTED at step 1");
+    expect(result.trace.filter((line) => line.startsWith("key-target:B:"))).toEqual([]);
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).not.toContain("logical:66:0");
+    expect(result.trace.filter((line) => line.startsWith("mouse:") || line.startsWith("scan:"))).toEqual([]);
+  });
+
+  it.each(focusOps)("activates A for $op without a synthetic Alt tap", async (op) => {
+    const result = await runLabelledFocus(op, { initialForeground: 202 });
+    expect(result.status, JSON.stringify(result)).toBe(0);
+    expect(result.log.join(" ")).not.toContain("ABORTED");
+    expect(result.trace.filter((line) => line.startsWith("focus:"))).toEqual([]);
+    expect(result.trace.filter((line) => line.startsWith("key-target:B:"))).toEqual([]);
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).toContain("logical:66:0");
+  });
+
+  it.each(focusOps)("aborts $op if B regains foreground during focus wait", async (op) => {
+    const result = await runLabelledFocus(op, { initialForeground: 202, driftDuringFocusWait: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_FOCUS_REFUSED");
+    expect(result.log.join(" ")).toContain("ABORTED at step 1");
+    expect(result.trace.filter((line) => line.startsWith("key-target:B:"))).toEqual([]);
+    expect(result.trace).not.toContain("effect:B");
+    expect(result.trace).not.toContain("logical:66:0");
+    expect(result.trace.filter((line) => line.startsWith("mouse:") || line.startsWith("scan:"))).toEqual([]);
+  });
+
+  it.each(["refuseFocus", "ignoreFocus"] as const)("rejects %s even if the activation return is misleading", async (failure) => {
+    const result = await runLabelledFocus({ op: "focus" }, { initialForeground: 202, [failure]: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_FOCUS_REFUSED");
+    expect(result.trace.filter((line) => line.startsWith("key-target:B:"))).toEqual([]);
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+
+  it("skips activation and Alt when A is already foreground", async () => {
+    const result = await runLabelledFocus({ op: "focus" }, { initialForeground: 101 });
+    expect(result.status, JSON.stringify(result)).toBe(0);
+    expect(result.trace.filter((line) => line.startsWith("focus:") || line.startsWith("focus-request:"))).toEqual([]);
+    expect(result.trace).toContain("logical:66:0");
+  });
+
+  it.each(focusOps)("preserves the $op effect when A is already foreground", async (op) => {
+    const result = await runLabelledFocus(op, { initialForeground: 101 });
+    expect(result.status, JSON.stringify(result)).toBe(0);
+    expect(result.trace.filter((line) => line.startsWith("focus:") || line.startsWith("focus-request:"))).toEqual([]);
+    expect(result.trace.filter((line) => line.startsWith("key-target:B:"))).toEqual([]);
+    if (op.op === "focus") expect(result.log).toContain("focused");
+    if (op.op === "menuat") expect(result.trace).toContain("effect:A");
+    if (op.op === "menuclick") expect(result.log.join(" ")).toContain("click 'Save'");
+    if (op.op === "chord") expect(result.trace).toContain("logical:65:0");
+    if (op.op === "physicalChord") expect(result.trace).toContain("scan:56:False:True");
+  });
+
+  it("refuses an unlabelled sole mdpro window when another application owns foreground", async () => {
+    const result = await runNative([
+      { op: "focus", onError: "continue" },
+      { op: "chord", keys: ["ctrl+b"], nofocus: true },
+    ], { initialForeground: 202, refuseFocus: true });
+    expect(result.status, JSON.stringify(result)).toBe(1);
+    expect(result.log.join(" ")).toContain("IDENTITY_FOCUS_REFUSED");
+    expect(result.trace.filter((line) => line.startsWith("key-target:B:"))).toEqual([]);
+    expect(result.trace).not.toContain("logical:66:0");
+  });
+});
 
 describe("B7 native PowerShell dispatch against controlled OS observations", () => {
   it("binds the labelled page to the challenged native title and restores it", async () => {
@@ -337,7 +450,7 @@ describe("B7 native PowerShell dispatch against controlled OS observations", () 
     const result = await runNative([
       { op: "menuat", bar: [100, 100], item: [150, 150], onError: "continue" },
       { op: "chord", keys: ["ctrl+b"], nofocus: true },
-    ], { driftDuringWait: true, driftAtSleep: 4, driftX: 160, driftY: 150 });
+    ], { driftDuringWait: true, driftAtSleep: 3, driftX: 160, driftY: 150 });
     expect(result.status, JSON.stringify(result)).toBe(1);
     expect(result.trace.filter((line) => line === "mouse:2")).toHaveLength(1);
     expect(result.trace).not.toContain("logical:66:0");

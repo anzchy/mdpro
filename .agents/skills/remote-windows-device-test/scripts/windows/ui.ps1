@@ -155,9 +155,10 @@ function Target($step, [bool]$foreground = $false) {
 }
 function Focus($el) {
   $h = [IntPtr]$el.Current.NativeWindowHandle
-  try { [W32]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero) }
-  finally { [W32]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero) } # Alt tap unlocks SetForegroundWindow
-  [void][W32]::SetForegroundWindow($h); Start-Sleep -Milliseconds 250
+  if ([W32]::GetForegroundWindow() -eq $h) { return }
+  if (-not [W32]::SetForegroundWindow($h)) { throw "IDENTITY_FOCUS_REFUSED" }
+  Start-Sleep -Milliseconds 250
+  if ([W32]::GetForegroundWindow() -ne $h) { throw "IDENTITY_FOCUS_REFUSED" }
 }
 function MousePoint($step, [int]$x, [int]$y, [bool]$popup, [bool]$afterDown = $false) {
   $el = Target $step $true # resolver may run Node; no cursor observation before it is authoritative

@@ -36,7 +36,7 @@ and again immediately before release, so a reused numeric HWND is not enough.
 | Op | Arguments | What it does |
 |---|---|---|
 | `windows` | — | Lists mdpro's visible top-level windows: title, hwnd, rect. |
-| `focus` | `window?` | Brings the selected mdpro window to the foreground (taps Alt to unlock `SetForegroundWindow`). |
+| `focus` | `window?` | Requests foreground for the selected mdpro window without sending a key. If it is already foreground, no activation is needed. A refused or lost activation aborts with `IDENTITY_FOCUS_REFUSED`. |
 | `max` / `restore` | — | Maximizes or restores the mdpro window. **Run `max` after every start** (see pitfalls). |
 | `menuclick` | `path: ["File","Save"]` | **Real mouse clicks** on the native menu: opens each level and clicks the item, all in this run. Item names come from `menus`. |
 | `menuat` | `bar: [x,y], item: [x,y]` | Same idea by coordinates. Use it when `menuclick` can't read the menu: after a second window has closed, `GetMenu` returns an invalid handle (see `menuinfo`). |
@@ -148,6 +148,10 @@ when the native observation is missing, ambiguous or stale. `cdp.mjs identity-na
 `IDENTITY_NATIVE_CHALLENGE_CHANGED`, or `IDENTITY_TITLE_RESTORE_FAILED`. A failed restore is
 reported even if an earlier input completed; inspect the title before another labelled run.
 Neither failure authorizes later input.
+`IDENTITY_FOCUS_REFUSED` means `SetForegroundWindow` failed or the selected HWND did not
+remain foreground through the settling wait. The run aborts, including with
+`onError:"continue"`; no Alt tap is sent to the previous foreground window. Windows may
+refuse activation, so inspect foreground state before choosing a next action.
 Native mouse ownership failures exit **1** with `ABORTED`: `IDENTITY_CURSOR_READ_FAILED`
 or `IDENTITY_CURSOR_MOVED` means the pointer could not be confirmed at the requested pixel;
 `IDENTITY_POINT_OUTSIDE` means the hit HWND or popup owner was not the bound target.

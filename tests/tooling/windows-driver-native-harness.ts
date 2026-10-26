@@ -16,6 +16,8 @@ public static class W32 {
   public static int CursorX, CursorY, SetCursorCalls, HitCalls, SleepCalls;
   public static int RectChangeAt, ForegroundChangeAt, HklChangeAt, ShortSendAt, ThrowSendAt, ThrowReleaseAt, ThreadChangeAt, WrongExeAt, FocusChangesAfterMouseDownAt;
   public static int DriftX, DriftY, HitChangeAt, OverlayAtRectCall, FailSetCursorAt;
+  public static int InitialForeground;
+  public static bool RefuseFocus, IgnoreFocus, DriftDuringFocusWait;
   public static bool DriftDuringWait, DriftAfterMouseDownToB, OverlayAtA, OverlayAfterMouseDown, StaleAfterMouseDown, NativeStale, FailCursorRead, NullHit, NullRoot, FailPopupThread, PopupBSharedThread, SecondMdpro;
   public static int DriftAtSleep;
   public static string PopupAtItem = "";
@@ -44,6 +46,10 @@ public static class W32 {
     FailSetCursorAt = number("failSetCursorAt"); FailCursorRead = flag("failCursorRead");
     NullHit = flag("nullHit"); NullRoot = flag("nullRoot"); FailPopupThread = flag("failPopupThread");
     PopupAtItem = root.TryGetProperty("popupAtItem", out var popup) ? popup.GetString() ?? "" : "";
+    InitialForeground = number("initialForeground");
+    if (InitialForeground != 0) Foreground = InitialForeground;
+    RefuseFocus = flag("refuseFocus"); IgnoreFocus = flag("ignoreFocus");
+    DriftDuringFocusWait = flag("driftDuringFocusWait");
   }
   static void Trace(string s) { File.AppendAllText(TracePath, s + "\\n"); }
   public static bool SetProcessDPIAware() { return true; }
@@ -87,7 +93,9 @@ public static class W32 {
   }
   public static void keybd_event(byte key, byte scan, uint flags, UIntPtr extra) {
     LogicalCalls++; Trace("key:" + key + ":" + flags);
+    Trace("key-target:" + (Foreground == 101 ? "A" : "B") + ":" + key + ":" + flags);
     Trace((key == 18 ? "focus:" : "logical:") + key + ":" + flags);
+    if (key == 18 && flags == 2 && Foreground != 101) Trace("effect:B");
     if (FocusChangesAfterLogicalDown && flags == 0) Foreground = 202;
   }
   public static uint SendScan(ushort scan, bool up, bool extended) {
@@ -149,16 +157,26 @@ public static class W32 {
   }
   public static void Sleep(int ms) {
     SleepCalls++;
+    if (DriftDuringFocusWait && ms == 250) { Foreground = 202; Trace("focus-drift:B"); }
     if (DriftDuringWait && ms >= 120 && (DriftAtSleep == 0 || SleepCalls == DriftAtSleep)) {
       CursorX = DriftX; CursorY = DriftY; Trace("drift:" + CursorX + ":" + CursorY);
     }
   }
-  public static bool SetForegroundWindow(IntPtr h) { Foreground = h.ToInt64(); return true; }
+  public static bool SetForegroundWindow(IntPtr h) {
+    Trace("focus-request:" + h.ToInt64());
+    if (RefuseFocus) return false;
+    if (!IgnoreFocus) Foreground = h.ToInt64();
+    return true;
+  }
   public static bool ShowWindow(IntPtr h, int command) { return true; }
 }
 "@`;
 
 export interface NativeScenario {
+  initialForeground?: number;
+  refuseFocus?: boolean;
+  ignoreFocus?: boolean;
+  driftDuringFocusWait?: boolean;
   rectChangeAt?: number;
   foregroundChangeAt?: number;
   hklChangeAt?: number;
