@@ -36,6 +36,8 @@ installed executable's path, hash and version. The development artifact is
 `mdpro-windows-<version>-dev-<sha7>`; match its sha7 to the workflow run's
 full `head_sha`. On every launch, `app.ready.releaseId` must equal
 `<resolved-version>-dev@<head_sha>`; `releaseId:"unknown"` means the wrong build.
+When the workflow's `version` input overrides `package.json`, the ID's SHA names
+the source checkout, while the built Tauri and Cargo manifests carry that override.
 The filename and log identity supplement the installer's and executable's
 SHA-256 evidence. The current 0.3.5
 installation predates the v0.3.6 B7 menu work; use a new verified installer for that batch.

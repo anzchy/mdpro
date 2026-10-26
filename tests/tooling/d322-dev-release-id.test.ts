@@ -13,8 +13,9 @@ const node = process.execPath;
 const sha = "0123456789abcdef0123456789abcdef01234567";
 const otherSha = "fedcba9876543210fedcba9876543210fedcba98";
 const dirs: string[] = [];
+const fixtureEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "GITHUB_SHA"));
 
-async function command(file: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = process.env) {
+async function command(file: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = fixtureEnv) {
   try {
     const { stdout, stderr } = await runFile(file, args, { cwd, env });
     return { code: 0, stdout, stderr };
@@ -50,15 +51,41 @@ const namedStep = (name: string) => winSteps.find((step) => scalar(step, "name")
 const stepIndex = (name: string) => winSteps.findIndex((step) => scalar(step, "name") === name);
 
 async function bashStep(step: string, cwd: string, version: string, head: string, output: string) {
-  const source = stepRun(step)!
-    .replaceAll("${{ inputs.version }}", version)
-    .replaceAll("${{ steps.version.outputs.VERSION }}", version);
+  const source = stepRun(step)!;
   return command("bash", ["-e", "-o", "pipefail", "-c", source], cwd, {
-    ...process.env, GITHUB_SHA: head, GITHUB_OUTPUT: output,
+    ...fixtureEnv, INPUT_VERSION: version, RESOLVED_VERSION: version, GITHUB_SHA: head, GITHUB_OUTPUT: output,
   });
 }
 
 describe("D322-WI-2 Windows build contract", () => {
+  it("passes dispatch and resolved versions through step env instead of run templates", () => {
+    for (const step of winSteps) {
+      const source = stepRun(step) ?? "";
+      expect(source).not.toContain("${{ inputs.version }}");
+      expect(source).not.toContain("${{ steps.version.outputs.VERSION }}");
+    }
+    expect(scalar(at(namedStep("Resolve version")!, ["env"]), "INPUT_VERSION")).toBe("${{ inputs.version }}");
+    for (const name of ["Resolve development release ID", "Patch version in tauri.conf.json", "Patch version in Cargo.toml"]) {
+      expect(scalar(at(namedStep(name)!, ["env"]), "RESOLVED_VERSION")).toBe("${{ steps.version.outputs.VERSION }}");
+    }
+    expect(scalar(namedStep("Resolve version")!, "continue-on-error")).toBeNull();
+    expect(scalar(namedStep("Resolve version")!, "if")).toBeNull();
+  });
+
+  it("rejects shell syntax in the dispatch version without executing it", async () => {
+    const { dir, head } = await repo();
+    const marker = path.join(dir, "injected-marker");
+    const source = stepRun(namedStep("Resolve version")!)!;
+    const result = await command("bash", ["-e", "-o", "pipefail", "-c", source], dir, {
+      ...process.env,
+      INPUT_VERSION: `0.3.5$(touch ${marker})`,
+      GITHUB_SHA: head,
+      GITHUB_OUTPUT: path.join(os.tmpdir(), "d322-output-unused"),
+    });
+    expect(result.code).not.toBe(0);
+    expect(fs.existsSync(marker)).toBe(false);
+  });
+
   it("feeds the CLI output only to NSIS and names the artifact with version and SHA7", () => {
     const identity = namedStep("Resolve development release ID");
     const nsis = namedStep("Build NSIS installer");
@@ -122,8 +149,8 @@ describe("D322-WI-2 Windows build contract", () => {
     expect((await bashStep(namedStep("Resolve development release ID")!, dir, "0.3.6", updatedHead, output)).code).toBe(0);
     expect(fs.readFileSync(output, "utf8")).toContain(`RELEASE_ID=0.3.6-dev@${updatedHead}`);
     for (const name of ["Patch version in tauri.conf.json", "Patch version in Cargo.toml"]) {
-      const source = stepRun(namedStep(name)!)!.replaceAll("${{ steps.version.outputs.VERSION }}", "0.3.6");
-      const result = await command("pwsh", ["-NoProfile", "-Command", source], dir);
+      const source = stepRun(namedStep(name)!)!;
+      const result = await command("pwsh", ["-NoProfile", "-Command", source], dir, { ...fixtureEnv, RESOLVED_VERSION: "0.3.6" });
       expect(result.code).toBe(0);
     }
     expect(JSON.parse(fs.readFileSync(path.join(dir, "src-tauri", "tauri.conf.json"), "utf8")).version).toBe("0.3.6");
@@ -250,6 +277,18 @@ describe("D322-WI-1 development release ID", () => {
       expect(result.code).not.toBe(0);
       expect(result.stdout).toBe("");
       expect(result.stderr).toMatch(/GITHUB_SHA/i);
+    }
+  });
+
+  it("keeps ordinary CLI fixture runs independent of the parent's GitHub SHA", async () => {
+    const { dir, head } = await repo();
+    const previous = process.env.GITHUB_SHA;
+    process.env.GITHUB_SHA = otherSha;
+    try {
+      expect(await command(node, [script], dir)).toEqual({ code: 0, stdout: `0.3.5-dev@${head}\n`, stderr: "" });
+    } finally {
+      if (previous === undefined) delete process.env.GITHUB_SHA;
+      else process.env.GITHUB_SHA = previous;
     }
   });
 

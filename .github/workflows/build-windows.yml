@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version string (e.g. 0.2.4). Defaults to version in package.json."
+        description: "MAJOR.MINOR.PATCH version (e.g. 0.3.5). Defaults to version in package.json."
         required: false
         default: ""
 
@@ -58,29 +58,39 @@ jobs:
       - name: Resolve version
         id: version
         shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          INPUT="${{ inputs.version }}"
+          INPUT="$INPUT_VERSION"
           if [ -n "$INPUT" ]; then
-            echo "VERSION=$INPUT" >> $GITHUB_OUTPUT
+            VERSION="$INPUT"
           else
             VERSION=$(node -p "require('./package.json').version")
-            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           fi
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "version must be MAJOR.MINOR.PATCH" >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       # Resolve while the checkout is still clean. The following manifest
       # patches may change tracked files; only the app build receives this ID.
       - name: Resolve development release ID
         id: dev-release-id
         shell: bash
+        env:
+          RESOLVED_VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          release_id="$(node scripts/release/devReleaseId.mjs --version "${{ steps.version.outputs.VERSION }}")" || exit 1
+          release_id="$(node scripts/release/devReleaseId.mjs --version "$RESOLVED_VERSION")" || exit 1
           echo "RELEASE_ID=$release_id" >> "$GITHUB_OUTPUT"
           echo "SHA7=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Patch version in tauri.conf.json
         shell: pwsh
+        env:
+          RESOLVED_VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          $v = "${{ steps.version.outputs.VERSION }}"
+          $v = $env:RESOLVED_VERSION
           $content = Get-Content src-tauri/tauri.conf.json -Raw
           $content = $content -replace '"version": "[^"]*"', "`"version`": `"$v`""
           Set-Content src-tauri/tauri.conf.json $content
@@ -88,8 +98,10 @@ jobs:
 
       - name: Patch version in Cargo.toml
         shell: pwsh
+        env:
+          RESOLVED_VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          $v = "${{ steps.version.outputs.VERSION }}"
+          $v = $env:RESOLVED_VERSION
           $content = Get-Content src-tauri/Cargo.toml -Raw
           $content = $content -replace '(?m)^version = "[^"]*"', "version = `"$v`""
           Set-Content src-tauri/Cargo.toml $content
