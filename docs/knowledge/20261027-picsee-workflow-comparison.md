@@ -21,7 +21,7 @@ picsee about 13 KB; mdpro about 117 KB (`CLAUDE.md` 27 KB, `AGENTS.md` 13 KB, ru
 ## Adopted, and where each went
 | # | Improvement | Where |
 |---|---|---|
-| 1 | Always-on files become a routing map; delegator-only clauses move into the delegator skill; Codex reads rules 70/71 only when its role needs them | ADR-0147 (reserved); waits for the user's own edits to rule 71, `CLAUDE.md`, `AGENTS.md` to be committed |
+| 1 | Always-on files become a routing map; delegator-only clauses move into the delegator skill; Codex reads rules 70/71 only when its role needs them | ADR-0147, Accepted 2026-10-27 (`5c8c6edb`); implementation waits for ADR-0141 WI-2 |
 | 2 | Project audit dimensions in the repo, with concurrency/lifecycle and tests-prove-AC on every tier, a COVERAGE line and per-AC verdicts | ADR-0146 |
 | 3 | "WI-0: probe the risky platform seam first" in every brief | Delegator brief template § 2b (2026-10-27) |
 | 4 | Open questions with defaults the implementor follows; standing allowance for test-fixture edits | Delegator brief and fix-brief templates § 2, § 2a (2026-10-27) |
