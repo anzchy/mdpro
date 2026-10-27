@@ -30,7 +30,7 @@ function renderTabs() {
       onToggleSidebar={() => {}}
     />,
   );
-  const selectB = screen.getByRole("button", { name: "b.md" });
+  const selectB = screen.getByRole("tab", { name: "b.md" });
   const tabB = selectB.closest(".bottom-tab");
   if (!(tabB instanceof HTMLElement)) throw new Error("no .bottom-tab around b.md");
   return { onSelect, onClose, selectB, tabB, closeB: screen.getByRole("button", { name: "Close b.md" }) };

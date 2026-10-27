@@ -64,7 +64,12 @@ fn on_window<H: Host>(ch: &Channel<H>, req: &Request) -> Result<Value, Failure> 
     match req.cmd.as_str() {
         "find" => page(Script::Find, &req.args),
         "count" => page(Script::Count, &req.args),
-        "probe" => page(Script::Probe, &req.args),
+        "probe" => {
+            let mut labels = ch.host.labels();
+            labels.sort();
+            let args = json!({ "kind": req.args.get("kind"), "windowLabels": labels });
+            page(Script::Probe, &args)
+        }
         "eval" => {
             let args = req.args.get("args").cloned().unwrap_or(Value::Null);
             page(Script::Eval(arg_str(req, "script")?), &args)

@@ -219,6 +219,7 @@ pub fn plugin(run: &VerifiedRun) -> TauriPlugin<Wry> {
     let gens = Arc::new(Generations::default());
     let (on_load, on_close) = (Arc::clone(&gens), Arc::clone(&gens));
     tauri::plugin::Builder::new("mdpro-control")
+        .js_init_script(page::INIT_SCRIPT)
         .setup(move |app, _api| {
             open(app.clone(), &run_dir, gens);
             Ok(())

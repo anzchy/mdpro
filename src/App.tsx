@@ -889,7 +889,7 @@ function App() {
 
   return (
     <div
-      className={`app-shell${showSidebar ? "" : " no-sidebar"}`}
+      className={`app-shell${showSidebar ? "" : " no-sidebar"}`} aria-busy={!preferencesLoaded} data-view-mode={viewMode}
       style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}
     >
       <DevToolbar

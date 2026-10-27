@@ -119,7 +119,7 @@ describe("D297 tabless editor column", () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
     const workspace = workspaceOf(container);
-    await user.click(screen.getByRole("button", { name: "+" }));
+    await user.click(screen.getByRole("button", { name: "New document" }));
     await waitFor(() => expect(editorOf(workspace)).toHaveAttribute("contenteditable", "true"));
     const activeId = useDocumentStore.getState().activeDocumentId;
     expect(activeId).not.toBeNull();

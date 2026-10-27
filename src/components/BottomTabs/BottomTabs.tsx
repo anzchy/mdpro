@@ -65,12 +65,13 @@ export function BottomTabs({
       <button
         className="bottom-tabs__add"
         onClick={onNewDocument}
+        aria-label="New document"
         title={newDocumentTooltip(isMacPlatform())}
       >
         +
       </button>
       <div className="bottom-tabs__divider" />
-      <div className="bottom-tabs__scroll">
+      <div className="bottom-tabs__scroll" role="tablist" aria-label="Open documents">
         {documents.map((doc) => (
           // D231: the × is a sibling button, not nested in the select button,
           // so Tab reaches it as its own stop and Enter / Space close the tab.
@@ -85,9 +86,11 @@ export function BottomTabs({
             <button
               type="button"
               className="bottom-tab__select"
+              role="tab"
+              aria-selected={doc.id === activeDocumentId}
               title={doc.path || "Untitled"}
             >
-              {doc.isModified && <span className="bottom-tab__modified" />}
+              {doc.isModified && <span className="bottom-tab__modified" aria-label="Unsaved changes" />}
               <span className="bottom-tab__name">{getDocumentTitle(doc)}</span>
             </button>
             <button

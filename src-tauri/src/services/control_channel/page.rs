@@ -34,10 +34,26 @@ const FIND: &str = r##"function(a){var p=pick(a),el=p.el;if(!el)return {found:fa
 
 const COUNT: &str = r##"function(a){return pick(a).all.length;}"##;
 
-/// The reads the journeys judge, by kind. Mirrors candidate A's `s3s5.py` STATE so dtrack's template carries over.
-const PROBE: &str = r##"function(a){function t(e){return e?(e.innerText!==undefined?e.innerText:e.textContent):null;}
+/// Document-start buffer. Each webview owns one instance; the plugin injects
+/// this before any frontend module in every window.
+pub const INIT_SCRIPT: &str = r##"(function(){
+if(window.__mdproConsole)return;
+var b=window.__mdproConsole={entries:[],overflow:0,capacity:100,sequence:0};
+function capture(source,args){var text=Array.prototype.map.call(args,function(v){try{return String(v);}catch(_){return '[unprintable]';}}).join(' ');
+b.entries.push({sequence:++b.sequence,source:source,text:text});
+if(b.entries.length>b.capacity){b.entries.shift();b.overflow++;}}
+['error','warn'].forEach(function(level){var original=console[level];console[level]=function(){capture('console.'+level,arguments);return original.apply(console,arguments);};});
+window.addEventListener('error',function(e){capture('error',[e.message||'']);});
+window.addEventListener('unhandledrejection',function(e){capture('unhandledrejection',[e.reason]);});
+})()"##;
+
+/// Fixed v1 template. Text values use textContent so whitespace is stable.
+const PROBE: &str = r##"function(a){function t(e){return e?e.textContent:null;}
 function tabs(){return Array.prototype.map.call(document.querySelectorAll(".bottom-tab"),function(b){return {name:t(b.querySelector(".bottom-tab__name")),active:b.classList.contains("bottom-tab--active"),dirty:!!b.querySelector(".bottom-tab__modified")};});}
-var o={tabs:tabs()};
+var shell=document.querySelector('.app-shell');var ready=!!(shell&&shell.getAttribute('aria-busy')==='false');
+var active=ready?document.querySelector('[role="tab"][aria-selected="true"]'):null;
+var prompts=Array.prototype.map.call(document.querySelectorAll('[role="dialog"]'),function(d){var id=d.getAttribute('aria-labelledby');return {type:d.classList.contains('mcp-confirm-dialog')?'mcp-confirm':'confirm',name:d.getAttribute('aria-label')||t(id&&document.getElementById(id))||null};});
+var b=window.__mdproConsole;var o={probeVersion:1,windowLabels:Array.isArray(a.windowLabels)?a.windowLabels:[],ready:ready,activeDocument:active?t(active.querySelector('.bottom-tab__name')):null,dirty:active?!!active.querySelector('.bottom-tab__modified'):null,mode:ready?shell.getAttribute('data-view-mode'):null,prompts:prompts,console:{entries:b?b.entries.slice():[],overflow:b?b.overflow:0,capacity:b?b.capacity:100},sources:{windowLabels:'Rust',ready:'DOM',activeDocument:'DOM:textContent',dirty:'DOM',mode:'DOM',prompts:'DOM:textContent',console:'DOM:buffer'},tabs:tabs()};
 if(a.kind==="cm"){var l=document.querySelectorAll(".cm-content > .cm-line");o.lastLine=l.length?t(l[l.length-1]):null;o.lines=l.length;o.selectionLayers=document.querySelectorAll(".cm-selectionBackground").length;var s=window.getSelection();o.selectedText=s?String(s):null;}
 if(a.kind==="pm"){var pm=document.querySelector("#milkdown-container .ProseMirror");var last=pm?pm.lastElementChild:null;o.lastBlock=t(last);o.lastTag=last?last.tagName.toLowerCase():null;o.lastStrong=last?Array.prototype.map.call(last.querySelectorAll("strong"),t):[];var s2=window.getSelection();o.selectedText=s2?String(s2):null;}
 if(a.kind==="dialog"){o.dialog=Array.prototype.map.call(document.querySelectorAll(".dialog-card[role=dialog]"),function(c){return c.getAttribute("aria-label");});var cb=document.querySelector("#md-auto-pair");o.checkbox=cb?cb.checked:null;o.settings=document.querySelectorAll(".settings-dialog").length;}

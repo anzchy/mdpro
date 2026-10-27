@@ -35,9 +35,9 @@ function renderTabs() {
   return {
     onSelect,
     onClose,
-    selectA: screen.getByRole("button", { name: "a.md" }),
+    selectA: screen.getByRole("tab", { name: "a.md" }),
     closeA: screen.getByRole("button", { name: "Close a.md" }),
-    selectB: screen.getByRole("button", { name: "b.md" }),
+    selectB: screen.getByRole("tab", { name: /b.md/ }),
     closeB: screen.getByRole("button", { name: "Close b.md" }),
   };
 }

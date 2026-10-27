@@ -1,6 +1,7 @@
 //! ADR-0047 WI-009 WI 4: one request line in, one reply out, over a fake
 //! host (plan WI-009 items 3, 5, 6, 7, 13, 20).
 use super::*;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 const TOKEN: &str = "t0ken-of-this-launch";
@@ -10,6 +11,9 @@ const TOKEN: &str = "t0ken-of-this-launch";
 #[derive(Default)]
 struct Seen {
     calls: Vec<String>,
+    labels: Option<Vec<String>>,
+    probe_args: Option<Value>,
+    run_probe: bool,
     /// Run during a page or input call, to simulate a reload or close.
     during: Option<Box<dyn Fn(&Generations) + Send>>,
     find: Option<Value>,
@@ -30,7 +34,12 @@ impl FakeHost {
 
 impl Host for FakeHost {
     fn labels(&self) -> Vec<String> {
-        vec!["main".into(), "doc-2".into()]
+        self.seen
+            .lock()
+            .unwrap()
+            .labels
+            .clone()
+            .unwrap_or_else(|| vec!["main".into(), "doc-2".into()])
     }
     fn has_window(&self, label: &str) -> bool {
         label == "main" || label == "doc-2"
@@ -40,7 +49,7 @@ impl Host for FakeHost {
         label: &str,
         _req_id: &str,
         script: Script<'_>,
-        _args: &Value,
+        args: &Value,
         _timeout: Duration,
     ) -> Result<Value, Failure> {
         let name = match script {
@@ -49,12 +58,36 @@ impl Host for FakeHost {
             Script::Probe => "probe".to_string(),
             Script::Eval(src) => format!("eval:{src}"),
         };
-        self.seen
-            .lock()
-            .unwrap()
-            .calls
-            .push(format!("page {label} {name}"));
+        {
+            let mut seen = self.seen.lock().unwrap();
+            seen.calls.push(format!("page {label} {name}"));
+            if name == "probe" {
+                seen.probe_args = Some(args.clone());
+            }
+        }
         self.side_effect();
+        if name == "probe" && self.seen.lock().unwrap().run_probe {
+            let id = json!("host-probe").to_string();
+            let starter = super::super::page::starter(
+                &id,
+                &super::super::page::body(&Script::Probe),
+                &args.to_string(),
+            );
+            let harness = format!(
+                "globalThis.window=globalThis;globalThis.document={{querySelector:()=>null,querySelectorAll:()=>[]}};{starter};setTimeout(()=>console.log(JSON.stringify(window.__mdproCtl[{id}].v)),0);"
+            );
+            let output = Command::new("node")
+                .arg("-e")
+                .arg(harness)
+                .output()
+                .expect("execute probe");
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return Ok(serde_json::from_slice(&output.stdout).expect("probe JSON"));
+        }
         if name == "find" {
             return Ok(self
                 .seen
@@ -186,6 +219,39 @@ fn a_probe_on_a_ready_page_returns_its_value() {
     let v = send(&r, "p1", "probe", json!({ "kind": "focus" }));
     assert_eq!(v["value"], json!({ "from": "probe" }));
     assert_eq!(calls(&r), vec!["page main probe"]);
+}
+
+#[test]
+fn probe_passes_sorted_host_labels_and_an_empty_boundary_to_the_page() {
+    let r = rig(false);
+    r.seen.lock().unwrap().labels = Some(vec!["zeta".into(), "main".into()]);
+    assert_eq!(
+        send(&r, "labels-1", "probe", json!({ "kind": "focus" }))["ok"],
+        json!(true)
+    );
+    assert_eq!(
+        r.seen.lock().unwrap().probe_args,
+        Some(json!({ "kind": "focus", "windowLabels": ["main", "zeta"] }))
+    );
+
+    r.seen.lock().unwrap().labels = Some(vec![]);
+    assert_eq!(send(&r, "labels-2", "probe", json!({}))["ok"], json!(true));
+    assert_eq!(
+        r.seen.lock().unwrap().probe_args,
+        Some(json!({ "kind": null, "windowLabels": [] }))
+    );
+
+    r.seen.lock().unwrap().run_probe = true;
+    r.seen.lock().unwrap().labels = Some(vec!["zeta".into(), "main".into()]);
+    assert_eq!(
+        send(&r, "labels-3", "probe", json!({}))["value"]["windowLabels"],
+        json!(["main", "zeta"])
+    );
+    r.seen.lock().unwrap().labels = Some(vec![]);
+    assert_eq!(
+        send(&r, "labels-4", "probe", json!({}))["value"]["windowLabels"],
+        json!([])
+    );
 }
 
 #[test]
