@@ -1,4 +1,4 @@
-# Request: <ID> PR #<n> confirm, round <k> (<"the last, ADR-0120" when k = 3>)
+# Request: <ID> PR #<n> confirm, round <k> (both auditors, at most two rounds, ADR-0143)
 
 - **Range:** `<base>..<new sha>`; the fix diff is `<old sha>..<new sha>`; across a rebase, check
   `git range-diff <old base>..<old sha> <new base>..<rebased>`. Tier <T>. Phase: `confirm`.

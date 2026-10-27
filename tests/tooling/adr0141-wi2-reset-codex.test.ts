@@ -73,16 +73,16 @@ if (process.env.FAKE_INSTALL_SYMLINK === "1") { fs.unlinkSync(target); fs.symlin
     FAKE_STARTED: path.join(root, "started"),
   };
   const calls = () => fs.existsSync(log) ? fs.readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line) as string[]) : [];
-  const reset = (role?: string, moreEnv: NodeJS.ProcessEnv = {}) => run(script, ["gpt-imple-2", wt, "gpt-6-sol", "high", ...(role === undefined ? [] : [role])], { ...env, ...moreEnv });
+  const reset = (role?: string, moreEnv: NodeJS.ProcessEnv = {}, name = "gpt-imple-2") => run(script, [name, wt, "gpt-6-sol", "high", ...(role === undefined ? [] : [role])], { ...env, ...moreEnv });
   return { root, main, wt, env, calls, reset };
 }
 
 afterEach(() => { for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
 
 describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role provisioning (requires macos zsh)", () => {
-  it.each(["implementor", "auditor"])("installs %s before pane split, close and start", async (role) => {
+  it.each([["gpt-imple-2", "implementor"], ["opus-imple-1", "implementor"], ["gpt-auditor", "auditor"]])("installs %s as %s before pane split, close and start", async (name, role) => {
     const h = harness();
-    const result = await h.reset(role);
+    const result = await h.reset(role, {}, name);
     expect(result.code, result.stderr + result.stdout).toBe(0);
     const overlay = path.join(h.wt, ".codex/rules/mdpro-role.rules");
     expect(fs.lstatSync(overlay).isFile()).toBe(true);
@@ -93,6 +93,18 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role pro
     const start = calls.find((call) => call[0] === "agent" && call[1] === "start")!;
     expect(split.includes("MDPRO_ROLE=implementor")).toBe(role === "implementor");
     expect(start.includes("danger-full-access")).toBe(role === "implementor");
+    const marker = path.join(h.wt, ".codex/rules/.started-at");
+    expect(fs.readFileSync(marker, "utf8").trim()).toBe("w1:p8");
+    expect(fs.statSync(marker).mtimeMs).toBeGreaterThanOrEqual(fs.statSync(overlay).mtimeMs);
+  }, 10000);
+
+  it.each([["gpt-auditor", "implementor"], ["gpt-imple-2", "auditor"], ["opus-imple-1", "auditor"], ["gpt-stranger", "implementor"], ["gpt-auditor-2", "auditor"]])("refuses %s with requested %s before install or pane action", async (name, role) => {
+    const h = harness();
+    const result = await h.reset(role, {}, name);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("REFUSED");
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" && ["split", "close"].includes(call[1]) || call[0] === "agent" && call[1] === "start")).toEqual([]);
+    expect(h.calls().flat().includes("danger-full-access")).toBe(false);
   });
 
   it.each(["missing", "delegator"])("refuses %s role before a pane action", async (variant) => {

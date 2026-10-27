@@ -53,10 +53,19 @@ describe("ADR-0141 WI-2 published guard protocol", () => {
     const main = skillText("SKILL.md");
     const guide = skillText("references/guide.md");
     const merged = skillText("references/templates/merged-verdict-template.md");
+    const confirm = skillText("references/templates/confirm-request-template.md");
     for (const text of [main, guide, merged]) {
       expect(text).toContain("both auditors on every audit");
       expect(text).toContain("at most two rounds");
       expect(text).not.toMatch(/optional.{0,40}opus-auditor/i);
     }
+    expect(confirm).not.toMatch(/k\s*=\s*3|last, ADR-0120/i);
+    expect(confirm).toContain("both auditors");
+    expect(confirm).toContain("at most two rounds");
+    expect(guide).not.toContain("at most three rounds");
+    expect(guide).not.toContain("then gpt-auditor confirms");
+    expect(guide).toContain("then both auditors confirm");
+    expect(merged).not.toContain("scoped confirm by gpt-auditor");
+    expect(merged).toContain("scoped confirm by both auditors");
   });
 });

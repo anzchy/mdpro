@@ -10,5 +10,5 @@ Merged Highs:
 - **<A> (gpt-auditor).** <one line and evidence>. Stands until a scoped confirm closes it.
 - **<B> (opus-auditor).** <one line and evidence>. Stands until a scoped confirm closes it.
 
-Verdict: C<n> H<n> · BLOCKING C<n> H<n>. <Next: fix <n> to <owner>; round <k+1> scoped confirm by gpt-auditor | the audit gate
+Verdict: C<n> H<n> · BLOCKING C<n> H<n>. <Next: fix <n> to <owner>; round <k+1> scoped confirm by both auditors | the audit gate
 is open.>

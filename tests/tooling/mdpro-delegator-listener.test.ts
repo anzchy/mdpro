@@ -36,7 +36,7 @@ if (args[2] === "agent" && args[3] === "get") {
     (process.env.FAKE_INITIAL_STATE === "idle" || seen ? "idle" : "working");
   const kind = agent === "herdr-delegator" ?
     (process.env.FAKE_CLAUDE_AFTER_WAIT === "1" && delegatorSeen >= 4 ? "claude" : (process.env.FAKE_DELEGATOR_KIND || "codex")) : (process.env.FAKE_TARGET_KIND || "codex");
-  process.stdout.write(JSON.stringify({result:{agent:{agent_status:state, agent:kind, cwd:agent === "herdr-delegator" ? process.env.MDPRO_GUARD_TEST_MAIN : process.env.FAKE_TARGET_CWD}}}));
+  process.stdout.write(JSON.stringify({result:{agent:{agent_status:state, agent:kind, cwd:agent === "herdr-delegator" ? process.env.MDPRO_GUARD_TEST_MAIN : process.env.FAKE_TARGET_CWD, pane_id:"w1:p7"}}}));
 }
 `);
   fs.chmodSync(bin, 0o755);
@@ -55,6 +55,7 @@ function harness() {
   fs.mkdirSync(path.join(target, ".codex/rules"), { recursive: true });
   fs.writeFileSync(path.join(mainRules, "mdpro-role.rules"), "# Local mdpro role: delegator\n");
   fs.writeFileSync(path.join(target, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
+  fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
   const env = {
     ...process.env,
     PATH: `${dir}:${process.env.PATH ?? ""}`,
@@ -75,6 +76,7 @@ function harness() {
     fs.rmdirSync(mainRules);
     fs.rmdirSync(path.join(dir, ".codex"));
     fs.unlinkSync(path.join(target, ".codex/rules/mdpro-role.rules"));
+    fs.unlinkSync(path.join(target, ".codex/rules/.started-at"));
     fs.rmdirSync(path.join(target, ".codex/rules"));
     fs.rmdirSync(path.join(target, ".codex"));
     fs.rmdirSync(target);
@@ -187,17 +189,15 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
     }
   });
 
-  it("sends required Opus requests on either route without a usage precondition", async () => {
+  it("sends an Opus request on Claude when its brief records the user request and sufficient usage", async () => {
     const h = harness();
     const brief = path.join(h.dir, "opus-request.md");
-    fs.writeFileSync(brief, "Audit this item.\n");
+    fs.writeFileSync(brief, "User request: Audit this item.\nClaude usage: sufficient\n");
     try {
-      const codex = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude", FAKE_INITIAL_STATE: "idle" });
-      expect(codex.status).toBe(0);
       const claude = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude", FAKE_DELEGATOR_KIND: "claude", FAKE_INITIAL_STATE: "idle" });
       expect(claude.status).toBe(0);
       const calls = h.calls();
-      expect(calls.filter(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "opus-auditor")).toHaveLength(2);
+      expect(calls.filter(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "opus-auditor")).toHaveLength(1);
     } finally {
       fs.unlinkSync(brief);
       h.cleanup();

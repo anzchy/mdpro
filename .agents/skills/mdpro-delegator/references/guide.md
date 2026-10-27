@@ -86,7 +86,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
    run the landing verifier directly on Codex or through the original `mdpro-landing-verifier` subagent on Claude.
 8. **Verdict** (`merged-verdict-template.md`): check both reports' evidence and record the merged blocking count.
    Post the reports when a PR exists. At most two rounds (ADR-0143); after the cap, ADR-0129.
-9. **Fix** (`fix-brief-template.md`), then gpt-auditor confirms (`confirm-request-template.md`), scoped.
+9. **Fix** (`fix-brief-template.md`), then both auditors confirm (`confirm-request-template.md`), scoped.
 10. **Land** when the verifier passes, the merged blocking count is zero, and `ci-gate` is green on the PR head
     (`gh pr checks <pr> --required`). The checked scripts do not check verifier PASS or audit verdict.
     Receipt exceptions need the user's word first. On Codex, use `node scripts/codex-rules/land-guard.mjs <sha>`;
@@ -95,7 +95,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 
 ## 6. ADRs
 
-Draft → gpt-auditor in plan mode → revise → confirm, at most three rounds → ask the user through
+Draft → gpt-auditor in plan mode → revise → confirm, at most two rounds → ask the user through
 the active runtime's question channel, stating what the reviewers left open (and ADR-0121 decision 6's result when an auditor's model,
 definition or request template changes) → on acceptance, the Status line quotes the user, forward links go on every
 partially superseded ADR, and rules change in the same commit. An accepted ADR's body is never edited; a later event

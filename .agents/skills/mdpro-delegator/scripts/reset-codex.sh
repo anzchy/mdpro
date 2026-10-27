@@ -12,6 +12,9 @@ set -u
 (( $# == 5 )) || { echo "REFUSED: reset-codex.sh needs implementor or auditor role" >&2; exit 2; }
 name=$1 wt=$2 model=$3 effort=$4 role=$5
 [[ $role == implementor || $role == auditor ]] || { echo "REFUSED: unknown Codex role $role" >&2; exit 2; }
+source "${0:A:h}/agent-role.sh"
+expected=$(mdpro_role_for_agent "$name") || { echo "REFUSED: unknown Codex agent $name" >&2; exit 2; }
+[[ $role == $expected ]] || { echo "REFUSED: $name requires $expected role" >&2; exit 2; }
 "${0:A:h}/delegator-route.sh" >/dev/null || exit $?
 main=/Users/jack/Documents/mac-app/mdpro
 if [[ ${MDPRO_GUARD_TEST:-} == 1 ]]; then
@@ -68,4 +71,8 @@ if [[ -z $line ]]; then
 fi
 if [[ -z $line ]]; then echo "UNVERIFIED $new: status line not readable (zoom the pane and check before dispatch)"; exit 3; fi
 [[ $line == *"Context 0% used"* ]] || { echo "FAIL $new: $line"; exit 1; }
+marker="$wt/.codex/rules/.started-at"
+mark_tmp=$(mktemp "$wt/.codex/rules/.started-at.XXXXXX") || { echo "FAIL: cannot create pane start marker" >&2; exit 1; }
+print -r -- "$new" > "$mark_tmp"
+mv -f "$mark_tmp" "$marker" || { echo "FAIL: cannot save pane start marker" >&2; exit 1; }
 echo "NEW $new $line"
