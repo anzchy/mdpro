@@ -15,8 +15,10 @@ Brief AC-7 (issue #542 item 1) narrows how these are checked in the real app. Th
   (`page.rs`), proved by unit tests; this card shows only that the DOM dirty flag flips.
 
 ## Setup
-- A verify build of the branch head, built with `MDPRO_RELEASE_ID=<version>-dev@<40-char sha>` (`pnpm control:build
-  --profile verify`), and `pnpm control:doctor` clean before launch.
+- A verify build of the branch head with the control channel compiled in, built with
+  `MDPRO_RELEASE_ID=<version>-dev@<40-char sha>` (`pnpm control:build --profile verify --features control-channel`),
+  and `pnpm control:doctor` clean before launch. The build manifest must list `control-channel` in `features`; a
+  manifest with `"features": []` is the wrong build: stop.
 - A copy of `tests/manual-fixtures/d37-small-doc.md` in a fresh temp directory, named `probe.md`.
 - The desktop GUI lock held (`gui-lock.sh take`) before the launch, released after cleanup.
 - The control token in `control.json` is never printed, logged or reported.
