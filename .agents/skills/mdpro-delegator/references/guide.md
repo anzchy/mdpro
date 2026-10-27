@@ -23,8 +23,8 @@ rule wins and this guide is the bug.
 |---|---|---|---|
 | gpt-imple-1, gpt-imple-2 | Codex `gpt-6-sol`, `-s danger-full-access`, effort by difficulty (ADR-0138); `gpt-6-luna` high on `routine` items (ADR-0139) | `mdpro-wt/<name>` | `$SK/scripts/reset-codex.sh <name> <wt> <model> <effort> implementor` |
 | gpt-imple-3 | Codex `gpt-5.6-sol` (Low tier; `routine` items on Luna); device tester by Codex Computer Use | `mdpro-wt/gpt-imple-3` | same |
-| gpt-auditor | Codex `gpt-6-sol`, medium, high on `hard` (ADR-0138); no sandbox flag | detached `mdpro-wt/gpt-auditor` | `reset-codex.sh gpt-auditor <wt> gpt-6-sol <effort>` before every request |
-| opus-auditor | optional only for a Claude delegator after the user's explicit request and sufficient Claude usage | detached `mdpro-wt/opus-auditor` when active | fresh Claude pane per requested audit |
+| gpt-auditor | Codex `gpt-6-sol`, medium, high on `hard` (ADR-0138); no sandbox flag | detached `mdpro-wt/gpt-auditor` | `reset-codex.sh gpt-auditor <wt> gpt-6-sol <effort> auditor` before every request |
+| opus-auditor | required by ADR-0143 on every audit | detached `mdpro-wt/opus-auditor` | fresh pane per audit |
 | mac-test/dtrack | retired for future GUI assignments; gpt-auditor owns them | — | — |
 | High-tier security review | gpt-auditor's fresh-pane audit request and security count | auditor worktree | same reset as audit |
 | verifier, number registrar | Codex delegator runs checks; Claude delegator uses the original `Agent` subagents | verify worktrees | — |
@@ -55,6 +55,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 - For an agent already `working` after a delegator restart, use one detached
   `$SK/scripts/watch-agent.sh <agent> <expected-report>` instead of sending another prompt.
 - On wake, the status is not the result: read the report file; if missing, read the pane.
+- Provision a Codex worktree only through `reset-codex.sh`; between-window hand provisioning ends with WI-2 landing.
 - A timeout re-arms only after `herdr --session mdpro agent get` still shows `working`; it never resends.
 - `$SK/scripts/status.sh`: every agent's pane, status and context line, plus the GUI lock.
 
@@ -78,17 +79,19 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 5. **Ancestry and scope.** `git cat-file -p`, `git diff-tree --no-ext-diff --stat -r <parent> <sha>`. If master moved
    by docs only, the delegator may rebase the branch in the implementor's worktree and prove it with
    `$SK/scripts/tree-identity.sh <old> <new>`.
-6. **PR.** `$SK/scripts/push-head.sh <sha> <branch> [old-head]`, then `gh pr create`.
-7. **Audit**: one fresh-pane gpt-auditor request (`audit-request-template.md`), including a security section on High;
-   a Claude delegator may add opus-auditor only with the user's explicit request and sufficient usage recorded;
+6. **PR.** On Codex, `node scripts/codex-rules/push-guard.mjs <sha> <branch> [--expected-remote-oid <A>]`;
+   on Claude, use rule 70's plain push. Then `gh pr create`.
+7. **Audit**: both auditors on every audit, at most two rounds (ADR-0143). Send fresh-pane requests
+   (`audit-request-template.md`), including a security section on High;
    run the landing verifier directly on Codex or through the original `mdpro-landing-verifier` subagent on Claude.
-8. **Verdict** (`merged-verdict-template.md`): check gpt-auditor's evidence and record its blocking count; merge
-   an optional Opus report if one was requested and run.
-   Post the report when a PR exists. At most three rounds (ADR-0120); after the cap, ADR-0129.
+8. **Verdict** (`merged-verdict-template.md`): check both reports' evidence and record the merged blocking count.
+   Post the reports when a PR exists. At most two rounds (ADR-0143); after the cap, ADR-0129.
 9. **Fix** (`fix-brief-template.md`), then gpt-auditor confirms (`confirm-request-template.md`), scoped.
 10. **Land** when the verifier passes, the merged blocking count is zero, and `ci-gate` is green on the PR head
-    (`gh pr checks <pr> --required`). Receipt exceptions need the user's word first. `git merge --ff-only <sha>`, `git push
-    origin master`, then `references/templates/landing-docs-checklist.md`.
+    (`gh pr checks <pr> --required`). The checked scripts do not check verifier PASS or audit verdict.
+    Receipt exceptions need the user's word first. On Codex, use `node scripts/codex-rules/land-guard.mjs <sha>`;
+    for direct docs commits, `node scripts/codex-rules/land-guard.mjs --docs-only`. On Claude, use
+    `git merge --ff-only <sha>` and `git push origin master`, then `references/templates/landing-docs-checklist.md`.
 
 ## 6. ADRs
 
@@ -103,7 +106,9 @@ is a dated Status line.
 - Batches by area, 6–10 items or about 45 minutes; the failure condition and the proving log line in every item
   (`device-brief-template.md`).
 - **The desktop GUI lock** (`$SK/scripts/gui-lock.sh`, ADR-0134 decision 6): one GUI run at a time. picsee adopted the
-  same lock on 2026-10-24 and messages at start and end; still get the user's word that picsee is paused for each run.
+  same lock on 2026-10-24 and messages at start and end; the 2026-10-27 agreement removes the per-run picsee word.
+  `acquire` and `wait` print `acquisition_id=<uuid>`; keep that ID and call
+  `gui-lock.sh release <batch> --acquisition-id <uuid>` after cleanup, aborted runs included.
 - Launch only by the verify bundle's path; check one process and `releaseId:"unknown"`.
 - Physical Esc steps need the user; the tester stops with `<batch>-waiting-esc.md`.
 - gpt-imple-3 fails at long matrices and when Computer Use returns `Screenshot unavailable` or cannot type a backtick;
@@ -135,11 +140,11 @@ force-push anything but a PR branch with `--force-with-lease`.
 | New Codex pane sat on "Update now / Skip" | Codex self-upgrade prompt | `herdr pane send-keys <pane> Escape`; upgrading is the user's call |
 | Codex refused to work: no `herdr-delegator` agent | the delegator pane had no herdr agent name | `herdr agent rename w1:p1 herdr-delegator` |
 | Prompt lost after a reset | the pane was still starting | check `working` after the prompt; resend once if idle |
-| `git push … $S:refs/…` pushed a garbled ref | zsh `:r` modifier on `$S:r…` | `"${S}:refs/heads/…"` (push-head.sh) |
+| `git push … $S:refs/…` pushed a garbled ref | zsh `:r` modifier on `$S:r…` | use `node scripts/codex-rules/push-guard.mjs <sha> <branch>` on Codex; quote the refspec on Claude |
 | `echo ====` errored | zsh `=` expansion | quote it |
 | Full lane failed only in `tests/tooling/d187-receipt-rustfmt-guard.test.ts` | `rustfmt` not on the pane's PATH | prefix gates with the stable toolchain bin dir; never edit that test |
 | Receipt id in my fix brief replaced an existing record | the id was already taken | check `receipts.json` for the id before briefing; restore byte-for-byte and re-home under a new id |
-| `git merge --ff-only` would clobber my dirty docs edit | the PR touched the same path | stash under a unique message and pop that entry by name (landing checklist); the stash stack is shared by all worktrees |
+| `git merge --ff-only` would clobber my dirty docs edit | the PR touched the same path | from the repo root, `node .agents/skills/mdpro-delegator/scripts/landing-stash.mjs save -- <paths>`; record its OID; after landing, `node .agents/skills/mdpro-delegator/scripts/landing-stash.mjs apply <oid>`; retain the entry and OID for later coordinated cleanup (landing checklist) |
 | A device run tested v0.3.5, not the verify build | launched by bundle id | launch by exact path; check the process path and `releaseId` |
 | picsee drove the GUI during mdpro's lock | picsee did not know the lock | agreed shared lock; re-run steps inside the overlap window |
 | B5 marked Switch Documents FAIL | my brief misdescribed it | read the plan before writing a card-less item; grade against the plan |

@@ -11,7 +11,7 @@ elif [[ -n $report ]]; then
 else
   detail="Read the $agent handoff or pane"
 fi
-mode=$("${0:A:h}/delegator-route.sh")
+mode=$("${0:A:h}/delegator-route.sh" --kind-only)
 if [[ $mode == claude ]]; then
   # Claude's background Bash result resumes its turn. The Herdr Done badge is
   # sufficient; prompting it would create an unrelated, duplicate turn.
@@ -31,7 +31,7 @@ while true; do
   (( SECONDS < deadline )) || { echo "TIMEOUT: delegator never became idle" >&2; exit 124; }
   herdr --session mdpro agent wait herdr-delegator --until idle --timeout 5000 >/dev/null 2>&1 || true
 done
-if [[ $("${0:A:h}/delegator-route.sh") != codex ]]; then
+if [[ $("${0:A:h}/delegator-route.sh" --kind-only) != codex ]]; then
   print -r -- "Herdr completion: $agent is $state. $detail"
   exit 0
 fi

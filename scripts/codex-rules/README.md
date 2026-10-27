@@ -20,6 +20,7 @@ Use `--role auditor` for an auditor. Omitting `--role` defaults to implementor.
 Only the main checkout at `/Users/jack/Documents/mac-app/mdpro` can receive
 `--role delegator`. Installation replaces the local overlay atomically and
 refuses a symlink target. Existing panes must restart to load changed rules.
+The delegator uses `.agents/skills/mdpro-delegator/scripts/reset-codex.sh` to install the selected overlay before creating a new pane.
 
 The delegator pushes a named commit to a PR branch with:
 

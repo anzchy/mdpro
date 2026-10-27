@@ -155,12 +155,13 @@ alias here.
     Herdr prompt or routine notification. It still reads the report on wake.
 - **The guard.** `role-guard.sh` does not run for Codex. In its place:
   - `AGENTS.md` § "Read first (Codex)", which lists this rule;
-  - `.codex/rules/mdpro.rules`, which forbids push, blanket staging, branch and worktree deletion,
-    checking out `master`, and PR actions.
+  - the shared `.codex/rules/mdpro.rules`, which forbids push, blanket staging, branch and worktree deletion,
+    checking out `master`, and PR actions;
+  - the gitignored per-worktree `.codex/rules/mdpro-role.rules`, installed by `install-role.mjs` for the
+    implementor, auditor, or delegator role.
 
-  The delegator copies both into every worktree it creates for a Codex agent, uncommitted, and
-  checks they are there after a rebase. The prefix rules are a backstop only: `git -C <dir> push`
-  slips past them.
+  The delegator installs the overlay before starting a Codex pane and checks it after a rebase.
+  The prefix rules are a backstop only: `git -C <dir> push` slips past them.
 - **Receipts are recorded, as for any implementor (rule 10).** Frontend REDs use
   the repository entry script, unlocked with at most 2 workers:
 
@@ -179,6 +180,7 @@ alias here.
   Codex writes only inside its start directory. herdr names are unique among live agents, so the
   old pane closes **before** the new start:
   1. confirm the agent is `idle` or `done` (`herdr agent get`);
+  1a. `reset-codex.sh` runs `install-role.mjs --role implementor|auditor` before `herdr agent start`; a pane whose overlay is missing is not started;
   2. `herdr pane split <old> --direction down --cwd <worktree> --no-focus`, adding `--env
      MDPRO_ROLE=implementor` for an implementor;
   3. `herdr pane close <old>`, which releases the name;

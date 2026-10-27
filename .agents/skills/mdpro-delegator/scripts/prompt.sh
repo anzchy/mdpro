@@ -8,14 +8,40 @@
 set -eu
 a=$1 f=$2 verb=${3:-request} to=${4:-7200000} report=${5:-}
 mode=$("${0:A:h}/delegator-route.sh")
-pre=""
-case $a in
-  opus-auditor)
-    [[ $mode == claude ]] || { echo "REFUSED: opus-auditor is unavailable to a Codex delegator" >&2; exit 2; }
-    [[ -f $f ]] && grep -Eq '^User request: .+' "$f" && grep -Eiq '^Claude usage: sufficient([[:space:]]|$)' "$f" || {
-      echo "REFUSED: optional opus-auditor request needs the user request and sufficient Claude usage recorded in its brief" >&2
+target_record=$(herdr --session mdpro agent get "$a") || {
+  echo "REFUSED: cannot read target $a" >&2
+  exit 2
+}
+target_kind=$(print -r -- "$target_record" | python3 -c 'import json,sys
+try:
+ a=json.load(sys.stdin)["result"]["agent"]
+ print(a.get("agent") or a.get("agent_session",{}).get("agent") or "")
+except (KeyError,TypeError,ValueError): sys.exit(2)') || {
+  echo "REFUSED: malformed target record for $a" >&2
+  exit 2
+}
+case $target_kind in
+  codex)
+    target_cwd=$(print -r -- "$target_record" | python3 -c 'import json,sys
+a=json.load(sys.stdin)["result"]["agent"]
+v=a.get("cwd")
+print(v if isinstance(v,str) else "")') || {
+      echo "REFUSED: malformed cwd for $a" >&2
+      exit 2
+    }
+    [[ -n $target_cwd ]] || { echo "REFUSED: empty cwd for Codex target $a" >&2; exit 2; }
+    overlay="$target_cwd/.codex/rules/mdpro-role.rules"
+    [[ -f $overlay && ! -L $overlay ]] || { echo "REFUSED: missing restricted overlay for $a" >&2; exit 2; }
+    first=$(head -n 1 "$overlay")
+    [[ $first == '# Local mdpro role: implementor' || $first == '# Local mdpro role: auditor' ]] || {
+      echo "REFUSED: invalid restricted overlay for $a" >&2
       exit 2
     } ;;
+  claude) ;;
+  *) echo "REFUSED: unknown target runtime for $a" >&2; exit 2 ;;
+esac
+pre=""
+case $a in
   gpt-auditor)  pre="read /Users/jack/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md, then" ;;
   *) pre="" ;;
 esac

@@ -1,10 +1,22 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const scripts = path.resolve(__dirname, "../../.agents/skills/mdpro-delegator/scripts");
+
+function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(file, args, { env });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", chunk => { stdout += String(chunk); });
+    child.stderr.on("data", chunk => { stderr += String(chunk); });
+    child.on("error", reject);
+    child.on("close", status => resolve({ status, stdout, stderr }));
+  });
+}
 
 function fakeHerdr(dir: string): string {
   const bin = path.join(dir, "herdr");
@@ -20,11 +32,11 @@ if (args[2] === "agent" && args[3] === "get") {
   const delegatorSeen = agent === "herdr-delegator" && fs.existsSync(process.env.FAKE_DELEGATOR_SEEN) ? Number(fs.readFileSync(process.env.FAKE_DELEGATOR_SEEN, "utf8")) : 0;
   if (agent === "herdr-delegator") fs.writeFileSync(process.env.FAKE_DELEGATOR_SEEN, String(delegatorSeen + 1));
   const state = agent === "herdr-delegator" ?
-    (process.env.FAKE_DELEGATOR_BUSY_ONCE === "1" && delegatorSeen === 1 ? "working" : "idle") :
+    (process.env.FAKE_DELEGATOR_BUSY_ONCE === "1" && delegatorSeen === 2 ? "working" : "idle") :
     (process.env.FAKE_INITIAL_STATE === "idle" || seen ? "idle" : "working");
   const kind = agent === "herdr-delegator" ?
-    (process.env.FAKE_CLAUDE_AFTER_WAIT === "1" && delegatorSeen >= 3 ? "claude" : (process.env.FAKE_DELEGATOR_KIND || "codex")) : "codex";
-  process.stdout.write(JSON.stringify({result:{agent:{agent_status:state, agent:kind}}}));
+    (process.env.FAKE_CLAUDE_AFTER_WAIT === "1" && delegatorSeen >= 4 ? "claude" : (process.env.FAKE_DELEGATOR_KIND || "codex")) : (process.env.FAKE_TARGET_KIND || "codex");
+  process.stdout.write(JSON.stringify({result:{agent:{agent_status:state, agent:kind, cwd:agent === "herdr-delegator" ? process.env.MDPRO_GUARD_TEST_MAIN : process.env.FAKE_TARGET_CWD}}}));
 }
 `);
   fs.chmodSync(bin, 0o755);
@@ -37,12 +49,21 @@ function harness() {
   const log = path.join(dir, "calls.jsonl");
   const seen = path.join(dir, "seen");
   const delegatorSeen = path.join(dir, "delegator-seen");
+  const mainRules = path.join(dir, ".codex/rules");
+  const target = path.join(dir, "target");
+  fs.mkdirSync(mainRules, { recursive: true });
+  fs.mkdirSync(path.join(target, ".codex/rules"), { recursive: true });
+  fs.writeFileSync(path.join(mainRules, "mdpro-role.rules"), "# Local mdpro role: delegator\n");
+  fs.writeFileSync(path.join(target, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
   const env = {
     ...process.env,
     PATH: `${dir}:${process.env.PATH ?? ""}`,
     FAKE_HERDR_LOG: log,
     FAKE_HERDR_SEEN: seen,
     FAKE_DELEGATOR_SEEN: delegatorSeen,
+    FAKE_TARGET_CWD: target,
+    MDPRO_GUARD_TEST: "1",
+    MDPRO_GUARD_TEST_MAIN: dir,
   };
   const calls = () => fs.readFileSync(log, "utf8").trim().split("\n").map(line => JSON.parse(line) as string[]);
   const cleanup = () => {
@@ -50,20 +71,25 @@ function harness() {
       const file = path.join(dir, name);
       if (fs.existsSync(file)) fs.unlinkSync(file);
     }
+    fs.unlinkSync(path.join(mainRules, "mdpro-role.rules"));
+    fs.rmdirSync(mainRules);
+    fs.rmdirSync(path.join(dir, ".codex"));
+    fs.unlinkSync(path.join(target, ".codex/rules/mdpro-role.rules"));
+    fs.rmdirSync(path.join(target, ".codex/rules"));
+    fs.rmdirSync(path.join(target, ".codex"));
+    fs.rmdirSync(target);
     fs.rmdirSync(dir);
   };
   return { dir, log, env, calls, cleanup };
 }
 
-describe("mdpro delegator completion listener", () => {
-  it("dispatches implementor briefs with the installed TDD Guardian workflow", () => {
+describe.skipIf(process.platform !== "darwin")("mdpro delegator completion listener (requires macos zsh)", () => {
+  it("dispatches implementor briefs with the installed TDD Guardian workflow", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");
     fs.writeFileSync(brief, "# fix brief\n");
     try {
-      const result = spawnSync(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], {
-        env: { ...h.env, FAKE_INITIAL_STATE: "idle" }, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
       expect(result.status).toBe(0);
       const prompt = h.calls().find(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "gpt-imple-1");
       expect(prompt?.[5]).toContain("$tdd-guardian:tdd-guardian-workflow");
@@ -74,26 +100,22 @@ describe("mdpro delegator completion listener", () => {
     }
   });
 
-  it("refuses an already idle agent without a duplicate notification", () => {
+  it("refuses an already idle agent without a duplicate notification", async () => {
     const h = harness();
     try {
-      const result = spawnSync(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", "/tmp/report"], {
-        env: { ...h.env, FAKE_INITIAL_STATE: "idle" }, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", "/tmp/report"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
       expect(result.status).toBe(2);
       expect(result.stderr).toContain("no new completion to watch");
       expect(h.calls().filter(args => args[2] === "notification" || args[3] === "prompt")).toEqual([]);
     } finally { h.cleanup(); }
   });
 
-  it("waits in mdpro, notifies once, then wakes the idle delegator", () => {
+  it("waits in mdpro, notifies once, then wakes the idle delegator", async () => {
     const h = harness();
     const report = path.join(h.dir, "report.md");
     fs.writeFileSync(report, "ready\n");
     try {
-      const result = spawnSync(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", report], {
-        env: h.env, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", report], h.env);
       expect(result.status).toBe(0);
       const calls = h.calls();
       expect(calls.every(args => args[0] === "--session" && args[1] === "mdpro")).toBe(true);
@@ -108,26 +130,22 @@ describe("mdpro delegator completion listener", () => {
     }
   });
 
-  it("rechecks delegator state after a wait that misses the idle transition", () => {
+  it("rechecks delegator state after a wait that misses the idle transition", async () => {
     const h = harness();
     try {
-      const result = spawnSync(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", "/tmp/report"], {
-        env: { ...h.env, FAKE_DELEGATOR_BUSY_ONCE: "1" }, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", "/tmp/report"], { ...h.env, FAKE_DELEGATOR_BUSY_ONCE: "1" });
       expect(result.status).toBe(0);
       const calls = h.calls();
-      expect(calls.filter(args => args[2] === "agent" && args[3] === "get" && args[4] === "herdr-delegator")).toHaveLength(4);
+      expect(calls.filter(args => args[2] === "agent" && args[3] === "get" && args[4] === "herdr-delegator")).toHaveLength(5);
       expect(calls.some(args => args[2] === "agent" && args[3] === "wait" && args[4] === "herdr-delegator")).toBe(true);
       expect(calls.filter(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "herdr-delegator")).toHaveLength(1);
     } finally { h.cleanup(); }
   });
 
-  it("does not prompt Claude after a Codex listener spans a delegator handover", () => {
+  it("does not prompt Claude after a Codex listener spans a delegator handover", async () => {
     const h = harness();
     try {
-      const result = spawnSync(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", "/tmp/report"], {
-        env: { ...h.env, FAKE_DELEGATOR_BUSY_ONCE: "1", FAKE_CLAUDE_AFTER_WAIT: "1" }, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", "/tmp/report"], { ...h.env, FAKE_DELEGATOR_BUSY_ONCE: "1", FAKE_CLAUDE_AFTER_WAIT: "1" });
       expect(result.status).toBe(0);
       const calls = h.calls();
       expect(calls.filter(args => args[2] === "notification" && args[3] === "show")).toHaveLength(1);
@@ -137,14 +155,12 @@ describe("mdpro delegator completion listener", () => {
     } finally { h.cleanup(); }
   });
 
-  it("returns a Claude completion through Bash without a second prompt or routine notification", () => {
+  it("returns a Claude completion through Bash without a second prompt or routine notification", async () => {
     const h = harness();
     const report = path.join(h.dir, "claude-report.md");
     fs.writeFileSync(report, "ready\n");
     try {
-      const result = spawnSync(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", report], {
-        env: { ...h.env, FAKE_DELEGATOR_KIND: "claude" }, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "watch-agent.sh"), ["gpt-auditor", report], { ...h.env, FAKE_DELEGATOR_KIND: "claude" });
       expect(result.status).toBe(0);
       expect(result.stdout).toContain(`Report ready: ${report}`);
       const calls = h.calls();
@@ -156,14 +172,12 @@ describe("mdpro delegator completion listener", () => {
     }
   });
 
-  it("refuses an unknown delegator runtime before dispatch", () => {
+  it("refuses an unknown delegator runtime before dispatch", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");
     fs.writeFileSync(brief, "# brief\n");
     try {
-      const result = spawnSync(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], {
-        env: { ...h.env, FAKE_DELEGATOR_KIND: "unknown" }, encoding: "utf8",
-      });
+      const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_DELEGATOR_KIND: "unknown" });
       expect(result.status).toBe(2);
       expect(result.stderr).toContain("unknown herdr-delegator runtime");
       expect(h.calls().some(args => args[2] === "agent" && args[3] === "prompt")).toBe(false);
@@ -173,28 +187,17 @@ describe("mdpro delegator completion listener", () => {
     }
   });
 
-  it("allows optional Opus only on Claude with a recorded user request and usage check", () => {
+  it("sends required Opus requests on either route without a usage precondition", async () => {
     const h = harness();
     const brief = path.join(h.dir, "opus-request.md");
-    fs.writeFileSync(brief, "User request: Add an Opus audit for this item.\nClaude usage: Sufficient for one request.\n");
+    fs.writeFileSync(brief, "Audit this item.\n");
     try {
-      const codex = spawnSync(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], {
-        env: h.env, encoding: "utf8",
-      });
-      expect(codex.status).toBe(2);
-      fs.writeFileSync(brief, "User request: Add an Opus audit for this item.\nClaude usage: insufficient.\n");
-      const insufficient = spawnSync(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], {
-        env: { ...h.env, FAKE_DELEGATOR_KIND: "claude" }, encoding: "utf8",
-      });
-      expect(insufficient.status).toBe(2);
-      fs.writeFileSync(brief, "User request: Add an Opus audit for this item.\nClaude usage: Sufficient for one request.\n");
-      const claude = spawnSync(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], {
-        env: { ...h.env, FAKE_DELEGATOR_KIND: "claude" }, encoding: "utf8",
-      });
+      const codex = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude", FAKE_INITIAL_STATE: "idle" });
+      expect(codex.status).toBe(0);
+      const claude = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude", FAKE_DELEGATOR_KIND: "claude", FAKE_INITIAL_STATE: "idle" });
       expect(claude.status).toBe(0);
       const calls = h.calls();
-      expect(calls.filter(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "opus-auditor")).toHaveLength(1);
-      expect(calls.filter(args => args[2] === "notification" || (args[3] === "prompt" && args[4] === "herdr-delegator"))).toEqual([]);
+      expect(calls.filter(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "opus-auditor")).toHaveLength(2);
     } finally {
       fs.unlinkSync(brief);
       h.cleanup();

@@ -16,7 +16,7 @@ Codex loads only this file. It does not load `CLAUDE.md` or `.claude/rules/`, an
    | `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` | [`40-version-bump`](.claude/rules/40-version-bump.md) |
    | `src-tauri/src/menu.rs`, `src/types/preferences.ts`, `src/hooks/useKeyboardShortcuts.ts`, `src/components/common/settings/KeyboardShortcutsSettings.tsx`, `docs/guide/keyboard-shortcuts.md` | [`41-keyboard-shortcuts`](.claude/rules/41-keyboard-shortcuts.md) |
 
-4. **Command guards.** [`.codex/rules/mdpro.rules`](.codex/rules/mdpro.rules) forbids the rule 25 commands (`rm -r`, `git reset --hard`, `git clean -f`, …) and the rule 70 implementor limits (`git push`, blanket `git add`, switching to `master`, …). It replaces `.claude/hooks/role-guard.sh`, which Codex does not run. A forbidden command means *ask*, not *find another spelling* (`git -C`, a wrapper script).
+4. **Command guards.** [`.codex/rules/mdpro.rules`](.codex/rules/mdpro.rules) binds every Codex role. A per-worktree, gitignored `.codex/rules/mdpro-role.rules` adds its role limits. Only the delegator pushes and lands, through `node scripts/codex-rules/push-guard.mjs` and `node scripts/codex-rules/land-guard.mjs`. It replaces `.claude/hooks/role-guard.sh`, which Codex does not run. A forbidden command means *ask*. Any other spelling is evasion: `git -C`, `env`, `./`-prefixed or absolute script paths, `node --…`, wrappers, and `gh api`.
 
 ### Claude Code features Codex does not have
 
@@ -31,7 +31,7 @@ Codex loads only this file. It does not load `CLAUDE.md` or `.claude/rules/`, an
 | Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
 | A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path in your final message. |
 
-**Delegator routing:** If you hold `herdr-delegator`, run the [mdpro-delegator Skill](.agents/skills/mdpro-delegator/SKILL.md) and follow [rule 71's runtime route](.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route). Codex uses the completion-listener scripts; Claude uses its original background Bash and Claude tools. The agent roster is shared; Opus audit is optional only on the Claude route with the user's request and sufficient usage.
+**Delegator routing:** If you hold `herdr-delegator`, run the [mdpro-delegator Skill](.agents/skills/mdpro-delegator/SKILL.md) and follow [rule 71's runtime route](.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route). Codex uses the completion-listener scripts; Claude uses its original background Bash and Claude tools. The agent roster is shared; ADR-0143 requires both auditors on every audit, at most two rounds.
 
 ## Project Structure & Module Organization
 - `src/` holds the React + TypeScript UI (entry in `src/main.tsx`, main component in `src/App.tsx`).

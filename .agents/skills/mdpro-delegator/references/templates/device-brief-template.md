@@ -3,10 +3,12 @@
 **Tester:** <gpt-auditor in a device pane (macOS, rule 71) | remote-windows-device-test (Windows)>. **User:** 「…」 for
 the run. picsee honours the lock, so there is no per-run picsee word
 (`docs/reference/20261027-desktop-gui-lock-agreement-with-picsee.md`).
-- **Take** `$HOME/.cache/desktop-gui.lock` (`gui-lock.sh take`) before the first GUI action. The `owner` holds
-  project=mdpro, session, batch, start, pid, an honest expected_minutes, and purpose.
+- **Take** `$HOME/.cache/desktop-gui.lock` with `gui-lock.sh acquire <batch>` before the first GUI action. Keep its
+  exact `acquisition_id=<uuid>` output. The `owner` holds project=mdpro, session, batch, start, pid, an honest
+  expected_minutes, purpose, and acquisition_id.
 - **Hold it** through every prompt.
-- **Release it** only after mdpro has quit and its windows are closed, aborted runs included.
+- **Release it** only after mdpro has quit and its windows are closed, aborted runs included, using
+  `gui-lock.sh release <batch> --acquisition-id <uuid>` with the saved acquisition_id.
 - **If it is busy (picsee),** wait with `status`. Never remove picsee's lock; if it is held more than 30 min past its
   expected_minutes, tell the delegator.
 
