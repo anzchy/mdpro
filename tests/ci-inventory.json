@@ -3,10 +3,6 @@
   "generatedFrom": "local Vitest JSON run 2026-10-21, 12367 passed; reviewed against skip gates; D302 heartbeat/probe entries reviewed after gated tests were added",
   "tests": [
     {
-      "id": ["tests/control/device-identity-default.test.ts", "clean checkout default", "uses the clean checkout id despite device CLI flags"],
-      "prerequisite": "macos"
-    },
-    {
       "id": ["tests/control/device-identity-process-scan.test.ts", "real executable scan", "finds two live main executables when one has a spoofed argv0"],
       "prerequisite": "macos"
     },
