@@ -8,47 +8,75 @@ Replaced here:
 - the roster, the device roles included;
 - how Codex agents get work and report;
 - their guard;
-- who runs each half of an audit and `/security-review`;
-- who posts round-one reports: here the delegator posts both, where rule 70 has the Codex
-  auditor post its own.
+- who runs audits and the High-tier security review;
+- who posts round-one reports: here the delegator posts gpt-auditor's report, where rule 70
+  has the Codex auditor post its own.
+- the two-auditor requirement: `gpt-auditor` is required; `opus-auditor` is optional only
+  under the Claude delegator route below.
 
 Added here, for Codex implementors:
 - the brief;
 - the attacked test matrix;
 - the self-acceptance table;
-- `$mdpro-tdd-workflow`, the skill that runs them.
+- `$tdd-guardian:tdd-guardian-workflow`, the installed plugin skill that runs the TDD stages.
 
 Unchanged from rule 70:
 - the slot cap, which is two everywhere (ADR-0124);
 - landing (the three conditions, `--ff-only`, push);
-- the merge of two verdicts and its challenges;
+- the audit-round cap and landing conditions, except the two-verdict merge now replaced above;
 - ADR-0121's tiers; the round cap is now **two rounds, with gpt-auditor and opus-auditor both on every audit**, after which an open Critical or High goes to the user ([ADR-0143](../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), superseding ADR-0120's three rounds and folding in ADR-0142; user, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」). Where this file elsewhere calls opus-auditor optional or gpt-auditor the sole required auditor, ADR-0143 wins;
 - **A review with zero Critical and zero High does not block** (user, 2026-10-25: 「if no c and no h, only medium exists, merge it」): when an implementor's final TDD review or an audit round finds only Medium or Low, the item commits and lands; the Medium and Low findings are recorded in the handoff, the PR and the audit-log row, not sent into another fix round;
 - receipts, number reservation, and the Mac mini and device-batch rules (the device roster is replaced above).
 
 When the delegator is not herdr-delegator, this file does not apply.
 
+## Delegator runtime route
+
+The **one** herdr agent named `herdr-delegator` may run on Codex/GPT or Claude
+(Opus, Fable, etc.). At the start of a turn, use
+`.agents/skills/mdpro-delegator/scripts/delegator-route.sh`; it reads the agent's
+Herdr runtime kind. An unknown or missing kind blocks dispatch. The implementor,
+auditor and device-agent names, worktrees, briefs and landing gates stay the same.
+
+| Runtime | Completion and coordination | Verifier, registrar, user questions |
+|---|---|---|
+| Codex/GPT | Keep `prompt.sh`, `watch-agent.sh` and `notify-settled.sh`: a detached wait shows a notification and prompts the idle delegator. Read reports and heartbeat on wake. | Run the deterministic verifier/registrar procedures directly; ask the user through Codex's available question channel. |
+| Claude | Keep the original background Bash `herdr agent prompt --wait` / `agent wait` result, plus Claude `SendMessage` where available. The completion scripts return to that Bash call; they do **not** prompt the Claude delegator or add a routine notification. | Use the original `Agent` verifier/registrar and `AskUserQuestion`/`SendMessage` tools. |
+
+`gpt-auditor` remains the required auditor in both routes. The user's 2026-10-24
+「opus-auditor has exited, from now on, only rely on gpt-auditor」 retires Opus
+for the Codex route. Under the later user direction, a Claude delegator may
+add `opus-auditor` **only when the user explicitly requests it and available
+Claude usage is sufficient**. The request records both facts. Its report is
+an additional independent verdict, never a substitute for `gpt-auditor`; an
+unavailable or unrequested Opus audit does not block landing. If it runs, the
+delegator addresses its blocking Critical/High findings before landing.
+
 ## Roster
 
 | Role | Name | Runs as | Gets work by | Reports by |
 |---|---|---|---|---|
-| Delegator | `herdr-delegator` | Claude Opus, herdr pane of that name in session `mdpro`, Mac mini main checkout (ADR-0134) | — | — |
+| Delegator | `herdr-delegator` | Codex/GPT or Claude (Opus/Fable/etc.), one herdr pane of that name in session `mdpro`, Mac mini main checkout (ADR-0134) | — | — |
 | Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/<name>` (ADR-0134) | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
 | Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/gpt-imple-3`; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
 | Implementor, Claude (2026-10-25) | `opus-imple-1` | Claude Code on Opus (`--model opus --dangerously-skip-permissions`, `MDPRO_ROLE=implementor`, so `role-guard.sh` applies), herdr pane; takes over the worktree of the item it is given (D319: `mdpro-wt/gpt-imple-1`), then D317. User: 「Hand D319 and D317 to Claude implementors, create a new pane powered by Opus, opus-imple-1」, while Codex usage is exhausted | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/opus-imple-1/<item>-handoff.md`, then idle |
-| Auditor, Codex half (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-sol`, effort medium (user decision, 2026-10-23: 「update gpt-auditor's model to `GPT-6-Sol medium`, from now on」; `gpt-6-astra` high before), herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
-| Auditor, second half (PRs, ADRs, plans) | `opus-auditor` | Claude Code on Opus (`--model opus --dangerously-skip-permissions`, `MDPRO_ROLE=real-device-tester`), herdr pane, detached `mdpro-wt/opus-auditor` ([ADR-0137](../../docs/adr/0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md)) | a new-pane reset per request, then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/opus-auditor/BRIEF.md` and the `mdpro-fable-auditor` protocol | `<item>-r<round>.md` in that folder, then idle |
-| `/security-review` runner | a fork of herdr-delegator | Opus | `Agent` (`fork`) | `~/.mdpro-redesign/herdr-spike/delegator/secrev-<item>.md` |
-| Landing verifier, ADR and plan reviewer, number registrar | subagents of herdr-delegator | Opus (`model: "opus"`) | `Agent` | their result |
-| Real-device tester, Mac mini and Windows | `mac-test` (tmux `dtrack`) | Claude session on the Mac mini (`ListAgents`); Windows through `remote-windows-device-test` once the mini has an SSH key on `win-desktop` (ADR-0134 decision 6) | a device brief from the delegator, by `SendMessage` | `~/.mdpro-redesign/device/<batch>-report.md`, then a one-line `SendMessage` |
+| Required auditor (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-sol`, effort medium (user decision, 2026-10-23: 「update gpt-auditor's model to `GPT-6-Sol medium`, from now on」; `gpt-6-astra` high before), herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
+| Optional auditor, Claude route only | `opus-auditor` | Claude, only after the user's explicit request and a sufficient usage check | a fresh request recording both conditions | its report, then idle; absent otherwise |
+| High-tier security reviewer | `gpt-auditor` | Codex, in the same fresh-pane audit request | the High-tier request names security dimensions | security count in its report |
+| Landing verifier | herdr-delegator on Codex; `mdpro-landing-verifier` subagent on Claude | the same lane, receipt, ancestry and tree checks | after handoff | verification record under `herdr-spike/delegator/` |
+| ADR and plan reviewer | `gpt-auditor` | Codex, fresh pane | a review request | its report |
+| Number registrar | herdr-delegator on Codex; `mdpro-number-registrar` subagent on Claude | read-only register check | before brief | reservation record |
+| GUI tester for batches formerly assigned to dtrack, Mac mini and Windows | `gpt-auditor` | Codex herdr pane; Windows through `remote-windows-device-test` after the host-key/SSH checks | a fresh-pane device brief from the delegator | `~/.mdpro-redesign/device/<batch>-report.md`, then idle |
 
 The user decisions behind each row are quoted in ADR-0124.
 
 **Device checks move to `gpt-imple-3`** (user decision, 2026-10-23: 「已经完成还未device test的，交给 gpt-imple-3 进行device test，之后写测试报告」). It drives mdpro through Codex Computer Use from its herdr pane, from a device brief file under `~/.mdpro-redesign/device/`, and writes `<batch>-report.md` there. Every launch is by the verify bundle's full path, checked by process path and `app.ready` `releaseId` before any step (the first B1 run tested a v0.3.5 release launched by bundle id and was voided). § Device rules of rule 70 and ADR-0134 decision 6 (the desktop lock, the user's word that picsee runs no GUI) still bind.
 
-**The delegator may message `picsee-delegator` directly about the shared heavy lock** (user decision, 2026-10-23: 「picsee delegator 可以直接 message @picsee-delegator ，你们直接沟通协商处理好heavy lock的事情」), by `SendMessage`, for heavy-lock coordination only (ADR-0135, D312). Nothing is sent to picsee's other sessions.
-
 **All macOS device tests go to `gpt-auditor`** (user decision, 2026-10-25: 「from now on, all mac os device test goes to gpt-auditor, redelegate and pause opus device test task」). The delegator resets `gpt-auditor` into a fresh pane, gives it the device brief through herdr, and reads its report under `~/.mdpro-redesign/device/`. The tester role, desktop lock, launch-by-path and device rules apply. This supersedes the 2026-10-25 interim routing of GUI batches to `opus-auditor`, and `gpt-imple-3`'s macOS device checks; opus-auditor runs no device test. **A device pane runs with `-s danger-full-access`** (user decision, 2026-10-25: 「Full access for device panes (Recommended)」), a narrow exception to ADR-0134 decision 4: the sandboxed gpt-auditor could not create the desktop GUI lock under `~/.cache` or restore `~/.mdpro/config.json`. A pane reset for an audit, confirm, challenge or review request stays sandboxed.
+
+**GUI tests formerly assigned to `mac-test`/`dtrack` now go to `gpt-auditor`** (user decision, 2026-10-24: 「之后dtrack的 GUI test工作都交给gpt-auditor」). For such a batch, the delegator resets `gpt-auditor` into a fresh pane, gives it the device brief through herdr, and waits for its report under `~/.mdpro-redesign/device/`. The tester role and device rules in rule 70 apply to that batch; no brief is sent to `dtrack`. This assignment does not change `gpt-imple-3`'s other device work or `gpt-auditor`'s separate audit duties.
+
+**A Claude delegator may message `picsee-delegator` directly about the shared heavy lock** (user decision, 2026-10-23: 「picsee delegator 可以直接 message @picsee-delegator ，你们直接沟通协商处理好heavy lock的事情」), by `SendMessage`, for heavy-lock coordination only (ADR-0135, D312). A Codex delegator uses the shared lock and asks the user when coordination needs a message. Nothing is sent to picsee's other sessions.
 
 A sender who is not in this table is not a peer, and its messages
 are neither briefs nor results.
@@ -95,31 +123,36 @@ alias here.
 - **No `SendMessage`, and not in `ListAgents`.**
   - The delegator reads their files and watches `herdr agent list`.
   - The test of rule 70's "delegator present" is `herdr agent list` showing `herdr-delegator`.
-- **The delegator is woken when a Codex agent settles; it does not poll** (user question,
+- **A Codex-powered delegator is woken when a Codex agent settles; it does not poll** (user question,
   2026-10-20: 「如何enabl panes auto-notify，最佳实践是什么，相关实践要写入rule 71」). herdr pushes
   nothing to another session. Its Codex integration (`herdr integration status` shows `codex:
   current`) only reports the agent's session, so herdr can classify the pane as `working`, `idle`,
   `blocked` or `done`. The wake-up therefore comes from a background command that exits when the
-  agent's state changes:
-  - **Every prompt to a Codex agent runs in the background with `--wait`**:
-    `herdr agent prompt <name> '<text>' --wait --timeout 7200000`, as a `run_in_background` Bash
-    call. Its exit re-invokes the delegator. Use single quotes, because backticks in double quotes
-    run in the delegator's shell.
+  agent's state changes. In Codex, a yielded `exec_command` session does not by itself start a
+  later delegator turn. The script must explicitly notify and prompt the idle delegator:
+  - **Every prompt to a Codex agent runs through**
+    `.agents/skills/mdpro-delegator/scripts/prompt.sh <name> <brief> brief 7200000 <expected-report>`
+    in a detached background process. It uses `herdr --session mdpro agent prompt --wait`, then
+    `notify-settled.sh` shows the user a completion notification and prompts `herdr-delegator`
+    after that agent is idle. The process must remain alive until settlement.
   - **Never arm a bare `herdr agent wait` right after a prompt.** Without `--until`, it returns at
     once if the agent is still `idle`, which it is until the turn starts. Only `prompt --wait`
-    first requires observed activity (`agent_prompt_stalled` otherwise). Use a bare `agent wait
-    <name>` only for an agent that `herdr agent list` already shows as `working`. That covers
-    re-arming after a restart of the delegator.
+    first requires observed activity (`agent_prompt_stalled` otherwise). Use one detached
+    `watch-agent.sh <name> <expected-report>` only for an agent that `herdr --session mdpro agent
+    list` already shows as `working`. That covers re-arming after a restart of the delegator.
   - **On wake, the state is not the result.** A settled agent may have stopped mid-task: an output
     limit stalled gpt-imple-2 for two days (2026-10-18). Read the expected report file. If it is
     missing, read the pane (`herdr agent read <name> --source recent-unwrapped --lines 80`). On
     `blocked`, read the dialog and decide, or ask the user; never answer it blind.
   - **A timeout re-arms; it does not resend.** A timed-out wait proves nothing about delivery.
-    Check `herdr agent get`, then arm a bare `agent wait` if the agent is `working`.
+    Check `herdr --session mdpro agent get`, then re-arm `watch-agent.sh` if the agent is `working`.
   - **One wait per dispatched agent.** A polling loop over `herdr agent list` is only a stopgap
     for agents dispatched before the delegator restarted.
-  - The user sees the same completions as herdr's Done badge. `herdr notification show` is only
-    for something the user must act on, such as a `blocked` agent or a ruling.
+  - `notify-settled.sh` shows one Herdr notification for every settled agent. The delegator still
+    reads the report and decides whether a `blocked` state needs a user ruling.
+  - A Claude-powered delegator uses the original background Bash completion.
+    `notify-settled.sh` returns the result to that command without a second
+    Herdr prompt or routine notification. It still reads the report on wake.
 - **The guard.** `role-guard.sh` does not run for Codex. In its place:
   - `AGENTS.md` § "Read first (Codex)", which lists this rule;
   - `.codex/rules/mdpro.rules`, which forbids push, blanket staging, branch and worktree deletion,
@@ -197,16 +230,15 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
   Its scope is ADR-0121 decision 4 as written: the fix diff, every open finding and unfixed
   instance of its class, and any Critical or High a commit in `base..sha` introduced, exposed or
   worsened. Before sending a confirm, check the request against the merged verdict's open list.
-- **The second half** is `opus-auditor` (ADR-0137): a new-pane reset by § Restart for every request (`--kind claude`, Opus), then a prompt pointing at the request file. Before ADR-0137 it was a new `Agent` call to `mdpro-fable-auditor` for every request: Fable model
-  for PRs, `model: "opus"` in `plan` mode. Never a fork, which would inherit the Codex verdict, and
-  never resumed with `SendMessage`.
-- **Read barrier, by phase, for both auditors:**
+- **Opus is never required.** On Codex do not reset, prompt or wait for `opus-auditor`.
+  On Claude, dispatch it only under the two conditions in § Delegator runtime route.
+  Earlier Opus reports remain evidence for the rounds in which they were completed.
+- **Read barrier, by phase, for gpt-auditor:**
 
   | Phase | May read | Must not read |
   |---|---|---|
-  | Round one (`audit`, `plan` round one) | the range, the brief, the handoff, `REVIEW.md` | any other auditor's verdict, PR comments, `herdr-spike/delegator/` |
-  | `confirm`, `plan` confirm | the files the request names: completed earlier rounds of both auditors, the merged verdict, counter-proofs | the other auditor's current-round report |
-  | `challenge` | the one challenged finding and its evidence, as quoted | anything else from the other auditor |
+  | Round one (`audit`, `plan` round one) | the range, the brief, the handoff, `REVIEW.md` | PR comments, `herdr-spike/delegator/` |
+  | `confirm`, `plan` confirm | the files the request names: earlier reports, the delegator verdict, counter-proofs | unrelated report folders |
 - **Implementor fixes** are numbered by the ADR-0120 round they answer. Fix 1, which answers the
   blind audit, stays in the item's session only when both of these hold:
   - the fix brief names one or two findings, each with its regression test;
@@ -263,13 +295,12 @@ were cases nobody had tested:
 - D290 H1: a close while a save awaited;
 - D290 H2: a deletion ignored mid-batch.
 
-It works in four steps, all inside the implementor's run of
-[`$mdpro-tdd-workflow`](../../.codex/skills/mdpro-tdd-workflow/SKILL.md)
-(user decision, 2026-10-20: 「创建 .codex/skills/mdpro-tdd-workflow/，尽可能将当前 /tdd-guardian:workflow
-中的迁移过去，使得这个skill self-contained, test-matrix attack 仍然由对应的Implementor 用subagent来产生」):
-1. **The implementor writes the matrix.** It reads the brief and writes
-   `~/.mdpro-redesign/herdr-spike/<name>/<item>-test-matrix.md`, following the skill's
-   `references/test-matrix.md`. For each AC it lists the cases:
+It works in four steps inside the implementor's run of
+`$tdd-guardian:tdd-guardian-workflow` (current user decision, 2026-10-24). The previous
+`.codex/skills/mdpro-tdd-workflow/` port is retained only for historical handoffs:
+1. **Design tests.** The plugin's design-tests stage writes and attacks the test matrix before implementation.
+   The implementor also records the matrix under
+   `~/.mdpro-redesign/herdr-spike/<name>/<item>-test-matrix.md` for the delegator. For each AC it lists:
    - success;
    - boundary (empty, max, CJK);
    - invalid input;
@@ -279,16 +310,13 @@ It works in four steps, all inside the implementor's run of
    - platform, where it applies.
 
    Each case names its assertion (document, state or IPC effect, not a boolean) and its test file.
-2. **The implementor has it attacked by a subagent.** It spawns the Codex custom agent
-   `mdpro-spec-adversary` (`.codex/agents/mdpro-spec-adversary.toml`: `gpt-6-astra`, effort high,
-   read-only, a fresh context). It gives the agent the brief, the plan, the matrix and the code
-   paths, and writes the report verbatim to `<item>-attack.md`. The adversary returns:
+2. **Independent matrix attack.** The plugin's spec-adversary attacks the completed matrix.
+   The implementor copies its findings verbatim to `<item>-attack.md`. The adversary returns:
    - each wrong implementation that would pass every case;
    - the case that would catch it.
 
-   The implementor must not run the attack itself. If the agent can't be spawned, it writes
-   `ATTACK-NOT-RUN` and stops, and the delegator has an Opus `tdd-guardian:tdd-spec-adversary` attack
-   the matrix instead.
+   The implementor must not run the attack itself. If the plugin's adversary cannot run, it writes
+   `ATTACK-NOT-RUN` and stops for a delegator ruling.
 3. **The implementor amends the matrix.** It adds each gap's case, or rejects the gap in the attack
    file with a counter-proof: an existing case that kills it, or the brief's Out of scope. If it added
    cases, it re-attacks once. It stops and asks the delegator about:
@@ -297,9 +325,10 @@ It works in four steps, all inside the implementor's run of
 4. **The implementor writes the tests and records the REDs.** Only after that does it touch
    production code.
 
-The delegator checks the attack file and the matrix when it confirms the handoff. The workflow's
-other steps (plan, the per-WI receipts, the coverage self-check, the `mdpro-tdd-reviewer` subagent,
-the gates and the handoff table) are in the skill.
+The delegator checks the attack file and the matrix when it confirms the handoff. The plugin runs
+plan, per-WI RED receipts, coverage, optional mutation, review, and its commit gate. The mdpro brief
+adds exact lanes and a self-acceptance handoff. The plugin does not commit; after its gates complete,
+the implementor makes the branch commit required by the brief outside the workflow.
 
 The step applies to every grant. On a fix round it applies when the finding is a missed case,
 which covers all three Highs above. A fix the brief fully specifies with its regression test can
@@ -317,23 +346,17 @@ before any audit starts.
 
 ## Audits under herdr
 
-- **PRs.** In one turn the delegator sends:
-  - gpt-auditor its request;
-  - opus-auditor its request, in a fresh pane (§ Fresh context, ADR-0137), on the same range and the
-    same dimensions;
-  - and, on the High tier, a fork that runs `/security-review` on the range's diff, the job
-    ADR-0121 gave mdpro-codex-audit.
-
-  A `/security-review` that cannot run keeps the gate closed.
-- **Round one is blind.**
-  - Neither auditor posts on the PR.
-  - Before its own round-one verdict, neither reads the other's `herdr-spike` folder,
-    `herdr-spike/delegator/`, or any PR comment.
-  - Once both are in, the delegator posts each report, then the merged verdict.
-- **ADRs and plans.** gpt-auditor (the `review-plan` dimensions: consistency, completeness,
-  feasibility, ambiguity, risk) and opus-auditor in `plan` mode (ADR-0137; before it, an Opus `mdpro-fable-auditor` subagent,
-  `model: "opus"`). Both are blind, and their verdicts are merged as for PRs. Fable does not review
-  ADRs (ADR-0118).
+- **PRs.** The delegator sends one fresh-pane request to `gpt-auditor` on the exact range.
+  On High tier, the request also requires an explicit security review section and count.
+  Optional `opus-auditor` follows § Delegator runtime route; it never replaces
+  this required request.
+- **Round one is blind to PR comments and delegator conclusions.** `gpt-auditor` writes its report;
+  the delegator checks the evidence and posts the report when a PR exists. It records a
+  single-auditor verdict unless the optional Opus audit ran; then it merges both reports.
+  Any blocking Critical or High stays open until a scoped gpt-auditor confirm closes it.
+- **ADRs and plans.** `gpt-auditor` reviews consistency, completeness, feasibility, ambiguity and
+  risk in a fresh pane. The delegator records the applicable verdict and asks the user about
+  unresolved decisions.
 
 ## Slots
 

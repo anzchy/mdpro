@@ -26,10 +26,12 @@ Codex loads only this file. It does not load `CLAUDE.md` or `.claude/rules/`, an
 |---|---|
 | `AskUserQuestion`, or `SendMessage` to `mdpro-delegator` | Stop and put the question in your final message. The delegator drives you through herdr and reads your pane. Never ask the user directly. |
 | A rule-25 confirmation | Same: stop and name the exact command and what it could lose. |
-| `/tdd-guardian:workflow` and its steps | Run the project skill `$mdpro-tdd-workflow` (`.codex/skills/mdpro-tdd-workflow/`). It spawns the custom agents `mdpro-spec-adversary` and `mdpro-tdd-reviewer` from `.codex/agents/`. |
+| `/tdd-guardian:workflow` and its steps | Run `$tdd-guardian:tdd-guardian-workflow` from the installed plugin. The brief, rules 10/71, project gates, and self-acceptance handoff still apply. The old `.codex/skills/mdpro-tdd-workflow/` port is archived for prior handoffs. |
 | Other `/` skills, `Agent` subagents | Run the lanes in rule 10's tables yourself, through `scripts/heavy-lock.sh`, and report each command and its result. |
 | Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
 | A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path in your final message. |
+
+**Delegator routing:** If you hold `herdr-delegator`, run the [mdpro-delegator Skill](.agents/skills/mdpro-delegator/SKILL.md) and follow [rule 71's runtime route](.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route). Codex uses the completion-listener scripts; Claude uses its original background Bash and Claude tools. The agent roster is shared; Opus audit is optional only on the Claude route with the user's request and sufficient usage.
 
 ## Project Structure & Module Organization
 - `src/` holds the React + TypeScript UI (entry in `src/main.tsx`, main component in `src/App.tsx`).
