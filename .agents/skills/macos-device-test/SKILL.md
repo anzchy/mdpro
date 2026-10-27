@@ -221,31 +221,27 @@ unprovable. See §7.
 
 ## 4. Launch
 
-Launch the fresh bundle **by absolute path**, and hand it the fixture on the
+Launch the fresh bundle **by absolute path** and have the command check the
+process, release id, and startup window event. Hand it the fixture on the
 command line. This also sidesteps the native file dialog, which `rfd` renders
 as a blocking modal that is tedious to drive:
 
 ```bash
-open -a "$PWD/src-tauri/target/release/bundle/macos/mdpro.app" \
-     "$SCRATCHPAD/wi36-duplicate-headings.md"
+pnpm device:identity --bundle "$PWD/src-tauri/target/release/bundle/macos/mdpro.app" \
+  --file "$SCRATCHPAD/wi36-duplicate-headings.md" \
+  --expected-release-id "$EXPECTED_RELEASE_ID" --out "$SCRATCHPAD/identity-report.txt"
 ```
 
-Then confirm the running process is the one you built — not the installed copy,
-not a leftover from a previous run:
+Set `EXPECTED_RELEASE_ID` to the value recorded for the build (`node
+scripts/release/devReleaseId.mjs` on its clean checkout). All four lines must
+say PASS and the command must exit 0. A FAIL or SKIPPED line voids this launch's
+device evidence. `--out` is overwritten atomically for every attempt: a crash
+leaves `IN PROGRESS`, which is no result. The command never cleans or quits
+another process; resolve any preexisting app before trying again.
 
-For every launch, read the new `app.ready` line in `~/.mdpro/mdpro.log`.
-`app.ready.releaseId` must equal the value printed by
-`node scripts/release/devReleaseId.mjs` for this checkout (or the recorded
-value from the build). `releaseId:"unknown"` means the wrong build; stop the
-device check and rebuild before drawing a verdict.
-
-```bash
-ps -Ao pid,lstart,comm | grep -i mdpro | grep -v grep
-```
-
-The `comm` column must show the `target/release/bundle` path. Kill strays
-first; a previous `pnpm tauri dev` and the installed app can both leave
-`mdpro_mcp` sidecars behind.
+`pnpm device:identity` checks `app.ready.releaseId`: `releaseId` PASS requires
+the first `app.ready.releaseId` written after launch to equal the expected
+value. A `releaseId` of `unknown` means the wrong build; stop this device run.
 
 ---
 
