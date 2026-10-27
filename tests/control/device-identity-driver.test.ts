@@ -71,6 +71,61 @@ function deferred() {
 }
 
 describe("device identity driver", () => {
+  it("an owner whose lock helper died cannot write the archive", async () => {
+    const f = fixture();
+    const holdB = deferred();
+    let bRun: Promise<IdentityResult> | undefined;
+    let bMarker = "";
+    // @ts-expect-error -- fixture omits optional failure-injection hooks
+    f.deps.beforeCommit = async (lock: { pid: number; waitForExit: () => Promise<void> }) => {
+      process.kill(lock.pid, "SIGKILL");
+      await lock.waitForExit();
+      const bDeps = { ...f.deps, beforeCommit: undefined,
+        scanProcesses: async () => [f.process],
+        readLog: async () => { await holdB.wait; return f.records; } };
+      bRun = runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId,
+        "--check-only", "--out", f.out], bDeps);
+      bMarker = await waitForNewMarker(f.out, fs.readFileSync(f.out, "utf8"));
+    };
+    const a = await runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out], f.deps);
+    expect(a.exit).toBe(1);
+    expect(a.report).toBe("[FAIL] bundle\n[FAIL] process\n[FAIL] releaseId\n[SKIPPED] window\n");
+    expect(fs.readFileSync(f.out, "utf8")).toBe(bMarker);
+    holdB.release();
+    const b = await bRun;
+    if (!b) throw new Error("B did not start");
+    expect(b.exit).toBe(0);
+    expect(fs.readFileSync(f.out, "utf8")).toBe(b.report);
+  });
+
+  it("does not write after the helper dies at the first acquired point", async () => {
+    const f = fixture();
+    fs.writeFileSync(f.out, "[PASS] prior archive\n");
+    const holdB = deferred();
+    let bRun: Promise<IdentityResult> | undefined;
+    let bMarker = "";
+    // @ts-expect-error -- fixture omits optional failure-injection hooks
+    f.deps.afterLock = async (lock: { pid: number; waitForExit: () => Promise<void> }) => {
+      process.kill(lock.pid, "SIGKILL");
+      await lock.waitForExit();
+      const bDeps = { ...f.deps, afterLock: undefined,
+        scanProcesses: async () => [f.process],
+        readLog: async () => { await holdB.wait; return f.records; } };
+      bRun = runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId,
+        "--check-only", "--out", f.out], bDeps);
+      bMarker = await waitForNewMarker(f.out, "[PASS] prior archive\n");
+    };
+    const a = await runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out], f.deps);
+    expect(a.exit).toBe(1);
+    expect(a.report).toBe("[FAIL] bundle\n[FAIL] process\n[FAIL] releaseId\n[SKIPPED] window\n");
+    expect(fs.readFileSync(f.out, "utf8")).toBe(bMarker);
+    holdB.release();
+    const b = await bRun;
+    if (!b) throw new Error("B did not start");
+    expect(b.exit).toBe(0);
+    expect(fs.readFileSync(f.out, "utf8")).toBe(b.report);
+  });
+
   it("refuses same-path contenders while A polls and preserves A's marker", async () => {
     const f = fixture();
     const hold = deferred();
@@ -184,6 +239,10 @@ describe("device identity driver", () => {
     const loser = await Promise.race([...runs,
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("loser did not refuse")), 1000))]);
     expect(loser.exit).toBe(1);
+    const pollingDeadline = Date.now() + 3000;
+    while (polling === 0 && Date.now() < pollingDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
     expect(polling).toBe(1);
     expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
     hold.release();

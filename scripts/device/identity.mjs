@@ -4,7 +4,6 @@
  * a refused contender prints FAIL and leaves the owner's archive untouched.
  */
 import { execFile } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,13 +18,6 @@ const exec = promisify(execFile);
 const LOG_PATH = path.join(process.env.HOME ?? "", ".mdpro", "mdpro.log");
 const TIMEOUT_MS = 20_000;
 const POLL_MS = 100;
-
-async function atomicReport(file, contents) {
-  const temp = `${file}.${process.pid}.${randomUUID()}.tmp`;
-  await fs.writeFile(temp, contents, { mode: 0o600 });
-  try { await fs.rename(temp, file); }
-  finally { await fs.unlink(temp).catch(() => {}); }
-}
 
 async function bundleExists(bundle) {
   try { return (await fs.stat(bundle)).isDirectory() && bundle.endsWith(".app"); }
@@ -140,15 +132,13 @@ export async function runIdentity(args, injected = {}) {
   const refusal = { lines: ["[FAIL] bundle", "[FAIL] process", "[FAIL] releaseId", "[SKIPPED] window"], exit: 1 };
   const lock = earlyOut ? await acquireReportLock(earlyOut) : null;
   if (earlyOut && !lock) return { ...refusal, report: `${refusal.lines.join("\n")}\n` };
-  const marker = earlyOut ? `IN PROGRESS ${randomUUID()}\n` : null;
   try {
-    if (earlyOut) await atomicReport(earlyOut, marker);
+    if (earlyOut) await deps.afterLock?.(lock);
     const finish = async (result) => {
       const report = `${result.lines.join("\n")}\n`;
       if (earlyOut) {
-        const current = await fs.readFile(earlyOut, "utf8").catch(() => null);
-        if (!lock.isHeld() || current !== marker) return { ...refusal, report: `${refusal.lines.join("\n")}\n` };
-        await atomicReport(earlyOut, report);
+        await deps.beforeCommit?.(lock);
+        if (!await lock.commit(report)) return { ...refusal, report: `${refusal.lines.join("\n")}\n` };
       }
       return { ...result, report };
     };
