@@ -1,6 +1,7 @@
 /**
  * Purpose: launch one device bundle by path and archive the observed identity.
- * No process is killed, quit, or cleaned here. The archive always describes this run.
+ * No process is killed, quit, or cleaned here. A report path has one owner;
+ * a refused contender prints FAIL and leaves the owner's archive untouched.
  */
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -12,6 +13,7 @@ import { readExe } from "../control/procFacts.mjs";
 import { main as devReleaseId } from "../release/devReleaseId.mjs";
 import { evaluateIdentity } from "./identityChecks.mjs";
 import { parseIdentityOptions } from "./identityOptions.mjs";
+import { acquireReportLock } from "./reportLock.mjs";
 
 const exec = promisify(execFile);
 const LOG_PATH = path.join(process.env.HOME ?? "", ".mdpro", "mdpro.log");
@@ -30,7 +32,7 @@ async function bundleExists(bundle) {
   catch { return false; }
 }
 
-/** Select only mdpro's Tauri main binaries from the `ps pid=,comm=` column. */
+/** Legacy parser kept for captured process-table fixtures; never used for identity discovery. */
 export function parseMainPids(stdout) {
   const candidates = [];
   for (const line of stdout.split("\n")) {
@@ -45,11 +47,49 @@ export function parseMainPids(stdout) {
   return candidates;
 }
 
-async function scanProcesses() {
+const MAIN_EXE_RE = /(?:\/mdpro[^/]*\.app\/Contents\/MacOS\/tauri-app|\/src-tauri\/target\/(?:[^/]+\/)?debug\/tauri-app)$/i;
+
+/** Select every mdpro main from each PID's first lsof txt path, independent of argv0. */
+export function parseExecutableTable(stdout) {
+  const candidates = [];
+  let pid = null;
+  let firstPathSeen = false;
+  let txtSeen = false;
+  let sawField = false;
+  for (const line of stdout.split("\n")) {
+    if (!line) continue;
+    if (line.startsWith("p")) {
+      if (pid !== null && !firstPathSeen) return null;
+      const value = Number(line.slice(1));
+      if (!Number.isSafeInteger(value) || value <= 0) return null;
+      pid = value;
+      firstPathSeen = false;
+      txtSeen = false;
+      sawField = true;
+    } else if (line === "ftxt") {
+      if (pid === null) return null;
+      txtSeen = true;
+    } else if (line.startsWith("n")) {
+      if (pid === null || !txtSeen) return null;
+      if (!firstPathSeen) {
+        const exe = line.slice(1);
+        if (!exe.startsWith("/")) return null;
+        if (MAIN_EXE_RE.test(exe)) candidates.push(pid);
+        firstPathSeen = true;
+      }
+    } else {
+      return null;
+    }
+  }
+  return pid !== null && !firstPathSeen ? null : sawField ? candidates : null;
+}
+
+/** Enumerate real executable identities without trusting the argv0-derived comm column. */
+export async function scanProcesses() {
   let stdout;
-  try { ({ stdout } = await exec("ps", ["-axww", "-o", "pid=,comm="], { env: { ...process.env, LC_ALL: "C" }, timeout: 5000 })); }
+  try { ({ stdout } = await exec("lsof", ["-nP", "-d", "txt", "-Fpn"], { env: { ...process.env, LC_ALL: "C" }, timeout: 5000, maxBuffer: 32 * 1024 * 1024 })); }
   catch { return [{ pid: -1, exe: "unknown", birthMs: 0 }]; }
-  const candidates = parseMainPids(stdout);
+  const candidates = parseExecutableTable(stdout);
   if (candidates === null) return [{ pid: -1, exe: "unknown", birthMs: 0 }];
   return Promise.all(candidates.map(async (pid) => {
     const exe = await readExe(pid);
@@ -97,41 +137,55 @@ export async function runIdentity(args, injected = {}) {
   const deps = { ...defaults, ...injected };
   const outIndex = args.indexOf("--out");
   const earlyOut = outIndex >= 0 && path.isAbsolute(args[outIndex + 1] ?? "") ? args[outIndex + 1] : undefined;
-  if (earlyOut) await atomicReport(earlyOut, "IN PROGRESS\n");
-  const finish = async (result) => {
-    const report = `${result.lines.join("\n")}\n`;
-    if (earlyOut) await atomicReport(earlyOut, report);
-    return { ...result, report };
-  };
-  let options;
-  try { options = await parseIdentityOptions(args, deps); }
-  catch { return finish({ lines: ["[FAIL] bundle", "[FAIL] process", "[FAIL] releaseId", "[SKIPPED] window"], exit: 1 }); }
-  const exists = await bundleExists(options.bundlePath);
-  if (!exists) return finish(evaluateIdentity({ bundlePath: options.bundlePath, bundleExists: false,
-    expectedReleaseId: options.expectedReleaseId, processes: [], records: [] }));
+  const refusal = { lines: ["[FAIL] bundle", "[FAIL] process", "[FAIL] releaseId", "[SKIPPED] window"], exit: 1 };
+  const lock = earlyOut ? await acquireReportLock(earlyOut) : null;
+  if (earlyOut && !lock) return { ...refusal, report: `${refusal.lines.join("\n")}\n` };
+  const marker = earlyOut ? `IN PROGRESS ${randomUUID()}\n` : null;
+  try {
+    if (earlyOut) await atomicReport(earlyOut, marker);
+    const finish = async (result) => {
+      const report = `${result.lines.join("\n")}\n`;
+      if (earlyOut) {
+        const current = await fs.readFile(earlyOut, "utf8").catch(() => null);
+        if (!lock.isHeld() || current !== marker) return { ...refusal, report: `${refusal.lines.join("\n")}\n` };
+        await atomicReport(earlyOut, report);
+      }
+      return { ...result, report };
+    };
+    let options;
+    try { options = await parseIdentityOptions(args, deps); }
+    catch { return await finish(refusal); }
+    const exists = await bundleExists(options.bundlePath);
+    if (!exists) return await finish(evaluateIdentity({ bundlePath: options.bundlePath, bundleExists: false,
+      expectedReleaseId: options.expectedReleaseId, processes: [], records: [] }));
 
-  const before = await deps.scanProcesses();
-  if (!options.checkOnly && before.length !== 0) return finish(evaluateIdentity({ bundlePath: options.bundlePath,
-    bundleExists: true, expectedReleaseId: options.expectedReleaseId, processes: before, records: [] }));
+    const before = await deps.scanProcesses();
+    if (!options.checkOnly && before.length !== 0) return await finish(evaluateIdentity({ bundlePath: options.bundlePath,
+      bundleExists: true, expectedReleaseId: options.expectedReleaseId, processes: before, records: [] }));
+    if (options.checkOnly && before.length !== 1) return await finish(evaluateIdentity({ bundlePath: options.bundlePath,
+      bundleExists: true, expectedReleaseId: options.expectedReleaseId, processes: before, records: [] }));
 
-  const cursor = options.checkOnly ? null : await deps.logCursor();
-  if (!options.checkOnly) {
-    try { await deps.launch(["-n", options.bundlePath, ...(options.filePath ? [options.filePath] : [])]); }
-    catch { return finish(evaluateIdentity({ bundlePath: options.bundlePath, bundleExists: true,
-      expectedReleaseId: options.expectedReleaseId, processes: [], records: [] })); }
+    const cursor = options.checkOnly ? null : await deps.logCursor();
+    if (!options.checkOnly) {
+      try { await deps.launch(["-n", options.bundlePath, ...(options.filePath ? [options.filePath] : [])]); }
+      catch { return await finish(evaluateIdentity({ bundlePath: options.bundlePath, bundleExists: true,
+        expectedReleaseId: options.expectedReleaseId, processes: [], records: [] })); }
+    }
+    const deadline = deps.now() + deps.timeoutMs;
+    let records = [];
+    do {
+      records = await deps.readLog(cursor);
+      if (options.checkOnly) records = records.filter((record) => recordTime(record) >= before[0]?.birthMs && before[0]?.birthMs > 0);
+      if (records.some((record) => record.event === "app.ready")) break;
+      if (deps.now() >= deadline) break;
+      await deps.sleep(POLL_MS);
+    } while (true);
+    const processes = await deps.scanProcesses();
+    return await finish(evaluateIdentity({ bundlePath: options.bundlePath, bundleExists: true,
+      expectedReleaseId: options.expectedReleaseId, processes, records }));
+  } finally {
+    if (lock) await lock.release();
   }
-  const deadline = deps.now() + deps.timeoutMs;
-  let records = [];
-  do {
-    records = await deps.readLog(cursor);
-    if (options.checkOnly) records = records.filter((record) => recordTime(record) >= before[0]?.birthMs && before[0]?.birthMs > 0);
-    if (records.some((record) => record.event === "app.ready")) break;
-    if (deps.now() >= deadline) break;
-    await deps.sleep(POLL_MS);
-  } while (true);
-  const processes = await deps.scanProcesses();
-  return finish(evaluateIdentity({ bundlePath: options.bundlePath, bundleExists: true,
-    expectedReleaseId: options.expectedReleaseId, processes, records }));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

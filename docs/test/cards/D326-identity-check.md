@@ -19,4 +19,4 @@
 
 ## Failure condition
 
-Any incorrect bundle, process, release id, or window verdict fails the card. An `IN PROGRESS` report means the command was interrupted and supplies no result. Do not use the launch for any feature test unless step 2 passed.
+Any incorrect bundle, process, release id, or window verdict fails the card. An `IN PROGRESS` report means the command was interrupted and supplies no result. A second command using the same `--out` while one is running prints FAIL on stdout and leaves the first command's archive untouched; wait for it to finish or choose a different path. Do not use the launch for any feature test unless step 2 passed.

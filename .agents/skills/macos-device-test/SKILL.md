@@ -235,9 +235,12 @@ pnpm device:identity --bundle "$PWD/src-tauri/target/release/bundle/macos/mdpro.
 Set `EXPECTED_RELEASE_ID` to the value recorded for the build (`node
 scripts/release/devReleaseId.mjs` on its clean checkout). All four lines must
 say PASS and the command must exit 0. A FAIL or SKIPPED line voids this launch's
-device evidence. `--out` is overwritten atomically for every attempt: a crash
-leaves `IN PROGRESS`, which is no result. The command never cleans or quits
-another process; resolve any preexisting app before trying again.
+device evidence. One command owns a given `--out` path at a time. A simultaneous
+command for that path prints FAIL on stdout and leaves the owner's archive
+untouched; use a different path or wait for the first command to finish. An
+accepted run replaces the archive atomically, and a crash leaves `IN PROGRESS`
+with its run id, which is no result. The command never cleans or quits another
+process; resolve any preexisting app before trying again.
 
 `pnpm device:identity` checks `app.ready.releaseId`: `releaseId` PASS requires
 the first `app.ready.releaseId` written after launch to equal the expected
