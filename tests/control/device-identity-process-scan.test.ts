@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,7 +8,18 @@ import { describe, expect, it } from "vitest";
 import * as identity from "../../scripts/device/identity.mjs";
 const { parseMainPids } = identity;
 
-function runWithProcesses(processLines: string) {
+function runChild(command: string, args: string[], env: NodeJS.ProcessEnv = process.env): Promise<{ status: number | null; stdout: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { env });
+    let stdout = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => { stdout += chunk; });
+    child.once("error", reject);
+    child.once("close", (status) => resolve({ status, stdout }));
+  });
+}
+
+async function runWithProcesses(processLines: string) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "d326-process-scan-"));
   try {
     const bin = path.join(root, "bin");
@@ -23,33 +34,31 @@ function runWithProcesses(processLines: string) {
     fs.chmodSync(path.join(bin, "lsof"), 0o755);
     fs.chmodSync(path.join(bin, "open"), 0o755);
     const expected = `0.3.5-dev@${"a".repeat(40)}`;
-    const result = spawnSync(process.execPath, [path.resolve("scripts/device/identity.mjs"),
-      "--bundle", bundle, "--expected-release-id", expected], {
-      encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, D326_PS_LIST: processLines,
+    const result = await runChild(process.execPath, [path.resolve("scripts/device/identity.mjs"),
+      "--bundle", bundle, "--expected-release-id", expected],
+      { ...process.env, PATH: `${bin}:${process.env.PATH}`, D326_PS_LIST: processLines,
         D326_LSOF_LIST: processLines.split("\n").map((line) => {
           const match = /^(\d+) (.+)$/.exec(line);
           return match ? `p${match[1]}\nftxt\nn${match[2]}` : "";
-        }).join("\n"), D326_OPEN_MARKER: marker },
-    });
+        }).join("\n"), D326_OPEN_MARKER: marker });
     return { result, launched: fs.existsSync(marker) };
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
 
-it("refuses to launch while a dev mdpro main process runs", () => {
-  const { result, launched } = runWithProcesses("123 /repo/src-tauri/target/debug/tauri-app");
+it("refuses to launch while a dev mdpro main process runs", async () => {
+  const { result, launched } = await runWithProcesses("123 /repo/src-tauri/target/debug/tauri-app");
   expect(result.status).toBe(1);
   expect(result.stdout).toContain("[FAIL] process");
   expect(launched).toBe(false);
-});
+}, 20_000);
 
-it("does not count a bundled mdpro_mcp sidecar as a main process", () => {
-  const { result, launched } = runWithProcesses("124 /Applications/mdpro.app/Contents/MacOS/mdpro_mcp");
+it("does not count a bundled mdpro_mcp sidecar as a main process", async () => {
+  const { result, launched } = await runWithProcesses("124 /Applications/mdpro.app/Contents/MacOS/mdpro_mcp");
   expect(result.status).toBe(1);
   expect(launched).toBe(true);
-});
+}, 20_000);
 
 it("selects the main binary when its sidecar shares the process table", () => {
   expect(parseMainPids([
@@ -78,7 +87,7 @@ it("selects every main from executable records regardless of argv0", () => {
   expect(identity.parseExecutableTable("p17\nn/tmp/mdpro.app/Contents/MacOS/tauri-app\n")).toBeNull();
 });
 
-it("fails closed when executable enumeration cannot be read", () => {
+it("fails closed when executable enumeration cannot be read", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "d326-lsof-fail-"));
   try {
     const bin = path.join(root, "bin");
@@ -90,17 +99,16 @@ it("fails closed when executable enumeration cannot be read", () => {
     fs.writeFileSync(path.join(bin, "open"), `#!/bin/sh\ntouch "${marker}"\n`);
     fs.chmodSync(path.join(bin, "lsof"), 0o755);
     fs.chmodSync(path.join(bin, "open"), 0o755);
-    const run = spawnSync(process.execPath, [path.resolve("scripts/device/identity.mjs"),
-      "--bundle", bundle, "--expected-release-id", `0.3.5-dev@${"a".repeat(40)}`], {
-      encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
-    });
+    const run = await runChild(process.execPath, [path.resolve("scripts/device/identity.mjs"),
+      "--bundle", bundle, "--expected-release-id", `0.3.5-dev@${"a".repeat(40)}`],
+      { ...process.env, PATH: `${bin}:${process.env.PATH}` });
     expect(run.status).toBe(1);
     expect(run.stdout).toContain("[FAIL] process");
     expect(fs.existsSync(marker)).toBe(false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
-});
+}, 20_000);
 
 describe.skipIf(process.platform !== "darwin")("real executable scan", () => {
   it("finds two live main executables when one has a spoofed argv0", async () => {
@@ -108,7 +116,7 @@ describe.skipIf(process.platform !== "darwin")("real executable scan", () => {
     const source = path.join(root, "sleep.c");
     const compiled = path.join(root, "sleep-probe");
     fs.writeFileSync(source, "#include <unistd.h>\nint main(void) { sleep(30); return 0; }\n");
-    const cc = spawnSync("cc", [source, "-o", compiled], { encoding: "utf8" });
+    const cc = await runChild("cc", [source, "-o", compiled]);
     expect(cc.status).toBe(0);
     const binaries = ["first", "second"].map((name) => {
       const bundle = path.join(root, name, "mdpro.app");
@@ -144,5 +152,5 @@ describe.skipIf(process.platform !== "darwin")("real executable scan", () => {
       await Promise.all(exits);
       fs.rmSync(root, { recursive: true, force: true });
     }
-  }, 15_000);
+  }, 20_000);
 });

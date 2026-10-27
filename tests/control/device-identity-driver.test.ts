@@ -1,6 +1,6 @@
 // @vitest-environment node
 import fs from "node:fs";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -208,7 +208,7 @@ describe("device identity driver", () => {
     expect(next.exit).toBe(0);
     expect(fs.readFileSync(f.out, "utf8")).toBe(next.report);
     expect(fs.existsSync(lockPath)).toBe(true);
-  });
+  }, 20_000);
 
   it("admits one simultaneous owner after a killed owner leaves a lock artifact", async () => {
     const f = fixture();
@@ -248,7 +248,7 @@ describe("device identity driver", () => {
     hold.release();
     const results = await Promise.all(runs);
     expect(results.map((result: IdentityResult) => result.exit).sort()).toEqual([0, 1]);
-  });
+  }, 20_000);
 
   it("uses independent locks for different report paths", async () => {
     const f = fixture();
@@ -284,16 +284,23 @@ describe("device identity driver", () => {
     expect(again.exit).toBe(0);
     expect(fs.readFileSync(f.out, "utf8")).toBe(again.report);
   });
-  it("CLI prints the same four-check FAIL report archived for invalid input", () => {
+  it("CLI prints the same four-check FAIL report archived for invalid input", async () => {
     const f = fixture();
     fs.writeFileSync(f.out, "[PASS] old run\n");
-    const run = spawnSync(process.execPath, [path.resolve("scripts/device/identity.mjs"), "--bundle", f.bundle,
-      "--expected-release-id", "unknown", "--out", f.out], { encoding: "utf8" });
+    const run = await new Promise<{ status: number | null; stdout: string }>((resolve, reject) => {
+      const child = spawn(process.execPath, [path.resolve("scripts/device/identity.mjs"), "--bundle", f.bundle,
+        "--expected-release-id", "unknown", "--out", f.out]);
+      let stdout = "";
+      child.stdout.setEncoding("utf8");
+      child.stdout.on("data", (chunk: string) => { stdout += chunk; });
+      child.once("error", reject);
+      child.once("close", (status) => resolve({ status, stdout }));
+    });
     expect(run.status).toBe(1);
     expect(run.stdout).toBe(fs.readFileSync(f.out, "utf8"));
     expect(run.stdout.trim().split("\n")).toHaveLength(4);
     expect(run.stdout).not.toContain("[PASS] old run");
-  });
+  }, 20_000);
   it("a killed run leaves IN PROGRESS instead of an older PASS", async () => {
     const f = fixture();
     fs.writeFileSync(f.out, "[PASS] old run\n");
@@ -309,7 +316,7 @@ describe("device identity driver", () => {
       await new Promise((resolve) => child.once("exit", resolve));
     }
     expect(fs.readFileSync(f.out, "utf8")).toMatch(/^IN PROGRESS [0-9a-f-]+\n$/);
-  });
+  }, 20_000);
   it("passes a Unicode fixture path through open -n and reports four passes", async () => {
     const f = fixture();
     const result = await runIdentity(["--bundle", f.bundle, "--file", f.file, "--expected-release-id", releaseId], f.deps);

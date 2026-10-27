@@ -3,6 +3,10 @@
   "generatedFrom": "local Vitest JSON run 2026-10-21, 12367 passed; reviewed against skip gates; D302 heartbeat/probe entries reviewed after gated tests were added",
   "tests": [
     {
+      "id": ["tests/control/device-identity-process-scan.test.ts", "real executable scan", "finds two live main executables when one has a spoofed argv0"],
+      "prerequisite": "macos"
+    },
+    {
       "id": ["tests/tooling/codex-role-rules-composition.test.ts", "auditor composes with the shared policy"],
       "prerequisite": "codex-cli"
     },
