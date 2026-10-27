@@ -192,11 +192,18 @@ handoff. Each item is tagged `prep` or `impl`.
    rule 25 for PR branches only, never `master`, `release/x.y` or a tag
    ([ADR-0095](../../docs/adr/0095-pull-request-ci-is-a-landing-gate.md)). It
    runs `git merge --ff-only <sha>` in the main checkout, and right after it
-   `git push origin master`, only when all three hold:
+   `git push origin master`, only when all four hold:
    - the verifier says PASS;
    - the merged verdict counts zero **blocking** Critical and High findings
      (ADR-0121: a proven pre-existing High is counted but does not block);
-   - the PR's head is that SHA and its required `ci-gate` check is green on it.
+   - the PR's head is that SHA and its required `ci-gate` check is green on it;
+   - every `device` AC of the brief has PASS evidence from a real-app run whose
+     identity matches that SHA, or a user waiver recorded as a gate exception
+     ([ADR-0144](../../docs/adr/0144-behaviour-acs-are-proved-in-the-real-app-before-landing.md),
+     user 2026-10-27: 「Accept (Recommended)」). The brief tags each AC `unit` or
+     `device` and cites its cards in `docs/test/cards/`; the tester role runs the
+     cards after round one's code report; the verifier checks the identity. NOT
+     EXERCISED is not PASS. Windows `device` ACs stay in batches for now.
 
    A red result from a registered intermittent test (D196) may be rerun once
    with `gh run rerun <id> --failed`. A second red blocks the landing.

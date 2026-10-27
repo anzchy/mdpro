@@ -32,6 +32,8 @@ artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anythi
 - the expected parent: the current `master` HEAD
 - the paths the peer says it touched
 - the lanes to re-run, as commands
+- for each `device` AC (ADR-0144): its cards and the pre-landing report path, or "none" for a brief with no
+  `device` AC
 
 ## Procedure
 1. `git cat-file -e <SHA>^{commit}`, else `BLOCKED: unknown sha`. Confirm
@@ -55,7 +57,17 @@ artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anythi
    kind other than `assertion-failure`, or has a verdict other than
    `SEPARATION-HELD`. A settled exception requires the delegator's explicit
    handoff ruling; the verifier reports it as an issue for that ruling.
-5. Lanes: create `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro-wt/verify-<sha7>` with
+4b. Device evidence (ADR-0144 decision 5), for each `device` AC:
+   - the report shows PASS for every card the AC cites;
+   - its `releaseId` SHA is the evidence SHA;
+   - `git diff-tree --no-ext-diff --name-only -r <evidence SHA> <SHA>` lists no path inside the identity, which is
+     everything except `docs/` other than `docs/test/cards/`, `tests/` other than `tests/manual-fixtures/`,
+     `.claude/`, `.agents/`, `.codex/` and `CHANGELOG.md`;
+   - each card's blob id at `<SHA>` equals the one in the report;
+   - each card's quoted AC equals the current text of its anchor at `<SHA>`.
+
+   Any miss is an ISSUE naming the AC; NOT EXERCISED is a miss.
+5. Lanes: create `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` with
    `git worktree add --detach <dir> <SHA>`. If it already exists, return
    `BLOCKED: worktree exists` and do not touch it. Run `pnpm install --frozen-lockfile` there if a
    lane needs node_modules. Run every heavy command (vitest with coverage, tsc, `pnpm build`,
@@ -71,11 +83,13 @@ VERDICT   PASS | ISSUES | BLOCKED        @ <sha>  (parent <parent7>)
 ANCESTRY  ok | not a descendant of <parent7>
 SCOPE     clean | <n> unclaimed paths: <paths>
 RECEIPTS  ok (<n> parent records kept) | missing: <ids> | changed: <ids> | duplicate: <ids>
+DEVICE    ok (<n> device ACs) | none | missing or stale: <ACs and reason>
 FOCUSED-RECEIPTS  ok | pending or invalid: <ids>
 LANES     <lane>: exit <code> ... | not run: <reason>
 FINDINGS
   1. [BLOCK|MUST|SHOULD] <what> — evidence: <command + output line> — fix: <one line>
 NOTES     <flakes and their re-run count, anything the delegator must rule on>
 ```
-PASS requires all of: ancestry ok, scope clean, receipts ok, focused receipts ok, every lane exit 0. Style remarks go
+PASS requires all of: ancestry ok, scope clean, receipts ok, focused receipts ok, device ok or none, every lane exit
+0. Style remarks go
 in NOTES only.
