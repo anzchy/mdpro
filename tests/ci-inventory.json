@@ -2,11 +2,6 @@
   "schemaVersion": 1,
   "generatedFrom": "local Vitest JSON run 2026-10-21, 12367 passed; reviewed against skip gates; D302 heartbeat/probe entries reviewed after gated tests were added",
   "tests": [
-    {"id": ["tests/tooling/adr0141-wi2-skill-text.test.ts", "ADR-0141 WI-2 published guard protocol", "retires the mutable push helper from every skill entry point"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/adr0141-wi2-skill-text.test.ts", "ADR-0141 WI-2 published guard protocol", "publishes checked Codex push and land commands while preserving the Claude route"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/adr0141-wi2-skill-text.test.ts", "ADR-0141 WI-2 published guard protocol", "makes the shared and per-role Codex guard, evasion, and reset order explicit"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/adr0141-wi2-skill-text.test.ts", "ADR-0141 WI-2 published guard protocol", "requires both auditors and at most two rounds in committed skill text"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/adr0141-wi2-skill-text.test.ts", "ADR-0141 WI-2 published guard protocol", "routes macOS device batches through the full-access device reset"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-gui-lock.test.ts", "ADR0141 WI2 GUI lock (requires macos zsh)", "keeps a foreign lock continuously present during a refused release"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-gui-lock.test.ts", "ADR0141 WI2 GUI lock identity and mutex (requires macos zsh)", "keeps the lock path continuously present for a wrong batch releaser"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-gui-lock.test.ts", "ADR0141 WI2 GUI lock identity and mutex (requires macos zsh)", "keeps the lock path continuously present for a wrong acquisition id releaser"], "prerequisite": "macos"},
