@@ -22,8 +22,8 @@ rule wins and this guide is the bug.
 | Name | Runs as | Worktree | Reset |
 |---|---|---|---|
 | gpt-imple-1, gpt-imple-2 | Codex `gpt-6-sol`, `-s danger-full-access`, effort by difficulty (ADR-0138); `gpt-6-luna` high on `routine` items (ADR-0139) | `mdpro-wt/<name>` | `$SK/scripts/reset-codex.sh <name> <wt> <model> <effort> implementor` |
-| gpt-imple-3 | Codex `gpt-5.6-sol` (Low tier; `routine` items on Luna); device tester by Codex Computer Use | `mdpro-wt/gpt-imple-3` | same |
-| gpt-auditor | Codex `gpt-6-sol`, medium, high on `hard` (ADR-0138); no sandbox flag | detached `mdpro-wt/gpt-auditor` | `reset-codex.sh gpt-auditor <wt> gpt-6-sol <effort> auditor` before every request |
+| gpt-imple-3 | Codex `gpt-5.6-sol` (Low tier; `routine` items on Luna) | `mdpro-wt/gpt-imple-3` | same |
+| gpt-auditor | Codex `gpt-6-sol`, medium, high on `hard` (ADR-0138); audit sandboxed, device full access | detached `mdpro-wt/gpt-auditor` | `reset-codex.sh gpt-auditor <wt> gpt-6-sol <effort> auditor` for audit; `reset-codex.sh gpt-auditor <wt> <model> <effort> device` for device |
 | opus-auditor | required by ADR-0143 on every audit | detached `mdpro-wt/opus-auditor` | fresh pane per audit |
 | mac-test/dtrack | retired for future GUI assignments; gpt-auditor owns them | — | — |
 | High-tier security review | gpt-auditor's fresh-pane audit request and security count | auditor worktree | same reset as audit |
@@ -103,6 +103,7 @@ is a dated Status line.
 
 ## 7. Device batches
 
+- Reset the macOS tester with `reset-codex.sh gpt-auditor <wt> <model> <effort> device`, then send its brief from `~/.mdpro-redesign/device/` with `prompt.sh gpt-auditor <file> brief`. Audit requests use an `auditor` reset and `request` dispatch.
 - Batches by area, 6–10 items or about 45 minutes; the failure condition and the proving log line in every item
   (`device-brief-template.md`).
 - **The desktop GUI lock** (`$SK/scripts/gui-lock.sh`, ADR-0134 decision 6): one GUI run at a time. picsee adopted the
@@ -111,8 +112,7 @@ is a dated Status line.
   `gui-lock.sh release <batch> --acquisition-id <uuid>` after cleanup, aborted runs included.
 - Launch only by the verify bundle's path; check one process and `releaseId:"unknown"`.
 - Physical Esc steps need the user; the tester stops with `<batch>-waiting-esc.md`.
-- gpt-imple-3 fails at long matrices and when Computer Use returns `Screenshot unavailable` or cannot type a backtick;
-  send those items to gpt-auditor under a new device brief.
+- gpt-auditor owns all macOS device batches under rule 71; send each batch from a new device-mode pane.
 - The record: header, the delegator's check against the cards (correct the brief's own mistakes openly, e.g. Switch
   Documents is one MRU command, not a list), then the reports verbatim; new findings get D rows in the same commit.
 

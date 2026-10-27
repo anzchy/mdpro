@@ -31,6 +31,10 @@ const op = process.argv.slice(4);
 fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify(["herdr", ...op]) + "\\n");
 if (op[0] === "agent" && op[1] === "get") {
  const name = op[2], delegator = name === "herdr-delegator";
+ if (!delegator && !fs.existsSync(process.env.FAKE_STARTED) && process.env.FAKE_GET_FAILURE) {
+   process.stderr.write(process.env.FAKE_GET_FAILURE + "\\n");
+   process.exit(1);
+ }
  process.stdout.write(JSON.stringify({result:{agent:{agent:delegator?process.env.FAKE_KIND:"claude",agent_status:delegator?"idle":process.env.FAKE_STATUS,pane_id:delegator?"w1:p1":(fs.existsSync(process.env.FAKE_STARTED)?"w1:p8":"w1:p7"),cwd:process.env.FAKE_WT}}}));
 } else if (op[0] === "pane" && op[1] === "split") {
  if (process.env.FAKE_SPLIT_FAIL === "1") process.exit(1);
@@ -87,5 +91,24 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 Fix 1 Opus reset (re
     const result = await run({ ...h.env, FAKE_SPLIT_FAIL: "1" });
     expect(result.code).not.toBe(0);
     expect(h.events().filter((e) => e[0] === "herdr" && (e[1] === "pane" && e[2] === "close" || e[1] === "agent" && e[2] === "start"))).toEqual([]);
+  });
+
+  it("starts an absent opus-auditor from w1:p1 without closing a pane", async () => {
+    const h = harness();
+    const result = await run({ ...h.env, FAKE_GET_FAILURE: "agent_not_found" });
+    expect(result.code, result.stderr + result.stdout).toBe(0);
+    const events = h.events();
+    expect(events.filter((e) => e[0] === "herdr" && e[1] === "pane" && e[2] === "split")).toEqual([
+      ["herdr", "pane", "split", "w1:p1", "--direction", "down", "--cwd", h.wt, "--no-focus", "--env", "MDPRO_ROLE=real-device-tester", "--env", `MDPRO_REPORT_DIR=${h.report}`],
+    ]);
+    expect(events.filter((e) => e[0] === "herdr" && e[1] === "pane" && e[2] === "close")).toEqual([]);
+    expect(events.filter((e) => e[0] === "herdr" && e[1] === "agent" && e[2] === "start")).toHaveLength(1);
+  }, 15000);
+
+  it.each(["transport_error", "transport_error: agent_not_found"])("refuses other get error %s before refresh or pane action", async (error) => {
+    const h = harness();
+    const result = await run({ ...h.env, FAKE_GET_FAILURE: error });
+    expect(result.code).toBe(2);
+    expect(h.events().filter((e) => e[0] === "git" || e[0] === "herdr" && (e[1] === "pane" || e[1] === "agent" && e[2] === "start"))).toEqual([]);
   });
 });

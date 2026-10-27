@@ -1,5 +1,7 @@
 # Device brief <batch>: <area> (Mac mini), from herdr-delegator, <date>
 
+Before dispatch, reset the macOS tester with `reset-codex.sh gpt-auditor <wt> <model> <effort> device` and send this file from `~/.mdpro-redesign/device/` with `prompt.sh gpt-auditor <file> brief`.
+
 **Tester:** <gpt-auditor in a device pane (macOS, rule 71) | remote-windows-device-test (Windows)>. **User:** 「…」 for
 the run. picsee honours the lock, so there is no per-run picsee word
 (`docs/reference/20261027-desktop-gui-lock-agreement-with-picsee.md`).

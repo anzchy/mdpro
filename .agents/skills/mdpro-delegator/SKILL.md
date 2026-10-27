@@ -38,8 +38,9 @@ the request. If a model is unavailable, tell the user. See [rule 71](../../../.c
 1. **Reserve** numbers through Claude's `mdpro-number-registrar` subagent or Codex's equivalent scan; write them to `reservations.md`.
 2. **Brief** from [brief-template.md](references/templates/brief-template.md): tier (ADR-0121) and difficulty
    (ADR-0138), quoted user decisions, a scope fence, ACs with RED receipt ids that are free.
-3. **Reset and prompt**: `$SK/scripts/reset-codex.sh <name> <worktree> <model> <effort> implementor` (use `auditor` for gpt-auditor), then
-   `$SK/scripts/prompt.sh <name> <brief> brief 7200000 <expected-report>` as a detached background call.
+3. **Reset and prompt**: `$SK/scripts/reset-codex.sh <name> <worktree> <model> <effort> implementor` (use `auditor` for a gpt-auditor audit; use `reset-codex.sh gpt-auditor <worktree> <model> <effort> device` for a macOS device batch), then
+   `$SK/scripts/prompt.sh <name> <brief> brief 7200000 <expected-report>` for implementor and device briefs, or
+   `$SK/scripts/prompt.sh gpt-auditor <audit-request> request 7200000 <expected-report>` for audits, as a detached background call.
    Effort: routine low (Luna high, ADR-0139),
    standard medium, hard high.
 4. **Rule on stops** in `<ID>-ruling-<n>.md`; restart a session over 20 % before resuming.
@@ -59,9 +60,8 @@ the request. If a model is unavailable, tell the user. See [rule 71](../../../.c
    `node scripts/codex-rules/land-guard.mjs --docs-only`. On Claude, `git merge --ff-only <sha>`,
    `git push origin master`, then
    [landing-docs-checklist.md](references/templates/landing-docs-checklist.md).
-9. **Device batches** ([device-brief-template.md](references/templates/device-brief-template.md)): picsee honours the shared lock;
-   `$SK/scripts/gui-lock.sh status`, tester gpt-imple-3 (Codex CU) or gpt-auditor
-   for GUI work formerly assigned to dtrack/mac-test (user decision 2026-10-24); record in `docs/test/`.
+9. **Device batches** ([device-brief-template.md](references/templates/device-brief-template.md)): reset with `reset-codex.sh gpt-auditor <worktree> <model> <effort> device`; picsee honours the shared lock;
+   `$SK/scripts/gui-lock.sh status`, and gpt-auditor runs the macOS GUI batch; record in `docs/test/`.
 10. **Log**: `$SK/scripts/heartbeat.py set|note` after every change of assignment, and a handoff file before a restart.
 
 ADRs: [plan-review-request-template.md](references/templates/plan-review-request-template.md), guide §6.

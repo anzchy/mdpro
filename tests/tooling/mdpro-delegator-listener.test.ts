@@ -50,7 +50,7 @@ function harness() {
   const seen = path.join(dir, "seen");
   const delegatorSeen = path.join(dir, "delegator-seen");
   const mainRules = path.join(dir, ".codex/rules");
-  const target = path.join(dir, "target");
+  const target = path.join(dir, "Documents/mac-app/mdpro-wt/gpt-imple-1");
   fs.mkdirSync(mainRules, { recursive: true });
   fs.mkdirSync(path.join(target, ".codex/rules"), { recursive: true });
   fs.writeFileSync(path.join(mainRules, "mdpro-role.rules"), "# Local mdpro role: delegator\n");
@@ -58,6 +58,7 @@ function harness() {
   fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
   const env = {
     ...process.env,
+    HOME: dir,
     PATH: `${dir}:${process.env.PATH ?? ""}`,
     FAKE_HERDR_LOG: log,
     FAKE_HERDR_SEEN: seen,
@@ -68,19 +69,7 @@ function harness() {
   };
   const calls = () => fs.readFileSync(log, "utf8").trim().split("\n").map(line => JSON.parse(line) as string[]);
   const cleanup = () => {
-    for (const name of ["herdr", "calls.jsonl", "seen", "delegator-seen", "heartbeat.json", "heartbeat.json.lock"]) {
-      const file = path.join(dir, name);
-      if (fs.existsSync(file)) fs.unlinkSync(file);
-    }
-    fs.unlinkSync(path.join(mainRules, "mdpro-role.rules"));
-    fs.rmdirSync(mainRules);
-    fs.rmdirSync(path.join(dir, ".codex"));
-    fs.unlinkSync(path.join(target, ".codex/rules/mdpro-role.rules"));
-    fs.unlinkSync(path.join(target, ".codex/rules/.started-at"));
-    fs.rmdirSync(path.join(target, ".codex/rules"));
-    fs.rmdirSync(path.join(target, ".codex"));
-    fs.rmdirSync(target);
-    fs.rmdirSync(dir);
+    fs.rmSync(dir, { recursive: true, force: true });
   };
   return { dir, log, env, calls, cleanup };
 }

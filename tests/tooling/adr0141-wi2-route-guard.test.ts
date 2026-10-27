@@ -19,10 +19,10 @@ function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ co
   });
 }
 
-function harness(kind: "codex" | "claude" = "codex") {
+function harness(kind: "codex" | "claude" = "codex", name = "gpt-imple-2") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "adr0141-route-"));
   dirs.push(root);
-  const main = path.join(root, "main"), target = path.join(root, "target"), bin = path.join(root, "bin");
+  const main = path.join(root, "main"), target = path.join(root, "Documents/mac-app/mdpro-wt", name), bin = path.join(root, "bin");
   for (const dir of [path.join(main, ".codex/rules"), path.join(target, ".codex/rules"), bin]) fs.mkdirSync(dir, { recursive: true });
   const overlay = path.join(main, ".codex/rules/mdpro-role.rules");
   fs.writeFileSync(overlay, "# Local mdpro role: delegator\n");
@@ -43,6 +43,7 @@ if (op[0] === "agent" && op[1] === "get") {
   fs.chmodSync(fake, 0o755);
   const env = {
     ...process.env,
+    HOME: root,
     PATH: `${bin}:${process.env.PATH ?? ""}`,
     MDPRO_GUARD_TEST: "1",
     MDPRO_GUARD_TEST_MAIN: main,
@@ -128,18 +129,18 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 delegator route (req
 
 describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard (requires macos zsh)", () => {
   it.each([["gpt-imple-2", "implementor"], ["opus-imple-1", "implementor"], ["gpt-auditor", "auditor"]])("prompts %s with its %s overlay and fresh pane", async (name, role) => {
-    const h = harness();
+    const h = harness("codex", name);
     fs.writeFileSync(h.targetOverlay, `# Local mdpro role: ${role}\n`);
     h.markStarted();
     const brief = path.join(h.root, "brief.md");
     fs.writeFileSync(brief, "# test brief\n");
-    const result = await run(path.join(scripts, "prompt.sh"), [name, brief, "brief", "1000"], h.env);
+    const result = await run(path.join(scripts, "prompt.sh"), [name, brief, role === "auditor" ? "request" : "brief", "1000"], h.env);
     expect(result.code, result.stderr).toBe(0);
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === name)).toEqual([expect.arrayContaining(["agent", "prompt", name])]);
   });
 
   it.each([["gpt-auditor", "implementor"], ["gpt-imple-2", "auditor"], ["opus-imple-1", "auditor"], ["gpt-stranger", "implementor"], ["gpt-auditor-2", "auditor"]])("refuses %s with %s overlay without a prompt", async (name, role) => {
-    const h = harness();
+    const h = harness("codex", name);
     fs.writeFileSync(h.targetOverlay, `# Local mdpro role: ${role}\n`);
     h.markStarted();
     const brief = path.join(h.root, "brief.md");
@@ -148,6 +149,135 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     expect(result.code).toBe(2);
     expect(result.stderr).toContain("REFUSED");
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt")).toEqual([]);
+  });
+
+  it.each([["gpt-auditor", "auditor", "gpt-imple-1"], ["gpt-imple-1", "implementor", "gpt-auditor"]])("refuses %s with another agent's reported cwd", async (name, role, wrongName) => {
+    const h = harness("codex", name);
+    const wrong = path.join(h.root, "Documents/mac-app/mdpro-wt", wrongName);
+    fs.mkdirSync(path.join(wrong, ".codex/rules"), { recursive: true });
+    fs.writeFileSync(path.join(wrong, ".codex/rules/mdpro-role.rules"), `# Local mdpro role: ${role}\n`);
+    fs.writeFileSync(path.join(wrong, ".codex/rules/.started-at"), "w1:p7\n");
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# test brief\n");
+    const result = await run(path.join(scripts, "prompt.sh"), [name, brief, role === "auditor" ? "request" : "brief", "1000"], { ...h.env, FAKE_TARGET: wrong });
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("REFUSED");
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === name)).toEqual([]);
+  });
+
+  it("accepts a symlinked reported cwd for the named worktree", async () => {
+    const h = harness("codex", "gpt-auditor");
+    fs.writeFileSync(h.targetOverlay, "# Local mdpro role: auditor\n");
+    h.markStarted();
+    const alias = path.join(h.root, "auditor-alias");
+    fs.symlinkSync(h.target, alias);
+    const brief = path.join(h.root, "audit.md");
+    fs.writeFileSync(brief, "# audit\n");
+    const result = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET: alias });
+    expect(result.code, result.stderr).toBe(0);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toHaveLength(1);
+  });
+
+  it.each(["gpt-imple-1", "gpt-imple-2", "gpt-imple-3", "gpt-imple-10", "opus-imple-1"])("binds %s prompt to its own canonical worktree", async (name) => {
+    const h = harness("codex", name);
+    h.markStarted();
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# implement\n");
+    const own = await run(path.join(scripts, "prompt.sh"), [name, brief, "brief", "1000"], h.env);
+    expect(own.code, own.stderr).toBe(0);
+    const foreign = path.join(h.root, "Documents/mac-app/mdpro-wt/foreign");
+    fs.mkdirSync(path.join(foreign, ".codex/rules"), { recursive: true });
+    fs.writeFileSync(path.join(foreign, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
+    fs.writeFileSync(path.join(foreign, ".codex/rules/.started-at"), "w1:p7\n");
+    const crossed = await run(path.join(scripts, "prompt.sh"), [name, brief, "brief", "1000"], { ...h.env, FAKE_TARGET: foreign });
+    expect(crossed.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === name)).toHaveLength(1);
+  });
+
+  it("uses only an explicit, echoed opus-imple-1 prompt override", async () => {
+    const h = harness("codex", "opus-imple-1");
+    const other = path.join(h.root, "other-item");
+    fs.mkdirSync(path.join(other, ".codex/rules"), { recursive: true });
+    fs.writeFileSync(path.join(other, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
+    fs.writeFileSync(path.join(other, ".codex/rules/.started-at"), "w1:p7\n");
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# implement\n");
+    const denied = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: other });
+    expect(denied.code).toBe(2);
+    const accepted = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: other, MDPRO_WORKTREE_OVERRIDE: other });
+    expect(accepted.code, accepted.stderr).toBe(0);
+    expect(accepted.stderr + accepted.stdout).toContain(other);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "opus-imple-1")).toHaveLength(1);
+  });
+
+  it("dispatches device briefs only to a device-mode gpt-auditor pane", async () => {
+    const h = harness("codex", "gpt-auditor");
+    fs.writeFileSync(h.targetOverlay, "# Local mdpro role: auditor\n");
+    const deviceDir = path.join(h.root, ".mdpro-redesign/device");
+    fs.mkdirSync(deviceDir, { recursive: true });
+    const brief = path.join(deviceDir, "batch.md");
+    fs.writeFileSync(brief, "# device batch\n");
+    h.markStarted();
+    const auditPane = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", brief, "brief", "1000"], h.env);
+    expect(auditPane.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toEqual([]);
+    fs.writeFileSync(path.join(h.target, ".codex/rules/.started-at"), "w1:p7 mode=device\n");
+    const devicePane = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", brief, "brief", "1000"], h.env);
+    expect(devicePane.code, devicePane.stderr).toBe(0);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toHaveLength(1);
+  });
+
+  it("dispatches audit requests only to an auditor-mode gpt-auditor pane", async () => {
+    const h = harness("codex", "gpt-auditor");
+    fs.writeFileSync(h.targetOverlay, "# Local mdpro role: auditor\n");
+    const request = path.join(h.root, "audit-request.md");
+    fs.writeFileSync(request, "# audit\n");
+    fs.writeFileSync(path.join(h.target, ".codex/rules/.started-at"), "w1:p7 mode=device\n");
+    const devicePane = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", request, "request", "1000"], h.env);
+    expect(devicePane.code).toBe(2);
+    h.markStarted();
+    const auditPane = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", request, "request", "1000"], h.env);
+    expect(auditPane.code, auditPane.stderr).toBe(0);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toHaveLength(1);
+  });
+
+  it.each(["brief", "request"])("refuses a %s for gpt-auditor on an implementor pane", async (verb) => {
+    const h = harness();
+    h.markStarted();
+    const file = verb === "brief" ? path.join(h.root, ".mdpro-redesign/device/batch.md") : path.join(h.root, "audit.md");
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, "# request\n");
+    const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-2", file, verb, "1000"], h.env);
+    expect(result.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-imple-2")).toEqual([]);
+  });
+
+  it("classifies device briefs by canonical directory rather than path prefix", async () => {
+    const h = harness("codex", "gpt-auditor");
+    fs.writeFileSync(h.targetOverlay, "# Local mdpro role: auditor\n");
+    fs.writeFileSync(path.join(h.target, ".codex/rules/.started-at"), "w1:p7 mode=device\n");
+    const deviceDir = path.join(h.root, ".mdpro-redesign/device");
+    const nested = path.join(deviceDir, "nested/batch.md");
+    fs.mkdirSync(path.dirname(nested), { recursive: true });
+    fs.writeFileSync(nested, "# device\n");
+    const alias = path.join(h.root, "device-alias.md");
+    fs.symlinkSync(nested, alias);
+    const outside = path.join(h.root, "outside.md");
+    fs.writeFileSync(outside, "# outside\n");
+    const escape = path.join(deviceDir, "escape.md");
+    fs.symlinkSync(outside, escape);
+    const sibling = path.join(h.root, ".mdpro-redesign/device-elsewhere/batch.md");
+    fs.mkdirSync(path.dirname(sibling), { recursive: true });
+    fs.writeFileSync(sibling, "# sibling\n");
+    for (const file of [nested, alias]) {
+      const result = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", file, "brief", "1000"], h.env);
+      expect(result.code, result.stderr).toBe(0);
+    }
+    for (const file of [escape, sibling]) {
+      const result = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", file, "brief", "1000"], h.env);
+      expect(result.code).toBe(2);
+    }
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toHaveLength(2);
   });
 
   it.each(["missing", "older", "wrong-pane", "malformed"])("refuses a %s start marker with zero prompts", async (variant) => {
@@ -239,5 +369,37 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
       expect(result.code).toBe(2);
       expect(prompts).toEqual([]);
     }
+  });
+
+  it.each([
+    ["backtick fence", ["```md", "User request: Audit this item", "Claude usage: sufficient", "```"].join("\n")],
+    ["tilde fence", ["~~~md", "User request: Audit this item", "Claude usage: sufficient", "~~~"].join("\n")],
+    ["blockquote", ["> User request: Audit this item", "> Claude usage: sufficient"].join("\n")],
+    ["indentation", ["  User request: Audit this item", "  Claude usage: sufficient"].join("\n")],
+  ])("refuses Opus fields inside %s", async (_variant, contents) => {
+    const h = harness("claude");
+    const brief = path.join(h.root, "opus-brief.md");
+    fs.writeFileSync(brief, `${contents}\n`);
+    const result = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude" });
+    expect(result.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "opus-auditor")).toEqual([]);
+  });
+
+  it("accepts top-level Opus fields after a closed fence", async () => {
+    const h = harness("claude");
+    const brief = path.join(h.root, "opus-brief.md");
+    fs.writeFileSync(brief, ["```md", "User request: stale", "Claude usage: sufficient", "```", "User request: Audit this item", "Claude usage: sufficient"].join("\n") + "\n");
+    const result = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude" });
+    expect(result.code, result.stderr).toBe(0);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "opus-auditor")).toHaveLength(1);
+  });
+
+  it("keeps Opus fields fenced after a marker with trailing text", async () => {
+    const h = harness("claude");
+    const brief = path.join(h.root, "opus-brief.md");
+    fs.writeFileSync(brief, ["```md", "```not-a-close", "User request: Audit this item", "Claude usage: sufficient", "```"].join("\n") + "\n");
+    const result = await run(path.join(scripts, "prompt.sh"), ["opus-auditor", brief, "request", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude" });
+    expect(result.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "opus-auditor")).toEqual([]);
   });
 });

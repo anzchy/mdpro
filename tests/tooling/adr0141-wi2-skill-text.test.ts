@@ -68,4 +68,13 @@ describe("ADR-0141 WI-2 published guard protocol", () => {
     expect(merged).not.toContain("scoped confirm by gpt-auditor");
     expect(merged).toContain("scoped confirm by both auditors");
   });
+
+  it("routes macOS device batches through the full-access device reset", () => {
+    const main = skillText("SKILL.md");
+    const guide = skillText("references/guide.md");
+    const template = skillText("references/templates/device-brief-template.md");
+    for (const text of [main, guide, template]) {
+      expect(text).toMatch(/reset-codex\.sh gpt-auditor <(?:wt|worktree)> <model> <effort> device/);
+    }
+  });
 });

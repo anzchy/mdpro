@@ -20,10 +20,10 @@ function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<{
   });
 }
 
-function harness() {
+function harness(name = "gpt-imple-2") {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "adr0141-reset-"));
   tempDirs.push(root);
-  const main = path.join(root, "main"), wt = path.join(root, "wt"), bin = path.join(root, "bin");
+  const main = path.join(root, "main"), wt = path.join(root, "Documents/mac-app/mdpro-wt", name), bin = path.join(root, "bin");
   for (const dir of [main, wt, bin, path.join(main, ".codex/rules"), path.join(wt, ".codex/rules"), path.join(main, "scripts/codex-rules")]) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(main, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: delegator\n");
   fs.writeFileSync(path.join(wt, ".codex/rules/mdpro.rules"), "# shared rules\n");
@@ -63,6 +63,7 @@ if (process.env.FAKE_INSTALL_SYMLINK === "1") { fs.unlinkSync(target); fs.symlin
 `);
   const env = {
     ...process.env,
+    HOME: root,
     PATH: `${bin}:${process.env.PATH ?? ""}`,
     MDPRO_GUARD_TEST: "1",
     MDPRO_GUARD_TEST_MAIN: main,
@@ -73,7 +74,7 @@ if (process.env.FAKE_INSTALL_SYMLINK === "1") { fs.unlinkSync(target); fs.symlin
     FAKE_STARTED: path.join(root, "started"),
   };
   const calls = () => fs.existsSync(log) ? fs.readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line) as string[]) : [];
-  const reset = (role?: string, moreEnv: NodeJS.ProcessEnv = {}, name = "gpt-imple-2") => run(script, [name, wt, "gpt-6-sol", "high", ...(role === undefined ? [] : [role])], { ...env, ...moreEnv });
+  const reset = (role?: string, moreEnv: NodeJS.ProcessEnv = {}, targetName = name, targetWt = wt) => run(script, [targetName, targetWt, "gpt-6-sol", "high", ...(role === undefined ? [] : [role])], { ...env, ...moreEnv });
   return { root, main, wt, env, calls, reset };
 }
 
@@ -81,7 +82,7 @@ afterEach(() => { for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursi
 
 describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role provisioning (requires macos zsh)", () => {
   it.each([["gpt-imple-2", "implementor"], ["opus-imple-1", "implementor"], ["gpt-auditor", "auditor"]])("installs %s as %s before pane split, close and start", async (name, role) => {
-    const h = harness();
+    const h = harness(name);
     const result = await h.reset(role, {}, name);
     expect(result.code, result.stderr + result.stdout).toBe(0);
     const overlay = path.join(h.wt, ".codex/rules/mdpro-role.rules");
@@ -99,7 +100,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role pro
   }, 10000);
 
   it.each([["gpt-auditor", "implementor"], ["gpt-imple-2", "auditor"], ["opus-imple-1", "auditor"], ["gpt-stranger", "implementor"], ["gpt-auditor-2", "auditor"]])("refuses %s with requested %s before install or pane action", async (name, role) => {
-    const h = harness();
+    const h = harness(name);
     const result = await h.reset(role, {}, name);
     expect(result.code).toBe(2);
     expect(result.stderr).toContain("REFUSED");
@@ -112,6 +113,93 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role pro
     const result = await h.reset(variant === "missing" ? undefined : variant);
     expect(result.code).not.toBe(0);
     expect(h.calls().filter((call) => call[0] === "pane" && ["split", "close"].includes(call[1]) || call[0] === "agent" && call[1] === "start")).toEqual([]);
+  });
+
+  it.each([["gpt-auditor", "auditor", "gpt-imple-1"], ["gpt-imple-1", "implementor", "gpt-auditor"]])("refuses %s in %s worktree before install or pane action", async (name, role, wrongName) => {
+    const h = harness(name);
+    const wrong = path.join(h.root, "Documents/mac-app/mdpro-wt", wrongName);
+    fs.mkdirSync(path.join(wrong, ".codex/rules"), { recursive: true });
+    const wrongOverlay = path.join(wrong, ".codex/rules/mdpro-role.rules");
+    fs.writeFileSync(wrongOverlay, "# Local mdpro role: untouched\n");
+    const result = await h.reset(role, {}, name, wrong);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("REFUSED");
+    expect(fs.readFileSync(wrongOverlay, "utf8")).toBe("# Local mdpro role: untouched\n");
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" && ["split", "close"].includes(call[1]) || call[0] === "agent" && ["start", "prompt"].includes(call[1]))).toEqual([]);
+  });
+
+  it.each(["gpt-imple-1", "gpt-imple-2", "gpt-imple-3", "gpt-imple-10", "opus-imple-1"])("binds %s to its own canonical worktree", async (name) => {
+    const h = harness(name);
+    const ok = await h.reset("implementor");
+    expect(ok.code, ok.stderr + ok.stdout).toBe(0);
+    const foreign = path.join(h.root, "Documents/mac-app/mdpro-wt/foreign");
+    fs.mkdirSync(foreign, { recursive: true });
+    const bad = await h.reset("implementor", {}, name, foreign);
+    expect(bad.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "install")).toHaveLength(1);
+  }, 10000);
+
+  it("accepts a symlink to the named worktree", async () => {
+    const h = harness("gpt-imple-1");
+    const alias = path.join(h.root, "alias");
+    fs.symlinkSync(h.wt, alias);
+    const result = await h.reset("implementor", {}, "gpt-imple-1", alias);
+    expect(result.code, result.stderr + result.stdout).toBe(0);
+    expect(h.calls().find((call) => call[0] === "pane" && call[1] === "split")).toContain(alias);
+  }, 10000);
+
+  it("requires and echoes an explicit opus-imple-1 worktree override", async () => {
+    const h = harness("opus-imple-1");
+    const other = path.join(h.root, "other-item");
+    fs.mkdirSync(path.join(other, ".codex/rules"), { recursive: true });
+    fs.writeFileSync(path.join(other, ".codex/rules/mdpro.rules"), "# shared rules\n");
+    const denied = await h.reset("implementor", { FAKE_WT: other }, "opus-imple-1", other);
+    expect(denied.code).toBe(2);
+    const accepted = await h.reset("implementor", { FAKE_WT: other, MDPRO_WORKTREE_OVERRIDE: other }, "opus-imple-1", other);
+    expect(accepted.code, accepted.stderr + accepted.stdout).toBe(0);
+    expect(accepted.stderr + accepted.stdout).toContain(other);
+    expect(fs.readFileSync(path.join(other, ".codex/rules/mdpro-role.rules"), "utf8")).toContain("implementor");
+  }, 10000);
+
+  it("refuses an override for a different name or nonexistent path", async () => {
+    const h = harness("gpt-imple-1");
+    const other = path.join(h.root, "other-item");
+    fs.mkdirSync(other);
+    const unauthorized = await h.reset("implementor", { MDPRO_WORKTREE_OVERRIDE: other });
+    expect(unauthorized.code).toBe(2);
+    const missing = await h.reset("implementor", { MDPRO_WORKTREE_OVERRIDE: path.join(h.root, "missing") }, "opus-imple-1");
+    expect(missing.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" && call[1] === "split")).toEqual([]);
+  });
+
+  it("starts gpt-auditor device mode with auditor overlay, full access, and a mode marker", async () => {
+    const h = harness("gpt-auditor");
+    const result = await h.reset("device");
+    expect(result.code, result.stderr + result.stdout).toBe(0);
+    expect(fs.readFileSync(path.join(h.wt, ".codex/rules/mdpro-role.rules"), "utf8").split("\n")[0]).toBe("# Local mdpro role: auditor");
+    expect(fs.readFileSync(path.join(h.wt, ".codex/rules/.started-at"), "utf8")).toContain("mode=device");
+    const start = h.calls().find((call) => call[0] === "agent" && call[1] === "start")!;
+    expect(start).toContain("danger-full-access");
+  }, 10000);
+
+  it("a later auditor reset removes device privilege and mode", async () => {
+    const h = harness("gpt-auditor");
+    const device = await h.reset("device");
+    expect(device.code, device.stderr + device.stdout).toBe(0);
+    const audit = await h.reset("auditor");
+    expect(audit.code, audit.stderr + audit.stdout).toBe(0);
+    const starts = h.calls().filter((call) => call[0] === "agent" && call[1] === "start");
+    expect(starts).toHaveLength(2);
+    expect(starts[0]).toContain("danger-full-access");
+    expect(starts[1]).not.toContain("danger-full-access");
+    expect(fs.readFileSync(path.join(h.wt, ".codex/rules/.started-at"), "utf8")).toBe("w1:p8\n");
+  }, 15000);
+
+  it.each(["gpt-imple-1", "gpt-imple-10", "opus-imple-1", "opus-auditor", "gpt-auditor-2"])("refuses device mode for %s before install or pane action", async (name) => {
+    const h = harness(name);
+    const result = await h.reset("device");
+    expect(result.code).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" && ["split", "close"].includes(call[1]) || call[0] === "agent" && call[1] === "start")).toEqual([]);
   });
 
   it.each(["FAKE_INSTALL_FAIL", "FAKE_INSTALL_BAD_HEADER", "FAKE_INSTALL_SYMLINK"])("keeps old pane when %s occurs", async (flag) => {

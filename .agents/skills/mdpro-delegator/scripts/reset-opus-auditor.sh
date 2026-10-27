@@ -19,7 +19,14 @@ for p in sys.argv[1:]:
   }
 fi
 
-info=$(herdr --session mdpro agent get opus-auditor) || { echo "REFUSED: cannot read opus-auditor" >&2; exit 2; }
+if info=$(herdr --session mdpro agent get opus-auditor 2>&1); then
+  :
+elif [[ $info == agent_not_found ]]; then
+  info=""
+else
+  echo "REFUSED: cannot read opus-auditor: $info" >&2
+  exit 2
+fi
 old=$(print -r -- "$info" | grep -oE '"pane_id":"[^"]+"' | head -1 | cut -d'"' -f4 || true)
 st=$(print -r -- "$info" | grep -oE '"agent_status":"[a-z]+"' | head -1 | cut -d'"' -f4 || true)
 if [[ -n $old ]]; then
