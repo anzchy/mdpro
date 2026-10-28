@@ -226,8 +226,10 @@ process, release id, and startup window event. Hand it the fixture on the
 command line. This also sidesteps the native file dialog, which `rfd` renders
 as a blocking modal that is tedious to drive:
 
+Launch a freshly built bundle once and quit it before the identity check: macOS's first-launch assessment can delay the app past the check's 20 s log window and give a false FAIL. Use `pnpm -s` so stdout carries no pnpm banner (D326 card, 2026-10-28).
+
 ```bash
-pnpm device:identity --bundle "$PWD/src-tauri/target/release/bundle/macos/mdpro.app" \
+pnpm -s device:identity --bundle "$PWD/src-tauri/target/release/bundle/macos/mdpro.app" \
   --file "$SCRATCHPAD/wi36-duplicate-headings.md" \
   --expected-release-id "$EXPECTED_RELEASE_ID" --out "$SCRATCHPAD/identity-report.txt"
 ```

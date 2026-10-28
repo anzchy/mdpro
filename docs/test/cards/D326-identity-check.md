@@ -5,6 +5,7 @@
 ## Setup
 
 - Use the Mac mini GUI lock and a standard, feature-off app bundle built from the branch head with `MDPRO_RELEASE_ID=<version>-dev@<40-character SHA>` (`pnpm tauri build --bundles app`). Do not use the ADR-0047 `control:build --profile verify` bundle, whose startup guard requires `control:launch`.
+- **Launch a freshly built bundle once, then quit it, before step 1.** macOS assesses a new bundle on its first launch, and that can delay the app by about 20 s, past the identity check's log window, which gives a false FAIL (2026-10-28 run 3b; user 「Accept, document only」). Run `pnpm -s device:identity`, not `pnpm device:identity`, so stdout carries no pnpm banner and can equal the report byte for byte.
 - Record that exact release id as `EXPECTED_RELEASE_ID`; use a copy of a Markdown fixture outside the repository.
 - Keep the installed `/Applications/mdpro.app` closed for the first run. Preserve its prior state and restore it after the card.
 
