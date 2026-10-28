@@ -39,8 +39,7 @@ if (op[0] === "agent" && op[1] === "get") {
   else {
     const started = fs.existsSync(process.env.FAKE_STARTED);
     const escaped = fs.existsSync(process.env.FAKE_ESCAPED);
-    const argv = process.env.FAKE_UPDATE_PROMPT === "1" && started && escaped ? ["-m","gpt-6-sol","-s","danger-full-access","-c","model_reasoning_effort=high"] : undefined;
-    process.stdout.write(JSON.stringify({result:{agent:{agent:"codex",agent_status:"idle",cwd:process.env.FAKE_WT,pane_id:started?"w1:p8":"w1:p7"}}, ...(argv ? {argv} : {})}));
+    process.stdout.write(JSON.stringify({id:"cli:agent:get",result:{agent:{agent:"codex",agent_status:"idle",cwd:process.env.FAKE_WT,pane_id:started?"w1:p8":"w1:p7",interactive_ready:escaped}}}));
   }
 } else if (op[0] === "pane" && op[1] === "split") {
   process.stdout.write("w1:p8\\n");
@@ -58,7 +57,7 @@ if (op[0] === "agent" && op[1] === "get") {
     process.stdout.write("account/read failed\\n");
     process.exit(0);
   }
-  process.stdout.write(process.env.FAKE_UPDATE_PROMPT === "1" && !fs.existsSync(process.env.FAKE_ESCAPED) ? "Update available ... esc skip\\n" : "gpt-6-sol high · Context 0% used\\n");
+  process.stdout.write(process.env.FAKE_UPDATE_PROMPT === "1" && !fs.existsSync(process.env.FAKE_ESCAPED) ? "Update available ... esc skip\\n" : process.env.FAKE_BAD_STATUS === "1" ? "gpt-6-sol low · Context 0% used\\n" : "gpt-6-sol high · Context 0% used\\n");
 } else if (op[0] === "pane" && op[1] === "send-keys") {
   if (op[3] === "Escape") fs.writeFileSync(process.env.FAKE_ESCAPED, "yes");
 }
@@ -190,20 +189,20 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role pro
     expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" && call[1] === "split")).toEqual([]);
   });
 
-  it("skips an update prompt before the first argv-bearing read and writes the marker", async () => {
+  it("skips an update prompt before pane verification and writes the marker", async () => {
     const h = harness();
     const result = await h.reset("implementor", { FAKE_UPDATE_PROMPT: "1" });
     expect(result.code, result.stderr + result.stdout).toBe(0);
     const calls = h.calls();
     const escape = calls.findIndex((call) => call[0] === "pane" && call[1] === "send-keys" && call[3] === "Escape");
-    const firstArgvRead = calls.findIndex((call, index) => index > escape && call[0] === "agent" && call[1] === "get" && call[2] === "gpt-imple-2");
+    const firstStatusRead = calls.findIndex((call, index) => index > escape && call[0] === "pane" && call[1] === "read");
     expect(escape).toBeGreaterThanOrEqual(0);
-    expect(firstArgvRead).toBeGreaterThan(escape);
+    expect(firstStatusRead).toBeGreaterThan(escape);
     expect(calls.filter((call) => call[0] === "pane" && call[1] === "send-keys" && call[3] === "Enter")).toEqual([]);
     expect(fs.readFileSync(path.join(h.wt, ".codex/rules/.started-at"), "utf8")).toBe("w1:p8\n");
   });
 
-  it("recovers argv from get after a bootstrap retry with empty start output", async () => {
+  it("verifies from the pane after a bootstrap retry when real get has no argv", async () => {
     const h = harness();
     const result = await h.reset("implementor", { FAKE_UPDATE_PROMPT: "1", FAKE_START_FAIL_ONCE: "1" });
     expect(result.code, result.stderr + result.stdout).toBe(0);
@@ -213,7 +212,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role pro
 
   it("names the unwritten marker when argv verification fails after start", async () => {
     const h = harness();
-    const result = await h.reset("implementor", { FAKE_NO_ARGV: "1" });
+    const result = await h.reset("implementor", { FAKE_NO_ARGV: "1", FAKE_BAD_STATUS: "1" });
     expect(result.code).not.toBe(0);
     expect(result.stdout + result.stderr).toContain("marker not written");
     expect(fs.existsSync(path.join(h.wt, ".codex/rules/.started-at"))).toBe(false);
@@ -233,6 +232,47 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 reset-codex role pro
       }
     }
     expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" || call[0] === "agent" && call[1] === "start")).toEqual([]);
+  });
+
+  it("refuses nested and aliased foreign roster overrides without touching panes", async () => {
+    const h = harness("opus-imple-1");
+    const foreign = path.join(h.root, "Documents/mac-app/mdpro-wt/gpt-imple-2");
+    const nested = path.join(foreign, "nested");
+    fs.mkdirSync(path.join(nested, ".codex/rules"), { recursive: true });
+    fs.writeFileSync(path.join(nested, ".codex/rules/mdpro.rules"), "# shared rules\n");
+    const alias = path.join(h.root, "nested-alias");
+    fs.symlinkSync(nested, alias);
+    for (const override of [nested, alias]) {
+      const result = await h.reset("implementor", { MDPRO_WORKTREE_OVERRIDE: override, FAKE_WT: override }, "opus-imple-1", override);
+      expect(result.code, result.stderr + result.stdout).toBe(2);
+    }
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane" || call[0] === "agent" && call[1] === "start")).toEqual([]);
+  });
+
+  it("refuses the delegator checkout and accepts a roster-like sibling prefix", async () => {
+    const h = harness("opus-imple-1");
+    const checkout = path.join(h.root, "Documents/mac-app/mdpro");
+    const sibling = path.join(h.root, "Documents/mac-app/mdpro-wt/gpt-imple-2x");
+    for (const dir of [checkout, sibling]) {
+      fs.mkdirSync(path.join(dir, ".codex/rules"), { recursive: true });
+      fs.writeFileSync(path.join(dir, ".codex/rules/mdpro.rules"), "# shared rules\n");
+    }
+    const refused = await h.reset("implementor", { MDPRO_WORKTREE_OVERRIDE: checkout, FAKE_WT: checkout }, "opus-imple-1", checkout);
+    expect(refused.code, refused.stderr + refused.stdout).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane")).toEqual([]);
+    const accepted = await h.reset("implementor", { MDPRO_WORKTREE_OVERRIDE: sibling, FAKE_WT: sibling }, "opus-imple-1", sibling);
+    expect(accepted.code, accepted.stderr + accepted.stdout).toBe(0);
+  });
+
+  it("refuses a case-variant spelling of another roster worktree", async () => {
+    const h = harness("opus-imple-1");
+    const foreign = path.join(h.root, "Documents/mac-app/mdpro-wt/gpt-imple-2");
+    fs.mkdirSync(foreign, { recursive: true });
+    const variant = path.join(h.root, "Documents/mac-app/MDPRO-WT/GPT-IMPLE-2");
+    if (!fs.existsSync(variant)) return;
+    const result = await h.reset("implementor", { MDPRO_WORKTREE_OVERRIDE: variant, FAKE_WT: variant }, "opus-imple-1", variant);
+    expect(result.code, result.stderr + result.stdout).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "install" || call[0] === "pane")).toEqual([]);
   });
 
   it.each([["gpt-auditor", "auditor"], ["gpt-imple-2", "implementor"]])("refuses a symlinked expected %s directory", async (name, role) => {

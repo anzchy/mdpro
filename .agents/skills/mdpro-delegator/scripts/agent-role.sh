@@ -21,6 +21,7 @@ mdpro_expected_worktree() {
   roster_root=$HOME/Documents/mac-app/mdpro-wt
   if [[ -n ${MDPRO_WORKTREE_OVERRIDE:-} ]]; then
     [[ $name == opus-imple-1 ]] || return 2
+    [[ ! -L $roster_root/$name ]] || return 2
     path=$MDPRO_WORKTREE_OVERRIDE
   else
     path=$roster_root/$name
@@ -31,9 +32,19 @@ mdpro_expected_worktree() {
   if [[ -n ${MDPRO_WORKTREE_OVERRIDE:-} ]]; then
     /usr/bin/python3 -c 'import os,re,sys
 target,root=sys.argv[1:]
-root=os.path.realpath(root)
-name=os.path.basename(target)
-if os.path.dirname(target)==root and re.fullmatch(r"(?:(?:gpt|opus)-auditor|(?:gpt|opus)-imple-[0-9]+)",name) and name!="opus-imple-1": sys.exit(2)' "$canonical" "$roster_root" || return 2
+roster=re.compile(r"(?:(?:gpt|opus)-auditor|(?:gpt|opus)-imple-[0-9]+)\Z")
+foreign=[os.path.join(os.path.dirname(root),"mdpro")]
+if os.path.isdir(root):
+    foreign.extend(os.path.join(root,name) for name in os.listdir(root) if roster.fullmatch(name) and name!="opus-imple-1")
+ancestors=[]
+cursor=target
+while True:
+    ancestors.append(cursor)
+    parent=os.path.dirname(cursor)
+    if parent==cursor: break
+    cursor=parent
+for path in foreign:
+    if os.path.isdir(path) and any(os.path.samefile(path,ancestor) for ancestor in ancestors): sys.exit(2)' "$canonical" "$roster_root" || return 2
   fi
   print -r -- "$canonical"
 }

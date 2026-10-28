@@ -1,8 +1,8 @@
 #!/bin/zsh
 # reset-codex.sh <agent> <worktree> <model> <effort> <implementor|auditor|device>
-# Rule 71 § Restart: every reset is a new pane, and it counts only when the start's argv shows the flags and the status
-# line reads "<model> <effort> · Context 0% used". Steps: refuse unless idle/done; split a pane in the worktree (with
-# MDPRO_ROLE=implementor for an implementor); close the old pane only after the split succeeded;
+# Rule 71 § Restart: every reset is a new pane. Verify flags from the start result when available; when the update
+# prompt suppresses argv, verify model and effort from the pane status line instead. Steps: refuse unless idle/done;
+# split a pane in the worktree (with MDPRO_ROLE=implementor for an implementor); close the old pane after the split;
 # start Codex with the full launch line, retrying only the transient bootstrap error ("workspace routing discovery
 # failed"); skip Codex's self-upgrade prompt (the install is shared with picsee; upgrading is the user's call); then
 # verify argv and the status line. Exit 0 = verified; 3 = started but the status line could not be read (pane too
@@ -55,7 +55,9 @@ argv="" ok=0
 for i in 1 2 3 4; do
   out=$(herdr --session mdpro agent start $name --kind codex --pane $new -- -m $model $sandbox -c model_reasoning_effort=$effort \
     -c model_auto_compact_token_limit=250000 2>&1)
-  argv=$(print -r -- $out | grep -oE '"argv":\[[^]]*\]')
+  start_rc=$?
+  start_argv=$(print -r -- $out | grep -oE '"argv":\[[^]]*\]')
+  [[ $start_rc == 0 && -n $start_argv ]] && argv=$start_argv
   sleep 15
   if herdr --session mdpro agent get $name 2>&1 | grep -q "\"pane_id\":\"$new\""; then ok=1; break; fi
   # A narrow pane wraps "workspace routing discovery failed" across lines.
@@ -64,14 +66,13 @@ for i in 1 2 3 4; do
 done
 (( ok )) || { echo "FAIL start $name in $new; marker not written (herdr pane read $new)"; exit 1; }
 herdr --session mdpro pane read $new --lines 8 2>&1 | grep -q 'esc skip' && { herdr --session mdpro pane send-keys $new Escape >/dev/null; sleep 4; }
-if [[ -z $argv ]]; then
-  argv=$(herdr --session mdpro agent get $name 2>&1 | grep -oE '"argv":\[[^]]*\]')
+if [[ -n $argv ]]; then
+  for f in "\"$model\"" "\"model_reasoning_effort=$effort\""; do
+    [[ $argv == *$f* ]] || { echo "FAIL argv lacks $f: $argv; marker not written"; exit 1; }
+  done
+  [[ ( $role == implementor || $role == device ) && $argv != *'"danger-full-access"'* ]] && { echo "FAIL argv lacks -s danger-full-access; marker not written"; exit 1; }
+  [[ $role == auditor && $argv == *'"danger-full-access"'* ]] && { echo "FAIL audit argv has danger-full-access; marker not written"; exit 1; }
 fi
-for f in "\"$model\"" "\"model_reasoning_effort=$effort\""; do
-  [[ $argv == *$f* ]] || { echo "FAIL argv lacks $f: $argv; marker not written"; exit 1; }
-done
-[[ ( $role == implementor || $role == device ) && $argv != *'"danger-full-access"'* ]] && { echo "FAIL argv lacks -s danger-full-access; marker not written"; exit 1; }
-[[ $role == auditor && $argv == *'"danger-full-access"'* ]] && { echo "FAIL audit argv has danger-full-access; marker not written"; exit 1; }
 line=$(herdr --session mdpro pane read $new --lines 8 2>&1 | grep -oiE "${model}[^·]*${effort}[^·]*· Context [0-9]+% used" | tail -1)
 if [[ -z $line ]]; then
   herdr --session mdpro pane zoom --on --pane $new >/dev/null 2>&1

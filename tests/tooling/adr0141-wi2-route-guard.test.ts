@@ -229,6 +229,41 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt")).toEqual([]);
   });
 
+  it("refuses nested and aliased foreign roster prompt overrides", async () => {
+    const h = harness("codex", "opus-imple-1");
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# implement\n");
+    const nested = path.join(h.root, "Documents/mac-app/mdpro-wt/gpt-imple-2/nested");
+    fs.mkdirSync(path.join(nested, ".codex/rules"), { recursive: true });
+    fs.writeFileSync(path.join(nested, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
+    fs.writeFileSync(path.join(nested, ".codex/rules/.started-at"), "w1:p7\n");
+    const alias = path.join(h.root, "nested-alias");
+    fs.symlinkSync(nested, alias);
+    for (const override of [nested, alias]) {
+      const result = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: override, MDPRO_WORKTREE_OVERRIDE: override });
+      expect(result.code, result.stderr + result.stdout).toBe(2);
+    }
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt")).toEqual([]);
+  });
+
+  it("refuses the delegator checkout on prompt and allows a roster-like sibling prefix", async () => {
+    const h = harness("codex", "opus-imple-1");
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# implement\n");
+    const checkout = path.join(h.root, "Documents/mac-app/mdpro");
+    const sibling = path.join(h.root, "Documents/mac-app/mdpro-wt/gpt-imple-2x");
+    for (const dir of [checkout, sibling]) {
+      fs.mkdirSync(path.join(dir, ".codex/rules"), { recursive: true });
+      fs.writeFileSync(path.join(dir, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
+      fs.writeFileSync(path.join(dir, ".codex/rules/.started-at"), "w1:p7\n");
+    }
+    const refused = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: checkout, MDPRO_WORKTREE_OVERRIDE: checkout });
+    expect(refused.code, refused.stderr + refused.stdout).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt")).toEqual([]);
+    const accepted = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: sibling, MDPRO_WORKTREE_OVERRIDE: sibling });
+    expect(accepted.code, accepted.stderr + accepted.stdout).toBe(0);
+  });
+
   it.each([["gpt-auditor", "request"], ["gpt-imple-2", "brief"]])("refuses a symlinked expected %s directory on prompt", async (name, verb) => {
     const h = harness("codex", name);
     const foreign = path.join(h.root, "foreign-roster");

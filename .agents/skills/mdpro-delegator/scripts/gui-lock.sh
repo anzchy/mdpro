@@ -29,6 +29,10 @@ def valid_text(value):
     lines = value.splitlines()
     if not value or "\0" in value or len(lines) != 1 or lines[0] != value:
         raise Refused("invalid owner field value")
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise Refused("owner field is not UTF-8") from error
     return value
 
 def with_mutex(operation):
@@ -82,18 +86,23 @@ def acquire(batch, expected, purpose, session):
     if not expected.isdecimal() or int(expected) <= 0:
         raise Refused("invalid expected minutes")
     def transaction():
-        try:
-            os.mkdir(lockdir, 0o700)
-        except FileExistsError:
-            return None
         acquisition_id = str(uuid.uuid4())
         owner = (
             f"project=mdpro\nsession={session}\nbatch={batch}\n"
             f"start={datetime.datetime.now().astimezone().strftime('%Y-%m-%dT%H:%M:%S%z')}\n"
             f"pid={os.getpid()}\nexpected_minutes={expected}\npurpose={purpose}\n"
             f"acquisition_id={acquisition_id}\n"
-        )
-        publish_owner(owner.encode("utf-8"))
+        ).encode("utf-8")
+        try:
+            os.mkdir(lockdir, 0o700)
+        except FileExistsError:
+            return None
+        try:
+            publish_owner(owner)
+        except Exception:
+            (lockdir / "owner").unlink(missing_ok=True)
+            lockdir.rmdir()
+            raise
         return acquisition_id
     return with_mutex(transaction)
 

@@ -114,6 +114,25 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 GUI lock identity an
     expect(result.code, result.stderr).toBe(1);
     expect(fs.existsSync(path.join(home, ".cache/desktop-gui.lock"))).toBe(false);
   });
+  it.each(["batch", "purpose", "session"])("rejects non-UTF-8 %s before creating a lock", async (field) => {
+    const h = emptyHome();
+    const python = `import os,subprocess,sys
+fields={"batch":b"batch","purpose":b"purpose","session":b"session"}
+fields[sys.argv[3]]=b"repro\\xffvalue"
+result=subprocess.run([os.fsencode(sys.argv[1]),b"acquire",fields["batch"],b"45",fields["purpose"],fields["session"]],env={**os.environ,"HOME":sys.argv[2]},capture_output=True)
+sys.stdout.write(str(result.returncode))`;
+    const result = await new Promise<Result>((resolve, reject) => {
+      const child = spawn("/usr/bin/python3", ["-c", python, script, h.home, field], { env: { ...process.env, HOME: h.home } });
+      let stdout = "", stderr = "";
+      child.stdout.on("data", (part: Buffer) => { stdout += part.toString(); });
+      child.stderr.on("data", (part: Buffer) => { stderr += part.toString(); });
+      child.on("error", reject);
+      child.on("close", (code) => resolve({ code: code ?? -1, stdout, stderr }));
+    });
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toBe("1");
+    expect(fs.existsSync(h.lock)).toBe(false);
+  });
   it.each(["wrong batch", "wrong acquisition id"])("keeps the lock path continuously present for a %s releaser", async (variant) => {
     const h = harness();
     const owner = h.original.replace("project=picsee", "project=mdpro");
