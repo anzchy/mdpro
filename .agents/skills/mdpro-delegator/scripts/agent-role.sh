@@ -17,12 +17,23 @@ print(os.path.realpath(p))' "$1"
 }
 
 mdpro_expected_worktree() {
-  local name=$1 path
+  local name=$1 path roster_root
+  roster_root=$HOME/Documents/mac-app/mdpro-wt
   if [[ -n ${MDPRO_WORKTREE_OVERRIDE:-} ]]; then
     [[ $name == opus-imple-1 ]] || return 2
     path=$MDPRO_WORKTREE_OVERRIDE
   else
-    path=$HOME/Documents/mac-app/mdpro-wt/$name
+    path=$roster_root/$name
+    [[ ! -L $path ]] || return 2
   fi
-  mdpro_canonical_worktree "$path"
+  local canonical
+  canonical=$(mdpro_canonical_worktree "$path") || return 2
+  if [[ -n ${MDPRO_WORKTREE_OVERRIDE:-} ]]; then
+    /usr/bin/python3 -c 'import os,re,sys
+target,root=sys.argv[1:]
+root=os.path.realpath(root)
+name=os.path.basename(target)
+if os.path.dirname(target)==root and re.fullmatch(r"(?:(?:gpt|opus)-auditor|(?:gpt|opus)-imple-[0-9]+)",name) and name!="opus-imple-1": sys.exit(2)' "$canonical" "$roster_root" || return 2
+  fi
+  print -r -- "$canonical"
 }

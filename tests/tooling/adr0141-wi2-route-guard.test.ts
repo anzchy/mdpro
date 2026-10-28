@@ -210,6 +210,37 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "opus-imple-1")).toHaveLength(1);
   });
 
+  it("refuses Opus prompt override into another roster worktree, including an alias", async () => {
+    const h = harness("codex", "opus-imple-1");
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# implement\n");
+    for (const foreignName of ["gpt-auditor", "gpt-imple-2"]) {
+      const foreign = path.join(h.root, "Documents/mac-app/mdpro-wt", foreignName);
+      fs.mkdirSync(path.join(foreign, ".codex/rules"), { recursive: true });
+      fs.writeFileSync(path.join(foreign, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
+      fs.writeFileSync(path.join(foreign, ".codex/rules/.started-at"), "w1:p7\n");
+      const alias = path.join(h.root, `${foreignName}-alias`);
+      fs.symlinkSync(foreign, alias);
+      for (const override of [foreign, alias]) {
+        const result = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: override, MDPRO_WORKTREE_OVERRIDE: override });
+        expect(result.code, result.stderr + result.stdout).toBe(2);
+      }
+    }
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt")).toEqual([]);
+  });
+
+  it.each([["gpt-auditor", "request"], ["gpt-imple-2", "brief"]])("refuses a symlinked expected %s directory on prompt", async (name, verb) => {
+    const h = harness("codex", name);
+    const foreign = path.join(h.root, "foreign-roster");
+    fs.renameSync(h.target, foreign);
+    fs.symlinkSync(foreign, h.target);
+    const brief = path.join(h.root, "brief.md");
+    fs.writeFileSync(brief, "# test\n");
+    const result = await run(path.join(scripts, "prompt.sh"), [name, brief, verb, "1000"], h.env);
+    expect(result.code, result.stderr + result.stdout).toBe(2);
+    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt")).toEqual([]);
+  });
+
   it("dispatches device briefs only to a device-mode gpt-auditor pane", async () => {
     const h = harness("codex", "gpt-auditor");
     fs.writeFileSync(h.targetOverlay, "# Local mdpro role: auditor\n");

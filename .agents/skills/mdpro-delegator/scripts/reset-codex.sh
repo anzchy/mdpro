@@ -62,24 +62,27 @@ for i in 1 2 3 4; do
   herdr --session mdpro pane read $new --lines 16 2>&1 | grep -q 'account/read failed' || break   # retry bootstrap only
   sleep 15
 done
-(( ok )) || { echo "FAIL start $name in $new (herdr pane read $new)"; exit 1; }
-for f in "\"$model\"" "\"model_reasoning_effort=$effort\""; do
-  [[ $argv == *$f* ]] || { echo "FAIL argv lacks $f: $argv"; exit 1; }
-done
-[[ ( $role == implementor || $role == device ) && $argv != *'"danger-full-access"'* ]] && { echo "FAIL argv lacks -s danger-full-access"; exit 1; }
-[[ $role == auditor && $argv == *'"danger-full-access"'* ]] && { echo "FAIL audit argv has danger-full-access"; exit 1; }
+(( ok )) || { echo "FAIL start $name in $new; marker not written (herdr pane read $new)"; exit 1; }
 herdr --session mdpro pane read $new --lines 8 2>&1 | grep -q 'esc skip' && { herdr --session mdpro pane send-keys $new Escape >/dev/null; sleep 4; }
+if [[ -z $argv ]]; then
+  argv=$(herdr --session mdpro agent get $name 2>&1 | grep -oE '"argv":\[[^]]*\]')
+fi
+for f in "\"$model\"" "\"model_reasoning_effort=$effort\""; do
+  [[ $argv == *$f* ]] || { echo "FAIL argv lacks $f: $argv; marker not written"; exit 1; }
+done
+[[ ( $role == implementor || $role == device ) && $argv != *'"danger-full-access"'* ]] && { echo "FAIL argv lacks -s danger-full-access; marker not written"; exit 1; }
+[[ $role == auditor && $argv == *'"danger-full-access"'* ]] && { echo "FAIL audit argv has danger-full-access; marker not written"; exit 1; }
 line=$(herdr --session mdpro pane read $new --lines 8 2>&1 | grep -oiE "${model}[^·]*${effort}[^·]*· Context [0-9]+% used" | tail -1)
 if [[ -z $line ]]; then
   herdr --session mdpro pane zoom --on --pane $new >/dev/null 2>&1
   line=$(herdr --session mdpro pane read $new --lines 8 2>&1 | grep -oiE "${model}[^·]*${effort}[^·]*· Context [0-9]+% used" | tail -1)
   herdr --session mdpro pane zoom --off --pane $new >/dev/null 2>&1
 fi
-if [[ -z $line ]]; then echo "UNVERIFIED $new: status line not readable (zoom the pane and check before dispatch)"; exit 3; fi
-[[ $line == *"Context 0% used"* ]] || { echo "FAIL $new: $line"; exit 1; }
+if [[ -z $line ]]; then echo "UNVERIFIED $new: status line not readable; marker not written (zoom the pane and check before dispatch)"; exit 3; fi
+[[ $line == *"Context 0% used"* ]] || { echo "FAIL $new: $line; marker not written"; exit 1; }
 marker="$wt/.codex/rules/.started-at"
-mark_tmp=$(mktemp "$wt/.codex/rules/.started-at.XXXXXX") || { echo "FAIL: cannot create pane start marker" >&2; exit 1; }
+mark_tmp=$(mktemp "$wt/.codex/rules/.started-at.XXXXXX") || { echo "FAIL: cannot create pane start marker; marker not written" >&2; exit 1; }
 if [[ $role == device ]]; then print -r -- "$new mode=device" > "$mark_tmp"
 else print -r -- "$new" > "$mark_tmp"; fi
-mv -f "$mark_tmp" "$marker" || { echo "FAIL: cannot save pane start marker" >&2; exit 1; }
+mv -f "$mark_tmp" "$marker" || { echo "FAIL: cannot save pane start marker; marker not written" >&2; exit 1; }
 echo "NEW $new $line"

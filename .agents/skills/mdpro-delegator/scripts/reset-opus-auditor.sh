@@ -20,8 +20,19 @@ for p in sys.argv[1:]:
 fi
 
 if info=$(herdr --session mdpro agent get opus-auditor 2>&1); then
-  :
-elif [[ $info == agent_not_found ]]; then
+  print -r -- "$info" | /usr/bin/python3 -c 'import json,sys
+try:
+ data=json.load(sys.stdin)
+ sys.exit(0 if isinstance(data,dict) and "error" not in data and isinstance(data.get("result",{}).get("agent"),dict) else 1)
+except (ValueError,TypeError,AttributeError): sys.exit(1)' || {
+    echo "REFUSED: malformed successful opus-auditor get: $info" >&2
+    exit 2
+  }
+elif print -r -- "$info" | /usr/bin/python3 -c 'import json,sys
+try:
+ error=json.load(sys.stdin)["error"]
+ sys.exit(0 if isinstance(error,dict) and error.get("code")=="agent_not_found" else 1)
+except (ValueError,KeyError,TypeError): sys.exit(1)' ; then
   info=""
 else
   echo "REFUSED: cannot read opus-auditor: $info" >&2

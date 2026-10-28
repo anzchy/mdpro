@@ -95,6 +95,25 @@ function acquisitionId(stdout: string) {
 }
 
 describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 GUI lock identity and mutex (requires macos zsh)", () => {
+  it.each(["batch", "purpose", "session"])("rejects every splitlines separator in %s before creating a lock", async (field) => {
+    for (const separator of ["\n", "\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029", "\0"]) {
+      if (separator === "\0") continue; // OS process arguments cannot carry NUL.
+      const home = fs.mkdtempSync(path.join(os.tmpdir(), "adr0141-lock-field-"));
+      homes.push(home);
+      const values = { batch: "batch", purpose: "purpose", session: "session", [field]: `repro${separator}value` };
+      const result = await start(["acquire", values.batch, "45", values.purpose, values.session], { ...process.env, HOME: home }).done;
+      expect(result.code, `${field} ${JSON.stringify(separator)}: ${result.stderr}`).toBe(1);
+      expect(fs.existsSync(path.join(home, ".cache/desktop-gui.lock"))).toBe(false);
+    }
+  }, 20000);
+  it.each(["batch", "purpose", "session"])("rejects an empty %s before creating a lock", async (field) => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "adr0141-lock-empty-field-"));
+    homes.push(home);
+    const values = { batch: "batch", purpose: "purpose", session: "session", [field]: "" };
+    const result = await start(["acquire", values.batch, "45", values.purpose, values.session], { ...process.env, HOME: home }).done;
+    expect(result.code, result.stderr).toBe(1);
+    expect(fs.existsSync(path.join(home, ".cache/desktop-gui.lock"))).toBe(false);
+  });
   it.each(["wrong batch", "wrong acquisition id"])("keeps the lock path continuously present for a %s releaser", async (variant) => {
     const h = harness();
     const owner = h.original.replace("project=picsee", "project=mdpro");

@@ -26,7 +26,8 @@ class Refused(Exception):
     pass
 
 def valid_text(value):
-    if not value or "\n" in value or "\r" in value or "\0" in value:
+    lines = value.splitlines()
+    if not value or "\0" in value or len(lines) != 1 or lines[0] != value:
         raise Refused("invalid owner field value")
     return value
 
