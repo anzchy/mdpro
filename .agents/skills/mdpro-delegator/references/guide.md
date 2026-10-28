@@ -90,7 +90,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 10. **Land** when the verifier passes, the merged blocking count is zero, and `ci-gate` is green on the PR head
     (`gh pr checks <pr> --required`). The checked scripts do not check verifier PASS or audit verdict.
     Receipt exceptions need the user's word first. On Codex, use `node scripts/codex-rules/land-guard.mjs <sha>`;
-    for direct docs commits, `node scripts/codex-rules/land-guard.mjs --docs-only`. On Claude, use
+    for direct docs commits, `node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review). On Claude, use
     `git merge --ff-only <sha>` and `git push origin master`, then `references/templates/landing-docs-checklist.md`.
 
 ## 6. ADRs

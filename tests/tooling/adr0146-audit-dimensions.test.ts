@@ -17,9 +17,10 @@ function section(source: string, heading: string): string {
 }
 
 describe("ADR-0146 reviewed audit dimensions", () => {
-  it("publishes the reviewed draft byte for byte", () => {
+  it("publishes the authorized fix 2 dimensions blob byte for byte", () => {
     expect(createHash("sha256").update(bytes()).digest("hex")).toBe(
-      "4896fb6bf7bd5ad66abaaec328903f8a91b4d65d5327bbdaeaa1d8774a8f8552",
+      // ADR-0146 fix 2 authorizes the single challenge-shape line deviation.
+      "11646b4a591f8a5b0059e708fc325567a369743f9534152599f0a039349cf748",
     );
   });
 
@@ -146,12 +147,20 @@ describe("ADR-0146 delegator templates", () => {
   it("keeps an untraced lifecycle challenge listed as Medium without weakening High refutation", () => {
     const challenge = template("challenge-request");
     const procedure = fs.readFileSync(path.join(root, ".claude/agents/mdpro-fable-auditor.md"), "utf8");
-    for (const source of [challenge, procedure]) {
+    const reportShape = section(text(), "Report shape");
+    for (const source of [challenge, procedure, reportShape]) {
       expect(source).toContain("UNTRACED");
+      for (const token of ["CONFIRMED", "REFUTED"]) expect(source).toContain(token);
+    }
+    expect(reportShape).toContain("CONFIRMED|REFUTED|UNTRACED");
+    expect(challenge).toContain("CONFIRMED|REFUTED|UNTRACED");
+    for (const source of [challenge, procedure]) {
       expect(source).toContain("stays a listed Medium");
-      expect(source).toContain("CONFIRMED|REFUTED");
       expect(source).toContain("reproduction or a counter-proof");
     }
+    expect(reportShape).toContain("trace this");
+    expect(reportShape).toContain("lifecycle Medium");
+    expect(reportShape).toContain("listed Medium");
     expect(challenge).toContain("neither a trace nor a counter-proof");
     expect(challenge).toContain("merge verdict");
   });
@@ -247,6 +256,13 @@ describe("ADR-0146 coordination rules", () => {
       expect(item4, phrase).toContain(phrase);
     }
     expect(step8).toContain("never for `docs/agents/audit-dimensions.md`");
+    const guide = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/references/guide.md"), "utf8");
+    const checklist = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/references/templates/landing-docs-checklist.md"), "utf8");
+    for (const source of [guide, checklist]) {
+      expect(source).toContain("docs/agents/audit-dimensions.md");
+      expect(source).toContain("ADR-0146 decision 1");
+      expect(source).toContain("High-tier PR");
+    }
   });
 });
 

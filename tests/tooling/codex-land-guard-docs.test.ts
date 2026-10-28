@@ -59,7 +59,7 @@ async function fixture() {
 afterEach(() => { for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
 
 it("pushes each allowed docs-only path and a mixed allowed range without gh", { timeout: 30_000 }, async () => {
-  for (const name of ["docs/a.md", "design/a.md", "design/nested/a.md", "CHANGELOG.md", "CLAUDE.md",
+  for (const name of ["docs/a.md", "docs/agents/other.md", "design/a.md", "design/nested/a.md", "CHANGELOG.md", "CLAUDE.md",
     "AGENTS.md", ".claude/rules/a.md", ".claude/agents/a.md"]) {
     const f = (await fixture());
     const head = (await f.add(name));
@@ -71,6 +71,68 @@ it("pushes each allowed docs-only path and a mixed allowed range without gh", { 
   (await mixed.add("docs/a.md")); (await mixed.add(".claude/rules/a.md")); const head = (await mixed.add("design/deep/a.md"));
   expect((await mixed.run()).status).toBe(0);
   expect((await mixed.remote())).toBe(head);
+});
+
+it("refuses the audit dimensions file through the real docs-only guard", async () => {
+  const f = (await fixture());
+  (await f.add("docs/agents/audit-dimensions.md"));
+  const result = (await f.run());
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain("ADR-0146 decision 1");
+  expect((await f.remote())).toBe(f.a);
+});
+
+it("refuses alternate spellings, a rename, and a symlink alias of audit dimensions", { timeout: 30_000 }, async () => {
+  for (const name of ["docs/agents/AUDIT-DIMENSIONS.md", "./docs/agents/audit-dimensions.md"]) {
+    const f = (await fixture());
+    (await f.add(name));
+    const result = (await f.run());
+    expect(result.status, name).not.toBe(0);
+    expect(result.stderr, name).toContain("ADR-0146 decision 1");
+    expect((await f.remote())).toBe(f.a);
+  }
+  const renamed = (await fixture());
+  (await renamed.add("docs/agents/audit-dimensions.md"));
+  (await git(renamed.main, "push", "-q", renamed.bare, "HEAD:refs/heads/master"));
+  const base = (await renamed.remote());
+  (await git(renamed.main, "mv", "docs/agents/audit-dimensions.md", "docs/agents/renamed.md"));
+  (await git(renamed.main, "commit", "-qm", "rename dimensions"));
+  const renameResult = (await renamed.run());
+  expect(renameResult.status).not.toBe(0);
+  expect(renameResult.stderr).toContain("ADR-0146 decision 1");
+  expect((await renamed.remote())).toBe(base);
+
+  const deleted = (await fixture());
+  (await deleted.add("docs/agents/audit-dimensions.md"));
+  (await git(deleted.main, "push", "-q", deleted.bare, "HEAD:refs/heads/master"));
+  const deleteBase = (await deleted.remote());
+  (await git(deleted.main, "rm", "docs/agents/audit-dimensions.md"));
+  (await git(deleted.main, "commit", "-qm", "delete dimensions"));
+  const deleteResult = (await deleted.run());
+  expect(deleteResult.status).not.toBe(0);
+  expect(deleteResult.stderr).toContain("ADR-0146 decision 1");
+  expect((await deleted.remote())).toBe(deleteBase);
+
+  const renamedInto = (await fixture());
+  (await renamedInto.add("docs/agents/other.md"));
+  (await git(renamedInto.main, "push", "-q", renamedInto.bare, "HEAD:refs/heads/master"));
+  const intoBase = (await renamedInto.remote());
+  (await git(renamedInto.main, "mv", "docs/agents/other.md", "docs/agents/audit-dimensions.md"));
+  (await git(renamedInto.main, "commit", "-qm", "rename into dimensions"));
+  const intoResult = (await renamedInto.run());
+  expect(intoResult.status).not.toBe(0);
+  expect(intoResult.stderr).toContain("ADR-0146 decision 1");
+  expect((await renamedInto.remote())).toBe(intoBase);
+
+  const linked = (await fixture());
+  fs.mkdirSync(path.join(linked.main, "docs/agents"), { recursive: true });
+  fs.symlinkSync("audit-dimensions.md", path.join(linked.main, "docs/agents/alias.md"));
+  (await git(linked.main, "add", "docs/agents/alias.md"));
+  (await git(linked.main, "commit", "-qm", "symlink dimensions"));
+  const linkResult = (await linked.run());
+  expect(linkResult.status).not.toBe(0);
+  expect(linkResult.stderr).toContain("ADR-0146 decision 1");
+  expect((await linked.remote())).toBe(linked.a);
 });
 
 it("pushes only master when Git is configured to follow annotated tags", async () => {

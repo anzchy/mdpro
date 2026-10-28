@@ -171,7 +171,7 @@ FINDINGS
       fix: <one line>
   M1. [Medium] <dimension> · <file:line> · <issue>   (one line each)
 CONFIRM   (confirm) <finding id>: CLOSED|PARTIAL|OPEN — <evidence>
-CHALLENGE (challenge) CONFIRMED|REFUTED — <trace, reproduction or counter-proof>
+CHALLENGE (challenge) CONFIRMED|REFUTED|UNTRACED — <trace, reproduction or counter-proof>; UNTRACED only for a "trace this" lifecycle Medium, which stays a listed Medium
 COUNT     C<n> H<n> M<n> L<n> · BLOCKING C<n> H<n>
 SECURITY  C<n> H<n> M<n> L<n>   (High tier)
 ```

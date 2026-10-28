@@ -2,7 +2,7 @@
 
 On Codex, push the PR head with `node scripts/codex-rules/push-guard.mjs <sha> <branch> [--expected-remote-oid <A>]`,
 land with `node scripts/codex-rules/land-guard.mjs <sha>`, and push the direct docs commit with
-`node scripts/codex-rules/land-guard.mjs --docs-only`. On Claude, use rule 70's
+`node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review). On Claude, use rule 70's
 `git merge --ff-only <sha>` and `git push origin master`.
 
 - `docs/audit/audit-log.md`: one PR row after the newest (`| #<pr> | <ID> | <tier> | <ranges> | <rounds> | <Codex per

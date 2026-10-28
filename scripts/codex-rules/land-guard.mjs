@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Purpose: fast-forward a checked PR head or push validated docs-only commits onto master. */
 import fs from "node:fs";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkedContext, commitOid, fail, git, run } from "./push-guard.mjs";
 
@@ -19,6 +20,9 @@ function allowedDocsPath(name) {
     (name.startsWith("design/") && name.endsWith(".md")) ||
     ["CHANGELOG.md", "CLAUDE.md", "AGENTS.md"].includes(name) ||
     /^\.claude\/(?:rules|agents)\/[^/]+\.md$/.test(name);
+}
+function protectedDimensionsPath(name) {
+  return path.posix.normalize(name.replace(/^(\.\/)+/, "")).toLowerCase() === "docs/agents/audit-dimensions.md";
 }
 function openPrs() {
   const r = run("gh", ["pr", "list", "--repo", "anzchy/mdpro", "--state", "open", "--json", "headRefOid,statusCheckRollup"]);
@@ -47,9 +51,12 @@ export function land(argv = process.argv.slice(2)) {
   if (ancestor.status !== 0) fail("candidate does not descend from fetched remote master");
   if (docsOnly) {
     if (remote === oid) fail("docs-only push requires commits ahead of remote master");
-    const diff = run("git", ["diff-tree", "--no-commit-id", "--name-only", "-z", "-r", `${remote}..${oid}`]);
+    const diff = run("git", ["diff-tree", "--no-commit-id", "--no-renames", "--name-only", "-z", "-r", `${remote}..${oid}`]);
     if (diff.status !== 0) fail("cannot read docs-only changed paths");
     const changed = diff.stdout.split("\0").filter(Boolean);
+    if (changed.some(name => protectedDimensionsPath(name) || /^120000 blob /.test(git("ls-tree", oid, "--", name)))) {
+      fail("ADR-0146 decision 1: audit dimensions changes require a High-tier PR under the old pin and both-auditor plan review; docs-only landing also refuses changed symlinks");
+    }
     if (!changed.length || changed.some(name => !allowedDocsPath(name))) fail("docs-only range contains a disallowed path");
     process.stdout.write("checked main role, origin, clean index, fetched ancestry and docs-only paths; PR, CI, verifier PASS and audit verdict are not checked\n");
     const result = run("git", ["push", "--no-follow-tags", ...(dryRun ? ["--dry-run"] : []), url, `${oid}:refs/heads/master`]);
