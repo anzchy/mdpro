@@ -25,7 +25,7 @@ Unchanged from rule 70:
 - landing (the three conditions, `--ff-only`, push);
 - the audit-round cap and landing conditions, except the two-verdict merge now replaced above;
 - ADR-0121's tiers; the round cap is now **two rounds, with gpt-auditor and opus-auditor both on every audit**, after which an open Critical or High goes to the user ([ADR-0143](../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), superseding ADR-0120's three rounds and folding in ADR-0142; user, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」). Where this file elsewhere calls opus-auditor optional or gpt-auditor the sole required auditor, ADR-0143 wins;
-- **A review with zero Critical and zero High does not block** (user, 2026-10-25: 「if no c and no h, only medium exists, merge it」): when an implementor's final TDD review or an audit round finds only Medium or Low, the item commits and lands; the Medium and Low findings are recorded in the handoff, the PR and the audit-log row, not sent into another fix round;
+- **A review with zero Critical and zero High does not block** (user, 2026-10-25: 「if no c and no h, only medium exists, merge it」): when an implementor's final TDD review or an audit round finds only Medium or Low, the item commits and lands; the Medium and Low findings are recorded in the handoff, the PR and the audit-log row, not sent into another fix round. A Medium `NOT PROVED` does not license landing the AC unmet: only ADR-0146 decision 4's recorded grounds (a), (b) or (c) permit that disposition;
 - receipts, number reservation, and the Mac mini and device-batch rules (the device roster is replaced above).
 
 When the delegator is not herdr-delegator, this file does not apply.
@@ -346,10 +346,16 @@ brief's background, and the work goes on. The implementor stops only for a path 
 **The delegator confirms by checking the table, not by trusting it.** It re-reads the evidence
 for each AC. The verifier re-runs the lanes and the receipts. The auditors are given the ACs. An
 AC with no evidence, or with evidence that does not show the behaviour, sends the item back
-before any audit starts.
+before any audit starts, except an unproved AC with a recorded acceptance under ADR-0146 decision 4
+cited in the audit request. The delegator records that acceptance before audit only when (a) a
+revised brief moves the AC to a later item, (b) the real-app half of a `device` AC goes to its
+ADR-0144 card, or (c) a user waiver is recorded as an audit-log gate exception. Naming an AC
+unproved in the handoff alone does not accept it.
 
 ## Audits under herdr
 
+- **Dimensions.** Both auditors use `docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`
+  named in the request, with one pin for the full review (ADR-0146).
 - **PRs.** The delegator sends one fresh-pane request to `gpt-auditor` on the exact range.
   On High tier, the request also requires an explicit security review section and count.
   Optional `opus-auditor` follows § Delegator runtime route; it never replaces

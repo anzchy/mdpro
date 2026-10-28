@@ -4,6 +4,9 @@
 
 Partially superseded 2026-10-23 by [ADR-0138](0138-effort-follows-task-difficulty-and-audits-read-from-the-diff-outward.md): decision 1 is extended (difficulty sets effort; the tier still sets auditors and dimensions).
 
+2026-10-28 partially superseded: decision 1's audit set now comes from the pinned repo file, and
+the `docs/**` Low exception excludes `docs/agents/audit-dimensions.md`, by [ADR-0146](0146-audits-use-project-dimensions-kept-in-the-repo.md).
+
 Applied 2026-10-22 by [ADR-0131](0131-every-audit-request-and-every-fix-round-starts-from-a-fresh-context.md): its auditor-change escape replay ran on zero escapes ("insufficient evidence"), and the user decided without recall numbers. Nothing in this ADR is superseded.
 
 Accepted, 2026-10-18. Decided by the user, recorded by mdpro-delegator. The user's words, on the

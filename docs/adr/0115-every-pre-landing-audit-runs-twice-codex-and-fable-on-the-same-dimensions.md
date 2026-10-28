@@ -27,6 +27,9 @@ Under herdr, the clause "Fable as a subagent of the delegator" is restored 2026-
 **Partially superseded** (2026-10-21) by [ADR-0129](0129-a-high-that-survives-the-audit-cap-is-classified-tracked-and-expires.md): Decisions 3 and 5, after the audit cap only. There a
 fix is confirmed by the finding's raiser(s), with no merge challenge.
 
+2026-10-28 partially superseded: decisions 1 and 3's dimension set now comes from the pinned
+repo file, and Medium findings are listed rather than count-only, by [ADR-0146](0146-audits-use-project-dimensions-kept-in-the-repo.md).
+
 ## Context
 
 - Since ADR-0085 (2026-10-12) one Codex audit (`/cc-suite:audit --mini`,

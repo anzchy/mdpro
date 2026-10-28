@@ -54,7 +54,20 @@ the request. If a model is unavailable, tell the user. See [rule 71](../../../.c
 7. **Record the two auditor verdicts** ([merged-verdict-template.md](references/templates/merged-verdict-template.md));
    post when a PR exists. Fix ([fix-brief-template.md](references/templates/fix-brief-template.md)) and obtain
    scoped confirms ([confirm-request-template.md](references/templates/confirm-request-template.md)),
-   at most two rounds.
+   at most two rounds. Before audit, an unproved AC sends the item back unless the delegator can
+   record the acceptance on one of ADR-0146 decision 4's grounds and cite it in the audit request.
+   Accepted grounds:
+   - (a) A revised brief moves the AC to a later item.
+   - (b) The real-app half of a `device` AC goes to a card under ADR-0144; the auditor records
+     `PROVED (unit part)` for the unit evidence and the card owns the device half.
+   - (c) A user waiver recorded as an audit-log gate exception.
+   Without one of these, send the item back before audit; naming an AC unproved in the handoff
+   alone does not accept it.
+
+   Re-ask checks: re-ask the auditor in the same round, in a fresh pane with its own report, for
+   no COVERAGE line; a dimension skipped without a reason; an AC with no verdict; a report naming
+   a blob other than <B>; or a traced runtime High without why tests miss it. Ask only for the
+   missing lines. A re-ask is not a new round (ADR-0146 decision 3).
 8. **Land** when verifier PASS, merged blocking C0 H0, `ci-gate` green, and any receipt exception approved by the user:
    on Codex, `node scripts/codex-rules/land-guard.mjs <sha>`; for direct docs commits,
    `node scripts/codex-rules/land-guard.mjs --docs-only`. On Claude, `git merge --ff-only <sha>`,

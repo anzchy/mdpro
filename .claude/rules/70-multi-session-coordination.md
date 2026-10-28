@@ -218,15 +218,17 @@ handoff. Each item is tagged `prep` or `impl`.
    user decision 2026-10-12: 「只有分支branch 经过Codex audit 并且修复，没有critical /
    high severity findings之后，才允许ff 到master」). When a handoff passes the
    ancestry and scope check, the delegator sends the auditor the branch SHA,
-   its parent, the WI or D id and the owner. The auditor runs
-   `/cc-suite:audit --mini` on `<parent>..<sha>` with preflight bypassed, model
-   `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
+   its parent, the WI or D id and the owner. The auditor audits
+   `<parent>..<sha>` under the mini or full set in
+   `docs/agents/audit-dimensions.md`, pinned at master `<M>` by blob `<B>`,
+   with preflight bypassed, model `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
    asks the user first: the user approved this standing order on 2026-10-10
    so that no human sits in the loop. The approval covers the audit run
    only; rule 25 commands still need their own confirmation. A docs-only or
-   device-record commit is not audited. **The auditor reports only Critical
-   and High findings** and drops Medium and Low ones, keeping just their
-   count; the verdict ends with one line counting Critical, High, Medium and
+   device-record commit is not audited, except that a change to
+   `docs/agents/audit-dimensions.md` goes through a PR and an audit under the
+   old pinned blob. **Mediums are listed, Lows counted**; the verdict ends with
+   one line counting Critical, High, Medium and
    Low, and the delegator reads the gate off that line. Nobody registers
    Medium or Low findings as D items (user decision, 2026-10-10). **A
    Critical or High the auditor downgrades carries a reproduction or a
@@ -246,7 +248,7 @@ handoff. Each item is tagged `prep` or `impl`.
    保持维度相同，才能互相 challenge」):
    - In the message that sends the Codex request, the delegator dispatches
      `mdpro-fable-auditor` in `audit` mode, with the same range and the same
-     dimension set (mini's five unless the request names full's nine).
+     dimension set from the pinned file (mini or full, including L and A).
    - **Round one is blind** (「不能，先各自单独审」). Neither auditor sees the
      other's verdict, and the delegator forwards nothing between them until
      both are in.
@@ -320,7 +322,8 @@ handoff. Each item is tagged `prep` or `impl`.
      may raise it:
      - **High** (document save, close, draft or sync behaviour, MCP approval, preference writes,
        `src-tauri`, `src/services`, CI, release, gate tooling, dependencies, any unlisted path):
-       both auditors on full's nine dimensions, plus `/security-review` run by mdpro-codex-audit.
+       both auditors on the full set, L, A and the High-tier security section in the pinned
+       `docs/agents/audit-dimensions.md` blob `<B>`.
      - **Medium** (other `src/`): both auditors on mini, as above.
      - **Low** (CSS, docs, presentation-only tests): Codex mini alone, with Fable challenging each
        Critical or High it raises.

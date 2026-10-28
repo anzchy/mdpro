@@ -17,6 +17,9 @@ before it. Replaces the post-landing clause of the 2026-10-10 standing order in
 rule 70 § Commits and branches, item 4; the rest of that order (no human in the
 loop, `gpt-6.1-sol` at effort `high`, Critical and High only) stands.
 
+2026-10-28 partially superseded: decision 4's direct docs-only audit exception no longer covers
+`docs/agents/audit-dimensions.md`; its changes require an audited PR, by [ADR-0146](0146-audits-use-project-dimensions-kept-in-the-repo.md).
+
 ## Context
 
 Since 2026-10-10 every landed work item has gone to `mdpro-codex-audit` for a
