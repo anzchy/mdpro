@@ -1,0 +1,26 @@
+# Card MENU-M7: Windows Keyboard Shortcuts states and pending keys
+
+**Controlling AC** ([menu plan § 6, M7](../../plans/20261015-plan-menu-reorganisation.md#6-work-items), quoted):
+
+> Component, one case per row state of DESIGN's block: "Not available" (muted name, no key button, a click starts no recording, Save does not write it); "WYSIWYG only" / "Source only" (key button works, capability line under the name); system and fixed rows (key in a non-editable dashed box, not a button); Replace as an ordinary row with its own key (D13); a conflict flagged by § 5.6; second keys (F3, and U3 / U5 if chosen) shown as fixed. No changed-default banner. Reset restores `<unassigned>` where that is the default; F6 records; conflict detection ignores unavailable rows; the group of each added entry matches U6
+
+## Setup
+
+- Use the current-master `build-windows.yml` development artifact. Record workflow `head_sha`, installer/executable hashes, and `app.ready.releaseId == <version>-dev@<head_sha>`. Record 270% display scale and maximize to about 1120 CSS px or wider.
+- No document fixture is needed. With mdpro closed, snapshot `%USERPROFILE%\.mdpro\config.json`, drafts and MCP state because this card changes shortcuts; restore the snapshot after the run while mdpro is closed.
+- Confirm the applied shortcut snapshot is version 2. Drive the page with labelled CDP and real keys with labelled `ui.sh`. Take page-viewport screenshots only; never commit a full-screen desktop image.
+
+## Steps
+
+1. `cli` — Open Settings → Keyboard Shortcuts and enumerate every visible row/group with CDP. The page maps command-table sections at `src/components/common/settings/KeyboardShortcutsSettings.tsx:249`. Proof: `preferences.read` is `success` with `purpose:"settings_shortcuts"` (event built at `src/services/preferencesService.ts:114`); the DOM effect contains every command-table entry in its expected group, including Replace.
+2. `cli` — Inspect one unavailable row, one WYSIWYG-only row, one Source-only row, and the Windows fixed rows. State is derived at `src/components/common/settings/shortcuts/rowState.ts:119` and rendered at `src/components/common/settings/shortcuts/ShortcutRow.tsx:46`. Proof: a page screenshot/DOM capture shows unavailable text with no button, capability text, and fixed dashed spans; clicking an editable row writes `ui.button.click`, while unavailable/fixed rows start no recorder and make no change.
+3. `cli` — Start a configurable row's recorder and send real F6 alone with labelled `ui.sh` `chord`. Bare function keys are accepted at `src/utils/platformLabels.ts:75`. Proof: `ui.button.click` for the row precedes a visible F6 value and the unsaved banner; no command runs in the document.
+4. `cli` — Save a harmless non-conflicting change, reopen Settings, then open another mdpro window and inspect the same row. Save logs at `src/components/common/settings/KeyboardShortcutsSettings.tsx:152`. Proof: `ui.button.click` with `controlId:"settings.shortcuts.save"` and the visible pending text rendered at `src/components/common/settings/shortcuts/ShortcutRow.tsx:59` show active and after-restart keys in both windows.
+5. `cli` — On the current version-2 snapshot, confirm fixed/system rows are not buttons and F3/Shift+F3 appear as fixed secondary keys. Proof: DOM/screenshot effect plus the successful settings read; off-Mac key-label conversion is implemented at `src/utils/platformLabels.ts:39`.
+6. `cli` — Assign a harmless key to a row whose declared version-2 default is `<unassigned>`, then activate Reset. Reset handling starts at `src/components/common/settings/KeyboardShortcutsSettings.tsx:139`. Proof: `ui.button.click` for Reset is paired with the row visibly returning to `Not set` (the UI rendering at `src/components/common/settings/shortcuts/ShortcutRow.tsx:74`), and the pending-change state updating; Save/reopen preserves `<unassigned>` in configuration and `Not set` in the UI.
+7. `cli` — Assign an editable row Ctrl+Shift+C, the Windows form of unavailable Copy as Markdown's source-declared default at `src/commands/rows/editRows.ts:20`. The Settings conflict contract excludes unavailable-row defaults at `src/commands/settingsConflicts.ts:16`. Proof: the editable row remains unflagged and saveable, while Copy as Markdown stays visibly `Not available`, non-recordable, and unchanged per `src/components/common/settings/shortcuts/ShortcutRow.tsx:69`; capture the DOM conflict state and the successful Save log.
+8. `cli` — Close mdpro normally, restore the exact configuration/draft snapshot while it is closed as required by `.agents/skills/remote-windows-device-test/reference/config-isolation.md:48`, relaunch only if needed to confirm the original hash/state, then return to normal mode and run cleanup. Proof: `window.close` emitted at `src-tauri/src/main.rs:327` pairs with the window visibly disappearing; cleanup succeeds and restored configuration/draft hashes match.
+
+## Failure condition
+
+Fail for a missing/misgrouped command, a recordable unavailable or fixed row, absent capability/pending text, F6 refusal, Reset not restoring `<unassigned>`/`Not set`, an unavailable row creating a conflict, a save that does not persist to a second window, or missing build identity. A screenshot without the required log or state effect is insufficient.
