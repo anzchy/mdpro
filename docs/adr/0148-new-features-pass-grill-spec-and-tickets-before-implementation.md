@@ -88,6 +88,8 @@ auditors (ADR-0143) before the user is asked to accept it.
    on Codex; rule 71), naming the next step and the planner pane. Implementors never ask the user.
 2. **What is gated, decided by a test.** An item is gated if any of these holds:
    - it adds or changes a user-visible capability, i.e. a feature-ledger row is new or changes state;
+   - it adds any new user-visible behaviour (an action, a setting, a menu item, a shortcut or a visible state), even inside an existing
+     `Shipped` ledger row;
    - it adds a declared surface (command, HTTP route, `MENU_*` id, plugin id, store) or a new contract (IPC, persisted format, preference
      key);
    - it is expected to need more than one PR;
@@ -117,6 +119,8 @@ auditors (ADR-0143) before the user is asked to accept it.
    - **Who commits it.** The delegator, after checking that the published bodies match. A revision folder never changes; a normative
      issue edit becomes `r<N+1>` and needs the user's re-approval. The delegator records which tests, reviews and device evidence it
      voids.
+   - **Re-review.** Before any brief cites a revision `r<N+1>`, both auditors plan-review its diff against `r<N>` (ADR-0143). An
+     earlier revision's review never covers a later one.
    - **Pins.** Briefs, cards and audit requests pin the snapshot's commit and blob ids. `docs/specs/**` is never Low tier.
 5. **Precedence for gated items:** spec snapshot, then ticket, then brief, then card. A card may anchor its controlling AC to a spec or
    ticket AC id in the snapshot, quoted verbatim. The card checker and the landing verifier must support that anchor before the first

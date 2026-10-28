@@ -15,6 +15,8 @@
 ## Gated or not: the test, which the delegator records in the brief
 - **Gated** when any of these holds:
   - a feature-ledger row is new or changes state;
+  - it adds any new user-visible behaviour (an action, a setting, a menu item, a shortcut or a visible state), even inside an existing
+    `Shipped` ledger row;
   - it adds a declared surface (command, HTTP route, `MENU_*` id, plugin id, store) or a contract (IPC, persisted format, preference key);
   - it is expected to take more than one PR;
   - it needs an ADR.
@@ -38,7 +40,8 @@
   3. commits the snapshot `docs/specs/<feature>/r<N>/`: `spec.md`, `tickets/<T-nn>.md`, and a `manifest.md` with issue URLs, body
      SHA-256s, approval words and blocking edges;
   4. sends spec, tickets and ADR drafts to both auditors for plan review.
-- **Snapshot revisions never change.** A normative issue edit becomes `r<N+1>` and needs re-approval. `docs/specs/**` is never Low tier.
+- **Snapshot revisions never change.** A normative issue edit becomes `r<N+1>` and needs re-approval. Before any brief cites it, both
+  auditors plan-review its diff against `r<N>`; an earlier review never covers a later revision. `docs/specs/**` is never Low tier.
 - **Asking.** "Ask the user" means the delegator's route question channel: `AskUserQuestion` on Claude, Codex's channel on Codex. It
   names the next missing step and the planner pane. Implementors never ask the user (rule 70).
 - **Setup.** `/setup-matt-pocock-skills` runs once, by the user, with GitHub Issues. The delegator reviews and commits what it writes.
