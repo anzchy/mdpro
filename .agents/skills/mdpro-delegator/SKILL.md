@@ -70,7 +70,9 @@ the request. If a model is unavailable, tell the user. See [rule 71](../../../.c
    missing lines. A re-ask is not a new round (ADR-0146 decision 3).
 8. **Land** when verifier PASS, merged blocking C0 H0, `ci-gate` green, and any receipt exception approved by the user:
    on Codex, `node scripts/codex-rules/land-guard.mjs <sha>`; for direct docs commits,
-   `node scripts/codex-rules/land-guard.mjs --docs-only`. On Claude, `git merge --ff-only <sha>`,
+   `node scripts/codex-rules/land-guard.mjs --docs-only` (never for `docs/agents/audit-dimensions.md`,
+   which requires a High-tier PR audited under the old pin and plan review of the proposed blob by both auditors).
+   On Claude, `git merge --ff-only <sha>`,
    `git push origin master`, then
    [landing-docs-checklist.md](references/templates/landing-docs-checklist.md).
 9. **Device batches** ([device-brief-template.md](references/templates/device-brief-template.md)): reset with `reset-codex.sh gpt-auditor <worktree> <model> <effort> device`; picsee honours the shared lock;

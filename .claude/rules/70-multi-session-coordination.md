@@ -226,9 +226,10 @@ handoff. Each item is tagged `prep` or `impl`.
    so that no human sits in the loop. The approval covers the audit run
    only; rule 25 commands still need their own confirmation. A docs-only or
    device-record commit is not audited, except that a change to
-   `docs/agents/audit-dimensions.md` goes through a PR and an audit under the
-   old pinned blob. **Mediums are listed, Lows counted**; the verdict ends with
-   one line counting Critical, High, Medium and
+   `docs/agents/audit-dimensions.md` goes through a PR, audited at High tier
+   under the old pinned blob, with plan review of the proposed blob by both
+   auditors before it lands; never a direct docs-only commit. **Mediums are listed, Lows counted**;
+   the verdict ends with one line counting Critical, High, Medium and
    Low, and the delegator reads the gate off that line. Nobody registers
    Medium or Low findings as D items (user decision, 2026-10-10). **A
    Critical or High the auditor downgrades carries a reproduction or a
@@ -325,8 +326,9 @@ handoff. Each item is tagged `prep` or `impl`.
        both auditors on the full set, L, A and the High-tier security section in the pinned
        `docs/agents/audit-dimensions.md` blob `<B>`.
      - **Medium** (other `src/`): both auditors on mini, as above.
-     - **Low** (CSS, docs, presentation-only tests): Codex mini alone, with Fable challenging each
-       Critical or High it raises.
+     - **Low** (CSS, docs except `docs/agents/audit-dimensions.md`, presentation-only tests):
+       Codex mini alone, with Fable challenging each Critical or High it raises. A change to the
+       excluded file is High tier.
    - **Base.** The base is the PR's fork point on `master` (`git merge-base`). It moves with each
      rebase.
    - **Pre-existing.** A *Pre-existing* High needs three things before it stops blocking:

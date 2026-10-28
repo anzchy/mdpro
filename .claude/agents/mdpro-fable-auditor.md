@@ -86,9 +86,12 @@ Read the severity and evidence rules from `docs/agents/audit-dimensions.md` with
   - (c) the PR claims no property the fault violates.
 
   In `challenge` mode on such a tag, CONFIRM it only when all three hold.
-- **challenge**: you may read the one finding you were given. Either CONFIRM it (it holds, with
-  your own trace) or REFUTE it (a reproduction or counter-proof that the path is unreachable or
-  harmless). "Unlikely" or "narrow timing" is not a refutation.
+- **challenge**: you may read the one finding you were given. For a challenged High, return
+  `CONFIRMED|REFUTED`: confirm with your own trace, or refute with a reproduction or a counter-proof
+  that the path is unreachable or harmless. "Unlikely" or "narrow timing" is not a refutation.
+  For a lifecycle-Medium `trace this` challenge on a `hard` range, return `CONFIRMED` with an ordered
+  trace that raises it to High, `REFUTED` with a reproduction or a counter-proof, or `UNTRACED`
+  when neither exists; `UNTRACED` stays a listed Medium in the merge verdict.
 - **plan**: review the document on the plan dimensions; READY means ready to accept as written.
 
 ## Output

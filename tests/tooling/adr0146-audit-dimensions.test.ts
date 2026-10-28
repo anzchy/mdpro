@@ -142,6 +142,19 @@ describe("ADR-0146 delegator templates", () => {
     expect(merged).toContain("Mediums listed one line each");
     expect(merged).not.toContain("Mediums counted only");
   });
+
+  it("keeps an untraced lifecycle challenge listed as Medium without weakening High refutation", () => {
+    const challenge = template("challenge-request");
+    const procedure = fs.readFileSync(path.join(root, ".claude/agents/mdpro-fable-auditor.md"), "utf8");
+    for (const source of [challenge, procedure]) {
+      expect(source).toContain("UNTRACED");
+      expect(source).toContain("stays a listed Medium");
+      expect(source).toContain("CONFIRMED|REFUTED");
+      expect(source).toContain("reproduction or a counter-proof");
+    }
+    expect(challenge).toContain("neither a trace nor a counter-proof");
+    expect(challenge).toContain("merge verdict");
+  });
 });
 
 describe("ADR-0146 delegator step 7", () => {
@@ -217,6 +230,23 @@ describe("ADR-0146 coordination rules", () => {
     }
     expect(audits).toContain("docs/agents/audit-dimensions.md");
     expect(audits).toContain("<B>");
+  });
+
+  it("routes dimensions-file changes through a High PR and excludes direct docs-only landing", () => {
+    const source = rule(70);
+    const tier = source.slice(source.indexOf("- **Low** (CSS, docs"), source.indexOf("- **Medium**", source.indexOf("- **Low** (CSS, docs")));
+    const item4 = source.slice(source.indexOf("4. **Every WI or finished module is audited"), source.indexOf("5. The sequencing-doc row"));
+    const skill = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/SKILL.md"), "utf8");
+    const step8 = skill.slice(skill.indexOf("8. **Land**"), skill.indexOf("9. **Device batches**"));
+    expect(tier).toContain("except `docs/agents/audit-dimensions.md`");
+    expect(tier).toContain("High tier");
+    const lowBullet = source.split("- **Low** (CSS, docs")[1]?.split("\n   - **Base.**")[0] ?? "";
+    expect(lowBullet).toContain("except `docs/agents/audit-dimensions.md`");
+    expect(lowBullet).toContain("excluded file is High tier");
+    for (const phrase of ["docs/agents/audit-dimensions.md", "PR", "High tier", "old pinned blob", "plan review", "both auditors", "never a direct docs-only commit"]) {
+      expect(item4, phrase).toContain(phrase);
+    }
+    expect(step8).toContain("never for `docs/agents/audit-dimensions.md`");
   });
 });
 
