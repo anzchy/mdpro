@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { SPAWN_TEST_TIMEOUT_MS } from '../support/spawnTestTimeout';
+import { SPAWN_CHILD_TIMEOUT_MS, SPAWN_TEST_TIMEOUT_MS } from '../support/spawnTestTimeout';
 // @ts-expect-error -- plain ESM repository script has no declaration file
 import { compare } from "../../scripts/ci/compare-report.mjs";
 // @ts-expect-error -- plain ESM repository script has no declaration file
@@ -28,7 +28,8 @@ function report(status: "passed" | "skipped") {
 
 function profile(env: NodeJS.ProcessEnv) {
   return new Promise<{ status: number; stdout: string }>(resolve => {
-    execFile(process.execPath, [profileScript], { cwd: root, env, encoding: "utf8" }, (error, stdout) => {
+    execFile(process.execPath, [profileScript], { cwd: root, env, encoding: "utf8",
+      timeout: SPAWN_CHILD_TIMEOUT_MS, killSignal: "SIGTERM" }, (error, stdout) => {
       resolve({ status: error ? 1 : 0, stdout });
     });
   });

@@ -4,13 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { SPAWN_TEST_TIMEOUT_MS } from '../support/spawnTestTimeout';
+import { SPAWN_CHILD_TIMEOUT_MS, SPAWN_TEST_TIMEOUT_MS } from '../support/spawnTestTimeout';
 
 const root = path.resolve(__dirname, "../..");
 const made: string[] = [];
 function call(cwd: string, file: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   return new Promise<{ status: number; stdout: string; stderr: string }>(resolve => {
-    execFile(file, args, { cwd, encoding: "utf8", env: { ...process.env, ...env } }, (error, stdout, stderr) => {
+    execFile(file, args, { cwd, encoding: "utf8", env: { ...process.env, ...env },
+      timeout: SPAWN_CHILD_TIMEOUT_MS, killSignal: "SIGTERM" }, (error, stdout, stderr) => {
       resolve({ status: error ? 1 : 0, stdout, stderr });
     });
   });

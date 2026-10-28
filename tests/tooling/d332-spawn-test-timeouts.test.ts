@@ -1,6 +1,5 @@
 // @vitest-environment node
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import ts from "typescript";
 import { afterEach, expect, it } from "vitest";
@@ -15,7 +14,7 @@ const protectedFiles = [
 const temporary: string[] = [];
 
 function fixture(source: string): string {
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "d332-timeout-")), "fifth.test.ts");
+  const file = path.join(fs.mkdtempSync(path.join(root, "tests/.d332-timeout-")), "fifth.test.ts");
   temporary.push(path.dirname(file));
   fs.writeFileSync(file, source);
   return file;
@@ -30,14 +29,36 @@ function caseTimeoutAudit(files: string[]): string[] {
   for (const file of files) {
     const source = fs.readFileSync(file, "utf8");
     const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
-    const importsSharedTimeout = ast.statements.some((statement) =>
+    const sharedName = "SPAWN_TEST_TIMEOUT_MS";
+    const sharedModule = path.join(root, "tests/support/spawnTestTimeout.ts");
+    const relativeModule = path.relative(path.dirname(file), sharedModule).replace(/\.ts$/, "");
+    const expectedSpecifier = relativeModule.startsWith("..") ? relativeModule : `./${relativeModule}`;
+    const matchingImports = ast.statements.flatMap((statement) =>
       ts.isImportDeclaration(statement)
       && ts.isStringLiteral(statement.moduleSpecifier)
-      && /(?:^|\/)spawnTestTimeout$/.test(statement.moduleSpecifier.text)
+      && statement.moduleSpecifier.text === expectedSpecifier
+      && path.resolve(path.dirname(file), `${statement.moduleSpecifier.text}.ts`) === sharedModule
       && !!statement.importClause?.namedBindings
       && ts.isNamedImports(statement.importClause.namedBindings)
-      && statement.importClause.namedBindings.elements.some((element) => element.name.text === "SPAWN_TEST_TIMEOUT_MS"),
+        ? statement.importClause.namedBindings.elements.filter((element) =>
+          (element.propertyName?.text ?? element.name.text) === sharedName)
+        : [],
     );
+    const sharedLocalName = matchingImports.length === 1 ? matchingImports[0].name.text : undefined;
+    let shadowed = false;
+    function declaresSharedName(name: ts.BindingName): boolean {
+      if (ts.isIdentifier(name)) return name.text === sharedLocalName;
+      return name.elements.some((element) => ts.isBindingElement(element) && declaresSharedName(element.name));
+    }
+    function findShadow(node: ts.Node): void {
+      if ((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isBindingElement(node))
+        && declaresSharedName(node.name)) shadowed = true;
+      if (ts.isCatchClause(node) && node.variableDeclaration && declaresSharedName(node.variableDeclaration.name)) shadowed = true;
+      if (ts.isImportSpecifier(node) && node.name.text === sharedLocalName
+        && !matchingImports.includes(node)) shadowed = true;
+      ts.forEachChild(node, findShadow);
+    }
+    findShadow(ast);
     function visit(node: ts.Node): void {
       if (ts.isCallExpression(node)) {
         const direct = ts.isIdentifier(node.expression) && node.expression.text === "it";
@@ -49,7 +70,7 @@ function caseTimeoutAudit(files: string[]): string[] {
         if (direct || each) {
           const title = node.arguments[0]?.getText(ast) ?? "<untitled>";
           const timeout = node.arguments[2];
-          if (!importsSharedTimeout || !timeout || !ts.isIdentifier(timeout) || timeout.text !== "SPAWN_TEST_TIMEOUT_MS") {
+          if (!sharedLocalName || shadowed || !timeout || !ts.isIdentifier(timeout) || timeout.text !== sharedLocalName) {
             violations.push(`${path.basename(file)}: ${title}`);
           }
         }
@@ -61,7 +82,7 @@ function caseTimeoutAudit(files: string[]): string[] {
   return violations;
 }
 
-const protectedSource = `import { SPAWN_TEST_TIMEOUT_MS } from "./spawnTestTimeout";\n`
+const protectedSource = `import { SPAWN_TEST_TIMEOUT_MS } from "../support/spawnTestTimeout";\n`
   + `it("first", () => {}, SPAWN_TEST_TIMEOUT_MS);\n`
   + `it.each([1, 2])("middle %s", () => {}, SPAWN_TEST_TIMEOUT_MS);\n`
   + `it("last", () => {}, SPAWN_TEST_TIMEOUT_MS);\n`;
@@ -100,6 +121,52 @@ it("rejects a literal or unrelated timeout identifier, then clears on restoratio
     fs.writeFileSync(file, protectedSource);
     expect(caseTimeoutAudit([file])).toEqual([]);
   }
+});
+
+it("rejects a renamed child budget and restores the named import", () => {
+  const file = fixture(protectedSource);
+  fs.writeFileSync(file, protectedSource.replace("{ SPAWN_TEST_TIMEOUT_MS }", "{ SPAWN_CHILD_TIMEOUT_MS as SPAWN_TEST_TIMEOUT_MS }"));
+  expect(caseTimeoutAudit([file])).toEqual(['fifth.test.ts: "first"', 'fifth.test.ts: "middle %s"', 'fifth.test.ts: "last"']);
+  fs.writeFileSync(file, protectedSource);
+  expect(caseTimeoutAudit([file])).toEqual([]);
+});
+
+it("accepts an alias of the exported shared timeout when the case uses it", () => {
+  const file = fixture(protectedSource.replaceAll("SPAWN_TEST_TIMEOUT_MS", "CASE_BUDGET")
+    .replace("{ CASE_BUDGET }", "{ SPAWN_TEST_TIMEOUT_MS as CASE_BUDGET }"));
+  expect(caseTimeoutAudit([file])).toEqual([]);
+});
+
+it("rejects block and file shadows of the shared timeout", () => {
+  const file = fixture(protectedSource);
+  for (const shadow of [
+    'const SPAWN_TEST_TIMEOUT_MS = 5_000;\n',
+    'if (true) { const SPAWN_TEST_TIMEOUT_MS = 5_000; }\n',
+  ]) {
+    fs.writeFileSync(file, protectedSource + shadow);
+    expect(caseTimeoutAudit([file])).toEqual(['fifth.test.ts: "first"', 'fifth.test.ts: "middle %s"', 'fifth.test.ts: "last"']);
+  }
+  fs.writeFileSync(file, protectedSource);
+  expect(caseTimeoutAudit([file])).toEqual([]);
+});
+
+it("rejects parameter and destructuring shadows", () => {
+  const file = fixture(protectedSource);
+  for (const declaration of [
+    'function run(SPAWN_TEST_TIMEOUT_MS: number) {}\n',
+    'const { SPAWN_TEST_TIMEOUT_MS } = { SPAWN_TEST_TIMEOUT_MS: 5_000 };\n',
+  ]) {
+    fs.writeFileSync(file, protectedSource + declaration);
+    expect(caseTimeoutAudit([file])).toEqual(['fifth.test.ts: "first"', 'fifth.test.ts: "middle %s"', 'fifth.test.ts: "last"']);
+  }
+});
+
+it("rejects a same-named import from another module", () => {
+  const file = fixture(protectedSource);
+  fs.writeFileSync(file, protectedSource.replace("../support/spawnTestTimeout", "../fixtures/spawnTestTimeout"));
+  expect(caseTimeoutAudit([file])).toEqual(['fifth.test.ts: "first"', 'fifth.test.ts: "middle %s"', 'fifth.test.ts: "last"']);
+  fs.writeFileSync(file, protectedSource);
+  expect(caseTimeoutAudit([file])).toEqual([]);
 });
 
 import { SPAWN_CHILD_TIMEOUT_MS, SPAWN_TEST_TIMEOUT_MS } from "../support/spawnTestTimeout";
