@@ -21,6 +21,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { beforeEach } from 'vitest';
+import { SPAWN_CHILD_TIMEOUT_MS } from './spawnTestTimeout';
 
 export const SCRIPT = resolve(__dirname, '..', '..', 'scripts', 'build-mac.sh');
 export const VERSION = '9.8.7';
@@ -184,7 +185,7 @@ export function createBuildMacProject(prefix = 'build-mac-'): BuildMacProject {
       cwd: root,
       encoding: 'utf8',
       env: { PATH: path ?? defaultPath(), HOME: root, TMPDIR: root, ...env },
-      timeout: 30_000,
+      timeout: SPAWN_CHILD_TIMEOUT_MS,
     });
     return { status: res.status, out: `${res.stdout}${res.stderr}` };
   };

@@ -10,6 +10,7 @@
  */
 import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SPAWN_TEST_TIMEOUT_MS } from './support/spawnTestTimeout';
 import { type BuildMacProject, createBuildMacProject, VERSION } from './support/buildMacHarness';
 import { skipUnlessMac } from './support/buildMacHarness';
 
@@ -37,7 +38,7 @@ describe('D182 build-mac.sh', () => {
     expect(out).not.toMatch(/Build complete/);
     // The earlier build's DMG is left alone, not deleted.
     expect(existsSync(stale)).toBe(true);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it('fails when tauri build succeeds but only a stale DMG for the version exists', () => {
     placeStaleBuild();
@@ -45,13 +46,13 @@ describe('D182 build-mac.sh', () => {
     expect(status).not.toBe(0);
     expect(out).toMatch(/not produced by this build|stale/i);
     expect(out).not.toMatch(/Build complete/);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it('fails with a DMG-not-found message when no DMG exists at all', () => {
     const { status, out } = run({ STUB_TAURI: 'nodmg', VERSION });
     expect(status).not.toBe(0);
     expect(out).toMatch(/DMG not found|not produced by this build/i);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it('succeeds when the build writes a fresh DMG, replacing an old one', () => {
     placeStaleBuild();
@@ -59,13 +60,13 @@ describe('D182 build-mac.sh', () => {
     expect(status).toBe(0);
     expect(out).toMatch(/Build complete/);
     expect(out).toContain(`mdpro_${VERSION}_aarch64.dmg`);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it('succeeds when the build output has no lines left after filtering', () => {
     const { status, out } = run({ STUB_TAURI: 'dmg-quiet', VERSION });
     expect(status).toBe(0);
     expect(out).toMatch(/Build complete/);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it('stops before building when pnpm install fails (D181 guard)', () => {
     const stale = placeStaleBuild();
@@ -74,5 +75,5 @@ describe('D182 build-mac.sh', () => {
     expect(out).not.toMatch(/Building mdpro\.app/);
     expect(out).not.toMatch(/Build complete/);
     expect(existsSync(stale)).toBe(true);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 });

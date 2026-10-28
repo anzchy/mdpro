@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { SPAWN_TEST_TIMEOUT_MS } from '../support/spawnTestTimeout';
 // @ts-expect-error -- plain ESM repository script has no declaration file
 import { compare } from "../../scripts/ci/compare-report.mjs";
 // @ts-expect-error -- plain ESM repository script has no declaration file
@@ -47,7 +48,7 @@ describe("ADR141 Codex CLI inventory prerequisite", () => {
     expect(() => compare("ci", report("passed"), inventory, "ubuntu+rustfmt", root)).toThrow(/Stale inventory entry/);
     expect(compare("ci", report("passed"), inventory, "ubuntu+rustfmt+codex-cli", root)).toEqual({ total: 1, passed: 1 });
     expect(() => compare("ci", report("skipped"), inventory, "ubuntu+rustfmt+codex-cli", root)).toThrow(/Unexpected skip/);
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it("measures a working Codex CLI on Linux and macOS", async () => {
     for (const runnerOS of ["Linux", "macOS"]) {
@@ -61,7 +62,7 @@ describe("ADR141 Codex CLI inventory prerequisite", () => {
       expect(absent.status).toBe(0);
       expect(absent.stdout.trim()).toBe(base);
     }
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it("local verifier probes Codex availability before its inventory run", () => {
     const prior = process.env.PATH;
@@ -75,7 +76,7 @@ describe("ADR141 Codex CLI inventory prerequisite", () => {
     } finally {
       process.env.PATH = prior;
     }
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 
   it("registers exactly the 16 runtime policy checks under stable IDs", () => {
     const actual = JSON.parse(fs.readFileSync(path.join(root, "tests/ci-inventory.json"), "utf8")) as {
@@ -96,5 +97,5 @@ describe("ADR141 Codex CLI inventory prerequisite", () => {
       "forbids git push origin --force master", "forbids git push origin --mirror",
       "forbids git push origin x", "forbids git reset --hard", "forbids rm -rf src",
     ].sort());
-  });
+  }, SPAWN_TEST_TIMEOUT_MS);
 });

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
+import { SPAWN_TEST_TIMEOUT_MS } from '../support/spawnTestTimeout';
 
 const root = path.resolve(__dirname, "../..");
 const made: string[] = [];
@@ -69,7 +70,7 @@ it("dry runs without moving refs, then lands audited head by fast-forward", asyn
   expect([(await f.local()), (await f.remote())]).toEqual([f.b, f.b]);
   expect(landed.stdout).toContain("verifier");
   expect(landed.stdout).toContain("audit");
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("lands only master when Git is configured to follow annotated tags", async () => {
   const f = (await fixture());
@@ -80,7 +81,7 @@ it("lands only master when Git is configured to follow annotated tags", async ()
   expect([(await f.local()), (await f.remote())]).toEqual([f.b, f.b]);
   expect((await git(f.dir, "--git-dir", f.bare, "for-each-ref", "--format=%(refname) %(objectname)")))
     .toBe(`refs/heads/master ${f.b}`);
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("refuses bad role, staged work, wrong branch, stale PR and CI states", async () => {
   const f = (await fixture());
@@ -102,7 +103,7 @@ it("refuses bad role, staged work, wrong branch, stale PR and CI states", async 
     expect((await f.run([f.b], extra)).status).not.toBe(0);
     expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
   }
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("refuses origin and Git rewrite overrides before landing", async () => {
   for (const change of [
@@ -119,7 +120,7 @@ it("refuses origin and Git rewrite overrides before landing", async () => {
     expect((await f.run([f.b], extra)).status).not.toBe(0);
     expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
   }
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("allows unrelated unstaged and untracked work on a successful landing", async () => {
   const f = (await fixture());
@@ -130,7 +131,7 @@ it("allows unrelated unstaged and untracked work on a successful landing", async
   expect([(await f.local()), (await f.remote())]).toEqual([f.b, f.b]);
   expect(fs.readFileSync(path.join(f.main, "base.txt"), "utf8")).toBe("dirty\n");
   expect(fs.readFileSync(path.join(f.main, "untracked.txt"), "utf8")).toBe("private\n");
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("refuses a remote race and restores local master without losing dirty files", async () => {
   const f = (await fixture());
@@ -154,7 +155,7 @@ it("refuses a remote race and restores local master without losing dirty files",
   expect([(await f.local()), (await f.remote())], r.stderr).toEqual([f.a, c]);
   expect(fs.readFileSync(path.join(f.main, "base.txt"), "utf8")).toBe("dirty tracked\n");
   expect(fs.readFileSync(path.join(f.main, "untracked.txt"), "utf8")).toBe("dirty untracked\n");
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("refuses a non-descendant candidate, missing CI and extra flags", async () => {
   const f = (await fixture());
@@ -172,7 +173,7 @@ it("refuses a non-descendant candidate, missing CI and extra flags", async () =>
     expect((await f.run(args, extra)).status).not.toBe(0);
     expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
   }
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("lands the validated OID when the candidate ref moves after PR validation", async () => {
   const f = (await fixture());
@@ -189,7 +190,7 @@ it("lands the validated OID when the candidate ref moves after PR validation", a
   expect(result.status, result.stderr).toBe(0);
   expect([(await f.local()), (await f.remote())]).toEqual([f.b, f.b]);
   expect((await git(f.main, "rev-parse", "feature"))).toBe(c);
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("pins PR lookup to anzchy/mdpro despite an ambient GH_REPO", async () => {
   const f = (await fixture());
@@ -199,7 +200,7 @@ it("pins PR lookup to anzchy/mdpro despite an ambient GH_REPO", async () => {
   const r = (await f.run([f.b], { GH_REPO: "attacker/decoy" }));
   expect(r.status, r.stderr).toBe(0);
   expect([(await f.local()), (await f.remote())]).toEqual([f.b, f.b]);
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("rejects missing and symlinked role markers and a linked master tree", async () => {
   for (const change of ["missing", "symlink"]) {
@@ -221,7 +222,7 @@ it("rejects missing and symlinked role markers and a linked master tree", async 
   const r = (await call(linked, process.execPath, ["scripts/codex-rules/land-guard.mjs", f.b], { ...f.env, MDPRO_GUARD_TEST_MAIN: linked }));
   expect(r.status).not.toBe(0);
   expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("rejects multiple push URLs, symlink and nonbare origins with unchanged decoy refs", async () => {
   for (const kind of ["multiple", "symlink", "nonbare"]) {
@@ -242,7 +243,7 @@ it("rejects multiple push URLs, symlink and nonbare origins with unchanged decoy
     expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
     expect((await git(f.dir, "--git-dir", decoy, "for-each-ref", "--format=%(refname) %(objectname)"))).toBe(decoyBefore);
   }
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("rejects wrong-shaped PR JSON and a green check under another name", async () => {
   const f = (await fixture());
@@ -255,7 +256,7 @@ it("rejects wrong-shaped PR JSON and a green check under another name", async ()
     expect((await f.run([f.b])).status).not.toBe(0);
     expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
   }
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("refuses extra PR landing arguments without moving local or remote master", async () => {
   const f = (await fixture());
@@ -264,7 +265,7 @@ it("refuses extra PR landing arguments without moving local or remote master", a
     expect(result.status).not.toBe(0);
     expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
   }
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("refuses PR landing when only the ambient decoy repository has a matching PR", async () => {
   const f = (await fixture());
@@ -274,7 +275,7 @@ it("refuses PR landing when only the ambient decoy repository has a matching PR"
   const result = (await f.run([f.b], { GH_REPO: "attacker/decoy" }));
   expect(result.status).not.toBe(0);
   expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
-});
+}, SPAWN_TEST_TIMEOUT_MS);
 
 it("rejects an absolute script invocation from a different working directory", async () => {
   const f = (await fixture());
@@ -282,4 +283,4 @@ it("rejects an absolute script invocation from a different working directory", a
     [path.join(f.main, "scripts/codex-rules/land-guard.mjs"), f.b], f.env));
   expect(result.status).not.toBe(0);
   expect([(await f.local()), (await f.remote())]).toEqual([f.a, f.a]);
-});
+}, SPAWN_TEST_TIMEOUT_MS);
