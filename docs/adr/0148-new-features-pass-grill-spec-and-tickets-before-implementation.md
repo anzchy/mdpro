@@ -2,6 +2,13 @@
 
 ## Status
 
+**Accepted, 2026-10-28.** Decided by the user: 「Accept (Recommended)」, after plan review by both auditors:
+- round 1: gpt-auditor C0 H3, opus-auditor C0 H4;
+- round 2: opus-auditor C0 H0; gpt-auditor C0 H2, two new Highs fixed at the cap under the user's 「Fix, gpt confirms, then accept
+  (Recommended)」 and confirmed CLOSED (`ADR-0148-postcap.md`, C0 H0).
+
+Recorded by herdr-delegator.
+
 **Proposed, 2026-10-28, by herdr-delegator (Claude route). Revised after plan review round 1.** The user's direction:
 - 「从现在开始，从Plan的grill到 spec, tickets，到实施，全面切换为 /mattpocock 的Skill，查询mattpocock的整个Workflow。新功能在实施前一定要先经过 /grill-with-docs ，其次 /to-spec 最后 /to-tickets ，才能进入实施状态，如果没有的话，用askuserquestion tool 提示用户，不能只有模糊的plan就开始实施。上面作为一个Claude rule」;
 - 「Tickets feed briefs (Recommended)」, 「New features + plan-sized work (Recommended)」, 「Rule + ADR-0148 (Recommended)」;
@@ -11,8 +18,7 @@
   (`herdr-spike/delegator/ADR-0148-combine-{codex,fable}.md`): 「docs/specs/<feature>/r<N>/」, 「Delegator numbers at commit
   (Recommended)」, 「Delegator closes after landing (Recommended)」, 「Yes, one validated cycle (Recommended)」.
 
-The gate binds from 2026-10-28 through rule 12, on the user's direct instruction. This record goes to plan review round 2 by both
-auditors (ADR-0143) before the user is asked to accept it.
+The gate binds from 2026-10-28 through rule 12, on the user's direct instruction.
 
 **Partially supersedes, by name, for rule-12 (gated) items only:**
 - **rule 71 § Briefs and self-acceptance, step 4** ("writes the tests and records the REDs. Only after that does it touch production

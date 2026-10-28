@@ -265,7 +265,9 @@ Sequencing for this effort lives in
   being left blank.
 - The sequencing doc carries **order and status only**. Acceptance criteria stay
   in plans P and M; when they conflict, the original plan wins and the
-  sequencing doc is corrected to match.
+  sequencing doc is corrected to match. **For rule-12 (gated) items, the approved
+  spec snapshot under `docs/specs/<feature>/r<N>/` wins instead, and the row carries
+  its ticket reference** ([ADR-0148](./docs/adr/0148-new-features-pass-grill-spec-and-tickets-before-implementation.md)).
 
 ## Worktrees
 
@@ -342,7 +344,8 @@ generated, never hand-edited.
   ids, `pluginConfig.ts` plugin ids, `src/stores/`) appears in some row. The
   third is the one that catches a surface nobody wrote a row for.
 - **It is not a changelog, a plan, or an ADR.** When it changed → `CHANGELOG.md`.
-  What is next and its acceptance → `docs/plans/`. Why → `docs/adr/`.
+  What is next and its acceptance → `docs/plans/`, or `docs/specs/` for rule-12
+  items (ADR-0148). Why → `docs/adr/`.
 - The gate **cannot** tell you a sentence is still true. A path that resolves
   says nothing about whether the behaviour it describes still exists.
 

@@ -2,6 +2,8 @@
 
 ## Status
 
+*Partially superseded, 2026-10-28, by [ADR-0148](0148-new-features-pass-grill-spec-and-tickets-before-implementation.md): for rule-12 items, decision 2's anchor ("plan section or D row") and its precedence line also admit a spec or ticket AC id in the approved snapshot.*
+
 **Accepted, 2026-10-27.** Decided by the user: 「Accept (Recommended)」, after gpt-auditor's scoped round 3 closed the
 last three Highs (C0 H0; `ADR-0144-r3.md`). Recorded by herdr-delegator.
 

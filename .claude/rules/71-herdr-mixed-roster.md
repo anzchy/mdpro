@@ -326,6 +326,8 @@ It works in four steps inside the implementor's run of
    - a gap the adversary marks NEEDS RULING (it asks for more than the brief).
 4. **The implementor writes the tests and records the REDs.** Only after that does it touch
    production code.
+   *For rule-12 (gated) items, ADR-0148 replaces this step with `tdd` cycles: one matrix case, one RED receipt, a minimal change,
+   then `verify`, settled before the next cycle. Steps 1–3 are unchanged.*
 
 The delegator checks the attack file and the matrix when it confirms the handoff. The plugin runs
 plan, per-WI RED receipts, coverage, optional mutation, review, and its commit gate. The mdpro brief
