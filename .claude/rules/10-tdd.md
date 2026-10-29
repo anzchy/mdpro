@@ -69,9 +69,10 @@ later reformat breaks it for good (D187). The PreToolUse hook
 `.claude/hooks/receipt-rustfmt-guard.sh` enforces this: it refuses the record
 and names each Rust file that is not `rustfmt`-clean.
 
-For frontend RED receipts, run `node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts`;
-after GREEN, run `node scripts/tdd/red-receipt.mjs verify --id <ID>`. The focused
-`unit-red` lane is unlocked and uses at most 2 workers; the full unit coverage
+For frontend RED receipts, run `scripts/heavy-lock.sh --guard-only node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts`;
+after GREEN, run the same guarded command with `verify --id <ID>`. The focused
+`unit-red` lane is unlocked and uses at most 2 workers with a 1024 MiB worker
+heap inherited from the outer guard; the full unit coverage
 lane still runs before commit. Using direct receipt.js bypasses the entry script's
 selection guard and is a residual risk, so it is not a supported frontend path.
 
@@ -84,7 +85,7 @@ the CPU load.
 
 | When | Run | Coverage |
 |------|-----|----------|
-| RED → GREEN while writing a WI | Only the affected files: `pnpm exec vitest run tests/<files>`, or `pnpm exec vitest related <changed src files> --run` | Off |
+| RED → GREEN while writing a WI | Only the affected files through `VITEST_MAX_WORKERS=2 scripts/heavy-lock.sh --guard-only pnpm exec vitest run tests/<files>` | Off |
 | Once, just before each commit | The full `unit` lane, plus typecheck and build **under the lock**: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'` | On (the gate reads it) |
 | Only when `src-tauri/` changed | The `rust` and `rust-verify-run` lanes | — |
 | After a rebase or fast-forward that only brought docs or `.claude` changes | Nothing new: `src/` and `tests/` are tree-identical, so the earlier gate still holds. Re-run only the tests touching any conflicted file | — |
@@ -98,16 +99,18 @@ the CPU load.
   full lane on the exact tree being committed, the session reviewing its work
   reads that log and re-runs only the decisive test files. Run it again only
   if the tree changed after that run.
-- **An unlocked partial run takes at most 2 workers.** The RED → GREEN
+- **An unlocked partial run takes at most 2 workers and the guard-only monitor.** The RED → GREEN
   runs in the first row are outside the lock, so three sessions doing them at
   once stack their workers on the same cores; on 2026-10-11 the machine sat at
   load 45 on 10 cores with one locked lane running. Since D147 (`bce24d3`)
-  `vitest.workers.ts` makes 2 the default whenever `heavy-lock.sh` is not the
-  parent; a locked run gets `50%`, and an explicit `VITEST_MAX_WORKERS` still
-  wins. (User decision, 2026-10-11.)
+  `vitest.workers.ts` makes 2 the default; a locked run also defaults to 2
+  after ADR-0151's measurement, and an explicit override is clamped to its
+  measured cap. Guard-only workers get a 1024 MiB V8 heap. A worker heap
+  failure is reported as a test failure, never retried. Exit 76 is a load-guard
+  infrastructure stop; callers follow [the retry rule](../../docs/guide/load-guard.md).
 - **Two handoffs on the same parent cost one full run, not two.** The one
   that arrived first is verified and landed; the other waits for that landing,
   rebases once, and is verified by tree identity (rule 70 § Commits). A peer
   does not start a lane run on a handoff it has been told to hold.
-- Need the machine for something else? Lower `VITEST_MAX_WORKERS` (default
-  `50%`, e.g. `30%`). The cost is a longer run.
+- Need the machine for something else? Keep the 2-worker default or use one
+  worker. The cost is a longer run.

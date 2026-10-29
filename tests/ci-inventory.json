@@ -1879,7 +1879,12 @@
         "removes the runner directory after configuration generation fails"
       ],
       "prerequisite": "plugin"
-    }
+    },
+    {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "a GUI acquisition holds the heavy lock until its ID-aware release"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "releasing a GUI keeper leaves no sleeping member of its process group"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "rolls back the heavy keeper when a foreign GUI owner blocks acquisition"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "refuses GUI acquire and wait while a live heavy owner holds the lock"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-node.test.ts", "recognizes a real Vitest process title only with its verified Node executable"], "prerequisite": "macos"}
   ],
   "exclusions": [
     {

@@ -4,6 +4,7 @@
 # wait <batch> [expected_minutes] [purpose] [session] [max_wait_min=60]
 # release <batch> --acquisition-id <lowercase UUIDv4>; status
 # Owner: project, session, batch, start, pid, expected_minutes, purpose, acquisition_id.
+export MDPRO_GUI_HEAVY_SCRIPT="$(cd "$(dirname "$0")/../../../.." && pwd)/scripts/heavy-lock.sh"
 exec /usr/bin/python3 - "$@" <<'PY'
 import datetime
 import fcntl
@@ -11,6 +12,7 @@ import os
 import pathlib
 import re
 import stat
+import subprocess
 import sys
 import tempfile
 import time
@@ -81,12 +83,11 @@ def publish_owner(owner):
         stream.flush()
         os.fsync(stream.fileno())
 
-def acquire(batch, expected, purpose, session):
+def acquire(batch, expected, purpose, session, acquisition_id):
     batch, purpose, session = map(valid_text, (batch, purpose, session))
     if not expected.isdecimal() or int(expected) <= 0:
         raise Refused("invalid expected minutes")
     def transaction():
-        acquisition_id = str(uuid.uuid4())
         owner = (
             f"project=mdpro\nsession={session}\nbatch={batch}\n"
             f"start={datetime.datetime.now().astimezone().strftime('%Y-%m-%dT%H:%M:%S%z')}\n"
@@ -197,6 +198,9 @@ def main(args):
         expected = args[2] if len(args) > 2 else "45"
         purpose = args[3] if len(args) > 3 else "device batch"
         session = args[4] if len(args) > 4 else "herdr-delegator"
+        batch, purpose, session = map(valid_text, (batch, purpose, session))
+        if not expected.isdecimal() or int(expected) <= 0:
+            raise Refused("invalid expected minutes")
         attempts = 1 if command == "acquire" else int(args[5]) if len(args) > 5 else 60
         if attempts <= 0:
             raise Refused("invalid wait limit")
@@ -206,7 +210,24 @@ def main(args):
             if not 0 <= interval <= 60:
                 raise Refused("invalid test wait interval")
         for attempt in range(attempts):
-            acquisition_id = acquire(batch, expected, purpose, session)
+            acquisition_id = str(uuid.uuid4())
+            heavy = os.environ["MDPRO_GUI_HEAVY_SCRIPT"]
+            held = subprocess.run([heavy, "--hold", acquisition_id], capture_output=True, text=True,
+                                  env={**os.environ, "MDPRO_HEAVY_LOCK_WAIT_SECS": "0"})
+            if held.returncode != 0:
+                if attempt + 1 < attempts:
+                    time.sleep(interval)
+                    continue
+                print("BUSY: heavy lock unavailable", file=sys.stderr)
+                return 75
+            try:
+                won = acquire(batch, expected, purpose, session, acquisition_id)
+            except Exception:
+                subprocess.run([heavy, "--release", acquisition_id], capture_output=True, text=True)
+                raise
+            if won is None:
+                subprocess.run([heavy, "--release", acquisition_id], capture_output=True, text=True)
+            acquisition_id = won
             if acquisition_id is not None:
                 print(f"acquisition_id={acquisition_id}")
                 return 0
@@ -218,6 +239,9 @@ def main(args):
         if len(args) != 4 or args[2] != "--acquisition-id":
             raise Refused("usage: release <batch> --acquisition-id <uuid>")
         release(args[1], args[3])
+        heavy_release = subprocess.run([os.environ["MDPRO_GUI_HEAVY_SCRIPT"], "--release", args[3]], capture_output=True, text=True)
+        if heavy_release.returncode != 0:
+            raise Refused("GUI released but heavy keeper could not be released")
         print(f"RELEASED {args[1]}")
         return 0
     raise Refused("usage: gui-lock.sh acquire|wait|release|status")

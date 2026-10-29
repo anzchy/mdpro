@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { runChild } from "../support/loadGuardChild";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -51,7 +52,20 @@ function harness() {
   return { home, lock, owner, ready, gate, original, env };
 }
 
-afterEach(() => { for (const home of homes.splice(0)) fs.rmSync(home, { recursive: true, force: true }); });
+afterEach(async () => {
+  for (const home of homes.splice(0)) {
+    // Acquisitions intentionally left held by these tests now have a keeper.
+    // Release that exact private keeper before removing its ownership record.
+    const heavyOwner = path.join(home, ".cache/mdpro-heavy.lock/owner");
+    if (fs.existsSync(heavyOwner)) {
+      const id = fs.readFileSync(heavyOwner, "utf8").match(/^cmd=--keeper ([0-9a-f-]+) /m)?.[1];
+      if (id) (await runChild(path.resolve("scripts/heavy-lock.sh"), ["--release", id], {
+        env: { ...process.env, HOME: home, MDPRO_HEAVY_LOCK: path.dirname(heavyOwner) }, timeout: 5000,
+      }));
+    }
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
 
 describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 GUI lock (requires macos zsh)", () => {
   it("keeps a foreign lock continuously present during a refused release", async () => {

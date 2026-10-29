@@ -4,9 +4,11 @@ import { resolveMaxWorkers } from "./vitest.workers";
 
 // Concurrent Claude sessions and worktrees each run this suite; vitest's default
 // (cores - 1 forks) per run overloads the machine. A run under scripts/heavy-lock.sh
-// takes half the cores, any other run 2 workers, and VITEST_MAX_WORKERS overrides
-// both ("4" → 4 workers, "25%" → a percentage). See vitest.workers.ts (D147).
+// defaults to 2 workers; ADR-0151 measurement permits an explicit cap of 3. Unlocked runs also
+// default to 2. A locked override is clamped to the measured cap; see
+// vitest.workers.ts.
 const maxWorkers = resolveMaxWorkers(process.env);
+const workerHeapMiB = Number(process.env.MDPRO_VITEST_WORKER_HEAP_MIB ?? "2048");
 
 /**
  * The slow tier (ADR-0050): exhaustive / property / cost-enumeration tests that
@@ -33,6 +35,7 @@ export default defineConfig({
     restoreMocks: true,
     unstubGlobals: true,
     maxWorkers,
+    poolOptions: { forks: { execArgv: [`--max-old-space-size=${workerHeapMiB}`] } },
     coverage: {
       reporter: ["text", "json-summary", "html"],
       reportsDirectory: "./coverage",
