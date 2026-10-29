@@ -2,6 +2,8 @@
 
 ## Status
 
+**Accepted, 2026-10-29. Decided by the user:** 「Accept (Recommended)」, after plan review round 1 (gpt-auditor C0 H5 M2, opus-auditor C0 H5 M7 L3), round 2 (opus-auditor C0 H0 M14 L1, gpt-auditor C0 H4) and gpt-auditor's post-cap confirm of revision 3 (C0 H0 M0 L0; `herdr-spike/gpt-auditor/ADR-0149-pc.md`). Recorded by herdr-delegator.
+
 **Proposed, 2026-10-29, by herdr-delegator (Claude route). Revision 2, after plan review round 1** (gpt-auditor
 C0 H5 M2, opus-auditor C0 H5 M7 L3; reports `herdr-spike/{gpt-auditor,opus-auditor}/ADR-0149-r1.md`). Round 1 found that
 revision 1 let a weakening inside a new test file clear unseen, could not be run on today's receipts (they store no

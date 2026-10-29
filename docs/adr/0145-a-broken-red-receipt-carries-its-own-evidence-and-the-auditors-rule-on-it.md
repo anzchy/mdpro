@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: partially superseded** (decision 1's snapshot of the code under test; decision 2's re-RED target and print step; decision 3's digest contents, extended) by [ADR-0149](0149-a-broken-receipt-is-judged-by-a-base-tree-fail-to-pass-replay.md).
+
 **Accepted, 2026-10-27.** Decided by the user: 「Accept (Recommended)」, after both auditors' scoped round 3
 (C0 H0; `ADR-0145-r3.md`; opus-auditor's 5 Mediums go to the implementation brief). Recorded by herdr-delegator. Until
 the entry described here ships, receipt exceptions keep the existing user path. Rule 10, rule 71's Rust line, the
