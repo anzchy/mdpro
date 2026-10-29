@@ -65,12 +65,27 @@ It creates the detached worktree `verify-<sha7>-replay-<id>`, under `MDPRO_REPLA
    replay runs `pnpm install --frozen-lockfile --offline`.
 3. **Run base, then head.** Vitest runs directly on the receipt's files. Rust runs the recorded lane
    command. Each run goes through `scripts/heavy-lock.sh`. Each run is bounded by `MDPRO_REPLAY_TIMEOUT_MS`
-   (default 900 s); a run that times out or is killed fails the replay with that cause.
+   (default 900 s). A run fails the replay with its cause when it times out, is killed, is refused by
+   heavy-lock (exit 75 or 76), or, for Rust, prints no libtest block and no compile error.
+
+**The entry's own bound.** The entry runs every operation except `check-pending` under a python
+launcher that holds the per-id OS flock. Its bound is derived from what it wraps:
+- a replay gets three replay runs (install, base, head) plus 120 s;
+- record, verify and discard get the longest receipt-lane timeout plus 120 s, and never less than
+  720 s.
+
+When it hits that bound, or the entry gets SIGINT, SIGTERM or SIGHUP, or the calling entry dies,
+the launcher:
+1. stops the operation's whole process group: SIGTERM, then SIGKILL after
+   `MDPRO_UNIT_RED_KILL_GRACE_MS` (default 20 s);
+2. removes the replay worktree, so the next `replay --id` does not refuse.
+
+It exits 64 at the bound and re-raises a signal.
 
 **When a replay passes.** Every recorded id must have been an assertion at RED, must fail at base
 as an assertion at the RED location, and must pass at head. The RED location is the RED line
 mapped onto the file as it ran, through `git diff -U0`. When that line was itself edited, the same
-assertion message is required instead. Anything else fails and names the id:
+assertion message, raised in the same file, is required instead. Anything else fails and names the id:
 - a pass, skip or disappearance at base;
 - a panic or collect error at base;
 - another location or message;
@@ -95,6 +110,15 @@ runs. Any change of base or head changes it, and `--expect-digest` reports `dige
 **Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It
 writes `mode: "pre-entry"` with `user_ruling_required: true` and always exits non-zero.
+
+A pre-entry base run can fail to complete: it times out, is killed, writes no report, is refused
+by heavy-lock, or does not compile. Then `base_run` records `completed: false` with the `error` or
+`compileError`, and `passing_at_base` is `null`. The replay prints `base run did not complete
+(<cause>)`, never `0 case(s) pass at base`.
+
+A pre-entry packet is digested too, over `id`, `mode`, `base`, `head`, `spec_blobs`, `base_run`
+(`completed` and `compileError`) and `passing_at_base`. An incomplete run therefore never shares a
+digest with a completed one.
 
 ## Who rules
 

@@ -23,8 +23,8 @@ export type ReceiptRepo = Awaited<ReturnType<typeof createReceiptRepo>>;
 export async function createReceiptRepo(signal: AbortSignal) {
   const owner = createOwnerChildRunner(signal);
   const root = mkdtempSync(join(tmpdir(), "mdpro-adr0149e-"));
-  const run = async (command: string, args: string[], env: Record<string, string> = {}) => {
-    const result = await owner.run(command, args, { cwd: root, env: { ...process.env, VITEST_MAX_WORKERS: "1", ...env }, timeout: 120_000 });
+  const run = async (command: string, args: string[], env: Record<string, string> = {}, timeout = 120_000) => {
+    const result = await owner.run(command, args, { cwd: root, env: { ...process.env, VITEST_MAX_WORKERS: "1", ...env }, timeout });
     return { status: result.status, stdout: result.stdout, stderr: result.stderr, output: `${result.stdout}\n${result.stderr}` };
   };
   const write = (path: string, text: string) => { mkdirSync(dirname(join(root, path)), { recursive: true }); writeFileSync(join(root, path), text); };

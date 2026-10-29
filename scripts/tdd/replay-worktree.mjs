@@ -7,7 +7,9 @@
  * - The worktree is `<root>/verify-<sha7>-replay-<id>`, root being MDPRO_REPLAY_ROOT, else
  *   the `mdpro-wt/` beside the main checkout when it exists, else the OS temp dir. An
  *   existing directory refuses; the worktree is always removed afterwards, and nothing else
- *   is pruned.
+ *   is pruned. Before it is added, its path is written into the entry's flock file, so
+ *   the OS-lock launcher removes it when it stops the entry by its bound or a signal,
+ *   which this process's `finally` cannot see (receipt-locks.mjs).
  * - Restore, per path changed base → head: a pure test path keeps the head; a Rust file
  *   holding test modules gets base production spliced with the head's test modules (an
  *   unspliceable one refuses); any other path is checked out at base, or removed if the
@@ -18,11 +20,14 @@
  * - Runs never use the worktree's own lane scripts or config: Vitest receipts run Vitest
  *   directly; Rust receipts run the lane command the sidecar recorded, with both output
  *   streams captured here. Each run goes through the caller's `scripts/heavy-lock.sh`
- *   when it has one, and is bounded by MDPRO_REPLAY_TIMEOUT_MS (default 900 s); a run that
- *   times out or is killed is reported as that, never parsed as partial output.
+ *   when it has one, and is bounded by MDPRO_REPLAY_TIMEOUT_MS (default 900 s); the
+ *   entry's launcher bound is three of these plus 120 s, so it never cuts a run short. A
+ *   run that times out or is killed, that heavy-lock refuses (exit 75 or 76), or a Rust
+ *   run with no libtest block and no compile error is reported as that cause, never
+ *   parsed as partial output.
  * @coordinates-with scripts/tdd/receipt-replay.mjs, scripts/tdd/receipt-tree.mjs, scripts/tdd/rust-splice.mjs
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, ftruncateSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -32,9 +37,14 @@ import { libtestOutcomes, vitestOutcomes } from "./receipt-failures.mjs";
 import { spliceTestMods } from "./rust-splice.mjs";
 
 const DEFAULT_RUN_TIMEOUT_MS = 900_000;
-const runTimeout = () => Number(process.env.MDPRO_REPLAY_TIMEOUT_MS || DEFAULT_RUN_TIMEOUT_MS);
+/** One replay run's bound (MDPRO_REPLAY_TIMEOUT_MS, default 900 s); the entry's launcher bound is derived from it. */
+export const replayRunTimeoutMs = (env = process.env) => Number(env.MDPRO_REPLAY_TIMEOUT_MS || DEFAULT_RUN_TIMEOUT_MS);
+const runTimeout = () => replayRunTimeoutMs();
 /** Why a spawned run did not finish, or null when it did. */
 const unfinished = (run) => (run.error?.code === "ETIMEDOUT" || (run.signal && !run.error) ? `timed out or killed (${run.signal || run.error.code})` : run.error ? `did not start (${run.error.message})` : null);
+/** heavy-lock.sh's exits for "lock not taken" (75) and "load guard stopped it" (76). */
+const HEAVY_LOCK_REFUSED = new Set([75, 76]);
+const refused = (run) => (HEAVY_LOCK_REFUSED.has(run.status) ? `heavy-lock refused the run (exit ${run.status})` : null);
 
 /** `{path: {mode, blob}}` of every file in `rev`. */
 export function filesAt(cwd, rev) {
@@ -94,11 +104,27 @@ function replayRoot(cwd) {
 export function withWorktree(cwd, head, id, operation) {
   const dir = join(replayRoot(cwd), `verify-${head.slice(0, 7)}-replay-${id}`);
   if (existsSync(dir)) throw usageError(`Replay worktree ${dir} already exists; remove it first.`);
-  git(cwd, ["worktree", "add", "-q", "--detach", dir, head]);
-  try { return operation(dir); }
-  // Only this worktree is removed: a repo-wide `git worktree prune` would also drop another
-  // session's prunable record, which `git worktree repair` could then no longer reattach.
-  finally { git(cwd, ["worktree", "remove", "--force", dir], { allowFail: true }); }
+  markWorktree(dir);
+  try {
+    git(cwd, ["worktree", "add", "-q", "--detach", dir, head]);
+    return operation(dir);
+  } finally {
+    // Only this worktree is removed: a repo-wide `git worktree prune` would also drop another
+    // session's prunable record, which `git worktree repair` could then no longer reattach.
+    git(cwd, ["worktree", "remove", "--force", dir], { allowFail: true });
+    markWorktree("");
+  }
+}
+
+/**
+ * Name the live replay worktree in the entry's flock file (the descriptor the launcher
+ * passed in), so the launcher can remove it when it stops the entry; "" clears it.
+ */
+function markWorktree(dir) {
+  const fd = Number(process.env.MDPRO_UNIT_RED_FLOCK_FD);
+  if (!Number.isInteger(fd) || !process.env.MDPRO_UNIT_RED_FLOCK_FD) return;
+  ftruncateSync(fd, 0);
+  if (dir) writeSync(fd, dir, 0);
 }
 
 /** Restore `dir` (checked out at head) to base for every non-test path; returns the paths it touched. */
@@ -157,7 +183,12 @@ export function runTests(cwd, dir, { lane, files, laneCommand }) {
     if (!laneCommand) return { outcomes: new Map(), compileError: false, error: "no lane command recorded" };
     const run = spawnSync("sh", ["-c", laneCommand], { cwd: dir, env, encoding: "utf8", timeout: runTimeout(), maxBuffer: 256 * 1024 * 1024 });
     if (unfinished(run)) return { outcomes: new Map(), compileError: false, error: `the run ${unfinished(run)}` };
-    try { return { ...libtestOutcomes(run.stdout, run.stderr, root), error: null }; }
+    if (refused(run)) return { outcomes: new Map(), compileError: false, error: refused(run) };
+    try {
+      const parsed = libtestOutcomes(run.stdout, run.stderr, root);
+      if (!/^running \d+ tests?$/m.test(run.stdout) && !parsed.compileError) return { ...parsed, error: `the run produced no test results (exit ${run.status})` };
+      return { ...parsed, error: null };
+    }
     catch (error) { return { outcomes: new Map(), compileError: false, error: error.message }; }
   }
   const out = mkdtempSync(join(tmpdir(), "mdpro-replay-run-"));
@@ -165,6 +196,7 @@ export function runTests(cwd, dir, { lane, files, laneCommand }) {
     const [command, ...args] = heavy(cwd, ["pnpm", "exec", "vitest", "run", "--coverage.enabled=false", "--maxWorkers=1", "--reporter=json", `--outputFile.json=${join(out, "vitest.json")}`, ...files]);
     const run = spawnSync(command, args, { cwd: dir, env, encoding: "utf8", timeout: runTimeout(), maxBuffer: 256 * 1024 * 1024 });
     if (unfinished(run)) return { outcomes: new Map(), compileError: false, error: `the run ${unfinished(run)}` };
+    if (refused(run)) return { outcomes: new Map(), compileError: false, error: refused(run) };
     if (!existsSync(join(out, "vitest.json"))) return { outcomes: new Map(), compileError: false, error: "Vitest wrote no report" };
     return { outcomes: vitestOutcomes(JSON.parse(readFileSync(join(out, "vitest.json"), "utf8")), root), compileError: false, error: null };
   } finally { rmSync(out, { recursive: true, force: true }); }

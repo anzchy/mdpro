@@ -12,10 +12,14 @@
  * - Every recorded id must have been an assertion at RED, fail at base as an assertion at
  *   the RED location, and pass at head. The location is the RED line mapped through
  *   `git diff -U0` of the RED blob against the file as it sat in the base run; a line that
- *   falls inside a hunk (or no location) is matched by the assertion message instead.
+ *   falls inside a hunk (or no location) is matched by the assertion message instead, and
+ *   the base failure must still sit in the RED's file.
  * - A receipt with no current entry takes the replay as far as it can run (ADR-0149 d4):
  *   the head's spec files over base production, listing the cases that pass there, and
- *   always `user_ruling_required`.
+ *   always `user_ruling_required`. A base run that did not complete lists nothing
+ *   (`passing_at_base: null`) and records its cause in `base_run`; the pre-entry digest
+ *   covers {id, mode, base, head, spec_blobs, base_run (completed, compileError),
+ *   passing_at_base}.
  * - The digest is sha256 over canonical JSON (keys sorted at every level) of
  *   {id, recorded_at, tests_tree, base, head, head_tests_tree, spec_blobs, replay}, where
  *   `replay` is the stable projection (result; per id, status, kind and location at base
@@ -72,7 +76,7 @@ function judge(cwd, entry, base, head, baseTexts) {
       const blob = red.location && git(cwd, ["rev-parse", "--verify", "--quiet", `${entry.tests_tree.tree}:${red.location.file}`], { allowFail: true }).stdout.trim();
       const runText = red.location ? baseTexts[red.location.file] : null;
       const mapped = blob && runText != null ? mapLine(git(cwd, ["cat-file", "-p", blob]).stdout, runText, red.location.line) : null;
-      const same = mapped !== null ? b.location?.file === red.location.file && b.location?.line === mapped : b.message === red.message;
+      const same = mapped !== null ? b.location?.file === red.location.file && b.location?.line === mapped : b.message === red.message && (!red.location || b.location?.file === red.location.file);
       if (!same) reasons.push(`${red.id}: failed at base at ${b.location ? `${b.location.file}:${b.location.line}` : "no location"} (${b.message.split("\n")[0]}), not at the RED assertion`);
     }
     if (!h) reasons.push(`${red.id}: disappeared at head`);
@@ -85,6 +89,26 @@ function judge(cwd, entry, base, head, baseTexts) {
 function stableReplay(judged) {
   const pick = (outcome) => ({ status: outcome.status, kind: outcome.kind ?? null, location: outcome.location ?? null });
   return { result: judged.result, ids: Object.fromEntries(Object.entries(judged.ids).map(([id, outcome]) => [id, { base: pick(outcome.base), head: pick(outcome.head) }])) };
+}
+
+/**
+ * A pre-entry packet: the cases passing at base, or, when the base run did not complete
+ * (timed out, killed, refused, no report, no compile), that cause and no case list.
+ */
+function preEntry({ id, receipt, files, base, head, headCls, baseRun, path }) {
+  const completed = !baseRun.error && !baseRun.compileError;
+  const passing = completed ? [...baseRun.outcomes].filter(([key, outcome]) => outcome.status === "passed" && (receipt.lane === "rust" || files.includes(JSON.parse(key)[0]))).map(([key]) => key).sort() : null;
+  const baseRunRecord = { completed, error: baseRun.error ?? null, compileError: Boolean(baseRun.compileError) };
+  const digestInput = {
+    id, mode: "pre-entry", base, head, spec_blobs: Object.fromEntries(files.map((file) => [file, headCls.files.get(file)?.blob ?? null])),
+    base_run: { completed, compileError: baseRunRecord.compileError }, passing_at_base: passing,
+  };
+  const digest = createHash("sha256").update(canonical(digestInput)).digest("hex");
+  writeFileSync(path, `${JSON.stringify({ id, lane: receipt.lane, mode: "pre-entry", base, head, user_ruling_required: true, base_run: baseRunRecord, passing_at_base: passing, digest_input: digestInput, digest }, null, 2)}\n`);
+  const cause = baseRun.error ?? "the tests did not compile at base";
+  const summary = completed ? `${passing.length} case(s) pass at base` : `base run did not complete (${cause})`;
+  process.stdout.write(`evidence: ${path}\nreplay: pre-entry receipt; ${summary}; user ruling required\ndigest: ${digest}\n`);
+  return 1;
 }
 
 export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVersion, laneConfig }) {
@@ -108,12 +132,7 @@ export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVe
     return { baseRun, baseTexts, headRun: runTests(cwd, dir, run) };
   });
   const path = join(ensureDir(join(cwd, ".claude/tdd-guardian/evidence")), `${id}.json`);
-  if (!entry) {
-    const passing = [...runs.baseRun.outcomes].filter(([key, outcome]) => outcome.status === "passed" && (receipt.lane === "rust" || files.includes(JSON.parse(key)[0]))).map(([key]) => key).sort();
-    writeFileSync(path, `${JSON.stringify({ id, lane: receipt.lane, mode: "pre-entry", base, head, user_ruling_required: true, passing_at_base: passing }, null, 2)}\n`);
-    process.stdout.write(`evidence: ${path}\nreplay: pre-entry receipt; ${passing.length} case(s) pass at base; user ruling required\n`);
-    return 1;
-  }
+  if (!entry) return preEntry({ id, receipt, files, base, head, headCls, baseRun: runs.baseRun, path });
   const judged = judge(cwd, entry, runs.baseRun, runs.headRun, runs.baseTexts);
   const headTests = [...new Set([...headCls.tests, ...files])].sort();
   const headTestsTree = treeOf(cwd, headCls.files, headTests);

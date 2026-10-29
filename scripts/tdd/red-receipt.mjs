@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { usageError, validateFiles, validateId } from "./unit-red-lane.mjs";
 const require = createRequire(import.meta.url);
 const RECEIPTS = ".claude/tdd-guardian/receipts.json";
-import { barrier, withOperationLock, withOsLock } from "./receipt-locks.mjs";
+import { barrier, guardianBoundMs, laneTimeoutMs, withOperationLock, withOsLock } from "./receipt-locks.mjs";
 import { validateRustFiles, requireRustfmtClean } from "./receipt-rust.mjs";
 import { capture, prepare } from "./receipt-capture.mjs";
 import { entryFor, readEvidence, removeEntry, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
@@ -123,7 +123,7 @@ function callGuardian(cwd, args, env) {
     cwd,
     env,
     encoding: "utf8",
-    timeout: 660_000,
+    timeout: guardianBoundMs(laneTimeoutMs(cwd)),
     maxBuffer: 2 * 1024 * 1024,
     stdio: ["ignore", "pipe", "pipe", Number(process.env.MDPRO_UNIT_RED_FLOCK_FD)],
   });
@@ -285,7 +285,7 @@ function checkPending(args) {
 }
 try {
   const args = parse(process.argv.slice(2));
-  if (args.action !== "check-pending" && !process.env.MDPRO_UNIT_RED_FLOCK_FD) process.exitCode = withOsLock(args, fileURLToPath(import.meta.url));
+  if (args.action !== "check-pending" && !process.env.MDPRO_UNIT_RED_FLOCK_FD) process.exitCode = await withOsLock(args, fileURLToPath(import.meta.url));
   else if (args.action !== "check-pending" && fstatSync(Number(process.env.MDPRO_UNIT_RED_FLOCK_FD)).ino !== statSync(join(args.cwd, ".claude/tdd-guardian", `.unit-red-${args.id}.flock`)).ino) throw usageError("OS receipt lock descriptor is invalid.");
   else if (args.action === "record") withOperationLock(args.cwd, args.id, () => record(args));
   else if (args.action === "verify") withOperationLock(args.cwd, args.id, () => verify(args));

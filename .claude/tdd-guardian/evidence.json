@@ -523,6 +523,141 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-pre-entry.test.ts": "643f98e4fc29d17bedc20fb63986a3b128587eac"
       }
+    },
+    "ADR0149E-F1H1": {
+      "id": "ADR0149E-F1H1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T10:09:15.721Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-launcher-bound.test.ts\",\"ADR0149E-F1H1 a stopped replay leaves nothing behind\",\"at the launcher bound: kills the run, removes the worktree, and the next replay proceeds\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-launcher-bound.test.ts",
+            "line": 59
+          },
+          "message": "AssertionError: expected '\\n' to match /stopped at the launcher bound \\(9000 …/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-launcher-bound.test.ts\",\"ADR0149E-F1H1 a stopped replay leaves nothing behind\",\"on SIGTERM to the entry: dies by SIGTERM, kills the run and removes the worktree\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-launcher-bound.test.ts",
+            "line": 81
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-launcher-bound.test.ts\",\"ADR0149E-F1H1 the launcher bound covers what it wraps\",\"derives the bound from the replay runs and the lane timeouts, never the old 660 s\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-launcher-bound.test.ts",
+            "line": 42
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F1H1/20261029T100915721Z/tests",
+        "tree": "f0cbfb5978843cdd1daa29d2fe3911e12df1bbb8"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-launcher-bound.test.ts": "ac611416f2e2c3a31d559659e277e0c8b0dfd5ac"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-launcher-bound.test.ts": "ac611416f2e2c3a31d559659e277e0c8b0dfd5ac"
+      }
+    },
+    "ADR0149E-F1H2": {
+      "id": "ADR0149E-F1H2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T10:09:24.966Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-pre-entry-incomplete.test.ts\",\"ADR0149E-F1H2 a pre-entry base run that did not complete\",\"a Rust base run that did not compile is named as a compile error\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-pre-entry-incomplete.test.ts",
+            "line": 28
+          },
+          "message": "AssertionError: expected 'evidence: /var/folders/yc/pj8fy0nj7vs…' not to match /case\\(s\\) pass at base/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-pre-entry-incomplete.test.ts\",\"ADR0149E-F1H2 a pre-entry base run that did not complete\",\"a base run heavy-lock refused (exit 76) is named as that\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-pre-entry-incomplete.test.ts",
+            "line": 28
+          },
+          "message": "AssertionError: expected 'evidence: /var/folders/yc/pj8fy0nj7vs…' not to match /case\\(s\\) pass at base/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-pre-entry-incomplete.test.ts\",\"ADR0149E-F1H2 a pre-entry base run that did not complete\",\"a timed-out base run is named, lists no cases, and digests apart from a completed run\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-pre-entry-incomplete.test.ts",
+            "line": 28
+          },
+          "message": "AssertionError: expected 'evidence: /var/folders/yc/pj8fy0nj7vs…' not to match /case\\(s\\) pass at base/"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F1H2/20261029T100924966Z/tests",
+        "tree": "f0cbfb5978843cdd1daa29d2fe3911e12df1bbb8"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-pre-entry-incomplete.test.ts": "2aedaff99eecde5de577c660994487a888cce58b"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-pre-entry-incomplete.test.ts": "2aedaff99eecde5de577c660994487a888cce58b"
+      }
+    },
+    "ADR0149E-F1M1": {
+      "id": "ADR0149E-F1M1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T10:09:30.198Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-message-fallback.test.ts\",\"ADR0149E-F1M1 the message fallback checks the file\",\"fails when the base raises the RED message from another file after the RED line was edited\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-message-fallback.test.ts",
+            "line": 33
+          },
+          "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F1M1/20261029T100930198Z/tests",
+        "tree": "f0cbfb5978843cdd1daa29d2fe3911e12df1bbb8"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-message-fallback.test.ts": "0733a4b5e76c23d51c9c7226f04f4a02af0a759e"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-message-fallback.test.ts": "0733a4b5e76c23d51c9c7226f04f4a02af0a759e"
+      }
     }
   }
 }
