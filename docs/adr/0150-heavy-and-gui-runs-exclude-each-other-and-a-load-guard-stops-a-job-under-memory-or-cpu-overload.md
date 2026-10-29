@@ -11,7 +11,7 @@ agreement. The user's words:
   PR's High-tier audit by both auditors, and rule 12 does not apply (process tooling, no app behaviour);
 - the slot: 「Park WI-1」.
 
-Extends [ADR-0135](0135-one-heavy-lock-tool-serves-every-project-on-the-mac-mini-queues-in-arrival-order-and-admits-by-memory.md)
+Extends [ADR-0135](0135-one-heavy-lock-tool-serves-every-project-queues-in-arrival-order-and-admits-by-memory.md)
 (Accepted 2026-10-23, not yet built as D312): its decision 6 (memory admission) is pulled forward into phase 1 here, and
 this record adds what it does not have, a stop for a job that is already running.
 
