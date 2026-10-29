@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: partially superseded** (the free-memory formula) by [ADR-0154](0154-admission-reads-macos-own-available-memory-figure.md).
+
 **2026-10-29: partially superseded** (decision 1's "+ 4 GiB headroom" and 9 GiB placeholder) by [ADR-0153](0153-admission-needs-the-jobs-own-budget-plus-one-gib-free.md).
 
 **Accepted, 2026-10-29. Decided by the user**, recorded by herdr-delegator (Claude route), on the delegator's revised

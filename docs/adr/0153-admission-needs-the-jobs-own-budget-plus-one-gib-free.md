@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: partially superseded** (the free-memory formula) by [ADR-0154](0154-admission-reads-macos-own-available-memory-figure.md).
+
 **Accepted, 2026-10-29. Decided by the user**, recorded by herdr-delegator (Claude route). The user's words:
 「Budget + 1 GiB, smaller placeholders (Recommended)」. **Partially supersedes**
 [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md)
