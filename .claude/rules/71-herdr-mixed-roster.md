@@ -70,6 +70,11 @@ delegator addresses its blocking Critical/High findings before landing.
 
 The user decisions behind each row are quoted in ADR-0124.
 
+**The live roster is five agents** (user decision, 2026-10-29: 「现在降低同时并行开发的数量：同时2个implementor（gpt-imple-*)，2个auditor，加上delegator本身，其他implementor retire」):
+herdr-delegator, `gpt-imple-1`, `gpt-imple-2`, `gpt-auditor` and `opus-auditor`. `gpt-imple-3` and `opus-imple-1` are
+retired (panes closed; worktrees kept until their removal is confirmed under rule 25), and the Low-tier slot in § Slots is
+closed with them. The rows above stay as the record of how each role was set up.
+
 **Device checks move to `gpt-imple-3`** (user decision, 2026-10-23: 「已经完成还未device test的，交给 gpt-imple-3 进行device test，之后写测试报告」). It drives mdpro through Codex Computer Use from its herdr pane, from a device brief file under `~/.mdpro-redesign/device/`, and writes `<batch>-report.md` there. Every launch is by the verify bundle's full path, checked by process path and `app.ready` `releaseId` before any step (the first B1 run tested a v0.3.5 release launched by bundle id and was voided). § Device rules of rule 70 and ADR-0134 decision 6 (the desktop lock, the user's word that picsee runs no GUI) still bind.
 
 **All macOS device tests go to `gpt-auditor`** (user decision, 2026-10-25: 「from now on, all mac os device test goes to gpt-auditor, redelegate and pause opus device test task」). The delegator resets `gpt-auditor` into a fresh pane, gives it the device brief through herdr, and reads its report under `~/.mdpro-redesign/device/`. The tester role, desktop lock, launch-by-path and device rules apply. This supersedes the 2026-10-25 interim routing of GUI batches to `opus-auditor`, and `gpt-imple-3`'s macOS device checks; opus-auditor runs no device test. **A device pane runs with `-s danger-full-access`** (user decision, 2026-10-25: 「Full access for device panes (Recommended)」), a narrow exception to ADR-0134 decision 4: the sandboxed gpt-auditor could not create the desktop GUI lock under `~/.cache` or restore `~/.mdpro/config.json`. A pane reset for an audit, confirm, challenge or review request stays sandboxed.
@@ -373,7 +378,7 @@ unproved in the handoff alone does not accept it.
 **One unlanded implementation item per session, and two machine-wide**, as rule 70 says (ADR-0124,
 superseding ADR-0119's four). Items that were already over the cap finish first. Prep needs no slot.
 
-**Plus one Low-tier slot, held by gpt-imple-3 only** ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)
+**Closed 2026-10-29 with gpt-imple-3's retirement (§ Roster); kept as the record.** **Plus one Low-tier slot, held by gpt-imple-3 only** ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)
 decision 2; user decision, 2026-10-22: 「3rd slot, Low tier only (Recommended)」):
 - **Its scope.** The delegator states the ADR-0121 tier in every grant to gpt-imple-3. A Low-tier
   item granted to gpt-imple-1 or gpt-imple-2 uses a general slot.
