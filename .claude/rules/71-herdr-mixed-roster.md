@@ -75,6 +75,12 @@ herdr-delegator, `gpt-imple-1`, `gpt-imple-2`, `gpt-auditor` and `opus-auditor`.
 retired (panes closed; worktrees kept until their removal is confirmed under rule 25), and the Low-tier slot in § Slots is
 closed with them. The rows above stay as the record of how each role was set up.
 
+**Implementors since 2026-10-29 11:40: `gpt-imple-1` and `opus-imple-1`** (user: 「gpt-imple-1 use GPT-6.1-Sol medium, idle
+gpt-imple-2, create opus-imple-1, now implementors use gpt-imple-1 and opus-imple-1」). `gpt-imple-1` runs on
+`gpt-6.1-sol` medium (gpt-6-sol hit "model at capacity" three times that morning); `opus-imple-1` is restarted as a Claude
+Code pane on Opus with `MDPRO_ROLE=implementor` in `mdpro-wt/opus-imple-1`; `gpt-imple-2` stays idle and takes no new
+item. The roster is still five working agents plus the idle `gpt-imple-2`.
+
 **Device checks move to `gpt-imple-3`** (user decision, 2026-10-23: 「已经完成还未device test的，交给 gpt-imple-3 进行device test，之后写测试报告」). It drives mdpro through Codex Computer Use from its herdr pane, from a device brief file under `~/.mdpro-redesign/device/`, and writes `<batch>-report.md` there. Every launch is by the verify bundle's full path, checked by process path and `app.ready` `releaseId` before any step (the first B1 run tested a v0.3.5 release launched by bundle id and was voided). § Device rules of rule 70 and ADR-0134 decision 6 (the desktop lock, the user's word that picsee runs no GUI) still bind.
 
 **All macOS device tests go to `gpt-auditor`** (user decision, 2026-10-25: 「from now on, all mac os device test goes to gpt-auditor, redelegate and pause opus device test task」). The delegator resets `gpt-auditor` into a fresh pane, gives it the device brief through herdr, and reads its report under `~/.mdpro-redesign/device/`. The tester role, desktop lock, launch-by-path and device rules apply. This supersedes the 2026-10-25 interim routing of GUI batches to `opus-auditor`, and `gpt-imple-3`'s macOS device checks; opus-auditor runs no device test. **A device pane runs with `-s danger-full-access`** (user decision, 2026-10-25: 「Full access for device panes (Recommended)」), a narrow exception to ADR-0134 decision 4: the sandboxed gpt-auditor could not create the desktop GUI lock under `~/.cache` or restore `~/.mdpro/config.json`. A pane reset for an audit, confirm, challenge or review request stays sandboxed.
