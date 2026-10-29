@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, lstatSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, lstatSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -223,6 +223,8 @@ function main() {
   } catch {
     throw usageError("Vitest JSON or execution evidence is missing or unreadable.");
   }
+  // ADR-0145 d1: the entry reads the failing ids from this copy after the plugin records.
+  if (process.env.MDPRO_RED_EVIDENCE_DIR) copyFileSync(reportPath, join(process.env.MDPRO_RED_EVIDENCE_DIR, "vitest.json"));
   const counts = countsFromReport(report, files, cwd);
   if (!Array.isArray(meta.activeHooks) || !Number.isInteger(meta.unhandledErrors) || !Array.isArray(meta.phaseFailures) || !Array.isArray(meta.unawaitedAssertions) || !Array.isArray(meta.attemptProvenance)) {
     throw usageError("Vitest execution evidence is malformed.");

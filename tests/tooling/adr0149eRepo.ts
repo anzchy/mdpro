@@ -42,7 +42,8 @@ export async function createReceiptRepo(signal: AbortSignal) {
   mkdirSync(join(root, "scripts/tdd"), { recursive: true });
   symlinkSync(join(repo, "node_modules"), join(root, "node_modules"));
   symlinkSync(join(repo, "scripts/tdd/unit-red-lane.mjs"), join(root, "scripts/tdd/unit-red-lane.mjs"));
-  symlinkSync(join(repo, "scripts/cargo-test-lane.mjs"), join(root, "scripts/cargo-test-lane.mjs"));
+  // A copy, not a link: the wrapper runs main only when argv[1] is its own real path.
+  copyFileSync(join(repo, "scripts/cargo-test-lane.mjs"), join(root, "scripts/cargo-test-lane.mjs"));
   copyFileSync(join(repo, "tests/tooling/fixtures/adr0149e/fake-cargo.mjs"), join(root, "scripts/fake-cargo.mjs"));
   writeFileSync(join(root, "package.json"), JSON.stringify({ type: "module", scripts: {} }));
   writeFileSync(join(root, "vitest.config.mjs"), 'export default { test: { include: ["tests/**/*.test.ts"], maxWorkers: 1 } };\n');

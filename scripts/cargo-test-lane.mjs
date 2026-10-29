@@ -26,6 +26,9 @@
  *   128+n as the fallback exit code if the re-raise does not kill us.
  * - Exit codes: no arguments → 64 (usage); spawn failure → 127 with
  *   `<cmd>: <message>` on stderr.
+ * - Evidence (ADR-0145 d1): when MDPRO_RED_EVIDENCE_DIR is set, the same raw bytes are
+ *   also appended to `stdout.log` and `stderr.log` there, so the receipt entry can read
+ *   the failing libtest ids; unset, nothing is written.
  * - Plugin caveats (tdd-guardian 0.10.2): it parses counts from the first
  *   `test result:` line only, so a red in a later test target still exits 1
  *   but records as `opaque-failure`; a doctest that fails to compile prints
@@ -34,8 +37,10 @@
  * @module scripts/cargo-test-lane
  * @coordinates-with scripts/heavy-lock.sh (runs this under the machine-wide lock)
  * @coordinates-with .claude/tdd-guardian/config.json (`rust`, `rust-verify-run` lanes)
+ * @coordinates-with scripts/tdd/red-receipt.mjs (sets MDPRO_RED_EVIDENCE_DIR, parses the logs)
  */
 import { spawn } from "node:child_process";
+import { openSync, writeSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
@@ -99,10 +104,12 @@ export function createFailedSummaryDetector() {
  * @param {import("node:stream").Readable} src
  * @param {NodeJS.WriteStream} dest
  * @param {ReturnType<typeof createFailedSummaryDetector>} detector
+ * @param {number | null} evidenceFd a file the raw bytes are also appended to, or null
  */
-function pipeThrough(src, dest, detector) {
+function pipeThrough(src, dest, detector, evidenceFd) {
   const decoder = new StringDecoder("utf8");
   src.on("data", (/** @type {Buffer} */ chunk) => {
+    if (evidenceFd !== null) writeSync(evidenceFd, chunk);
     detector.push(decoder.write(chunk));
     if (!dest.write(chunk)) {
       src.pause();
@@ -139,8 +146,10 @@ function main(argv) {
   const child = spawn(cmd, args, { stdio: ["inherit", "pipe", "pipe"] });
   const stdoutDetector = createFailedSummaryDetector();
   const stderrDetector = createFailedSummaryDetector();
-  pipeThrough(/** @type {import("node:stream").Readable} */ (child.stdout), process.stdout, stdoutDetector);
-  pipeThrough(/** @type {import("node:stream").Readable} */ (child.stderr), process.stderr, stderrDetector);
+  const evidence = process.env.MDPRO_RED_EVIDENCE_DIR;
+  const log = (/** @type {string} */ name) => (evidence ? openSync(path.join(evidence, name), "a", 0o600) : null);
+  pipeThrough(/** @type {import("node:stream").Readable} */ (child.stdout), process.stdout, stdoutDetector, log("stdout.log"));
+  pipeThrough(/** @type {import("node:stream").Readable} */ (child.stderr), process.stderr, stderrDetector, log("stderr.log"));
 
   const forwarders = FORWARDED_SIGNALS.map((sig) => /** @type {const} */ ([sig, () => child.kill(sig)]));
   for (const [sig, handler] of forwarders) process.on(sig, handler);
