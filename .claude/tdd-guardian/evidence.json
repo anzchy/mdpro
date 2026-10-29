@@ -296,6 +296,71 @@
         "head": "3acd63f9e342bdda31523f7efe705f4f1f798ea8"
       }
     },
+    "ADR0149E-4e": {
+      "id": "ADR0149E-4e",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:03:24.196Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-prune.test.ts\",\"ADR0149E-4e replay worktree hygiene\",\"leaves another worktree's prunable record alone and removes its own\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-prune.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected 'worktree /private/var/folders/yc/pj8f…' to contain 'worktree /var/folders/yc/pj8fy0nj7vs0…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-4e/20261029T050324196Z/tests",
+        "tree": "40d2bf261661b4288f5c9d8f97606cd393daf349"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-replay-prune.test.ts": "01fd4c7f8a8ab8ed33e5a04b11495c003ce82816"
+      }
+    },
+    "ADR0149E-4e2": {
+      "id": "ADR0149E-4e2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:05:56.412Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-prune.test.ts\",\"ADR0149E-4e replay worktree hygiene\",\"leaves another worktree's prunable record alone and removes its own\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-prune.test.ts",
+            "line": 33
+          },
+          "message": "AssertionError: expected 'worktree /private/var/folders/yc/pj8f…' to contain 'worktree /private/var/folders/yc/pj8f…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-4e2/20261029T050556412Z/tests",
+        "tree": "69e213bf9627ebe9ec84622b9566e98e9f5dacdc"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-replay-prune.test.ts": "73a08c0686f35000c819410bf250c58bb503b888"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-replay-prune.test.ts": "73a08c0686f35000c819410bf250c58bb503b888"
+      }
+    },
     "ADR0149E-5": {
       "id": "ADR0149E-5",
       "lane": "unit-red",

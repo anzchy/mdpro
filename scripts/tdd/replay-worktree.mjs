@@ -6,7 +6,8 @@
  * Key decisions:
  * - The worktree is `<root>/verify-<sha7>-replay-<id>`, root being MDPRO_REPLAY_ROOT, else
  *   the `mdpro-wt/` beside the main checkout when it exists, else the OS temp dir. An
- *   existing directory refuses; the worktree is always removed and pruned afterwards.
+ *   existing directory refuses; the worktree is always removed afterwards, and nothing else
+ *   is pruned.
  * - Restore, per path changed base → head: a pure test path keeps the head; a Rust file
  *   holding test modules gets base production spliced with the head's test modules (an
  *   unspliceable one refuses); any other path is checked out at base, or removed if the
@@ -91,10 +92,9 @@ export function withWorktree(cwd, head, id, operation) {
   if (existsSync(dir)) throw usageError(`Replay worktree ${dir} already exists; remove it first.`);
   git(cwd, ["worktree", "add", "-q", "--detach", dir, head]);
   try { return operation(dir); }
-  finally {
-    git(cwd, ["worktree", "remove", "--force", dir], { allowFail: true });
-    git(cwd, ["worktree", "prune"], { allowFail: true });
-  }
+  // Only this worktree is removed: a repo-wide `git worktree prune` would also drop another
+  // session's prunable record, which `git worktree repair` could then no longer reattach.
+  finally { git(cwd, ["worktree", "remove", "--force", dir], { allowFail: true }); }
 }
 
 /** Restore `dir` (checked out at head) to base for every non-test path; returns the paths it touched. */
