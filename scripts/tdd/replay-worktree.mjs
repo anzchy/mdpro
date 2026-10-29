@@ -18,7 +18,8 @@
  * - Runs never use the worktree's own lane scripts or config: Vitest receipts run Vitest
  *   directly; Rust receipts run the lane command the sidecar recorded, with both output
  *   streams captured here. Each run goes through the caller's `scripts/heavy-lock.sh`
- *   when it has one.
+ *   when it has one, and is bounded by MDPRO_REPLAY_TIMEOUT_MS (default 900 s); a run that
+ *   times out or is killed is reported as that, never parsed as partial output.
  * @coordinates-with scripts/tdd/receipt-replay.mjs, scripts/tdd/receipt-tree.mjs, scripts/tdd/rust-splice.mjs
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
@@ -30,7 +31,10 @@ import { classifyTestPaths, git } from "./receipt-tree.mjs";
 import { libtestOutcomes, vitestOutcomes } from "./receipt-failures.mjs";
 import { spliceTestMods } from "./rust-splice.mjs";
 
-const RUN_TIMEOUT_MS = 900_000;
+const DEFAULT_RUN_TIMEOUT_MS = 900_000;
+const runTimeout = () => Number(process.env.MDPRO_REPLAY_TIMEOUT_MS || DEFAULT_RUN_TIMEOUT_MS);
+/** Why a spawned run did not finish, or null when it did. */
+const unfinished = (run) => (run.error?.code === "ETIMEDOUT" || (run.signal && !run.error) ? `timed out or killed (${run.signal || run.error.code})` : run.error ? `did not start (${run.error.message})` : null);
 
 /** `{path: {mode, blob}}` of every file in `rev`. */
 export function filesAt(cwd, rev) {
@@ -139,7 +143,7 @@ export function linkDependencies(cwd, dir, base, head) {
     return;
   }
   const [command, ...args] = heavy(cwd, ["pnpm", "install", "--frozen-lockfile", "--offline"]);
-  if (spawnSync(command, args, { cwd: dir, encoding: "utf8", timeout: RUN_TIMEOUT_MS }).status !== 0) throw usageError("pnpm install for the base lockfile failed; the replay refuses.");
+  if (spawnSync(command, args, { cwd: dir, encoding: "utf8", timeout: runTimeout() }).status !== 0) throw usageError("pnpm install for the base lockfile failed; the replay refuses.");
 }
 
 /** Run the receipt's tests in `dir`: `{outcomes, compileError, error}`. */
@@ -151,14 +155,16 @@ export function runTests(cwd, dir, { lane, files, laneCommand }) {
   const root = realpathSync.native(dir);
   if (lane === "rust") {
     if (!laneCommand) return { outcomes: new Map(), compileError: false, error: "no lane command recorded" };
-    const run = spawnSync("sh", ["-c", laneCommand], { cwd: dir, env, encoding: "utf8", timeout: RUN_TIMEOUT_MS, maxBuffer: 256 * 1024 * 1024 });
+    const run = spawnSync("sh", ["-c", laneCommand], { cwd: dir, env, encoding: "utf8", timeout: runTimeout(), maxBuffer: 256 * 1024 * 1024 });
+    if (unfinished(run)) return { outcomes: new Map(), compileError: false, error: `the run ${unfinished(run)}` };
     try { return { ...libtestOutcomes(run.stdout, run.stderr, root), error: null }; }
     catch (error) { return { outcomes: new Map(), compileError: false, error: error.message }; }
   }
   const out = mkdtempSync(join(tmpdir(), "mdpro-replay-run-"));
   try {
     const [command, ...args] = heavy(cwd, ["pnpm", "exec", "vitest", "run", "--coverage.enabled=false", "--maxWorkers=1", "--reporter=json", `--outputFile.json=${join(out, "vitest.json")}`, ...files]);
-    spawnSync(command, args, { cwd: dir, env, encoding: "utf8", timeout: RUN_TIMEOUT_MS, maxBuffer: 256 * 1024 * 1024 });
+    const run = spawnSync(command, args, { cwd: dir, env, encoding: "utf8", timeout: runTimeout(), maxBuffer: 256 * 1024 * 1024 });
+    if (unfinished(run)) return { outcomes: new Map(), compileError: false, error: `the run ${unfinished(run)}` };
     if (!existsSync(join(out, "vitest.json"))) return { outcomes: new Map(), compileError: false, error: "Vitest wrote no report" };
     return { outcomes: vitestOutcomes(JSON.parse(readFileSync(join(out, "vitest.json"), "utf8")), root), compileError: false, error: null };
   } finally { rmSync(out, { recursive: true, force: true }); }

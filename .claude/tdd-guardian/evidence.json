@@ -361,6 +361,40 @@
         "tests/tooling/adr0149e-replay-prune.test.ts": "73a08c0686f35000c819410bf250c58bb503b888"
       }
     },
+    "ADR0149E-4f": {
+      "id": "ADR0149E-4f",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:11:59.609Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-killed.test.ts\",\"ADR0149E-4f killed runs and worktree cleanup\",\"names a timed-out base run as the cause and removes the worktree\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-killed.test.ts",
+            "line": 35
+          },
+          "message": "AssertionError: expected 'passed' to be 'failed' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-4f/20261029T051159609Z/tests",
+        "tree": "06a6da3f504d65630cf095dca66620d6278d7517"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-replay-killed.test.ts": "45ccc35479e81472e8b6c97d28eba6b130ed4927"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-replay-killed.test.ts": "45ccc35479e81472e8b6c97d28eba6b130ed4927"
+      }
+    },
     "ADR0149E-5": {
       "id": "ADR0149E-5",
       "lane": "unit-red",

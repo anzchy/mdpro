@@ -2254,6 +2254,22 @@
         "digests status, kind and location only, so a varying failure message keeps the digest"
       ],
       "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-killed.test.ts",
+        "ADR0149E-4f killed runs and worktree cleanup",
+        "names a timed-out base run as the cause and removes the worktree"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-killed.test.ts",
+        "ADR0149E-4f killed runs and worktree cleanup",
+        "removes the worktree when the restore refuses part-way"
+      ],
+      "prerequisite": "plugin"
     }
   ],
   "exclusions": [

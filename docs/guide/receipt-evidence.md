@@ -64,7 +64,8 @@ It creates the detached worktree `verify-<sha7>-replay-<id>`, under `MDPRO_REPLA
 2. **Dependencies.** An unchanged lockfile reuses the caller's `node_modules`; otherwise the
    replay runs `pnpm install --frozen-lockfile --offline`.
 3. **Run base, then head.** Vitest runs directly on the receipt's files. Rust runs the recorded lane
-   command. Each run goes through `scripts/heavy-lock.sh`.
+   command. Each run goes through `scripts/heavy-lock.sh`. Each run is bounded by `MDPRO_REPLAY_TIMEOUT_MS`
+   (default 900 s); a run that times out or is killed fails the replay with that cause.
 
 **When a replay passes.** Every recorded id must have been an assertion at RED, must fail at base
 as an assertion at the RED location, and must pass at head. The RED location is the RED line
