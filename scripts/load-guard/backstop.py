@@ -4,7 +4,8 @@
 Use --once with StartInterval=5. State lives in ~/.cache/load-guard/state.json.
 The injected process inventory and root work only with MDPRO_GUARD_TEST=1.
 CPU attribution uses each current group identity's last three consecutive hot
-samples; unrelated machine load warns and never authorises a stop.
+samples; interval +2s continuity expires after sleep or clock rollback.
+Unrelated machine load warns and never authorises a stop.
 """
 import json
 import os
@@ -179,9 +180,13 @@ def live_member(pid):
 def once():
     pressure, busy, available, vm_free, level = sample()
     state = load_state()
-    state["memory"] = state.get("memory", 0) + 1 if pressure == 4 else 0
-    state["cpu"] = state.get("cpu", 0) + 1 if busy is not None and busy > 95 else 0
     now = time.time()
+    recent = guard.sample_is_recent(state.get("memorySampleTime"), now)
+    previous_memory = state.get("memory", 0) if recent else 0
+    previous_cpu = state.get("cpu", 0) if recent else 0
+    state["memory"] = previous_memory + 1 if pressure == 4 else 0
+    state["cpu"] = previous_cpu + 1 if busy is not None and busy > 95 else 0
+    state["memorySampleTime"] = now
     if pressure is not None and pressure >= 2 and now - state.get("lastSnapshot", 0) >= 60:
         guard.log("snapshot", "pressure", pressure, busy, "backstop", os.getcwd(), available, vm_free, level)
         state["lastSnapshot"] = now
@@ -195,15 +200,16 @@ def once():
         if busy is not None and busy > 95 and info and info["uid"] == os.getuid():
             identity = {**info, "pid": leader["pid"]}
             previous = state.get("groups", {}).get(str(pgid), {})
-            readings = previous.get("readings", []) if previous.get("identity") == identity else []
+            continuous = previous.get("identity") == identity and guard.sample_is_recent(previous.get("sampleTime"), now)
+            readings = previous.get("readings", []) if continuous else []
             readings = (readings + [[busy, guard.group_cpu(pgid)]])[-3:]
-            logged = previous.get("logged", False) if previous.get("identity") == identity else False
+            logged = previous.get("logged", False) if continuous else False
             if len(readings) == 3:
                 cpu_stop = sum(row[1] for row in readings) > .8 * sum(row[0] for row in readings)
                 if not cpu_stop and not logged:
                     guard.log("warn", "cpu", pressure, busy, leader["command"], leader["cwd"], available, vm_free, level)
                     logged = True
-            histories[str(pgid)] = {"identity": identity, "readings": readings, "logged": logged}
+            histories[str(pgid)] = {"identity": identity, "readings": readings, "logged": logged, "sampleTime": now}
         if state["memory"] >= 2 or cpu_stop:
             reason = "memory" if state["memory"] >= 2 else "cpu"
             stopped = stop(pgid, members, expected)

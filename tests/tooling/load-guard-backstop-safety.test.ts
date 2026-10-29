@@ -83,6 +83,8 @@ it("rechecks group membership immediately before TERM and preserves a newly mixe
     fs.writeFileSync(sampler, "#!/bin/sh\necho '4 0 16'\n", { mode: 0o700 });
     const state = path.join(dir, "state");
     fs.writeFileSync(state, JSON.stringify({ memory: 1, cpu: 0, lastSnapshot: Date.now() / 1000 }));
+    // Keep this pre-TERM membership race on a fresh first sample, not legacy state.
+    fs.writeFileSync(state, JSON.stringify({ ...JSON.parse(fs.readFileSync(state, "utf8")), memorySampleTime: Date.now() / 1000 }));
     const runner = { pid: child.pid, ppid: process.pid, pgid: child.pid, uid: process.getuid!(), cwd: dir,
       command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "PicseeKitPackageTests.xctest") };
     const back = spawn("python3", [backstop, "--once"], { env: { ...process.env,

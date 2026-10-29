@@ -22,7 +22,7 @@
 #                               and registration directory for tests.
 # Exit: child status normally; 64 invalid invocation; 75 wait/admission refusal;
 #   76 stopped after TERM, grace, KILL if needed, and process-group drain.
-# Log: commands omit arguments (basename + full-command SHA256 digest).
+# Log/owner/registration: job arguments omitted; owner diagnostics show identity only.
 #   event,time,project,cmd,cwd,readings (pressure,cpuBusy,availableGiB,
 #   vmStatFreeGiB,memorystatusLevel),reason,topRss (JSON per line).
 # Pressure uses libdispatch NORMAL=1, WARN=2, CRITICAL=4. On macOS an
@@ -74,9 +74,11 @@ HEARTBEAT_SECS=60
 TAG="[heavy-lock]"
 GUARD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load-guard/guard.py"
 SAMPLE_SECS="${MDPRO_LOAD_GUARD_INTERVAL_SECS:-5}"
+SAMPLE_TOLERANCE="$(python3 "$GUARD" sample-tolerance "$SAMPLE_SECS")"
 budget_gib="$(python3 "$GUARD" budget "$JOB_CMD")"
 # Sampling and monitoring share this wrapper's job/lock state.
 source "$(dirname "$GUARD")/runtime.sh"
+source "$(dirname "$GUARD")/owner.sh"
 mkdir -p "$(dirname "$LOCK")"
 
 if [[ "${mode:-}" == "--hold" ]]; then
@@ -107,27 +109,6 @@ if [[ "${mode:-}" == "--release" ]]; then
   exit 75
 fi
 
-holder_desc() { tr '\n' ' ' <"${1:-$LOCK}/owner" 2>/dev/null || echo "(no owner file)"; }
-pid_in() { sed -n 's/^pid=//p' "$1/owner" 2>/dev/null | head -n 1 || true; }
-
-try_acquire() {
-  mkdir "$LOCK" 2>/dev/null || return 1
-  printf 'pid=%s\nstarted=%s\nprocess_start=%s\ncwd=%s\ncmd=%s\n' \
-    "$$" "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$(ps -p $$ -o lstart= | awk '{$1=$1;print}')" "$PWD" "$*" >"$LOCK/owner"
-}
-
-# Rename first (atomic), then re-check the moved owner: if a peer reclaimed and
-# re-acquired in between, put its live lock back instead of deleting it.
-reclaim() {
-  local expect="$1" why="$2" grave="$LOCK.stale.$$"
-  mv "$LOCK" "$grave" 2>/dev/null || return 0
-  if [[ "$(pid_in "$grave")" != "$expect" ]]; then
-    [[ -e "$LOCK" ]] || mv "$grave" "$LOCK" 2>/dev/null || true
-    return 0
-  fi
-  echo "$TAG reclaiming $why lock $LOCK: $(holder_desc "$grave")" >&2
-  rm -rf "$grave"
-}
 
 waited=0
 started_clock="$(python3 "$GUARD" clock)"
@@ -135,8 +116,9 @@ next_heartbeat=$HEARTBEAT_SECS
 ownerless_polls=0
 while [[ "$GUARD_ONLY" == 0 ]] && ! try_acquire "$@"; do
   pid="$(pid_in "$LOCK")"
+  process_start="$(owner_start_in "$LOCK")"
   if [[ -n "$pid" ]] && ! kill -0 "$pid" 2>/dev/null; then
-    reclaim "$pid" "stale (owner pid $pid is dead)"
+    reclaim "$pid" "stale (owner pid $pid is dead)" "$process_start"
     continue
   fi
   # A peer is ownerless only between mkdir and writing owner (microseconds);
@@ -144,7 +126,7 @@ while [[ "$GUARD_ONLY" == 0 ]] && ! try_acquire "$@"; do
   if [[ -z "$pid" && -d "$LOCK" ]]; then
     ownerless_polls=$((ownerless_polls + 1))
     if ((ownerless_polls >= 2)); then
-      reclaim "" "ownerless"
+      reclaim "" "ownerless" "$process_start"
       ownerless_polls=0
       continue
     fi
@@ -170,8 +152,11 @@ done
 # readings fail closed. Pressure 2 or 4 never admits.
 admission_logged=0
 admission_cpu_streak=0
+admission_sample_time=""
 while :; do
   read_sample
+  sample_continues "$admission_sample_time" || admission_cpu_streak=0
+  admission_sample_time="$sample_time"
   if [[ "$pressure" == unreadable ]]; then
     if [[ "${MDPRO_GUARD_TEST:-}" == 1 && -n "${MDPRO_LOAD_GUARD_TEST_OS:-}" ]]; then
       guard_os="$MDPRO_LOAD_GUARD_TEST_OS"

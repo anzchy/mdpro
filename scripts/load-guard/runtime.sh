@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Purpose: sampling, JSON logging, and threshold monitoring for heavy-lock.sh.
 # Sourced after wrapper configuration; stop_group owns TERM/grace/drain.
+# Streak continuity expires after interval +2s, including clock rollback.
 # The monitor runs in a subshell and communicates exit 76 by stop_marker.
 elapsed_ge() { awk "BEGIN {exit !(($1 - $2) >= $3)}"; }
 ge() { awk "BEGIN {exit !($1 >= $2)}"; }
@@ -16,6 +17,7 @@ sample() {
 read_sample() {
   local output
   output="$(sample)"
+  sample_time="$(python3 "$GUARD" clock)"
   read -r pressure busy free_gib sample_group_cpu vm_free_gib memory_level <<<"$output"
   if [[ -n "${vm_free_gib:-}" && -z "${memory_level:-}" ]]; then
     memory_level="$vm_free_gib"
@@ -31,12 +33,20 @@ read_sample() {
 }
 log_guard() { MDPRO_LOAD_GUARD_RAW_PRESSURE="${raw_pressure:-}" python3 "$GUARD" log "$1" "$2" "$pressure" "$busy" "$JOB_CMD" "$PWD" "$free_gib" "$vm_free_gib" "$memory_level"; }
 
+sample_continues() {
+  [[ -n "$1" ]] && awk "BEGIN {d=$sample_time-$1; exit !(d >= 0 && d <= $SAMPLE_TOLERANCE)}"
+}
+
 monitor() {
-  local memory_streak=0 cpu_streak=0 cpu_busy_sum=0 cpu_group_sum=0 cpu_logged=0 group_cpu
+  local memory_streak=0 cpu_streak=0 cpu_busy_sum=0 cpu_group_sum=0 cpu_logged=0 group_cpu previous_sample=""
   while group_alive; do
     sleep "$SAMPLE_SECS"
     group_alive || break
     read_sample
+    if ! sample_continues "$previous_sample"; then
+      memory_streak=0; cpu_streak=0; cpu_busy_sum=0; cpu_group_sum=0; cpu_logged=0
+    fi
+    previous_sample="$sample_time"
     if [[ "$pressure" == 4 ]]; then memory_streak=$((memory_streak + 1)); else memory_streak=0; fi
     if [[ "$busy" != unreadable ]] && awk "BEGIN {exit !($busy > 95)}"; then
       cpu_streak=$((cpu_streak + 1))

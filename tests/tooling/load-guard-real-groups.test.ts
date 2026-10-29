@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { expect, it } from "vitest";
+import { scopeInventory } from "../support/loadGuardFix";
 import { runChild, waitForExit } from "../support/loadGuardChild";
 import { cleanup, fixture, guardDir, python, records, until } from "../support/loadGuardFix";
 
@@ -16,6 +17,7 @@ it.skipIf(process.platform !== "darwin")("stops real Vitest and Cargo test group
       const env = { ...h.env, MDPRO_FIX_RUNNER_READY: ready, MDPRO_FIX_PROTECTED: protectedMember ? "1" : "0" };
       const child = spawn(process.execPath, [path.resolve("node_modules/vitest/vitest.mjs"), "run", "--config", config], { env, detached: true, stdio: "ignore" });
       try {
+        await scopeInventory(h.dir, env, child.pid!);
         await until(() => fs.existsSync(ready));
         const observed = await python(`p=backstop.inventory();g=[r for r in p if r['pgid']==${child.pid}];print(json.dumps({'commands':[r['command'] for r in g],'candidate':${child.pid} in backstop.candidate_groups(p)}))`, env);
         expect(observed.commands.some((s: string) => s.includes("esbuild") && s.includes("--service"))).toBe(true);
@@ -39,6 +41,7 @@ it.skipIf(process.platform !== "darwin")("stops real Vitest and Cargo test group
       env: { ...h.env, MDPRO_CARGO_READY: cargoReady }, detached: true, stdio: "ignore",
     });
     try {
+      await scopeInventory(h.dir, h.env, child.pid!);
       await until(() => fs.existsSync(cargoReady), 15000);
       const observed = await python(`p=backstop.inventory();g=[r for r in p if r['pgid']==${child.pid}];print(json.dumps({'commands':[r['command'] for r in g],'candidate':${child.pid} in backstop.candidate_groups(p)}))`, h.env);
       expect(observed.commands.some((s: string) => s.includes("/deps/guard_fixture-"))).toBe(true);

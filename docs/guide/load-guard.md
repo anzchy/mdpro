@@ -37,7 +37,15 @@ KILL if needed, and releases the lock after the group is gone. The launchd
 backstop stops only test runners started **outside any wrapper**, using the same strict
 three-sample CPU attribution rule for each current group identity. Unrelated
 CPU load writes a warning and leaves the group running; cooler or unreadable
-samples and changed identities reset its CPU evidence. It never targets a
+samples and changed identities reset its CPU evidence. The backstop stores a
+sample time with the memory streak and each group's CPU history. The named
+`SAMPLE_TOLERANCE_SECS` is 7 seconds: the 5-second launchd interval plus
+2 seconds of slack. A gap greater than 7 seconds, a backwards clock, or a
+legacy state without a sample time discards earlier evidence; the current hot
+sample starts a new streak at one. Exactly 7 seconds still counts as continuous.
+The wrapper timestamps completed sampler reads and applies the same interval
+plus 2-second slack rule (7 seconds at its default interval), resetting memory,
+CPU counts, attribution sums and warning state together after a gap or rollback. It never targets a
 registered wrapper group or an app/build/signing/agent group. Wrapped picsee
 lanes (`node scripts/tdd/*.mjs → heavy-lock.sh → xcrun → xctest`) register
 their group and remain covered by the wrapper. Swift, Xcode and Cargo
@@ -93,7 +101,21 @@ executable basename plus `sha256:<16 hex characters>` computed from the entire
 original command before any display shortening. All arguments are omitted;
 headers, tokens, environment assignments, URL userinfo and opaque credentials
 never enter those fields. Malformed quoting uses the basename `process` and
-the digest. No optional argument-retaining mode is enabled. The
+the digest. No optional argument-retaining mode is enabled. New ordinary heavy-lock owner
+records use the same safe summary; active registrations omit the unused command
+field. Keeper records retain only the UUID needed by the existing release
+protocol and the command digest, omitting their ready-file argument. Contention,
+heartbeat, timeout and reclaim diagnostics display only `pid`, `started`,
+`process_start` and `cwd`, universally omitting `cmd`. This also protects raw or
+safe-looking commands written by a foreign wrapper such as picsee. Reading a
+foreign owner does not rewrite it; its PID and start time remain the basis for
+reclaim decisions, and both are rechecked after the lock is moved.
+
+A new JSONL log is created with mode **0600**, including under umask 022.
+Appending to an existing log preserves its mode and content. Rotate an existing
+log to a private 0600 backup before operational installation, especially if an
+older wrapper wrote raw arguments; the code does not clean old log contents or
+change their permissions. The
 backstop writes at most one `snapshot` per minute while pressure is at least
 2. A wrapper writes one `stop` line per stopped job.
 

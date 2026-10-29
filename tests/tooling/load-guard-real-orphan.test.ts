@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { expect, it } from "vitest";
+import { scopeInventory } from "../support/loadGuardFix";
 import { runChild, waitForExit } from "../support/loadGuardChild";
 import { cleanup, fixture, guardDir, python, records, until } from "../support/loadGuardFix";
 
@@ -13,6 +14,7 @@ it.skipIf(process.platform !== "darwin")("drains a real suspended esbuild after 
   const env={...h.env,MDPRO_FIX_RUNNER_READY:ready};
   const child=spawn(process.execPath,[path.resolve("node_modules/vitest/vitest.mjs"),"run","--config",config],{env,detached:true,stdio:"ignore"});
   try {
+    await scopeInventory(h.dir, env, child.pid!);
     await until(()=>fs.existsSync(ready));
     const group=await python(`p=backstop.inventory();print(json.dumps([r for r in p if r['pgid']==${child.pid}]))`,env);
     const helper=group.find((r: any)=>r.command.includes("--service=")&&r.command.includes("esbuild"));

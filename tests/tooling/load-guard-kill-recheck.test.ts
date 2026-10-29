@@ -35,6 +35,8 @@ while True: time.sleep(.05)
     const sampler = path.join(dir, "sampler");
     fs.writeFileSync(sampler, "#!/bin/sh\necho '4 0 16'\n", { mode: 0o700 });
     fs.writeFileSync(path.join(dir, "state"), JSON.stringify({ memory: 1, cpu: 0, lastSnapshot: Date.now() / 1000 }));
+    // This fixture represents a fresh first sample in the timestamped state format.
+    fs.writeFileSync(path.join(dir, "state"), JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(dir, "state"), "utf8")), memorySampleTime: Date.now() / 1000 }));
     const status = await new Promise<number | null>((resolve, reject) => {
       const backstop = spawn("python3", [path.resolve("scripts/load-guard/backstop.py"), "--once"], {
         env: { ...process.env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,

@@ -5,7 +5,8 @@ MDPRO_LOAD_GUARD_SAMPLER overrides sampling; MDPRO_LOAD_GUARD_LOG overrides
 ~/.cache/load-guard.log; MDPRO_LOAD_GUARD_ACTIVE overrides the registration
 directory. Log lines are JSON with event, time, project, cmd, cwd, readings,
 reason and topRss. Commands are basename + SHA256 of the entire command; no
-arguments or environment values are logged. Start identities normalise whitespace.
+arguments or environment values are logged or registered. New logs are mode0600.
+Start identities normalise whitespace. Overload continuity allows interval +2s.
 """
 import json
 import os
@@ -18,6 +19,15 @@ import time
 import re
 import hashlib
 import shlex
+
+
+# Launchd samples every5s; +2s slack allows ordinary sampler/scheduler overhead.
+SAMPLE_GAP_SLACK_SECS = 2
+SAMPLE_TOLERANCE_SECS = 5 + SAMPLE_GAP_SLACK_SECS
+
+
+def sample_is_recent(previous, now, tolerance=SAMPLE_TOLERANCE_SECS):
+    return isinstance(previous, (int, float)) and 0 <= now - previous <= tolerance
 
 
 # Coverage measured at 1358.2 MiB group RSS: +20% = 1.592 GiB, rounded to 2.
@@ -111,7 +121,8 @@ def log(event, reason, pressure, busy, command, cwd, available="unreadable", vm_
               "reason": reason, "topRss": snapshot() if top_rss is None else top_rss}
     if os.environ.get("MDPRO_LOAD_GUARD_RAW_PRESSURE"):
         record["readings"]["rawPressure"] = os.environ["MDPRO_LOAD_GUARD_RAW_PRESSURE"][:80]
-    with dest.open("a", encoding="utf8") as stream:
+    fd = os.open(dest, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    with os.fdopen(fd, "a", encoding="utf8") as stream:
         stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
@@ -155,7 +166,7 @@ def register(pgid, pid, command, cwd):
     directory = active_dir()
     directory.mkdir(parents=True, exist_ok=True)
     record = {"pgid": pgid, "pid": pid, "start": info["start"], "uid": info["uid"],
-              "project": "mdpro", "cmd": command, "cwd": cwd}
+              "project": "mdpro", "cwd": cwd}
     fd, temp = tempfile.mkstemp(dir=directory, prefix=".active-")
     with os.fdopen(fd, "w") as stream:
         json.dump(record, stream)
@@ -224,6 +235,8 @@ def main(argv):
         print(budget(argv[1]))
     elif command == "clock":
         print(time.time())
+    elif command == "sample-tolerance":
+        print(float(argv[1]) + SAMPLE_GAP_SLACK_SECS)
     elif command == "group-cpu":
         print(group_cpu(int(argv[1])))
     elif command == "register":

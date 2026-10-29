@@ -52,3 +52,25 @@ sys.stdout.write(re.sub(r'(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\s+[A-Z][a-z]{2}\\s+\\
 sys.exit(r.returncode)
 `, { mode: 0o700 });
 }
+
+/** Contain real inventory stop fixtures to their own live process group.
+ * Only the global inventory ps boundary is scoped; every row, membership
+ * refresh, lsof lookup, identity check and signal still uses the actual OS.
+ */
+export async function scopeInventory(dir: string, env: NodeJS.ProcessEnv, pgid: number) {
+  const python = (await runChild("/usr/bin/which", ["python3"])).stdout.trim();
+  const group = path.join(dir, "owned-pgid");
+  fs.writeFileSync(group, String(pgid));
+  fs.writeFileSync(path.join(dir, "ps"), `#!${python}
+import os,pathlib,subprocess,sys
+args=sys.argv[1:]
+if args==['-axo','pid=,ppid=,pgid=,uid=,command=']:
+ group=pathlib.Path(${JSON.stringify(group)}).read_text().strip()
+ rows=subprocess.run(['/bin/ps',*args],capture_output=True,text=True,check=True).stdout.splitlines()
+ for row in rows:
+  parts=row.split(None,4)
+  if len(parts)==5 and parts[2]==group: print(row)
+else: os.execv('/bin/ps',['/bin/ps',*args])
+`, { mode: 0o700 });
+  env.PATH = `${dir}:${process.env.PATH}`;
+}
