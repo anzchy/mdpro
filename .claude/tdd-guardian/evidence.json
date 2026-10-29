@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "entries": {
+    "ADR0149E-3": {
+      "id": "ADR0149E-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:30:45.269Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-print.test.ts\",\"ADR0149E-3 the print\",\"diffs the RED tree against the head commit's test paths and base against head for production\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-print.test.ts",
+            "line": 19
+          },
+          "message": "AssertionError: \n[red-receipt] The \"code\" argument must be of type number. Received an instance of Object\n: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-print.test.ts\",\"ADR0149E-3 the print\",\"writes an empty test diff when nothing under test changed since RED\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-print.test.ts",
+            "line": 19
+          },
+          "message": "AssertionError: \n[red-receipt] The \"code\" argument must be of type number. Received an instance of Object\n: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-3/20261029T043045269Z/tests",
+        "tree": "2bf80afce2dfd548f2d6299990b2821cdebf0ea9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-print.test.ts": "7bddf09a738e23bfeb548badff6eb0ce626566ae"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-print.test.ts": "0785af9f9d49dbf328267268c1ad2823957f7487"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-4a": {
+      "id": "ADR0149E-4a",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:30:51.830Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-pass.test.ts\",\"ADR0149E-4a replay passes\",\"follows the RED line when the head moves it, and matches the same line with a different base message\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-pass.test.ts",
+            "line": 62
+          },
+          "message": "AssertionError: expected undefined to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-pass.test.ts\",\"ADR0149E-4a replay passes\",\"passes when the base fails at the RED line and the head passes, and leaves the verdict, index and worktrees alone\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-pass.test.ts",
+            "line": 48
+          },
+          "message": "AssertionError: \n[red-receipt] The \"code\" argument must be of type number. Received an instance of Object\n: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-pass.test.ts\",\"ADR0149E-4a replay passes\",\"replays the committed head, not the caller's dirty working tree, and finds the pin from another worktree\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-pass.test.ts",
+            "line": 99
+          },
+          "message": "AssertionError: expected undefined to be 'passed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-pass.test.ts\",\"ADR0149E-4a replay passes\",\"restores changed, added, deleted and renamed production paths to base and keeps seams at base\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-pass.test.ts",
+            "line": 90
+          },
+          "message": "AssertionError: expected undefined to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-pass.test.ts\",\"ADR0149E-4a replay passes\",\"splices the head's Rust test module into the base's production file\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-pass.test.ts",
+            "line": 123
+          },
+          "message": "AssertionError: expected undefined to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-4a/20261029T043051830Z/tests",
+        "tree": "2bf80afce2dfd548f2d6299990b2821cdebf0ea9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-replay-pass.test.ts": "43af1b8afced3c49ad101b5cc5d7d81c108b40d6"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-replay-pass.test.ts": "e0007c8add7f4b601b008432e5996bf19cd461d9"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-4b": {
+      "id": "ADR0149E-4b",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:31:04.036Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails closed on a RED with no assertion id, and on a mixed RED set, naming the panic id\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 151
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails closed when the base cannot collect the test, or the base kind is not an assertion\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 125
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails closed when the test imports a module the branch added\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 140
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when an id is skipped or removed at head\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 108
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when an id passes at base\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when only one of two ids meets the condition, naming the other\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 95
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when the base fails at another line with another message\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 51
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when the base fails with the RED message on another line while the RED line still maps\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 62
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when the head edited the RED line in place and the base message differs\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 74
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"fails when the id also fails at head\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 114
+          },
+          "message": "AssertionError: expected undefined to be 'failed' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-fail.test.ts\",\"ADR0149E-4b replay fails closed\",\"refuses an entry whose pin ref is missing or moved\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-fail.test.ts",
+            "line": 166
+          },
+          "message": "AssertionError: expected '\\n[red-receipt] The \"code\" argument m…' to match /pin/i"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-4b/20261029T043104036Z/tests",
+        "tree": "2bf80afce2dfd548f2d6299990b2821cdebf0ea9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-replay-fail.test.ts": "ab5e16267de17153e864b967a6a0258166fbf8c3"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-replay-fail.test.ts": "ab5e16267de17153e864b967a6a0258166fbf8c3"
+      }
+    },
+    "ADR0149E-5": {
+      "id": "ADR0149E-5",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:31:07.651Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest.test.ts\",\"ADR0149E-5 the evidence digest\",\"changes on a production-only head commit and on a moved base, and --expect-digest reports the mismatch\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest.test.ts",
+            "line": 69
+          },
+          "message": "AssertionError: expected undefined not to be undefined // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest.test.ts\",\"ADR0149E-5 the evidence digest\",\"digests exactly the documented inputs, each equal to git's own value, and stores the digest\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest.test.ts",
+            "line": 46
+          },
+          "message": "AssertionError: \n[red-receipt] The \"code\" argument must be of type number. Received an instance of Object\n: expected 64 to be +0 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-5/20261029T043107651Z/tests",
+        "tree": "2bf80afce2dfd548f2d6299990b2821cdebf0ea9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest.test.ts": "35179436e25b648e91824cc47a7915db88cc0a7a"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest.test.ts": "35179436e25b648e91824cc47a7915db88cc0a7a"
+      }
+    },
+    "ADR0149E-7": {
+      "id": "ADR0149E-7",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:31:12.188Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-pre-entry.test.ts\",\"ADR0149E-7 pre-entry receipts\",\"lists exactly the cases that pass at base and requires a user ruling\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-pre-entry.test.ts",
+            "line": 42
+          },
+          "message": "AssertionError: expected null to match object { mode: 'pre-entry', …(2) }"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-pre-entry.test.ts\",\"ADR0149E-7 pre-entry receipts\",\"lists nothing when every case fails at base, and still requires the ruling\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-pre-entry.test.ts",
+            "line": 66
+          },
+          "message": "AssertionError: expected null to match object { mode: 'pre-entry', …(2) }"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-pre-entry.test.ts\",\"ADR0149E-7 pre-entry receipts\",\"reads a stale entry as no evidence and builds no RED diff from an older pin\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/adr0149e-pre-entry.test.ts",
+            "line": 51
+          },
+          "message": "TypeError: Cannot read properties of null (reading 'mode')"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-7/20261029T043112188Z/tests",
+        "tree": "2bf80afce2dfd548f2d6299990b2821cdebf0ea9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-pre-entry.test.ts": "643f98e4fc29d17bedc20fb63986a3b128587eac"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-pre-entry.test.ts": "643f98e4fc29d17bedc20fb63986a3b128587eac"
+      }
+    }
+  }
+}
