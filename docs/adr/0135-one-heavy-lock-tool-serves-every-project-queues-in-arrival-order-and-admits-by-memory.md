@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: extended** (decision 3's legacy-mode set, which now also carries the load guard's admission, runtime stops and GUI exclusion; decision 6 is pulled into phase 1) by [ADR-0150](0150-heavy-and-gui-runs-exclude-each-other-and-a-load-guard-stops-a-job-under-memory-or-cpu-overload.md) decision 8.
+
 **2026-10-29: partially superseded** (decision 6's "Unreadable … start", on macOS hosts) by [ADR-0152](0152-an-unreadable-memory-pressure-reading-on-macos-holds-the-job.md).
 
 **2026-10-29: partially superseded** (decision 6's warn-level start after five minutes) by [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md).
