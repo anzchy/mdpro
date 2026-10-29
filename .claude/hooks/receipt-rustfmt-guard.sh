@@ -2,7 +2,10 @@
 # Purpose: PreToolUse(Bash) guard — refuse a tdd-guardian `receipt.js record` that
 # would fingerprint a Rust test file that is not rustfmt-clean (rule 10
 # 「Format before you record」, D187). The receipt hashes the files' bytes, so a
-# `cargo fmt` after the record breaks the receipt for good.
+# `cargo fmt` after the record breaks the receipt for good. Rust REDs are recorded
+# through scripts/tdd/red-receipt.mjs --lane rust, which runs the same byte check
+# itself before the lane (ADR-0145 d8, scripts/tdd/receipt-rust.mjs); this hook stays
+# the backstop for a direct receipt.js record.
 # Input: Claude Code's hook JSON on stdin. Exit 2 + one stderr line = denied.
 # Fast path: well-formed input that never mentions `receipt.js` exits 0 here,
 # without starting Python. Everything else goes to receipt_rustfmt_guard.py (run

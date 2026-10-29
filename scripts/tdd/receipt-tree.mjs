@@ -21,7 +21,7 @@
  */
 import { existsSync, lstatSync, mkdtempSync, readFileSync, readlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, posix } from "node:path";
+import { join, posix } from "node:path";
 import { spawnSync } from "node:child_process";
 import { usageError } from "./unit-red-lane.mjs";
 import { modItems } from "./rust-splice.mjs";
@@ -34,7 +34,7 @@ export function git(cwd, args, options = {}) {
   return result;
 }
 
-export function isPlainTestPath(path) {
+function isPlainTestPath(path) {
   return path.startsWith("tests/") || path.startsWith("src-tauri/tests/");
 }
 
@@ -121,4 +121,3 @@ export function resolveRef(cwd, ref) {
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
-export const repoParent = (cwd) => dirname(git(cwd, ["rev-parse", "--path-format=absolute", "--git-common-dir"]).stdout.trim());

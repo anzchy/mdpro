@@ -25,7 +25,9 @@ model: opus
 You verify one landing claim. Treat the peer's handoff as a claim to test, not a fact.
 Never run anything in the peer's worktree: its HEAD can move under you and lane runs leave
 artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anything. The repo is
-`/Users/jackcheng/Documents/01_Coding/mac-app/mdpro`; run git from there.
+`/Users/jackcheng/Documents/01_Coding/mac-app/mdpro`; run git from there. The one write besides
+your worktree is a replay's own: its evidence file inside your checkout, and its temporary
+`verify-<sha7>-replay-<id>` worktree beside it, which the replay removes itself.
 
 ## Input (any missing item → BLOCKED)
 - the claimed SHA
@@ -53,10 +55,23 @@ artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anythi
    - any `id` that appears more than once at the SHA
    Use a short `python3` script for this; print the failing ids.
    Run `node scripts/tdd/red-receipt.mjs check-pending --cwd .` in the detached
-   checkout. Flag every branch `unit-red` receipt that is unsettled, has a RED
-   kind other than `assertion-failure`, or has a verdict other than
-   `SEPARATION-HELD`. A settled exception requires the delegator's explicit
-   handoff ruling; the verifier reports it as an issue for that ruling.
+   checkout. It judges every branch receipt on every lane (ADR-0145 d5) and names each one with its
+   reason:
+   - a RED kind that is not a counted RED;
+   - a verdict other than `SEPARATION-HELD`;
+   - `no evidence`: no current sidecar entry, so the receipt predates the entry or its entry is stale;
+   - `evidence required`: the spec bytes changed between RED and verify, insertions included;
+   - `spec changed after settlement`: the blob ids at this SHA differ from `settled_blobs`.
+
+   For every receipt the branch added that it names, run
+   `node scripts/tdd/red-receipt.mjs replay --id <ID> --base <parent> --cwd .` in the same checkout
+   (ADR-0149 d7). Report the evidence path, the `replay:` line and the `digest:` line for each.
+   When the delegator gives an earlier digest for a receipt, pass it as `--expect-digest <hex>` and
+   report `digest mismatch` as an ISSUE: the base or the head moved since the auditors read it.
+
+   A replay never settles a receipt. Every receipt check-pending names stays an issue for the
+   delegator's ruling. Until the entry's clearing applies, the delegator asks the user one batched
+   question per landing, fed from these lines (ADR-0149 d6).
 4b. Device evidence (ADR-0144 decision 5), for each `device` AC:
    - the report shows PASS for every card the AC cites;
    - its `releaseId` SHA is the evidence SHA;
@@ -84,7 +99,8 @@ ANCESTRY  ok | not a descendant of <parent7>
 SCOPE     clean | <n> unclaimed paths: <paths>
 RECEIPTS  ok (<n> parent records kept) | missing: <ids> | changed: <ids> | duplicate: <ids>
 DEVICE    ok (<n> device ACs) | none | missing or stale: <ACs and reason>
-FOCUSED-RECEIPTS  ok | pending or invalid: <ids>
+FOCUSED-RECEIPTS  ok | needs review: <id> (<lane>): <reason>; ...
+REPLAYS   none | <id>: passed|failed|pre-entry, digest <hex>, evidence <path>; ...
 LANES     <lane>: exit <code> ... | not run: <reason>
 FINDINGS
   1. [BLOCK|MUST|SHOULD] <what> — evidence: <command + output line> — fix: <one line>

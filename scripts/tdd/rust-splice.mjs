@@ -149,7 +149,7 @@ export function modItems(text) {
 }
 
 /** The `#[cfg(test)]`-gated mod items, at any module depth. */
-export function cfgTestMods(text) { return modItems(text).filter((item) => item.test); }
+function cfgTestMods(text) { return modItems(text).filter((item) => item.test); }
 
 /**
  * Base production text with every test module taken from the head, scope by scope: a

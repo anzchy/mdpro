@@ -62,12 +62,15 @@ Control wins over tooling, and both apply only when the file imports nothing fro
 - **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../../docs/adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).
 - **An exhaustive, property or cost-enumeration test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts` sibling.** The default run and the per-commit `unit` lane exclude it; `pnpm test:slow` and the tdd-guardian `slow` lane (push / manual) run it. Share the domain through `tests/support/`, never by copying it ([ADR-0050](../../docs/adr/0050-exhaustive-tests-run-in-a-separate-slow-lane.md)).
 
-**Format before you record.** A Rust red is recorded on `rustfmt`-clean test
-files (`cargo fmt` first, then `receipt.js record`), and `cargo fmt` is never
-run between record and verify: the receipt fingerprints the file's bytes, and a
-later reformat breaks it for good (D187). The PreToolUse hook
-`.claude/hooks/receipt-rustfmt-guard.sh` enforces this: it refuses the record
-and names each Rust file that is not `rustfmt`-clean.
+**Format before you record.** A Rust red goes through the same entry, on
+`rustfmt`-clean test files: `cargo fmt` first, then
+`node scripts/tdd/red-receipt.mjs record --id <ID> --lane rust --test src-tauri/<file>.rs`.
+`cargo fmt` is never run between record and verify: the receipt fingerprints
+the file's bytes, and a later reformat breaks it for good (D187). The entry
+checks this itself and refuses the record, naming each Rust file that is not
+`rustfmt`-clean at the crate's edition (ADR-0145 d8). The PreToolUse hook
+`.claude/hooks/receipt-rustfmt-guard.sh` still refuses a direct `receipt.js record`
+that would hash one.
 
 For frontend RED receipts, run `scripts/heavy-lock.sh --guard-only node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts`;
 after GREEN, run the same guarded command with `verify --id <ID>`. The focused
@@ -75,6 +78,16 @@ after GREEN, run the same guarded command with `verify --id <ID>`. The focused
 heap inherited from the outer guard; the full unit coverage
 lane still runs before commit. Using direct receipt.js bypasses the entry script's
 selection guard and is a residual risk, so it is not a supported frontend path.
+
+**The entry keeps evidence for both lanes** (ADR-0145 as amended by ADR-0149):
+- the failing ids, each with its kind, location and message;
+- the RED-time test tree, pinned under `refs/receipts/`;
+- a sidecar, `.claude/tdd-guardian/evidence.json`.
+
+`verify` routes any byte change of a spec file since RED to evidence, even when the plugin holds,
+and `check-pending` judges every lane. `node scripts/tdd/red-receipt.mjs replay --id <ID>` prints
+the diffs and replays the RED against the PR base. See
+[`docs/guide/receipt-evidence.md`](../../docs/guide/receipt-evidence.md).
 
 ## How much to run, and when
 

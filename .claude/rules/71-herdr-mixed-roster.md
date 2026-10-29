@@ -187,8 +187,8 @@ alias here.
   node scripts/tdd/red-receipt.mjs verify --id <ID>
   ```
 
-  Rust REDs still use `receipt.js record/verify --lane rust` under
-  `scripts/heavy-lock.sh`, after `cargo fmt`. The full frontend coverage lane
+  Rust REDs use the same entry with `--lane rust` (`record`, then `verify`), after `cargo fmt`
+  (ADR-0145 d1, d8). The rust lane's own command runs under `scripts/heavy-lock.sh`. The full frontend coverage lane
   also keeps the heavy lock.
   **Record the red before the production change it tests.** A receipt that carries
   `implementation-already-present` is named in the handoff (M3a, 2026-10-20).

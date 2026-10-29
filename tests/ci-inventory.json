@@ -1894,7 +1894,351 @@
     {"id": ["tests/tooling/load-guard-real-groups.test.ts", "stops real Vitest and Cargo test groups and preserves a protected real member"], "prerequisite": "macos"},
     {"id": ["tests/tooling/load-guard-copied-binary.test.ts", "never signals copied agent bytes at a Cargo-looking path even with a forged depfile"], "prerequisite": "macos"},
     {"id": ["tests/tooling/load-guard-support-drain.test.ts", "drains an unchanged verified support child after its runner parent exits on TERM"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/load-guard-support-policy.test.ts", "requires verified test ancestry for support tools and rejects standalone builds"], "prerequisite": "macos"}
+    {"id": ["tests/tooling/load-guard-support-policy.test.ts", "requires verified test ancestry for support tools and rejects standalone builds"], "prerequisite": "macos"},
+    {
+      "id": [
+        "tests/tooling/adr0149e-record-evidence.test.ts",
+        "ADR0149E-1b record evidence",
+        "stores failing ids, kinds, locations, messages and the run's identity beside the plugin receipt"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-record-evidence.test.ts",
+        "ADR0149E-1b record evidence",
+        "writes no sidecar entry and no ref when the plugin refuses the record"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-record-evidence.test.ts",
+        "ADR0149E-1b record evidence",
+        "refuses a malformed sidecar before running the lane and leaves its bytes alone"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-record-evidence.test.ts",
+        "ADR0149E-1b record evidence",
+        "takes the repo-wide evidence lock before the lane, and fails closed with nothing written while another owner holds it"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-record-evidence.test.ts",
+        "ADR0149E-1b record evidence",
+        "records the rust lane's command and its libtest failures, and the lane never sees the new entry"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-record-evidence.test.ts",
+        "ADR0149E-1b record evidence",
+        "fails closed when the lane leaves no readable evidence, and check-pending flags the receipt"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pin.test.ts",
+        "ADR0149E-2 pinned test tree",
+        "pins exactly the test paths, with dirty and untracked bytes and their modes, and leaves index and tree alone"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pin.test.ts",
+        "ADR0149E-2 pinned test tree",
+        "refuses ids that cannot name a ref before the lane runs"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pin.test.ts",
+        "ADR0149E-2 pinned test tree",
+        "refuses and pins nothing when a support file changes while the lane runs"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pin.test.ts",
+        "ADR0149E-2 pinned test tree",
+        "creates a pin ref only when no ref of that name exists"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-rust-lane.test.ts",
+        "ADR0149E-8 rust lane through the entry",
+        "refuses an unformatted spec file before the lane runs"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-rust-lane.test.ts",
+        "ADR0149E-8 rust lane through the entry",
+        "formats at the crate's edition and checks every spec file"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-rust-lane.test.ts",
+        "ADR0149E-8 rust lane through the entry",
+        "refuses Rust spec paths outside src-tauri, of another type, symlinked or missing"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-rust-lane.test.ts",
+        "ADR0149E-8 rust lane through the entry",
+        "verifies a rust receipt on the rust lane"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-pass.test.ts",
+        "ADR0149E-4a replay passes",
+        "passes when the base fails at the RED line and the head passes, and leaves the verdict, index and worktrees alone"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-pass.test.ts",
+        "ADR0149E-4a replay passes",
+        "follows the RED line when the head moves it, and matches the same line with a different base message"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-pass.test.ts",
+        "ADR0149E-4a replay passes",
+        "restores changed, added, deleted and renamed production paths to base and keeps seams at base"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-pass.test.ts",
+        "ADR0149E-4a replay passes",
+        "replays the committed head, not the caller's dirty working tree, and finds the pin from another worktree"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-pass.test.ts",
+        "ADR0149E-4a replay passes",
+        "splices the head's Rust test module into the base's production file"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when the base fails at another line with another message"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when the base fails with the RED message on another line while the RED line still maps"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when the head edited the RED line in place and the base message differs"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when an id passes at base"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when only one of two ids meets the condition, naming the other"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when an id is skipped or removed at head"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails when the id also fails at head"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails closed when the base cannot collect the test, or the base kind is not an assertion"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails closed when the test imports a module the branch added"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "fails closed on a RED with no assertion id, and on a mixed RED set, naming the panic id"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-fail.test.ts",
+        "ADR0149E-4b replay fails closed",
+        "refuses an entry whose pin ref is missing or moved"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-env.test.ts",
+        "ADR0149E-4d replay environment",
+        "runs the replayed tests without the entry's lock, selection or evidence variables"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-print.test.ts",
+        "ADR0149E-3 the print",
+        "diffs the RED tree against the head commit's test paths and base against head for production"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-print.test.ts",
+        "ADR0149E-3 the print",
+        "writes an empty test diff when nothing under test changed since RED"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest.test.ts",
+        "ADR0149E-5 the evidence digest",
+        "digests exactly the documented inputs, each equal to git's own value, and stores the digest"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest.test.ts",
+        "ADR0149E-5 the evidence digest",
+        "changes on a production-only head commit and on a moved base, and --expect-digest reports the mismatch"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pre-entry.test.ts",
+        "ADR0149E-7 pre-entry receipts",
+        "lists exactly the cases that pass at base and requires a user ruling"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pre-entry.test.ts",
+        "ADR0149E-7 pre-entry receipts",
+        "reads a stale entry as no evidence and builds no RED diff from an older pin"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pre-entry.test.ts",
+        "ADR0149E-7 pre-entry receipts",
+        "lists nothing when every case fails at base, and still requires the ruling"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-holes.test.ts",
+        "ADR0149E-6 holes",
+        "settles unchanged bytes through the entry, and flags branch receipts on any lane that lack evidence"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-holes.test.ts",
+        "ADR0149E-6 holes",
+        "routes an inserted early return to evidence although the plugin holds"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-holes.test.ts",
+        "ADR0149E-6 holes",
+        "routes a blank-line-only insertion to evidence"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-holes.test.ts",
+        "ADR0149E-6 holes",
+        "compares against the RED bytes, not HEAD: a committed early return in the second of two files is flagged"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-holes.test.ts",
+        "ADR0149E-6 holes",
+        "flags a held receipt whose spec changed after settlement"
+      ],
+      "prerequisite": "plugin"
+    }
   ],
   "exclusions": [
     {
