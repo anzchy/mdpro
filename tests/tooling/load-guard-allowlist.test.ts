@@ -8,7 +8,7 @@ import { expect, it } from "vitest";
 
 const backstop = path.resolve("scripts/load-guard/backstop.py");
 
-it("stops a Cargo test binary while preserving a build group", async () => {
+it("stops a verified test runner while preserving a build group", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "load-allowlist-"));
   const runner = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
   const build = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
@@ -16,7 +16,7 @@ it("stops a Cargo test binary while preserving a build group", async () => {
     const processes = path.join(dir, "processes");
     fs.writeFileSync(processes, JSON.stringify([
       { pid: runner.pid, ppid: process.pid, pgid: runner.pid, uid: process.getuid!(), cwd: dir,
-        command: path.join(dir, "target/debug/deps/mdpro_tests-123456") + " --nocapture" },
+        command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "PicseeKitPackageTests.xctest") + " --nocapture" },
       { pid: build.pid, ppid: process.pid, pgid: build.pid, uid: process.getuid!(), cwd: dir,
         command: "/usr/bin/xcodebuild build-for-testing" },
     ]));

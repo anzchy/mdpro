@@ -34,8 +34,27 @@ of machine CPU busy above 95% stop a wrapped job only
 when its process group accounts for more than 80% of busy CPU across those
 samples. The wrapper sends TERM to the group, waits the grace period, sends
 KILL if needed, and releases the lock after the group is gone. The launchd
-backstop checks unregistered test-runner groups only. It never targets a
-registered wrapper group or an app/build/signing/agent group.
+backstop stops only test runners started **outside any wrapper**, using the same strict
+three-sample CPU attribution rule for each current group identity. Unrelated
+CPU load writes a warning and leaves the group running; cooler or unreadable
+samples and changed identities reset its CPU evidence. It never targets a
+registered wrapper group or an app/build/signing/agent group. Wrapped picsee
+lanes (`node scripts/tdd/*.mjs → heavy-lock.sh → xcrun → xctest`) register
+their group and remain covered by the wrapper. Swift, Xcode and Cargo
+build-only groups are never backstop candidates.
+
+A group must contain verified test runners, and every other member must be a
+connected test support process: the installed esbuild service below Vitest,
+a trusted `cargo test` above a verified test binary, or Xcode Swift test tools
+and a known picsee `scripts/tdd/{app,swift}-lane.mjs` above xctest. Standalone
+support tools and any unknown or protected member veto the whole group. Cargo
+binaries must resolve beneath a known workspace's `target/{debug,release}/deps`,
+have a Cargo hash filename and sibling `.d` source dependency file, and contain
+the linked Rust libtest harness. A copied app or agent fails this provenance
+check even with a forged depfile and test parent. Before TERM and KILL,
+identity and membership are checked again. An unchanged, already verified
+support child may be drained after its parent exits; new members, exec or
+identity changes and live registrations revoke that authority.
 
 Any admission sample above 95% CPU busy waits for a cooler sample before
 starting the job; the third consecutive high sample also logs a warning.
@@ -68,8 +87,13 @@ Each log line is JSON with `event` (`admission`, `warn`, `note`, `snapshot`, or 
 `time`, `project`, `cmd`, `cwd`, `readings` (`pressure`, `cpuBusy`, and
 `availableGiB`, `vmStatFreeGiB`, `memorystatusLevel`, and `rawPressure` when
 unreadable), `reason`, and `topRss`. `topRss` lists up to
-eight processes with `pid`, `ppid`, `rssMiB`, `elapsed`, and a redacted,
-200-character command line. Environment values are never logged. The
+eight processes with `pid`, `ppid`, `rssMiB`, `elapsed`, and `command`.
+Every `cmd` and `topRss[].command`, including test runners, contains only the
+executable basename plus `sha256:<16 hex characters>` computed from the entire
+original command before any display shortening. All arguments are omitted;
+headers, tokens, environment assignments, URL userinfo and opaque credentials
+never enter those fields. Malformed quoting uses the basename `process` and
+the digest. No optional argument-retaining mode is enabled. The
 backstop writes at most one `snapshot` per minute while pressure is at least
 2. A wrapper writes one `stop` line per stopped job.
 

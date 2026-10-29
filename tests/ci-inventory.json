@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "generatedFrom": "local Vitest JSON run 2026-10-21, 12367 passed; reviewed against skip gates; D302 heartbeat/probe entries reviewed after gated tests were added",
   "tests": [
+    {"id": ["tests/tooling/load-guard-xctest-resolved.test.ts", "accepts the observed canonical xctest executable"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-xcrun-bare.test.ts", "requires verified bare xcrun to run the xctest subcommand"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-xctest-relative.test.ts", "resolves a relative bundle against cwd and refuses root escape"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-helper-resolved.test.ts", "matches the live Swift Testing helper by canonical path and rejects impersonators"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-real-orphan.test.ts", "drains a real suspended esbuild after Vitest exits using production inventory"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-policy-invariants.test.ts", "preserves identity, registration, CPU collector and release Cargo provenance boundaries"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-gui-lock.test.ts","ADR0141 WI2 GUI lock identity and mutex (requires macos zsh)","rejects an empty batch before creating a lock"],"prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-gui-lock.test.ts","ADR0141 WI2 GUI lock identity and mutex (requires macos zsh)","rejects an empty purpose before creating a lock"],"prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-gui-lock.test.ts","ADR0141 WI2 GUI lock identity and mutex (requires macos zsh)","rejects an empty session before creating a lock"],"prerequisite": "macos"},
@@ -1884,7 +1890,11 @@
     {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "releasing a GUI keeper leaves no sleeping member of its process group"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "rolls back the heavy keeper when a foreign GUI owner blocks acquisition"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gui-heavy-exclusion.test.ts", "refuses GUI acquire and wait while a live heavy owner holds the lock"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/load-guard-node.test.ts", "recognizes a real Vitest process title only with its verified Node executable"], "prerequisite": "macos"}
+    {"id": ["tests/tooling/load-guard-node.test.ts", "recognizes a real Vitest process title only with its verified Node executable"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-real-groups.test.ts", "stops real Vitest and Cargo test groups and preserves a protected real member"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-copied-binary.test.ts", "never signals copied agent bytes at a Cargo-looking path even with a forged depfile"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-support-drain.test.ts", "drains an unchanged verified support child after its runner parent exits on TERM"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/load-guard-support-policy.test.ts", "requires verified test ancestry for support tools and rejects standalone builds"], "prerequisite": "macos"}
   ],
   "exclusions": [
     {

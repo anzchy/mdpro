@@ -23,7 +23,7 @@ def term(*_):
  pathlib.Path(transitioned).touch()
  os.execv(binary,[binary,"60"])
 signal.signal(signal.SIGTERM,term)
-pathlib.Path(inventory).write_text(json.dumps([dict(pid=os.getpid(),ppid=os.getppid(),pgid=os.getpgrp(),uid=os.getuid(),cwd=root,command=root+"/target/debug/deps/test-123")]))
+pathlib.Path(inventory).write_text(json.dumps([dict(pid=os.getpid(),ppid=os.getppid(),pgid=os.getpgrp(),uid=os.getuid(),cwd=root,command="/Applications/Xcode.app/Contents/Developer/usr/bin/xctest "+root+"/PicseeKitPackageTests.xctest")]))
 pathlib.Path(ready).touch()
 while True: time.sleep(.05)
 `, inventory, ready, transitioned, protectedBinary, dir], { detached: true, stdio: "ignore" });

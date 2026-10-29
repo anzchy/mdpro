@@ -22,7 +22,8 @@
 #                               and registration directory for tests.
 # Exit: child status normally; 64 invalid invocation; 75 wait/admission refusal;
 #   76 stopped after TERM, grace, KILL if needed, and process-group drain.
-# Log: event,time,project,cmd,cwd,readings (pressure,cpuBusy,availableGiB,
+# Log: commands omit arguments (basename + full-command SHA256 digest).
+#   event,time,project,cmd,cwd,readings (pressure,cpuBusy,availableGiB,
 #   vmStatFreeGiB,memorystatusLevel),reason,topRss (JSON per line).
 # Pressure uses libdispatch NORMAL=1, WARN=2, CRITICAL=4. On macOS an
 #   unreadable value waits rather than starting; Linux CI starts with a note.
@@ -112,7 +113,7 @@ pid_in() { sed -n 's/^pid=//p' "$1/owner" 2>/dev/null | head -n 1 || true; }
 try_acquire() {
   mkdir "$LOCK" 2>/dev/null || return 1
   printf 'pid=%s\nstarted=%s\nprocess_start=%s\ncwd=%s\ncmd=%s\n' \
-    "$$" "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$(ps -p $$ -o lstart= | sed 's/^ *//;s/ *$//')" "$PWD" "$*" >"$LOCK/owner"
+    "$$" "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$(ps -p $$ -o lstart= | awk '{$1=$1;print}')" "$PWD" "$*" >"$LOCK/owner"
 }
 
 # Rename first (atomic), then re-check the moved owner: if a peer reclaimed and
@@ -279,7 +280,7 @@ set -m
 "$@" <&0 &
 child=$!
 set +m
-child_start="$(ps -p "$child" -o lstart= | sed 's/^ *//;s/ *$//')"
+child_start="$(ps -p "$child" -o lstart= | awk '{$1=$1;print}')"
 python3 "$GUARD" register "$child" "$child" "$*" "$PWD" >/dev/null 2>&1 || true
 stop_marker="$(mktemp "${TMPDIR:-/tmp}/mdpro-load-stop.XXXXXX")"
 rm -f "$stop_marker"

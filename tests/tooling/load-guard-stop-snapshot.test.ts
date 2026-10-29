@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -25,6 +26,6 @@ it("captures the stopped job in the RSS snapshot before terminating it", async (
     expect(result).toBe(76);
     const records = fs.readFileSync(path.join(dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
     const stop = records.find((r) => r.event === "stop");
-    expect(stop.topRss).toEqual([{ pid: Number(fs.readFileSync(pidFile, "utf8")), ppid: 1, rssMiB: 2048, elapsed: "00:01", command: "node --token [REDACTED]" }]);
+    expect(stop.topRss).toEqual([{ pid: Number(fs.readFileSync(pidFile, "utf8")), ppid: 1, rssMiB: 2048, elapsed: "00:01", command: `node sha256:${createHash("sha256").update("node --token secret").digest("hex").slice(0, 16)}` }]);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

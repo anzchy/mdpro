@@ -84,7 +84,7 @@ it("leaves a registered wrapper to stop itself while stopping an unwrapped runne
     expect(code).toBe(76);
     const records = fs.readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(records.filter((record) => record.event === "stop")).toHaveLength(2);
-    expect(records.filter((record) => record.event === "stop" && record.cmd.includes("sleep 5"))).toHaveLength(1);
+    expect(records.filter((record) => record.event === "stop" && record.cmd.startsWith("bash sha256:"))).toHaveLength(1);
   } finally {
     wrapped.kill("SIGTERM");
     try { process.kill(-loose.pid!, "SIGKILL"); } catch { /* already gone */ }
@@ -151,7 +151,7 @@ it("keeps one wrapper stop record when the wrapper crosses its threshold before 
     expect(fs.readdirSync(env.MDPRO_LOAD_GUARD_ACTIVE)).toEqual([]);
     const processes = path.join(dir, "processes");
     fs.writeFileSync(processes, JSON.stringify([{ pid: loose.pid, ppid: process.pid, pgid: loose.pid,
-      uid: process.getuid!(), cwd: dir, command: path.join(dir, "target/debug/deps/tests-123") }]));
+      uid: process.getuid!(), cwd: dir, command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "PicseeKitPackageTests.xctest") }]));
     const backEnv = { ...env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,
       MDPRO_LOAD_GUARD_PROCESSES: processes, MDPRO_LOAD_GUARD_STATE: path.join(dir, "state") };
     expect((await runChild("python3", [backstop, "--once"], { env: backEnv })).status).toBe(0);
@@ -160,7 +160,7 @@ it("keeps one wrapper stop record when the wrapper crosses its threshold before 
     expect(() => process.kill(loose.pid!, 0)).toThrow();
     const records = fs.readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(records.filter((r) => r.event === "stop")).toHaveLength(2);
-    expect(records.filter((r) => r.event === "stop" && r.cmd.includes("/bin/sleep 5"))).toHaveLength(1);
+    expect(records.filter((r) => r.event === "stop" && r.cmd.startsWith("sleep sha256:"))).toHaveLength(1);
   } finally {
     try { process.kill(-loose.pid!, "SIGKILL"); } catch { /* gone */ }
     await waitForExit(loose);

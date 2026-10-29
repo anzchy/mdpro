@@ -17,14 +17,16 @@ it("resets overload streaks, preserves mixed groups, and rate-limits pressure sn
   try {
     const processes = path.join(dir, "processes");
     const runner = (pid: number) => ({ pid, ppid: process.pid, pgid: pid, uid: process.getuid!(), cwd: dir,
-      command: path.join(dir, "target/debug/deps/test-123") });
+      command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "PicseeKitPackageTests.xctest") });
     fs.writeFileSync(processes, JSON.stringify([runner(pure.pid!), runner(mixed.pid!),
       { ...runner(mixed.pid!), pid: 2147483646, command: "/usr/bin/codesign --sign identity" }]));
     const sampler = path.join(dir, "sampler");
-    const env = { ...process.env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,
+    const env: NodeJS.ProcessEnv = { ...process.env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,
       MDPRO_LOAD_GUARD_PROCESSES: processes, MDPRO_LOAD_GUARD_SAMPLER: sampler,
       MDPRO_LOAD_GUARD_ACTIVE: path.join(dir, "active"), MDPRO_LOAD_GUARD_STATE: path.join(dir, "state"),
       MDPRO_LOAD_GUARD_LOG: path.join(dir, "log") };
+    fs.writeFileSync(path.join(dir, "ps"), `#!/bin/sh\nif [ "$*" = '-axo pgid=,%cpu=' ]; then echo '${pure.pid} ${90 * os.cpus().length}'; echo '${mixed.pid} ${90 * os.cpus().length}'; else exec /bin/ps "$@"; fi\n`, { mode: 0o700 });
+    env.PATH = `${dir}:${process.env.PATH}`;
     const tick = async (pressure: number, busy: number) => {
       fs.writeFileSync(sampler, `#!/bin/sh\necho '${pressure} ${busy} 16'\n`, { mode: 0o700 });
       expect((await runChild("python3", [backstop, "--once"], { env, encoding: "utf8", timeout: 4000 })).status).toBe(0);
@@ -82,7 +84,7 @@ it("rechecks group membership immediately before TERM and preserves a newly mixe
     const state = path.join(dir, "state");
     fs.writeFileSync(state, JSON.stringify({ memory: 1, cpu: 0, lastSnapshot: Date.now() / 1000 }));
     const runner = { pid: child.pid, ppid: process.pid, pgid: child.pid, uid: process.getuid!(), cwd: dir,
-      command: path.join(dir, "target/debug/deps/test-123") };
+      command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "PicseeKitPackageTests.xctest") };
     const back = spawn("python3", [backstop, "--once"], { env: { ...process.env,
       MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir, MDPRO_LOAD_GUARD_PROCESSES: fifo,
       MDPRO_LOAD_GUARD_STATE: state, MDPRO_LOAD_GUARD_SAMPLER: sampler,

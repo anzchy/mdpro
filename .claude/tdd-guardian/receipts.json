@@ -302589,6 +302589,1229 @@
           "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/load-guard-kill-recheck.test.ts. Additions are healthy; only edits to recorded lines are a finding."
         }
       ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-L1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:44.263Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": false,
+        "kind": "environment",
+        "reason": "Status 'runner-error' is an environment failure, not a failing test. A broken runner is not a red test — fix the runner, then record the red again."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-safe-logs.test.ts": {
+          "state": "ok",
+          "sha": "4f2d57fca3789e7c067521866e82e99dd6e57214662d474dd403ac6b3fe6b750",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "dd2896d2982c094c",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "a2d56fc628cbc283",
+            "efb2893cf8a54a66",
+            "82542184a9b1f0c1",
+            "4976634c6587ea55",
+            "a05b7956813fea2e",
+            "7fd2f4e50d34d693",
+            "d5a56c618c09d289",
+            "613144d8eb92f3b7",
+            "03d9aba6351173e5",
+            "36108927e1f3847c",
+            "6d2fd2ed8e705dfa",
+            "20366bf5222bde29",
+            "7317406a8f040bb0",
+            "e960956115f7dd0e",
+            "1678200ae88edf54",
+            "55bc6aeb8ebd9bc4",
+            "6eb76b0d50095c2a",
+            "7956c239748b6b35",
+            "389972bea3924f65",
+            "d10b36aa74a59bcf",
+            "aa69654fcde209b5",
+            "99baa1b2dd996ed7",
+            "79ad20f2ba35d639",
+            "c68cde60ecf2eb66",
+            "bf9b39735735ae34",
+            "7c7b1621ad1af602",
+            "833eb24c418636fc",
+            "903eaf1872ce3da4",
+            "b61d6524bc336b91",
+            "156193daa3ec959d",
+            "20875de63b24341c",
+            "41bcdc67374d5bb4",
+            "dca91ef9704fbb10",
+            "81eeadb5d0321c5e",
+            "6ee36d7b1e1dbd3d",
+            "46d0574447e9b497",
+            "49fd3ba69fd5aa54",
+            "2f98a04eb69c60f3",
+            "2ab878a7f74f338c",
+            "b80d34509d685b78",
+            "d10b36aa74a59bcf",
+            "1f083804dc3ee865",
+            "ac5507a0dee97ea8"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": null,
+      "verdict": null,
+      "findings": []
+    },
+    {
+      "id": "ADR0150-WI1-fix1-I1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:08.194Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-single-day-runtime.test.ts": {
+          "state": "ok",
+          "sha": "9d06ce721c635a813287b32219d53b425b86305122cf2d818089efd278092529",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "82542184a9b1f0c1",
+            "6d9f7de7e361c25e",
+            "f1a251223692a76b",
+            "bfc6d2dc09f58fe9",
+            "b395ab7543e6abc0",
+            "fc2bf5a51faa3b61",
+            "79ad20f2ba35d639",
+            "c68cde60ecf2eb66",
+            "7c7b1621ad1af602",
+            "03d9aba6351173e5",
+            "2ed5a8ce63479c21",
+            "5e0f1cf6f9042235",
+            "939d8f76985d043c",
+            "31df65783387910d",
+            "46f7b6e93ded3dc3",
+            "f0497b0bcc6599a0",
+            "d5f3f43c431c8799",
+            "02050f655b44bbda",
+            "b418ecc09d50dc5a",
+            "1f083804dc3ee865",
+            "d10b36aa74a59bcf",
+            "ebbfbdbb18d116c2"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:06:33.328Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-I2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:15.816Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-single-day-signal.test.ts": {
+          "state": "ok",
+          "sha": "e34ce30e3c9b6f602c9238c806f89b6a0b84f464de1666a3c174f23e299c098c",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "ad7364b69ca8c1ef",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "57f77ff0b564fe2e",
+            "1fc2b26d205bef96",
+            "b92a50e6ad881eec",
+            "34cce138fa132328",
+            "88fc52e8b859ebc2",
+            "fc2bf5a51faa3b61",
+            "7c7b1621ad1af602",
+            "40e36f5fa0182c5c",
+            "7d5f0fcf929ebf23",
+            "a981334a6f07e7d7",
+            "633a38eae4926a3a",
+            "eb70717636e064f3",
+            "03d9aba6351173e5",
+            "f8bd733e3f1f3b69",
+            "4578ebc6e778443e",
+            "44074d85610fb04b",
+            "957a75dc34eaec6d",
+            "b9a692b73c6d7572",
+            "a0d9083ac994cc2b",
+            "166474716e7c69c1",
+            "904512f25a5b6013",
+            "e8abb7f23d1d5351",
+            "fd90b1fba8eac454",
+            "28e0941e8e80c235",
+            "53f7d1154a2c6356",
+            "166474716e7c69c1",
+            "207f404429ab0603",
+            "dcc720d57877b121",
+            "e6983c446edd5a25",
+            "d6c00e17aef00c5b",
+            "d24dad1f9b049da9",
+            "e926a9d8d20768e9",
+            "6fdb27e16e0f7ebb",
+            "83b07cef61a625f5",
+            "e7cff3002755cef8",
+            "a7e9571cb2e4d628",
+            "dcc720d57877b121",
+            "ab52cda69148dd62",
+            "d10b36aa74a59bcf",
+            "d10b36aa74a59bcf",
+            "ed9438ccf17afac2"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:06:50.157Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-I3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:19.241Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-single-day-keeper.test.ts": {
+          "state": "ok",
+          "sha": "1e4ee24335c6fde47eea44ee137f0dc870853d92352b198ed38530cd4f2e7e5a",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "993ce4acbf5f0884",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "82542184a9b1f0c1",
+            "e1f0050d3400691a",
+            "6182f06cdb373750",
+            "342d4d7395340175",
+            "fc2bf5a51faa3b61",
+            "7c7b1621ad1af602",
+            "ff38cc82dad32e48",
+            "03d9aba6351173e5",
+            "47cacd310d5caebd",
+            "7f521beda0b27888",
+            "d7d5861cb723fe6b",
+            "2a71aeedc43221cf",
+            "bfd9b558145e17a1",
+            "4380d8b64cd43a1a",
+            "27e196eef185ded7",
+            "16c252bfe7fd8c20",
+            "4217c7a94fb55a71",
+            "0090bf3b36138ddc",
+            "128d09fe5e76a157",
+            "e95709be6795bf53",
+            "d815d521a7d3c300",
+            "d5f3f43c431c8799",
+            "d10b36aa74a59bcf",
+            "83b07cef61a625f5",
+            "13b052f2ebb2d4e3",
+            "ab52cda69148dd62",
+            "d10b36aa74a59bcf",
+            "ac5507a0dee97ea8"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:06:58.683Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/load-guard-single-day-keeper.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-G1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:25.502Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-real-groups.test.ts": {
+          "state": "ok",
+          "sha": "16ed672ebaecc89b87057665b26df1ab90abc7587ac44100cf1d6f2b8738e79c",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "ad7364b69ca8c1ef",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "a6197fb23ab1f002",
+            "77361501c84946eb",
+            "fa3b27b012143fff",
+            "47d66ec731dd2d10",
+            "03d9aba6351173e5",
+            "16474f1b3d0a322f",
+            "52ed86d256d063e2",
+            "87ed82ce4ae82de2",
+            "44f8e3af3ea0112c",
+            "1aa1aa318f9a2287",
+            "b4499af5d8b43b09",
+            "03d9aba6351173e5",
+            "1b25d5917d47ecd7",
+            "0ac36dbbc2a404f1",
+            "38ec774d18e8511d",
+            "65130bb6c2a148db",
+            "ca916cf9be7d2cbb",
+            "533c0b7a857b939a",
+            "c46f0ced7a0d68c6",
+            "fad4666a26ec52f1",
+            "30105813ac737e60",
+            "985045f1c0578a8d",
+            "a55efa0111c47a70",
+            "cc3d2ecc39aa695c",
+            "d10b36aa74a59bcf",
+            "099d08033dfb407b",
+            "f82b29beb1a0745c",
+            "d10b36aa74a59bcf",
+            "09c001214e37fd32",
+            "07c92cfce8d44894",
+            "707a72df2a7fcb72",
+            "3b419987ec3bdf9e",
+            "6279d07d69a25585",
+            "29576b54e255e3c9",
+            "03d9aba6351173e5",
+            "ec4895cba066712a",
+            "837dd8ebcdf4236e",
+            "c453cffa36b3905e",
+            "d3ee17b84d4a0509",
+            "5593612fb117f985",
+            "bc438afe8096e0dd",
+            "a55efa0111c47a70",
+            "6a2855e450dcc39f",
+            "edc2d2c98eecefa0",
+            "f82b29beb1a0745c",
+            "1f083804dc3ee865",
+            "e4c5bb1807cdd71a"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:07:10.383Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-G6",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:31.393Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-copied-binary.test.ts": {
+          "state": "ok",
+          "sha": "7e38c02ac9962e7a639d5f1cf5748ecbe764205f14241fcb46acc240052eab7f",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "82542184a9b1f0c1",
+            "1bb5a8c689464fc2",
+            "005171067a4d2619",
+            "e4d5334fd6713d0a",
+            "393f6dfd4aa212a6",
+            "03d9aba6351173e5",
+            "332f9d21a55973c1",
+            "47409decf2b5e730",
+            "0b632f35acdc0a7c",
+            "68e83dd73c00a364",
+            "ea51e00f75fe58bb",
+            "58c4dae2cbf3271f",
+            "2f427f2af10e7742",
+            "60d26725946e516e",
+            "b9630244e0cf631e",
+            "b7046a72fa9aa32c",
+            "0f2a4dc0ba17c702",
+            "a9a88beb221d2a38",
+            "d8e5733f50c56a26",
+            "9e53454c533c5949",
+            "b1fb76fd8907cb78",
+            "ca916cf9be7d2cbb",
+            "533c0b7a857b939a",
+            "fad4666a26ec52f1",
+            "1acfc3c5abdb6e10",
+            "256ab0c9695642a3",
+            "0be04709f8d55c9f",
+            "7116501f35c9f936",
+            "9e53454c533c5949",
+            "2a80ebb2a28cee09",
+            "d4711283aad8139c"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:07:17.167Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-C1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:00:38.802Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-backstop-cpu.test.ts": {
+          "state": "ok",
+          "sha": "3c74a3ea41497045f647e9aeda3bb032c05ce676785dfe571ac5d57c965a0203",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "a3e95cbcbbc4ff46",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "a6197fb23ab1f002",
+            "0fdc16e5612effce",
+            "265daef07c46045f",
+            "3d53176b891be440",
+            "7ee96669c5d39e99",
+            "f07aa6766707ec39",
+            "d348196afceb9dd0",
+            "60f908fdfba57faf",
+            "339de2ac8dfd00fd",
+            "3ef0177b1495d589",
+            "51f94e3769bb3ee7",
+            "35d59944d8e9fd0f",
+            "358ba3f2223784d8",
+            "e57690090bcf905f",
+            "abcdf2b8b951c25e",
+            "393f6dfd4aa212a6",
+            "03d9aba6351173e5",
+            "60d26725946e516e",
+            "db592dd72b001694",
+            "3c04da253498802e",
+            "c3fb60383ba9e128",
+            "bf88c94230f64691",
+            "20e8248506fd7b4d",
+            "7260c6396bb3dcc2",
+            "bfa87cfbe603d023",
+            "621d0ca3c5dc82cf",
+            "8b4b9ff75556dffa",
+            "8ad4c5a3e9f5d5ea",
+            "903eaf1872ce3da4",
+            "65760385300ad34c",
+            "d10b36aa74a59bcf",
+            "9769ec67ea7bbb0f",
+            "b6359811b78836f5",
+            "b4bb1fc36973d38b",
+            "2a80ebb2a28cee09",
+            "d10b36aa74a59bcf",
+            "d3c4c369d27046c4",
+            "a785c74354106cc4",
+            "1d1ad99996418071",
+            "d7e3b0582d776a67",
+            "03d9aba6351173e5",
+            "60d26725946e516e",
+            "26ad714b3d3caeea",
+            "c5b2080137fa43da",
+            "63ab772e7e6a94b0",
+            "20e8248506fd7b4d",
+            "be95ee3c8ae9fa96",
+            "396f003e0ec0d460",
+            "92164ef8bb1e4a49",
+            "903eaf1872ce3da4",
+            "e0a6e98b4374b68d",
+            "bf749c4b64cda26d",
+            "d10b36aa74a59bcf",
+            "be8d16500a6e0d25",
+            "9e34387c68ccdc97",
+            "827d8e7e346010f5",
+            "5e9a61e538c1259c"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:07:31.554Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/load-guard-backstop-cpu.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-L2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:01:34.281Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-safe-logs.test.ts": {
+          "state": "ok",
+          "sha": "5fe090569e50c769b303a022cd8aa30447e4efbfa59b1855392fa896859b60aa",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "dd2896d2982c094c",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "82542184a9b1f0c1",
+            "4976634c6587ea55",
+            "a05b7956813fea2e",
+            "7fd2f4e50d34d693",
+            "d5a56c618c09d289",
+            "613144d8eb92f3b7",
+            "03d9aba6351173e5",
+            "36108927e1f3847c",
+            "d417d79d2825c6b2",
+            "20366bf5222bde29",
+            "7317406a8f040bb0",
+            "e960956115f7dd0e",
+            "1678200ae88edf54",
+            "55bc6aeb8ebd9bc4",
+            "6eb76b0d50095c2a",
+            "7956c239748b6b35",
+            "389972bea3924f65",
+            "d10b36aa74a59bcf",
+            "aa69654fcde209b5",
+            "99baa1b2dd996ed7",
+            "79ad20f2ba35d639",
+            "c68cde60ecf2eb66",
+            "bf9b39735735ae34",
+            "7c7b1621ad1af602",
+            "833eb24c418636fc",
+            "903eaf1872ce3da4",
+            "b61d6524bc336b91",
+            "156193daa3ec959d",
+            "20875de63b24341c",
+            "41bcdc67374d5bb4",
+            "dca91ef9704fbb10",
+            "81eeadb5d0321c5e",
+            "6ee36d7b1e1dbd3d",
+            "46d0574447e9b497",
+            "49fd3ba69fd5aa54",
+            "2f98a04eb69c60f3",
+            "2ab878a7f74f338c",
+            "b80d34509d685b78",
+            "d10b36aa74a59bcf",
+            "1f083804dc3ee865",
+            "ac5507a0dee97ea8"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:07:36.673Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-G8",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:01:44.190Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-support-drain.test.ts": {
+          "state": "ok",
+          "sha": "0f643efd23cc24a1c673bd4570c6736a98b6324732143737f344fe72b22a4552",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "ad7364b69ca8c1ef",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "a6197fb23ab1f002",
+            "72e8976f9d41f9d2",
+            "159d18e7a2edbde9",
+            "9559d4383286ff14",
+            "b8b4a69a696848be",
+            "1bf34d65f1c068a2",
+            "22b8dee8d7a6407f",
+            "f69fe44e8bb3a78d",
+            "40e36f5fa0182c5c",
+            "51ad93b9e5383b4e",
+            "c390575411f9f3bd",
+            "03dcc6d9858bea27",
+            "e35575f0a89142ee",
+            "710cb3646d19ff54",
+            "80700d01d1884973",
+            "1ef9f694a6a58483",
+            "f06f85518da09c6a",
+            "0c4ceec78f176d64",
+            "f8eb0f371df522b1",
+            "e392931e340330ed",
+            "538832935a7768d1",
+            "c5222037c0a87937",
+            "ea6860658ac9a03b",
+            "633a38eae4926a3a",
+            "e40935bf6bc925df",
+            "03d9aba6351173e5",
+            "1b25d5917d47ecd7",
+            "7bdd4ce1d0c094a1",
+            "ca916cf9be7d2cbb",
+            "5a487807e1fb148a",
+            "533c0b7a857b939a",
+            "beb79ef9a28996fc",
+            "dcc720d57877b121",
+            "8e5b98d58e67d609",
+            "cc3d2ecc39aa695c",
+            "30105813ac737e60",
+            "83b07cef61a625f5",
+            "9ca9947f83fb3ad5",
+            "dcc720d57877b121",
+            "ab52cda69148dd62",
+            "d10b36aa74a59bcf",
+            "843fc70ac48548d7"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:07:42.690Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-G3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:01:47.314Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-support-policy.test.ts": {
+          "state": "ok",
+          "sha": "62b10ee5c9ec37f049bb1aaf7cdfd3ab7ea2dc5bacb875725740a8dd0b19d5a5",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "69f2ffe9e2d6f214",
+            "3d4c26137d10060f",
+            "1278d0c4cefc8743",
+            "03d9aba6351173e5",
+            "a5af8f21098fdb4f",
+            "907f4b0fce216c5f",
+            "efad372a7078a3df",
+            "621b4b8e3128f505",
+            "cfc45b23a7ef969c",
+            "6dd02ec79a035b63",
+            "b852e42ff93b7d40",
+            "f1c990c0a06e2988",
+            "358ba3f2223784d8",
+            "bb7288d7d3dbfbdd",
+            "ffc1ec123a6cae61",
+            "53f34bb73e0caf0b",
+            "a2cd2c1d4474380b",
+            "11b687fcbd1aa7f9",
+            "358ba3f2223784d8",
+            "c0f254b8e7433209",
+            "c5ada697e475fbe0",
+            "dc42c95902d99e1e",
+            "4ce13f4b2fd2ce16",
+            "6998264181ff2ea6",
+            "b0d6f51a4842c953",
+            "9251e9cbeff77bc7",
+            "1e20d7eebd7dd341",
+            "19d11d49258caec2",
+            "54b3b7034032a3d9",
+            "3ab880191b8fd8bd",
+            "d10b36aa74a59bcf",
+            "1f083804dc3ee865",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:07:48.349Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-A1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:13:02.706Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json",
+        "docs/guide/load-guard.md",
+        "scripts/heavy-lock.sh",
+        "scripts/load-guard/backstop.py",
+        "scripts/load-guard/guard.py",
+        "scripts/load-guard/policy.py"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-xctest-resolved.test.ts": {
+          "state": "ok",
+          "sha": "376f452fa2805284e1e9f4b6b47e5b6e23f070cff76104f927b73f6d49995249",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "69f2ffe9e2d6f214",
+            "076bd9add951cd00",
+            "e72f6baf1c480f50",
+            "03d9aba6351173e5",
+            "eb445ea3492de15e",
+            "af41a49821f78a4d",
+            "e850b18dd1b13e43",
+            "b3ba4b5c049d6193",
+            "1f083804dc3ee865",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:15:23.050Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-A2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:13:03.738Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json",
+        "docs/guide/load-guard.md",
+        "scripts/heavy-lock.sh",
+        "scripts/load-guard/backstop.py",
+        "scripts/load-guard/guard.py",
+        "scripts/load-guard/policy.py"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-xcrun-bare.test.ts": {
+          "state": "ok",
+          "sha": "e2f69d9d8d23eb17eaa406be25299ae9918c2726367fff6c5aca78384d66de9d",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "69f2ffe9e2d6f214",
+            "56f2cc48fa90db94",
+            "ae28fb38ec3915c7",
+            "03d9aba6351173e5",
+            "e5d286797f4d3b9e",
+            "caa1a2b1d35a6cc6",
+            "584e24e485844fd2",
+            "1f083804dc3ee865",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:15:23.826Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-A3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:13:04.758Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json",
+        "docs/guide/load-guard.md",
+        "scripts/heavy-lock.sh",
+        "scripts/load-guard/backstop.py",
+        "scripts/load-guard/guard.py",
+        "scripts/load-guard/policy.py"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-xctest-relative.test.ts": {
+          "state": "ok",
+          "sha": "69ec4ca1bbd3e241ad9ed9eb144240157b2d730fee9061c18bd94dfba03c6172",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "69f2ffe9e2d6f214",
+            "fdba4f1a4f034d4f",
+            "5fe8c715398aae66",
+            "03d9aba6351173e5",
+            "c4edea057a00f942",
+            "24eccefe2edea7b6",
+            "45e663024bfdacfe",
+            "584e24e485844fd2",
+            "1f083804dc3ee865",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:15:24.602Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-A1H",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:13:31.340Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json",
+        "docs/guide/load-guard.md",
+        "scripts/heavy-lock.sh",
+        "scripts/load-guard/backstop.py",
+        "scripts/load-guard/guard.py",
+        "scripts/load-guard/policy.py"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-helper-resolved.test.ts": {
+          "state": "ok",
+          "sha": "aa5ec95030d47464c22c454d2e27d6afdf9311695c8ddf601ebcde8a84ca510d",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "69f2ffe9e2d6f214",
+            "dbdb3df29658d125",
+            "6424f998006e7076",
+            "04187afad87db03a",
+            "1483a472650246a7",
+            "afb599717a3a5085",
+            "eeabf519ab4a0cb3",
+            "a54c11e9d9912b5d",
+            "bc9d2af9691ade7d",
+            "3513adcf0c8a6dd5",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:15:25.378Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-R1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:13:10.383Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json",
+        "docs/guide/load-guard.md",
+        "scripts/heavy-lock.sh",
+        "scripts/load-guard/backstop.py",
+        "scripts/load-guard/guard.py",
+        "scripts/load-guard/policy.py"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-real-orphan.test.ts": {
+          "state": "ok",
+          "sha": "47a876f4b8f7e9dcf450c7f1647bc89ad361a38674d29fee57ab5cbb601f4a83",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "ad7364b69ca8c1ef",
+            "87dda682347c848f",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "a6197fb23ab1f002",
+            "77361501c84946eb",
+            "fcf37b48a270b55d",
+            "c82a7d8e59b8858b",
+            "ae408923b16a3771",
+            "a01a49962169252f",
+            "32e3646e1196f9a2",
+            "d66fcbe2e4076670",
+            "03d9aba6351173e5",
+            "fab9f78335dde163",
+            "41e0a7d9baeac8da",
+            "4a22dd03aea607b2",
+            "a84d5490b706041c",
+            "e67c5cc1f5f3416e",
+            "cbfc5380ce0b98f0",
+            "1102606ab07a7af2",
+            "a55efa0111c47a70",
+            "ae0bf37a8ece4a7c",
+            "df6423afab82babe",
+            "53820507f20c99d5",
+            "5429aff698df0dbc"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:15:29.037Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "ADR0150-WI1-fix1-R2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T05:13:12.060Z",
+      "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".codex/rules/.started-at",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/39485.ndjson",
+        ".tokenize/session.json",
+        "docs/guide/load-guard.md",
+        "scripts/heavy-lock.sh",
+        "scripts/load-guard/backstop.py",
+        "scripts/load-guard/guard.py",
+        "scripts/load-guard/policy.py"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/load-guard-cpu-replacement.test.ts": {
+          "state": "ok",
+          "sha": "a0d8105a29caefa18f28fd125c3412c4d629a1a814a69832edbfbdcad270de37",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "87dda682347c848f",
+            "a3e95cbcbbc4ff46",
+            "aa2bc7cd756da3c4",
+            "efb2893cf8a54a66",
+            "82542184a9b1f0c1",
+            "0fdc16e5612effce",
+            "03a3c79def723468",
+            "303bf60f24ed50e6",
+            "393f6dfd4aa212a6",
+            "03d9aba6351173e5",
+            "7dbf0fcf2df011cc",
+            "fa756e4bf33c5187",
+            "82043779a019f18f",
+            "70c37c1897fe583a",
+            "71f39cb0e08e9aa8",
+            "52ad9bba4518622b",
+            "d526099fc2032d96",
+            "74587282ea041f98",
+            "5e8e427c5ac0c11a",
+            "699f913cebcc3837",
+            "82244ea98f778205",
+            "5c2e87a87cca4d5d",
+            "e19c0ae6ec6fa319",
+            "e988910dcdb7b1ce",
+            "be95ee3c8ae9fa96",
+            "812d7e6567f0869f",
+            "e4a93cbf437060e0",
+            "05a9eda4151f08cb",
+            "bd6a65585375760f",
+            "d10b36aa74a59bcf",
+            "cae9d9ec3c73484e",
+            "6023af4311f5c13e",
+            "a840688c96fa11bf",
+            "3a332ef284ac7fcf",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T05:15:30.813Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

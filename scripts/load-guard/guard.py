@@ -4,7 +4,8 @@
 MDPRO_LOAD_GUARD_SAMPLER overrides sampling; MDPRO_LOAD_GUARD_LOG overrides
 ~/.cache/load-guard.log; MDPRO_LOAD_GUARD_ACTIVE overrides the registration
 directory. Log lines are JSON with event, time, project, cmd, cwd, readings,
-reason and topRss. No environment values are logged.
+reason and topRss. Commands are basename + SHA256 of the entire command; no
+arguments or environment values are logged. Start identities normalise whitespace.
 """
 import json
 import os
@@ -15,6 +16,8 @@ import sys
 import tempfile
 import time
 import re
+import hashlib
+import shlex
 
 
 # Coverage measured at 1358.2 MiB group RSS: +20% = 1.592 GiB, rounded to 2.
@@ -60,18 +63,26 @@ def run(*argv):
 def identity(pid):
     try:
         output = run("ps", "-p", str(pid), "-o", "uid=,lstart=,pgid=").strip().split()
-        return {"uid": int(output[0]), "start": " ".join(output[1:-1]), "pgid": int(output[-1])}
+        return {"uid": int(output[0]), "start": normalize_start(" ".join(output[1:-1])), "pgid": int(output[-1])}
     except (ValueError, IndexError, subprocess.CalledProcessError):
         return None
 
 
+def normalize_start(value):
+    return " ".join(value.split())
+
+
 def safe_command(command):
-    command = re.sub(r"(?i)(Bearer\s+)\S+", r"\1[REDACTED]", command)
-    value = r'''(?:"[^"\n]*(?:"|$)|'[^'\n]*(?:'|$)|\S+)'''
-    command = re.sub(r"(?i)(--?(?:token|password|secret|api[_-]?key|authorization)(?:=|\s+))" + value,
-                     r"\1[REDACTED]", command)
-    command = re.sub(r"(?i)(\b[A-Z_]*(?:TOKEN|SECRET|PASSWORD|API_KEY)=)" + value, r"\1[REDACTED]", command)
-    return command[:200]
+    """Never persist argv values, even for runners; hash before shortening."""
+    digest = hashlib.sha256(command.encode("utf8")).hexdigest()[:16]
+    try:
+        parts = shlex.split(command)
+        executable = pathlib.Path(parts[0]).name if parts else "process"
+    except ValueError:
+        executable = "process"
+    if not re.fullmatch(r"[\w.()+-]{1,80}", executable) or "=" in executable:
+        executable = "process"
+    return f"{executable} sha256:{digest}"
 
 
 def snapshot():
@@ -172,7 +183,7 @@ def registered():
 
 def signal_if_same(pgid, pid, start, kind):
     info = identity(pid)
-    if info and (info["uid"] != os.getuid() or info["start"] != start or info["pgid"] != pgid):
+    if info and (info["uid"] != os.getuid() or info["start"] != normalize_start(start) or info["pgid"] != pgid):
         return 1
     if not info:
         # The group leader may have exited on TERM while a descendant ignored
@@ -194,7 +205,7 @@ def signal_if_same(pgid, pid, start, kind):
 
 def signal_pid_if_same(pid, start, kind):
     info = identity(pid)
-    if not info or info["uid"] != os.getuid() or info["start"] != start:
+    if not info or info["uid"] != os.getuid() or info["start"] != normalize_start(start):
         return 1
     try:
         os.kill(pid, getattr(signal, "SIG" + kind))
