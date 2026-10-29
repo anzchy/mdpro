@@ -5,7 +5,7 @@
  * the lane runs; `cargo-test-lane.mjs` tees its raw output for the evidence; `verify
  * --lane rust` judges on the rust lane.
  */
-import { spawnSync } from "node:child_process";
+import { spawn, type SpawnOptions } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, symlinkSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -89,19 +89,28 @@ describe.skipIf(!pluginVersion || !rustfmt)("ADR0149E-8 rust lane through the en
 describe("ADR0149E-8 cargo-test-lane evidence tee", () => {
   const wrapper = join(repoRoot, "scripts/cargo-test-lane.mjs");
   const child = 'process.stdout.write(Buffer.from([0x61, 0xff, 0x0a])); process.stderr.write("err\\n"); process.exitCode = 3;';
-  it("writes stdout.log and stderr.log byte-identical to what it passed through when MDPRO_RED_EVIDENCE_DIR is set", () => {
+  const runWrapper = (options: SpawnOptions) => new Promise<{ status: number | null; stdout: Buffer; stderr: Buffer }>((resolve, reject) => {
+    const proc = spawn(process.execPath, [wrapper, process.execPath, "-e", child], { ...options, stdio: ["ignore", "pipe", "pipe"] });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    proc.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
+    proc.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
+    proc.on("error", reject);
+    proc.on("close", (status) => resolve({ status, stdout: Buffer.concat(stdout), stderr: Buffer.concat(stderr) }));
+  });
+  it("writes stdout.log and stderr.log byte-identical to what it passed through when MDPRO_RED_EVIDENCE_DIR is set", async () => {
     const dir = mkdtempSync(join(tmpdir(), "adr0149e-tee-"));
-    const run = spawnSync(process.execPath, [wrapper, process.execPath, "-e", child], { env: { ...process.env, MDPRO_RED_EVIDENCE_DIR: dir } });
+    const run = await runWrapper({ env: { ...process.env, MDPRO_RED_EVIDENCE_DIR: dir } });
     expect(run.status).toBe(3);
     expect(readFileSync(join(dir, "stdout.log"))).toEqual(run.stdout);
     expect(readFileSync(join(dir, "stderr.log"))).toEqual(run.stderr);
     expect(run.stdout).toEqual(Buffer.from([0x61, 0xff, 0x0a]));
   });
-  it("writes nothing when MDPRO_RED_EVIDENCE_DIR is unset", () => {
+  it("writes nothing when MDPRO_RED_EVIDENCE_DIR is unset", async () => {
     const dir = mkdtempSync(join(tmpdir(), "adr0149e-tee-"));
     const env = { ...process.env };
     delete env.MDPRO_RED_EVIDENCE_DIR;
-    const run = spawnSync(process.execPath, [wrapper, process.execPath, "-e", child], { cwd: dir, env });
+    const run = await runWrapper({ cwd: dir, env });
     expect(run.status).toBe(3);
     expect(readdirSync(dir)).toEqual([]);
   });
