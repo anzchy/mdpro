@@ -18,17 +18,21 @@
  *   the head's spec files over base production, listing the cases that pass there, and
  *   always `user_ruling_required`. A base run that did not complete lists nothing
  *   (`passing_at_base: null`) and records its cause in `base_run`; the pre-entry digest
- *   covers {id, mode, base, head, spec_blobs, base_run (completed, compileError),
+ *   covers {id, mode, base, head, spec_blobs, base_run (completed, error, compileError),
  *   passing_at_base}.
  * - The digest is sha256 over canonical JSON (keys sorted at every level) of
  *   {id, recorded_at, tests_tree, base, head, head_tests_tree, spec_blobs, replay}, where
- *   `replay` is the stable projection (result; per id, status, kind and location at base
- *   and head). Message text is left out: one that embeds a temp path or a counter would
- *   change the digest on every run of the same base and head.
+ *   `replay` is the result, the judge's reasons and, per id at base and head, status, kind,
+ *   location and the whole message (fix 2, gpt-auditor H1 and M2: the text the auditor
+ *   reads is bound). Reasons, messages and a pre-entry `base_run.error` enter the digest
+ *   through normaliseText, which rewrites only what varies by nature between two runs of
+ *   the same base and head: the replay worktree, temp paths, ISO timestamps, durations and
+ *   pids (docs/guide/receipt-evidence.md names each rule). The evidence file keeps the raw
+ *   text, and the judge compares raw text.
  * @coordinates-with scripts/tdd/red-receipt.mjs, scripts/tdd/replay-worktree.mjs, .claude/agents/mdpro-landing-verifier.md
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -85,23 +89,53 @@ function judge(cwd, entry, base, head, baseTexts) {
   return { result: reasons.length ? "failed" : "passed", reasons, ids };
 }
 
-/** The replay's stable part: result and each id's status, kind and location, without message text. */
-function stableReplay(judged) {
-  const pick = (outcome) => ({ status: outcome.status, kind: outcome.kind ?? null, location: outcome.location ?? null });
-  return { result: judged.result, ids: Object.fromEntries(Object.entries(judged.ids).map(([id, outcome]) => [id, { base: pick(outcome.base), head: pick(outcome.head) }])) };
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const TEMP_ROOTS = (() => {
+  const roots = [tmpdir(), "/tmp", "/private/tmp", "/var/folders", "/private/var/folders"];
+  try { roots.push(realpathSync(tmpdir())); } catch {}
+  return [...new Set(roots)].sort((a, b) => b.length - a.length);
+})();
+const TEMP_PATH = new RegExp(`(?<![\\w./-])(?:${TEMP_ROOTS.map(escape).join("|")})(?=[/\\s'"\`()\\[\\]{}<>,:]|$)[^\\s'"\`()\\[\\]{}<>,:]*`, "g");
+
+/**
+ * The digest's view of a text: in this order, the replay worktree (as given and as its
+ * realpath) → `<worktree>`; an absolute path under a temp root up to whitespace, a quote,
+ * a bracket, a comma or a colon (so a `:line:col` stays) → `<tmp>`; an ISO-8601 date with a
+ * time → `<timestamp>`; a number with ns, µs, us, ms or s at a word end → `<duration>`;
+ * `pid` and a number → `pid <pid>`.
+ * Nothing else changes, so assertion text, numbers and file:line locations stay bound.
+ */
+export function normaliseText(text, worktree) {
+  if (typeof text !== "string") return text ?? null;
+  let out = text;
+  for (const dir of [worktree].flat().filter(Boolean).sort((a, b) => b.length - a.length)) out = out.split(dir).join("<worktree>");
+  return out
+    .replace(TEMP_PATH, "<tmp>")
+    .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g, "<timestamp>")
+    .replace(/\b\d+(?:\.\d+)?\s?(?:ns|µs|us|ms|s)\b/g, "<duration>")
+    .replace(/\bpid\b[\s=:]*\d+/gi, "pid <pid>");
+}
+
+/** The replay's digested part: result, reasons, and each id's status, kind, location and message, normalised. */
+function stableReplay(judged, worktree) {
+  const pick = (outcome) => ({ status: outcome.status, kind: outcome.kind ?? null, location: outcome.location ?? null, message: normaliseText(outcome.message ?? null, worktree) });
+  return {
+    result: judged.result, reasons: judged.reasons.map((reason) => normaliseText(reason, worktree)),
+    ids: Object.fromEntries(Object.entries(judged.ids).map(([id, outcome]) => [id, { base: pick(outcome.base), head: pick(outcome.head) }])),
+  };
 }
 
 /**
  * A pre-entry packet: the cases passing at base, or, when the base run did not complete
  * (timed out, killed, refused, no report, no compile), that cause and no case list.
  */
-function preEntry({ id, receipt, files, base, head, headCls, baseRun, path }) {
+function preEntry({ id, receipt, files, base, head, headCls, baseRun, path, worktree }) {
   const completed = !baseRun.error && !baseRun.compileError;
   const passing = completed ? [...baseRun.outcomes].filter(([key, outcome]) => outcome.status === "passed" && (receipt.lane === "rust" || files.includes(JSON.parse(key)[0]))).map(([key]) => key).sort() : null;
   const baseRunRecord = { completed, error: baseRun.error ?? null, compileError: Boolean(baseRun.compileError) };
   const digestInput = {
     id, mode: "pre-entry", base, head, spec_blobs: Object.fromEntries(files.map((file) => [file, headCls.files.get(file)?.blob ?? null])),
-    base_run: { completed, compileError: baseRunRecord.compileError }, passing_at_base: passing,
+    base_run: { completed, error: normaliseText(baseRunRecord.error, worktree), compileError: baseRunRecord.compileError }, passing_at_base: passing,
   };
   const digest = createHash("sha256").update(canonical(digestInput)).digest("hex");
   writeFileSync(path, `${JSON.stringify({ id, lane: receipt.lane, mode: "pre-entry", base, head, user_ruling_required: true, base_run: baseRunRecord, passing_at_base: passing, digest_input: digestInput, digest }, null, 2)}\n`);
@@ -122,7 +156,9 @@ export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVe
   const files = Object.keys(receipt.test_files);
   const run = { lane: receipt.lane, files, laneCommand: entry?.lane_command ?? (receipt.lane === "rust" ? laneConfig("rust").command : null) };
   const locations = [...new Set((entry?.failures ?? []).map((failure) => failure.location?.file).filter(Boolean))];
+  let worktree = [];
   const runs = withWorktree(cwd, head, id, (dir) => {
+    worktree = [dir, realpathSync(dir)];
     const touched = restoreToBase(cwd, dir, base, head, baseCls, headCls);
     linkDependencies(cwd, dir, base, head);
     const baseRun = runTests(cwd, dir, run);
@@ -132,7 +168,7 @@ export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVe
     return { baseRun, baseTexts, headRun: runTests(cwd, dir, run) };
   });
   const path = join(ensureDir(join(cwd, ".claude/tdd-guardian/evidence")), `${id}.json`);
-  if (!entry) return preEntry({ id, receipt, files, base, head, headCls, baseRun: runs.baseRun, path });
+  if (!entry) return preEntry({ id, receipt, files, base, head, headCls, baseRun: runs.baseRun, path, worktree });
   const judged = judge(cwd, entry, runs.baseRun, runs.headRun, runs.baseTexts);
   const headTests = [...new Set([...headCls.tests, ...files])].sort();
   const headTestsTree = treeOf(cwd, headCls.files, headTests);
@@ -142,7 +178,7 @@ export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVe
   const prodDiff = prodPaths.length ? git(cwd, ["diff-tree", "-p", "--no-renames", "--no-ext-diff", base, head, "--", ...prodPaths]).stdout : "";
   const digestInput = {
     id, recorded_at: entry.recorded_at, tests_tree: entry.tests_tree.tree, base, head, head_tests_tree: headTestsTree,
-    spec_blobs: Object.fromEntries(files.map((file) => [file, headCls.files.get(file)?.blob ?? null])), replay: stableReplay(judged),
+    spec_blobs: Object.fromEntries(files.map((file) => [file, headCls.files.get(file)?.blob ?? null])), replay: stableReplay(judged, worktree),
   };
   const digest = createHash("sha256").update(canonical(digestInput)).digest("hex");
   writeFileSync(path, `${JSON.stringify({ id, lane: receipt.lane, mode: "entry", base, head, test_diff: testDiff, prod_diff: prodDiff, replay: judged, digest_input: digestInput, digest }, null, 2)}\n`);

@@ -30,7 +30,7 @@ const pluginVersion = () => dirname(guardianPath()).split("/").at(-3);
 const validateFor = (lane, cwd, files) => (lane === "rust" ? validateRustFiles(cwd, files) : validateFiles(cwd, files));
 function guardianPath() {
   const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-  const versions = readdirSync(cache).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+  const versions = (existsSync(cache) ? readdirSync(cache) : []).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
   const version = versions.find((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js")));
   if (!version) throw usageError("The installed tdd-guardian receipt.js was not found.");
   return join(cache, version, "scripts/tdd-guardian/receipt.js");
@@ -261,13 +261,13 @@ function discard(args) {
 function checkPending(args) {
   const master = new Set(masterReceipts(args.cwd).map((receipt) => receipt.id));
   const evidence = withEvidenceLock(args.cwd, () => readEvidence(args.cwd));
-  const version = pluginVersion();
+  let version; // the plugin is needed only to judge a branch receipt (a CI runner has none)
   const problems = [];
   for (const receipt of currentStore(args.cwd).receipts.filter((item) => !master.has(item.id))) {
     const reasons = [];
     if (!redOk(receipt.lane, receipt.red?.kind)) reasons.push(`RED kind ${receipt.red?.kind || "missing"}`);
     if (receipt.verdict !== "SEPARATION-HELD") reasons.push(`verdict ${receipt.verdict || "unsettled"}`);
-    const entry = entryFor(evidence, receipt, version);
+    const entry = entryFor(evidence, receipt, (version ??= pluginVersion()));
     if (!entry) reasons.push("no evidence");
     else if (entry.evidence_required) reasons.push("evidence required (spec bytes changed since RED)");
     else if (receipt.verdict === "SEPARATION-HELD") {

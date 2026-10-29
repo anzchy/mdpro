@@ -4,12 +4,15 @@
  * non-test paths are restored to the PR base, and put the head back for the second run.
  *
  * Key decisions:
- * - The worktree is `<root>/verify-<sha7>-replay-<id>`, root being MDPRO_REPLAY_ROOT, else
- *   the `mdpro-wt/` beside the main checkout when it exists, else the OS temp dir. An
- *   existing directory refuses; the worktree is always removed afterwards, and nothing else
- *   is pruned. Before it is added, its path is written into the entry's flock file, so
- *   the OS-lock launcher removes it when it stops the entry by its bound or a signal,
- *   which this process's `finally` cannot see (receipt-locks.mjs).
+ * - The worktree is a fresh `mkdtemp` directory `<root>/verify-<sha7>-replay-<id>-XXXXXX`,
+ *   root being MDPRO_REPLAY_ROOT, else the `mdpro-wt/` beside the main checkout when it
+ *   exists, else the OS temp dir, so two checkouts replaying the same id and head never
+ *   share a path (fix 2, gpt-auditor H2). It is this operation's only after its
+ *   `git worktree add` succeeds: then, and only then, its path goes into the entry's flock
+ *   file, so the OS-lock launcher removes it when it stops the entry by its bound or a
+ *   signal, which this process's `finally` cannot see (receipt-locks.mjs). The `finally`
+ *   removes an owned worktree; when the add failed it removes only its own directory, and
+ *   only while that is still empty. Nothing else is pruned.
  * - Restore, per path changed base → head: a pure test path keeps the head; a Rust file
  *   holding test modules gets base production spliced with the head's test modules (an
  *   unspliceable one refuses); any other path is checked out at base, or removed if the
@@ -20,14 +23,16 @@
  * - Runs never use the worktree's own lane scripts or config: Vitest receipts run Vitest
  *   directly; Rust receipts run the lane command the sidecar recorded, with both output
  *   streams captured here. Each run goes through the caller's `scripts/heavy-lock.sh`
- *   when it has one, and is bounded by MDPRO_REPLAY_TIMEOUT_MS (default 900 s); the
- *   entry's launcher bound is three of these plus 120 s, so it never cuts a run short. A
+ *   when it has one, and is bounded by MDPRO_REPLAY_TIMEOUT_MS (default 900 s), plus
+ *   heavy-lock's admission wait when the run (or the recorded Rust lane command) goes
+ *   through heavy-lock.sh (fix 2, gpt-auditor M1); the entry's launcher bound is three of
+ *   these plus 120 s, so it never cuts a run short. A
  *   run that times out or is killed, that heavy-lock refuses (exit 75 or 76), or a Rust
  *   run with no libtest block and no compile error is reported as that cause, never
  *   parsed as partial output.
  * @coordinates-with scripts/tdd/receipt-replay.mjs, scripts/tdd/receipt-tree.mjs, scripts/tdd/rust-splice.mjs
  */
-import { existsSync, ftruncateSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync, writeSync } from "node:fs";
+import { existsSync, ftruncateSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmdirSync, rmSync, symlinkSync, writeFileSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -37,9 +42,16 @@ import { libtestOutcomes, vitestOutcomes } from "./receipt-failures.mjs";
 import { spliceTestMods } from "./rust-splice.mjs";
 
 const DEFAULT_RUN_TIMEOUT_MS = 900_000;
-/** One replay run's bound (MDPRO_REPLAY_TIMEOUT_MS, default 900 s); the entry's launcher bound is derived from it. */
+const DEFAULT_HEAVY_LOCK_WAIT_SECS = 1800;
+/** One replay run's own budget (MDPRO_REPLAY_TIMEOUT_MS, default 900 s). */
 export const replayRunTimeoutMs = (env = process.env) => Number(env.MDPRO_REPLAY_TIMEOUT_MS || DEFAULT_RUN_TIMEOUT_MS);
-const runTimeout = () => replayRunTimeoutMs();
+/**
+ * The spawn bound of one replay run: its budget, plus heavy-lock.sh's admission wait
+ * (MDPRO_HEAVY_LOCK_WAIT_SECS, default 1800 s) when the run goes through heavy-lock, so a
+ * contended run reaches heavy-lock's own refusal (exit 75) instead of being killed first.
+ */
+export const replaySpawnTimeoutMs = (env = process.env, wrapped = true) => replayRunTimeoutMs(env) + (wrapped ? 1000 * Number(env.MDPRO_HEAVY_LOCK_WAIT_SECS || DEFAULT_HEAVY_LOCK_WAIT_SECS) : 0);
+const runTimeout = (argv) => replaySpawnTimeoutMs(process.env, argv.some((part) => /heavy-lock\.sh/.test(part)));
 /** Why a spawned run did not finish, or null when it did. */
 const unfinished = (run) => (run.error?.code === "ETIMEDOUT" || (run.signal && !run.error) ? `timed out or killed (${run.signal || run.error.code})` : run.error ? `did not start (${run.error.message})` : null);
 /** heavy-lock.sh's exits for "lock not taken" (75) and "load guard stopped it" (76). */
@@ -100,19 +112,22 @@ function replayRoot(cwd) {
   return existsSync(beside) ? beside : tmpdir();
 }
 
-/** Run `operation(dir)` in a detached worktree at `head`, always removed afterwards. */
+/** Run `operation(dir)` in a detached worktree at `head` that this call added, removed afterwards. */
 export function withWorktree(cwd, head, id, operation) {
-  const dir = join(replayRoot(cwd), `verify-${head.slice(0, 7)}-replay-${id}`);
-  if (existsSync(dir)) throw usageError(`Replay worktree ${dir} already exists; remove it first.`);
-  markWorktree(dir);
+  const dir = mkdtempSync(join(ensureDir(replayRoot(cwd)), `verify-${head.slice(0, 7)}-replay-${id}-`));
+  let added = false;
   try {
     git(cwd, ["worktree", "add", "-q", "--detach", dir, head]);
+    added = true;
+    markWorktree(dir);
     return operation(dir);
   } finally {
     // Only this worktree is removed: a repo-wide `git worktree prune` would also drop another
     // session's prunable record, which `git worktree repair` could then no longer reattach.
-    git(cwd, ["worktree", "remove", "--force", dir], { allowFail: true });
-    markWorktree("");
+    if (added) {
+      git(cwd, ["worktree", "remove", "--force", dir], { allowFail: true });
+      markWorktree("");
+    } else try { rmdirSync(dir); } catch {} // not ours past its empty directory
   }
 }
 
@@ -169,7 +184,7 @@ export function linkDependencies(cwd, dir, base, head) {
     return;
   }
   const [command, ...args] = heavy(cwd, ["pnpm", "install", "--frozen-lockfile", "--offline"]);
-  if (spawnSync(command, args, { cwd: dir, encoding: "utf8", timeout: runTimeout() }).status !== 0) throw usageError("pnpm install for the base lockfile failed; the replay refuses.");
+  if (spawnSync(command, args, { cwd: dir, encoding: "utf8", timeout: runTimeout([command]) }).status !== 0) throw usageError("pnpm install for the base lockfile failed; the replay refuses.");
 }
 
 /** Run the receipt's tests in `dir`: `{outcomes, compileError, error}`. */
@@ -181,7 +196,7 @@ export function runTests(cwd, dir, { lane, files, laneCommand }) {
   const root = realpathSync.native(dir);
   if (lane === "rust") {
     if (!laneCommand) return { outcomes: new Map(), compileError: false, error: "no lane command recorded" };
-    const run = spawnSync("sh", ["-c", laneCommand], { cwd: dir, env, encoding: "utf8", timeout: runTimeout(), maxBuffer: 256 * 1024 * 1024 });
+    const run = spawnSync("sh", ["-c", laneCommand], { cwd: dir, env, encoding: "utf8", timeout: runTimeout([laneCommand]), maxBuffer: 256 * 1024 * 1024 });
     if (unfinished(run)) return { outcomes: new Map(), compileError: false, error: `the run ${unfinished(run)}` };
     if (refused(run)) return { outcomes: new Map(), compileError: false, error: refused(run) };
     try {
@@ -194,7 +209,7 @@ export function runTests(cwd, dir, { lane, files, laneCommand }) {
   const out = mkdtempSync(join(tmpdir(), "mdpro-replay-run-"));
   try {
     const [command, ...args] = heavy(cwd, ["pnpm", "exec", "vitest", "run", "--coverage.enabled=false", "--maxWorkers=1", "--reporter=json", `--outputFile.json=${join(out, "vitest.json")}`, ...files]);
-    const run = spawnSync(command, args, { cwd: dir, env, encoding: "utf8", timeout: runTimeout(), maxBuffer: 256 * 1024 * 1024 });
+    const run = spawnSync(command, args, { cwd: dir, env, encoding: "utf8", timeout: runTimeout([command]), maxBuffer: 256 * 1024 * 1024 });
     if (unfinished(run)) return { outcomes: new Map(), compileError: false, error: `the run ${unfinished(run)}` };
     if (refused(run)) return { outcomes: new Map(), compileError: false, error: refused(run) };
     if (!existsSync(join(out, "vitest.json"))) return { outcomes: new Map(), compileError: false, error: "Vitest wrote no report" };

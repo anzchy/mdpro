@@ -679,6 +679,365 @@
         "base": "b430480a62a409bf5b73ad647f657ca81692cb55",
         "head": "a97fcdc94d7535eb3786db5ea57539db9f8fa109"
       }
+    },
+    "ADR0149E-F2CI": {
+      "id": "ADR0149E-F2CI",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:19:17.201Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-check-pending-no-plugin.test.ts\",\"ADR0149E-F2CI check-pending on a runner without the plugin\",\"fails closed, naming the plugin, when a branch receipt needs judging\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-check-pending-no-plugin.test.ts",
+            "line": 45
+          },
+          "message": "AssertionError: expected '[red-receipt] ENOENT: no such file or…' to match /tdd-guardian receipt\\.js was not found/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-check-pending-no-plugin.test.ts\",\"ADR0149E-F2CI check-pending on a runner without the plugin\",\"passes a branch with no receipts of its own\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-check-pending-no-plugin.test.ts",
+            "line": 28
+          },
+          "message": "AssertionError: \n[red-receipt] ENOENT: no such file or directory, scandir '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-f2ci-home-pBdVcA/.claude/plugins/cache/xiaolai/tdd-guardian'\n: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-check-pending-no-plugin.test.ts\",\"ADR0149E-F2CI check-pending on a runner without the plugin\",\"passes a master store larger than Node's default subprocess buffer\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-check-pending-no-plugin.test.ts",
+            "line": 37
+          },
+          "message": "AssertionError: \n[red-receipt] ENOENT: no such file or directory, scandir '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-f2ci-home-YOTCek/.claude/plugins/cache/xiaolai/tdd-guardian'\n: expected 64 to be +0 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2CI/20261029T161917201Z/tests",
+        "tree": "69f3b211964b056c52f877f6b689f5db96b23120"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-check-pending-no-plugin.test.ts": "8f67b9d68fe48263c7b85990dfd1b493e8cbc831"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-check-pending-no-plugin.test.ts": "8f67b9d68fe48263c7b85990dfd1b493e8cbc831"
+      }
+    },
+    "ADR0149E-F2G1": {
+      "id": "ADR0149E-F2G1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:20:33.156Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a changed base message changes the digest, and the normalised message is in the digest input\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 84
+          },
+          "message": "TypeError: .toMatch() expects to receive a string, but got undefined"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a failed replay's reasons are bound: a different explanation gives a different digest\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 118
+          },
+          "message": "TypeError: Cannot read properties of undefined (reading 'join')"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a failed replay's reasons are normalised: volatile text in them keeps the digest\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 129
+          },
+          "message": "TypeError: Cannot read properties of undefined (reading 'join')"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a pre-entry base run's error is bound: a timeout and a heavy-lock refusal digest apart\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 152
+          },
+          "message": "TypeError: .toMatch() expects to receive a string, but got undefined"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"messages that differ only after their first line digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 94
+          },
+          "message": "AssertionError: expected '96f669032c983ac225748e8530a09efaf3de0…' not to be '96f669032c983ac225748e8530a09efaf3de0…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"the replay worktree, a temp path, duration, pid or timestamp in the message keeps the digest; the evidence keeps the raw text\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 107
+          },
+          "message": "TypeError: .toMatch() expects to receive a string, but got undefined"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the normalisation rules\",\"rewrites each volatile kind to its placeholder and keeps everything else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 58
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2G1/20261029T162033156Z/tests",
+        "tree": "69f3b211964b056c52f877f6b689f5db96b23120"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "d5c84233edde8a3400e971da23ef9d77cf42fccb"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "1db29b3d0843fd341de9a1c47d7c796ad4a2b34f"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-F2G1b": {
+      "id": "ADR0149E-F2G1b",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:42:34.578Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F2G1b normaliseText laws\",\"keeps the line and column after a temp path, so two locations stay apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 19
+          },
+          "message": "AssertionError: expected 'at <tmp>' to be 'at <tmp>:12:5' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2G1b/20261029T164234578Z/tests",
+        "tree": "ead2a39972c4b61bfbdf9bd0d72b646e37b1b129"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "84271557769c2b78e44f02d7906166bb5552c80b"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "84271557769c2b78e44f02d7906166bb5552c80b"
+      }
+    },
+    "ADR0149E-F2G2b": {
+      "id": "ADR0149E-F2G2b",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:24:16.858Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a replay removes only its own worktree\",\"a foreign worktree registered at the replay's own path just before its add survives the entry and the launcher\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+            "line": 88
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a replay removes only its own worktree\",\"two checkouts replaying the same id and head at once: the first one's worktree survives the second\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+            "line": 69
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a stale marker removes nothing\",\"replay of that id leaves a foreign worktree named by a stale marker alone\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+            "line": 112
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a stale marker removes nothing\",\"verify of that id leaves a foreign worktree named by a stale marker alone\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+            "line": 112
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2G2b/20261029T162416858Z/tests",
+        "tree": "c5e640fb6ba857a1753a10548d93a8bf9991aff9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-worktree-owner.test.ts": "d82f5c43ad2181101eecd6973b20d72e1df93cca"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-worktree-owner.test.ts": "d82f5c43ad2181101eecd6973b20d72e1df93cca"
+      }
+    },
+    "ADR0149E-F2M1": {
+      "id": "ADR0149E-F2M1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:26:16.688Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-lock-wait-bound.test.ts\",\"ADR0149E-F2M1 a contended heavy-lock admission does not time the run out\",\"a Rust replay whose recorded lane command starts with heavy-lock.sh passes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+            "line": 82
+          },
+          "message": "AssertionError: expected 'evidence: /var/folders/yc/pj8fy0nj7vs…' not to match /timed out/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-lock-wait-bound.test.ts\",\"ADR0149E-F2M1 a contended heavy-lock admission does not time the run out\",\"a Vitest replay whose install, base and head runs each wait at heavy-lock passes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+            "line": 62
+          },
+          "message": "AssertionError: expected '\\n[red-receipt] pnpm install for the …' not to match /timed out|pnpm install for the base l…/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-lock-wait-bound.test.ts\",\"ADR0149E-F2M1 the replay run bound covers heavy-lock's wait\",\"adds heavy-lock's admission wait to a wrapped run, and the launcher covers three of them\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+            "line": 21
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2M1/20261029T162616688Z/tests",
+        "tree": "c5e640fb6ba857a1753a10548d93a8bf9991aff9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-lock-wait-bound.test.ts": "e32148b1b2abb61722ccbccc61086b2b388c9633"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-lock-wait-bound.test.ts": "e32148b1b2abb61722ccbccc61086b2b388c9633"
+      }
+    },
+    "ADR0149E-F2M3": {
+      "id": "ADR0149E-F2M3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:29:03.866Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-evidence-reap.test.ts\",\"ADR0149E-F2M3 the evidence lock's stale reap\",\"stale with a dead owner: the losing reaper leaves the winner's lock alone and the operations never overlap\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-evidence-reap.test.ts",
+            "line": 48
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-evidence-reap.test.ts\",\"ADR0149E-F2M3 the evidence lock's stale reap\",\"stale with no owner file, older than a second: the losing reaper leaves the winner's lock alone and the operations never overlap\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-evidence-reap.test.ts",
+            "line": 48
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2M3/20261029T162903866Z/tests",
+        "tree": "c5e640fb6ba857a1753a10548d93a8bf9991aff9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-evidence-reap.test.ts": "16dbd9e2a22a56ece064c40c1753bd3b58c332db"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-evidence-reap.test.ts": "16dbd9e2a22a56ece064c40c1753bd3b58c332db"
+      }
+    },
+    "ADR0149E-F2M3b": {
+      "id": "ADR0149E-F2M3b",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T16:40:30.445Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-evidence-reap.test.ts\",\"ADR0149E-F2M3b a lock reaped while its taker stalls before the owner write\",\"the stalled taker does not enter while the reaper's fresh lock is held\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-evidence-reap.test.ts",
+            "line": 69
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F2M3b/20261029T164030445Z/tests",
+        "tree": "0b03eabd7398b2a52cf80668bbcd3f604642a255"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-evidence-reap.test.ts": "7ad100e7444877c113bda803ae8126bfa3a3216f"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-evidence-reap.test.ts": "de4ce2e2a2f1c5f292a364c1c0354d3319308578"
+      },
+      "evidence_required": true
     }
   }
 }

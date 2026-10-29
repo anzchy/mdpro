@@ -2251,7 +2251,151 @@
       "id": [
         "tests/tooling/adr0149e-digest-stable.test.ts",
         "ADR0149E-5b stable digest",
-        "digests status, kind and location only, so a varying failure message keeps the digest"
+        "digests status, kind, location and normalised message, so a varying duration in the message keeps the digest"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F2G1 the digest binds the text",
+        "a changed base message changes the digest, and the normalised message is in the digest input"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F2G1 the digest binds the text",
+        "messages that differ only after their first line digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F2G1 the digest binds the text",
+        "the replay worktree, a temp path, duration, pid or timestamp in the message keeps the digest; the evidence keeps the raw text"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F2G1 the digest binds the text",
+        "a failed replay's reasons are bound: a different explanation gives a different digest"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F2G1 the digest binds the text",
+        "a failed replay's reasons are normalised: volatile text in them keeps the digest"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F2G1 the digest binds the text",
+        "a pre-entry base run's error is bound: a timeout and a heavy-lock refusal digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-launcher-bound.test.ts",
+        "ADR0149E-F1H1 a stopped replay leaves nothing behind",
+        "at the launcher bound: kills the run, removes the worktree, and the next replay proceeds"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-launcher-bound.test.ts",
+        "ADR0149E-F1H1 a stopped replay leaves nothing behind",
+        "on SIGTERM to the entry: dies by SIGTERM, kills the run and removes the worktree"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+        "ADR0149E-F2M1 a contended heavy-lock admission does not time the run out",
+        "a Vitest replay whose install, base and head runs each wait at heavy-lock passes"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+        "ADR0149E-F2M1 a contended heavy-lock admission does not time the run out",
+        "a Rust replay whose recorded lane command starts with heavy-lock.sh passes"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-normalise-law.test.ts",
+        "ADR0149E-F2G1b a pre-entry base run's error is normalised in the digest",
+        "a run that could not start names its path raw in the evidence and as <tmp> in the digest input"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-message-fallback.test.ts",
+        "ADR0149E-F1M1 the message fallback checks the file",
+        "fails when the base raises the RED message from another file after the RED line was edited"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pre-entry-incomplete.test.ts",
+        "ADR0149E-F1H2 a pre-entry base run that did not complete",
+        "a timed-out base run is named, lists no cases, and digests apart from a completed run"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pre-entry-incomplete.test.ts",
+        "ADR0149E-F1H2 a pre-entry base run that did not complete",
+        "a base run heavy-lock refused (exit 76) is named as that"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-pre-entry-incomplete.test.ts",
+        "ADR0149E-F1H2 a pre-entry base run that did not complete",
+        "a Rust base run that did not compile is named as a compile error"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "ADR0149E-F2G2b a replay removes only its own worktree",
+        "two checkouts replaying the same id and head at once: the first one's worktree survives the second"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "ADR0149E-F2G2b a replay removes only its own worktree",
+        "a foreign worktree registered at the replay's own path just before its add survives the entry and the launcher"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "ADR0149E-F2G2b a replay removes only its own worktree",
+        "a finished replay leaves no worktree and no directory behind"
       ],
       "prerequisite": "plugin"
     },

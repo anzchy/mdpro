@@ -8,15 +8,20 @@
  * - The launcher is a supervisor, not an `execve`: python holds the flock and runs the
  *   entry in its own session, so a stop can reach everything the operation started.
  * - Its bound is derived from what it wraps, never a fixed 660 s: a replay gets three
- *   replay runs (install, base, head) plus 120 s; record, verify and discard get the
+ *   replay runs (install, base, head), each with heavy-lock's admission wait, plus 120 s; record, verify and discard get the
  *   guardian bound plus 60 s, the guardian bound being the longest lane timeout plus 60 s
  *   (at least 660 s). MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS overrides it, for tests.
  * - On the bound, SIGINT, SIGTERM or SIGHUP, the death of the calling entry (a SIGKILL
  *   it cannot forward), and whenever the operation has exited, the
  *   launcher sends the session's group SIGTERM, waits MDPRO_UNIT_RED_KILL_GRACE_MS
  *   (default 20 s, above heavy-lock.sh's own 10 s stop), then SIGKILL; then it removes
- *   the replay worktree the entry named in the flock file, if one is still there. The
- *   bound exits 64; a signal is re-raised, so the caller dies by the same signal.
+ *   the replay worktree the entry named in the flock file, if one is still there and its
+ *   basename holds `-replay-`. The bound exits 64; a signal is re-raised, so the caller
+ *   dies by the same signal.
+ * - The launcher empties the flock file as soon as it holds the lock (fix 2, opus-auditor
+ *   N5): a marker left by an earlier launcher that was itself SIGKILLed names a worktree
+ *   this operation never added, so it is dropped, never acted on. That worktree is left
+ *   for a person to remove.
  * @coordinates-with scripts/tdd/red-receipt.mjs (the only caller), scripts/tdd/replay-worktree.mjs (writes the worktree marker)
  * @coordinates-with tests/tooling/red-receipt-race.test.ts, tests/tooling/red-receipt-flock.test.ts, tests/tooling/adr0149e-launcher-bound.test.ts
  */
@@ -25,7 +30,7 @@ import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { usageError } from "./unit-red-lane.mjs";
-import { replayRunTimeoutMs } from "./replay-worktree.mjs";
+import { replaySpawnTimeoutMs } from "./replay-worktree.mjs";
 const FLOCK_LAUNCH = `import fcntl, os, shutil, signal, subprocess, sys, time
 fd = os.open(sys.argv[1], os.O_CREAT | os.O_RDWR, 0o600)
 end = time.monotonic() + float(os.environ.get("MDPRO_UNIT_RED_FLOCK_WAIT_MS", "20000")) / 1000
@@ -35,6 +40,7 @@ while True:
   if time.monotonic() >= end:
    sys.stderr.write("[red-receipt] OS receipt lock is still held.\\n"); sys.exit(64)
   time.sleep(.025)
+os.ftruncate(fd, 0)
 os.set_inheritable(fd, True)
 caught = []
 for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP): signal.signal(sig, lambda number, frame: caught.append(number))
@@ -65,10 +71,10 @@ if alive():
  while alive() and time.monotonic() < stop: time.sleep(.05)
 os.lseek(fd, 0, os.SEEK_SET)
 marker = os.read(fd, 65536).decode("utf8", "replace").strip()
-if marker:
+if marker and "-replay-" in os.path.basename(marker):
  subprocess.run(["git", "worktree", "remove", "--force", marker], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
- if os.path.isdir(marker) and "-replay-" in os.path.basename(marker): shutil.rmtree(marker, ignore_errors=True)
- os.ftruncate(fd, 0)
+ if os.path.isdir(marker): shutil.rmtree(marker, ignore_errors=True)
+os.ftruncate(fd, 0)
 status = child.returncode
 if caught:
  sys.stderr.write("[red-receipt] stopped by %s; the operation's process group was stopped and its replay worktree removed.\\n" % signal.Signals(caught[0]).name)
@@ -94,7 +100,7 @@ export const guardianBoundMs = (laneTimeout) => Math.max(DEFAULT_GUARDIAN_BOUND_
 /** The OS-lock launcher's bound for `action`, above every bound the operation runs under. */
 export function launcherBoundMs(action, env, laneTimeout) {
   if (env.MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS) return Number(env.MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS);
-  if (action === "replay") return 3 * replayRunTimeoutMs(env) + REPLAY_OVERHEAD_MS;
+  if (action === "replay") return 3 * replaySpawnTimeoutMs(env, true) + REPLAY_OVERHEAD_MS;
   return guardianBoundMs(laneTimeout) + BOUND_MARGIN_MS;
 }
 const FORWARDED = ["SIGINT", "SIGTERM", "SIGHUP"];
