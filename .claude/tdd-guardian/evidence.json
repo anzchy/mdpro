@@ -573,6 +573,13 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0149e-launcher-bound.test.ts": "ac611416f2e2c3a31d559659e277e0c8b0dfd5ac"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F1H1.json",
+        "digest": "1fbd05063910473c76625c69635eaaa9d645444e7f330683c9505eb83b7bf7bb",
+        "result": "passed",
+        "base": "b430480a62a409bf5b73ad647f657ca81692cb55",
+        "head": "a97fcdc94d7535eb3786db5ea57539db9f8fa109"
       }
     },
     "ADR0149E-F1H2": {
@@ -624,6 +631,13 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0149e-pre-entry-incomplete.test.ts": "2aedaff99eecde5de577c660994487a888cce58b"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F1H2.json",
+        "digest": "5044a0dd8fda02b49009f59c2d6b41e94240b39326d8fce405325dfa56810c6f",
+        "result": "passed",
+        "base": "b430480a62a409bf5b73ad647f657ca81692cb55",
+        "head": "a97fcdc94d7535eb3786db5ea57539db9f8fa109"
       }
     },
     "ADR0149E-F1M1": {
@@ -657,6 +671,13 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0149e-message-fallback.test.ts": "0733a4b5e76c23d51c9c7226f04f4a02af0a759e"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F1M1.json",
+        "digest": "0b1470ec5d97540de8fcf02fa4e1439b162fa3336d7f2c132f08b9c0f3ffae9f",
+        "result": "passed",
+        "base": "b430480a62a409bf5b73ad647f657ca81692cb55",
+        "head": "a97fcdc94d7535eb3786db5ea57539db9f8fa109"
       }
     }
   }
