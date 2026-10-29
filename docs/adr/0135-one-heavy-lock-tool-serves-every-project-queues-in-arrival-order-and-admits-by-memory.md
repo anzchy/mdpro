@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: partially superseded** (decision 6's "Unreadable … start", on macOS hosts) by [ADR-0152](0152-an-unreadable-memory-pressure-reading-on-macos-holds-the-job.md).
+
 **2026-10-29: partially superseded** (decision 6's warn-level start after five minutes) by [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md).
 
 Accepted, 2026-10-23. Decided by the user, recorded by herdr-delegator. The user's words: 「接受 (Recommended)」,
