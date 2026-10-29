@@ -86,8 +86,10 @@ assertion message is required instead. Anything else fails and names the id:
 - `digest`.
 
 **The digest** is sha256 over canonical JSON, keys sorted at every level, of `id`, `recorded_at`,
-`tests_tree`, `base`, `head`, `head_tests_tree`, `spec_blobs` and `replay`. Any change of base or
-head changes it, and `--expect-digest` reports `digest mismatch`.
+`tests_tree`, `base`, `head`, `head_tests_tree`, `spec_blobs` and `replay`. Here `replay` is its stable
+projection: the result, and each id's status, kind and location at base and head. Message text is
+left out, so a message that embeds a temp path or a counter does not change the digest between two
+runs. Any change of base or head changes it, and `--expect-digest` reports `digest mismatch`.
 
 **Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It

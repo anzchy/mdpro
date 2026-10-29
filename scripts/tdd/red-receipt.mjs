@@ -294,5 +294,5 @@ try {
   else checkPending(args);
 } catch (error) {
   process.stderr.write(`[red-receipt] ${error.message}\n`);
-  process.exitCode = error.code === 64 ? 64 : 64;
+  process.exitCode = 64;
 }

@@ -2238,6 +2238,22 @@
         "flags a held receipt whose spec changed after settlement"
       ],
       "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-replay-prune.test.ts",
+        "ADR0149E-4e replay worktree hygiene",
+        "leaves another worktree's prunable record alone and removes its own"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-stable.test.ts",
+        "ADR0149E-5b stable digest",
+        "digests status, kind and location only, so a varying failure message keeps the digest"
+      ],
+      "prerequisite": "plugin"
     }
   ],
   "exclusions": [

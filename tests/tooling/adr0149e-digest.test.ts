@@ -55,7 +55,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-5 the evidence digest", () => {
     expect(input.head).toBe(await rev("HEAD"));
     expect(input.spec_blobs).toEqual({ "tests/a.test.ts": await rev("HEAD:tests/a.test.ts") });
     expect(input.head_tests_tree).toMatch(/^[0-9a-f]{40}$/);
-    expect(input.replay).toEqual(first.evidence.replay);
+    expect(input.replay.result).toBe(first.evidence.replay.result);
     expect(repo.evidence().entries.A.replay).toMatchObject({ digest: first.digest, base: input.base, head: input.head });
     expect((await replay()).digest).toBe(first.digest);
   });

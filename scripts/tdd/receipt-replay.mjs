@@ -17,7 +17,10 @@
  *   the head's spec files over base production, listing the cases that pass there, and
  *   always `user_ruling_required`.
  * - The digest is sha256 over canonical JSON (keys sorted at every level) of
- *   {id, recorded_at, tests_tree, base, head, head_tests_tree, spec_blobs, replay}.
+ *   {id, recorded_at, tests_tree, base, head, head_tests_tree, spec_blobs, replay}, where
+ *   `replay` is the stable projection (result; per id, status, kind and location at base
+ *   and head). Message text is left out: one that embeds a temp path or a counter would
+ *   change the digest on every run of the same base and head.
  * @coordinates-with scripts/tdd/red-receipt.mjs, scripts/tdd/replay-worktree.mjs, .claude/agents/mdpro-landing-verifier.md
  */
 import { createHash } from "node:crypto";
@@ -78,6 +81,12 @@ function judge(cwd, entry, base, head, baseTexts) {
   return { result: reasons.length ? "failed" : "passed", reasons, ids };
 }
 
+/** The replay's stable part: result and each id's status, kind and location, without message text. */
+function stableReplay(judged) {
+  const pick = (outcome) => ({ status: outcome.status, kind: outcome.kind ?? null, location: outcome.location ?? null });
+  return { result: judged.result, ids: Object.fromEntries(Object.entries(judged.ids).map(([id, outcome]) => [id, { base: pick(outcome.base), head: pick(outcome.head) }])) };
+}
+
 export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVersion, laneConfig }) {
   if (!receipt) throw usageError("No receipt has that id.");
   const entry = entryFor(withEvidenceLock(cwd, () => readEvidence(cwd)), receipt, pluginVersion);
@@ -114,7 +123,7 @@ export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVe
   const prodDiff = prodPaths.length ? git(cwd, ["diff-tree", "-p", "--no-renames", "--no-ext-diff", base, head, "--", ...prodPaths]).stdout : "";
   const digestInput = {
     id, recorded_at: entry.recorded_at, tests_tree: entry.tests_tree.tree, base, head, head_tests_tree: headTestsTree,
-    spec_blobs: Object.fromEntries(files.map((file) => [file, headCls.files.get(file)?.blob ?? null])), replay: judged,
+    spec_blobs: Object.fromEntries(files.map((file) => [file, headCls.files.get(file)?.blob ?? null])), replay: stableReplay(judged),
   };
   const digest = createHash("sha256").update(canonical(digestInput)).digest("hex");
   writeFileSync(path, `${JSON.stringify({ id, lane: receipt.lane, mode: "entry", base, head, test_diff: testDiff, prod_diff: prodDiff, replay: judged, digest_input: digestInput, digest }, null, 2)}\n`);
