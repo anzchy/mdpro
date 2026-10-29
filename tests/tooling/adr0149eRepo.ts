@@ -64,6 +64,17 @@ export async function createReceiptRepo(signal: AbortSignal) {
   await commit("fixture");
   await git("switch", "-qc", "feature");
 
+  /** `refs/receipts/*` as `name type id` lines. */
+  const refs = async () => (await git("for-each-ref", "--format=%(refname) %(objecttype) %(objectname)", "refs/receipts")).stdout.split("\n").filter(Boolean);
+  /** The real index bytes and `git status`, to prove an operation left both alone. */
+  const snapshot = async () => ({ index: readFileSync(join(root, ".git/index")).toString("base64"), status: (await git("status", "--porcelain=v1", "--untracked-files=all")).stdout });
+  /** Hold the repo-wide evidence lock as a live owner (this test process) until the returned release is called. */
+  const holdEvidenceLock = () => {
+    const lock = join(root, ".claude/tdd-guardian/.evidence.lock");
+    mkdirSync(lock);
+    writeFileSync(join(lock, "owner.json"), JSON.stringify({ pid: process.pid, token: "test" }));
+    return () => rmSync(lock, { recursive: true, force: true });
+  };
   const close = async () => { await owner.close(); rmSync(root, { recursive: true, force: true }); };
-  return { root, run, write, read, git, entry, commit, store, evidence, cargoOutput, close };
+  return { root, run, write, read, git, entry, commit, store, evidence, cargoOutput, refs, snapshot, holdEvidenceLock, close };
 }
