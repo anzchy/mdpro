@@ -1,5 +1,5 @@
 /**
- * Purpose: Find top-level `mod` items in Rust source, flag the `#[cfg(test)]` ones, and
+ * Purpose: Find `mod` items in Rust source, flag the `#[cfg(test)]` ones, and
  * splice the head's test modules into the base's production text for the replay's
  * restore of non-test paths (ADR-0149 d2: Rust inline tests make the restore a per-file
  * splice).
@@ -8,11 +8,12 @@
  * depth-0 items with their outer attributes → `mod name;` / `mod name { … }`.
  *
  * Key decisions:
- * - Only the exact attribute `#[cfg(test)]` marks a test module. Any other `cfg`/`cfg_attr`
- *   that mentions `test` on a `mod` (e.g. `cfg(any(test, …))`) refuses: the boundary
- *   between test and production would be a guess.
- * - A `#[cfg(test)] mod` nested inside a non-test module refuses for the same reason; one
- *   inside a test module is part of that module.
+ * - `#[cfg(test)]` and `#[cfg(all(test, …))]` mark a test module; `cfg(not(test))` (alone or
+ *   as an `all` conjunct) marks production. Any other `cfg`, or a `cfg_attr` setting a path
+ *   or cfg, that mentions `test` on a `mod` (e.g. `cfg(any(test, …))`) refuses: the
+ *   boundary between test and production would be a guess.
+ * - Test modules inside production inline modules are found and spliced within their
+ *   module; one inside a function body refuses; one inside a test module is part of it.
  * - Item-level `#[cfg(test)]` on anything but `mod` (a `fn` seam, a `use`, a static) is
  *   production code: it is not a test path and stays at base in the replay.
  * - Unbalanced braces or brackets refuse.
@@ -80,18 +81,49 @@ function lex(text) {
   return tokens;
 }
 
-const testAttr = (attrs) => attrs.some((a) => a.v === "cfg(test)");
-const doubtfulAttr = (attrs) => attrs.some((a) => /^cfg(?:_attr)?\(/.test(a.v) && /\btest\b/.test(a.v) && a.v !== "cfg(test)");
+function splitTop(list) {
+  const parts = [];
+  let depth = 0, from = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === "(") depth++;
+    else if (list[i] === ")") depth--;
+    else if (list[i] === "," && depth === 0) { parts.push(list.slice(from, i)); from = i + 1; }
+  }
+  return [...parts, list.slice(from)].filter(Boolean);
+}
+
+/** "test" when the attributes gate the item to test builds, else "prod"; throws when that is a guess. */
+function gateOf(attrs, name) {
+  let test = false;
+  for (const { v } of attrs) {
+    const all = /^cfg\(all\((.*)\)\)$/.exec(v);
+    if (v === "cfg(test)" || (all && splitTop(all[1]).includes("test"))) { test = true; continue; }
+    if (v === "cfg(not(test))" || (all && splitTop(all[1]).includes("not(test)"))) continue;
+    if ((/^cfg\(/.test(v) || (/^cfg_attr\(/.test(v) && /path|cfg\(/.test(v))) && /\btest\b/.test(v)) {
+      throw usageError(`Rust scan: mod ${name} has a cfg that mentions test but neither requires nor excludes it.`);
+    }
+  }
+  return test ? "test" : "prod";
+}
 const pathAttr = (attrs) => { for (const a of attrs) { const m = /^path="((?:[^"\\]|\\.)*)"$/.exec(a.v); if (m) return m[1]; } return null; };
 
-/** Every depth-0 `mod` item: {name, start, end, inline, path, test}. Throws on a shape it will not guess. */
+/**
+ * Every `mod` item outside function bodies and test modules: {name, start, end, inline,
+ * path, test, scope, bodyEnd}. `scope` names the enclosing inline modules. Throws on a
+ * shape whose test boundary would be a guess.
+ */
 export function modItems(text) {
-  const tokens = lex(text), items = [];
-  let depth = 0, attrs = [], testDepth = 0;
+  const tokens = lex(text), items = [], stack = [];
+  let attrs = [], pending = null;
   for (let k = 0; k < tokens.length; k++) {
     const token = tokens[k];
-    if (token.t === "{") { depth++; attrs = []; continue; }
-    if (token.t === "}") { if (--depth < 0) throw usageError("Rust scan: unbalanced braces."); if (testDepth && depth < testDepth) testDepth = 0; attrs = []; continue; }
+    if (token.t === "{") { stack.push(pending ?? { kind: "other" }); pending = null; attrs = []; continue; }
+    if (token.t === "}") {
+      const frame = stack.pop();
+      if (!frame) throw usageError("Rust scan: unbalanced braces.");
+      if (frame.item) { frame.item.end = token.end; frame.item.bodyEnd = token.i; }
+      attrs = []; continue;
+    }
     if (token.t === "attr") { attrs.push(token); continue; }
     let j = k;
     if (tokens[j].t === "ident" && tokens[j].v === "pub") {
@@ -99,30 +131,50 @@ export function modItems(text) {
       if (tokens[j]?.t === "(") { while (tokens[j] && tokens[j].t !== ")") j++; j++; }
     }
     if (tokens[j]?.t === "ident" && tokens[j].v === "mod" && tokens[j + 1]?.t === "ident") {
-      const name = tokens[j + 1].v, after = tokens[j + 2];
-      const test = testAttr(attrs);
-      if (doubtfulAttr(attrs)) throw usageError(`Rust scan: mod ${name} has a cfg that mentions test but is not exactly #[cfg(test)].`);
-      const start = attrs.length ? attrs[0].i : token.i;
-      if (depth > 0 && !testDepth) {
-        if (test) throw usageError(`Rust scan: #[cfg(test)] mod ${name} is nested inside a non-test module.`);
-      } else if (depth === 0 && after?.t === ";") {
-        items.push({ name, start, end: after.end, inline: false, path: pathAttr(attrs), test });
-      } else if (depth === 0 && after?.t === "{") {
-        let level = 0, m = j + 2;
-        for (; m < tokens.length; m++) { if (tokens[m].t === "{") level++; else if (tokens[m].t === "}" && --level === 0) break; }
-        if (m >= tokens.length) throw usageError("Rust scan: unbalanced braces.");
-        items.push({ name, start, end: tokens[m].end, inline: true, path: pathAttr(attrs), test });
-        if (test) testDepth = 1;
+      const name = tokens[j + 1].v, after = tokens[j + 2], inline = after?.t === "{";
+      if (stack.some((frame) => frame.kind === "test")) { if (inline) pending = { kind: "test" }; }
+      else {
+        const test = gateOf(attrs, name) === "test", inOther = stack.some((frame) => frame.kind === "other");
+        if (test && inOther) throw usageError(`Rust scan: #[cfg(test)] mod ${name} sits inside a non-module item.`);
+        const item = { name, start: attrs.length ? attrs[0].i : token.i, end: after?.end ?? token.end, inline, path: pathAttr(attrs), test, scope: stack.filter((frame) => frame.kind === "mod").map((frame) => frame.name) };
+        if (!inOther) items.push(item);
+        if (inline) pending = { kind: test ? "test" : inOther ? "other" : "mod", name, item };
       }
       k = j + 1;
     }
     attrs = [];
   }
-  if (depth !== 0) throw usageError("Rust scan: unbalanced braces.");
+  if (stack.length) throw usageError("Rust scan: unbalanced braces.");
   return items;
 }
 
-/** The depth-0 `#[cfg(test)] mod` items. */
+/** The `#[cfg(test)]`-gated mod items, at any module depth. */
 export function cfgTestMods(text) { return modItems(text).filter((item) => item.test); }
 
-export function spliceTestMods(baseText) { return baseText; }
+/**
+ * Base production text with every test module taken from the head, scope by scope: a
+ * scope's base test items are replaced in place by the head's, or the head's are added at
+ * the end of that scope (the file, or the enclosing module's body), which must exist in
+ * the base.
+ */
+export function spliceTestMods(baseText, headText) {
+  const baseAll = modItems(baseText), base = baseAll.filter((item) => item.test), head = cfgTestMods(headText);
+  const key = (scope) => scope.join("::"), edits = [];
+  for (const scope of new Set([...base, ...head].map((item) => key(item.scope)))) {
+    const removed = base.filter((item) => key(item.scope) === scope), added = head.filter((item) => key(item.scope) === scope);
+    const insertion = added.map((item) => `${headText.slice(item.start, item.end)}\n`).join("\n");
+    if (removed.length) {
+      removed.forEach((item, index) => edits.push({ start: item.start, end: baseText[item.end] === "\n" ? item.end + 1 : item.end, text: index === 0 ? insertion : "" }));
+    } else if (scope === "") {
+      edits.push({ start: baseText.length, end: baseText.length, text: `${baseText && !baseText.endsWith("\n") ? "\n" : ""}\n${insertion}` });
+    } else {
+      const owner = baseAll.find((item) => item.inline && !item.test && key([...item.scope, item.name]) === scope);
+      if (!owner) throw usageError(`Rust splice: the base has no module ${scope} to hold the head's test module.`);
+      const at = baseText.lastIndexOf("\n", owner.bodyEnd) + 1;
+      edits.push({ start: at, end: at, text: insertion });
+    }
+  }
+  let result = baseText;
+  for (const edit of edits.sort((left, right) => right.start - left.start)) result = result.slice(0, edit.start) + edit.text + result.slice(edit.end);
+  return result;
+}

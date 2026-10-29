@@ -5,7 +5,8 @@
  * Test paths (ADR-0145 d2's definition): every path under `tests/` and `src-tauri/tests/`;
  * every `.rs` file under `src-tauri/` holding a top-level `#[cfg(test)] mod`; and every
  * file such a declaration reaches (`#[path]`, else the default module path), transitively
- * through that file's own `mod x;` declarations.
+ * through that file's own `mod x;` declarations. A file the scanner cannot settle is
+ * pinned whole and marked unspliceable rather than refusing the record.
  *
  * Key decisions:
  * - Paths are what git would see: tracked and untracked-but-not-ignored, minus tracked
@@ -37,37 +38,42 @@ export function isPlainTestPath(path) {
   return path.startsWith("tests/") || path.startsWith("src-tauri/tests/");
 }
 
-/** Where `mod name;` declared in `file` lives, or null when neither candidate exists in `exists`. */
+/** Where `mod name;` declared in `file` (inside inline modules `item.scope`) lives, or null. */
 function moduleFile(file, item, exists) {
   const dir = posix.dirname(file);
-  if (item.path) return posix.normalize(posix.join(dir, item.path));
   const base = posix.basename(file);
-  const owner = ["mod.rs", "lib.rs", "main.rs"].includes(base) ? dir : posix.join(dir, base.replace(/\.rs$/, ""));
+  const owner = posix.join(["mod.rs", "lib.rs", "main.rs"].includes(base) ? dir : posix.join(dir, base.replace(/\.rs$/, "")), ...item.scope);
+  if (item.path) return posix.normalize(posix.join(item.scope.length ? owner : dir, item.path));
   return [posix.join(owner, `${item.name}.rs`), posix.join(owner, item.name, "mod.rs")].find(exists) ?? null;
 }
 
 /**
- * The test paths among `candidates` (repo-relative), reading Rust text through `readText`.
- * Shared by the working-tree pin and by the replay, which classifies a commit's paths.
+ * Classify `candidates` (repo-relative) through `readText`: `tests` (every test path),
+ * `holders` (Rust files that hold a test module beside production code; the replay
+ * splices them) and `unspliceable` (holders the scanner could not settle, pinned whole;
+ * a replay that must splice one refuses). Shared by the working-tree pin and the replay.
  */
 export function classifyTestPaths(candidates, readText) {
   const exists = (path) => candidates.has(path);
-  const tests = new Set([...candidates].filter(isPlainTestPath));
-  const queue = [];
+  const tests = new Set([...candidates].filter(isPlainTestPath)), holders = new Set(), unspliceable = new Set(), queue = [];
   for (const file of candidates) {
     if (!file.startsWith("src-tauri/") || !file.endsWith(".rs") || tests.has(file)) continue;
-    const items = modItems(readText(file));
+    let items;
+    try { items = modItems(readText(file)); } catch { tests.add(file); holders.add(file); unspliceable.add(file); continue; }
     if (!items.some((item) => item.test)) continue;
-    tests.add(file);
+    tests.add(file); holders.add(file);
     for (const item of items) if (item.test && !item.inline) queue.push(moduleFile(file, item, exists));
   }
   while (queue.length) {
     const file = queue.pop();
     if (!file || tests.has(file) || !exists(file)) continue;
     tests.add(file);
-    for (const item of modItems(readText(file))) if (!item.inline) queue.push(moduleFile(file, item, exists));
+    let items = [];
+    try { items = modItems(readText(file)); } catch {}
+    for (const item of items) if (!item.inline) queue.push(moduleFile(file, item, exists));
   }
-  return [...tests].sort();
+  const sorted = (set) => [...set].sort();
+  return { tests: sorted(tests), holders: sorted(holders), unspliceable: sorted(unspliceable) };
 }
 
 /** The test paths of the working tree. */
@@ -75,7 +81,7 @@ export function testPaths(cwd) {
   const listed = git(cwd, ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "tests", "src-tauri"]).stdout.split("\0").filter(Boolean);
   const deleted = new Set(git(cwd, ["ls-files", "-z", "--deleted", "--", "tests", "src-tauri"]).stdout.split("\0").filter(Boolean));
   const candidates = new Set(listed.filter((path) => !deleted.has(path) && existsSync(join(cwd, path))));
-  return classifyTestPaths(candidates, (path) => readFileSync(join(cwd, path), "utf8"));
+  return classifyTestPaths(candidates, (path) => readFileSync(join(cwd, path), "utf8")).tests;
 }
 
 /** Write the working-tree bytes of `paths` as one tree; returns its id. */
