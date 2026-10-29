@@ -8,6 +8,8 @@
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 const read = (name) => (existsSync(`fake-cargo/${name}`) ? readFileSync(`fake-cargo/${name}`, "utf8") : "");
 writeFileSync("fake-cargo/ran", "ran");
+// FAKE_CARGO_SLEEP_MS stands in for a cold build that outlives the replay's run timeout.
+if (process.env.FAKE_CARGO_SLEEP_MS) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(process.env.FAKE_CARGO_SLEEP_MS));
 if (existsSync(".claude/tdd-guardian/evidence.json")) copyFileSync(".claude/tdd-guardian/evidence.json", "fake-cargo/seen.json");
 if (existsSync("fake-cargo/judge.json")) {
   const cases = JSON.parse(read("judge.json"));
