@@ -2,7 +2,8 @@
 // receipt sidecar exists, copies it to fake-cargo/seen.json (what a lane could read mid-run).
 // With fake-cargo/judge.json it derives libtest text from the real bytes of the Rust files
 // it names: a case whose file lacks `testMarker` is not compiled in; one whose file holds
-// `prodMarker` passes; otherwise it fails at `file:line` with `message`. Without judge.json
+// `prodMarker` passes; otherwise it fails at `file:line` (or at the line holding `assertText`)
+// with `message`. Without judge.json
 // it prints fake-cargo/stdout.txt and stderr.txt and exits with fake-cargo/code.
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 const read = (name) => (existsSync(`fake-cargo/${name}`) ? readFileSync(`fake-cargo/${name}`, "utf8") : "");
@@ -24,7 +25,8 @@ if (existsSync("fake-cargo/judge.json")) {
     for (const c of live) out += `test ${c.name} ... ${failed.includes(c) ? "FAILED" : "ok"}\n`;
     if (failed.length) {
       out += "\nfailures:\n\n";
-      for (const c of failed) out += `---- ${c.name} stdout ----\n\nthread '${c.name}' (7) panicked at ${c.file}:${c.line}:9:\n${c.message}\nnote: run with \`RUST_BACKTRACE=1\` environment variable to display a backtrace\n\n`;
+      const lineOf = (c) => (c.assertText ? readFileSync(`src-tauri/${c.file}`, "utf8").split("\n").findIndex((text) => text.includes(c.assertText)) + 1 : c.line);
+      for (const c of failed) out += `---- ${c.name} stdout ----\n\nthread '${c.name}' (7) panicked at ${c.file}:${lineOf(c)}:9:\n${c.message}\nnote: run with \`RUST_BACKTRACE=1\` environment variable to display a backtrace\n\n`;
       out += `failures:\n${failed.map((c) => `    ${c.name}\n`).join("")}\n`;
     }
     out += `test result: ${failed.length ? "FAILED" : "ok"}. ${live.length - failed.length} passed; ${failed.length} failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n`;
