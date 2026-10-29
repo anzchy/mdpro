@@ -306366,6 +306366,126 @@
           "message": "41 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .tokenize/catalog.json, .tokenize/conflicts.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
         }
       ]
+    },
+    {
+      "id": "ADR0149E-4d",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:45:32.337Z",
+      "head_sha": "3a201baf3c55b9b9a3aedf13cb04981479d516a9",
+      "dirty_source": [
+        ".claude/mind.mv2",
+        ".claude/mind.mv2.lock",
+        ".claude/settings.json",
+        ".tokenize/catalog.json",
+        ".tokenize/conflicts.json",
+        ".tokenize/consumer-profile.json",
+        ".tokenize/ledger/16518.ndjson",
+        ".tokenize/ledger/18881.ndjson",
+        ".tokenize/ledger/21231.ndjson",
+        ".tokenize/ledger/21373.ndjson",
+        ".tokenize/ledger/21437.ndjson",
+        ".tokenize/ledger/21565.ndjson",
+        ".tokenize/ledger/21698.ndjson",
+        ".tokenize/ledger/21808.ndjson",
+        ".tokenize/ledger/21879.ndjson",
+        ".tokenize/ledger/22833.ndjson",
+        ".tokenize/ledger/27192.ndjson",
+        ".tokenize/ledger/30911.ndjson",
+        ".tokenize/ledger/31462.ndjson",
+        ".tokenize/ledger/36789.ndjson",
+        ".tokenize/ledger/39300.ndjson",
+        ".tokenize/ledger/43243.ndjson",
+        ".tokenize/ledger/48512.ndjson",
+        ".tokenize/ledger/51355.ndjson",
+        ".tokenize/ledger/55423.ndjson",
+        ".tokenize/ledger/58886.ndjson",
+        ".tokenize/ledger/63613.ndjson",
+        ".tokenize/ledger/63663.ndjson",
+        ".tokenize/ledger/64491.ndjson",
+        ".tokenize/ledger/64690.ndjson",
+        ".tokenize/ledger/64969.ndjson",
+        ".tokenize/ledger/65033.ndjson",
+        ".tokenize/ledger/65645.ndjson",
+        ".tokenize/ledger/65795.ndjson",
+        ".tokenize/ledger/66280.ndjson",
+        ".tokenize/ledger/66314.ndjson",
+        ".tokenize/ledger/66402.ndjson",
+        ".tokenize/ledger/67130.ndjson",
+        ".tokenize/ledger/67528.ndjson",
+        ".tokenize/ledger/78103.ndjson",
+        ".tokenize/ledger/86485.ndjson",
+        ".tokenize/ledger/88352.ndjson",
+        ".tokenize/ledger/88492.ndjson",
+        ".tokenize/ledger/94768.ndjson",
+        ".tokenize/session.json"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/adr0149e-replay-env.test.ts": {
+          "state": "ok",
+          "sha": "a69b1212f1d680ef56073dcba164180ceaf30907d612f52c586a0c46d6ac7e2e",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "fd3fa8bfcd16d881",
+            "a46cce7eb3b70b34",
+            "9aeb869db977d13d",
+            "c7b0070882d6890c",
+            "ed9623369ff082ab",
+            "754beac6333c06fa",
+            "b3e7120b9d8e38ea",
+            "d6f0559031d55b1d",
+            "6b4aa133ba817666",
+            "0c3b190f23fd59f3",
+            "b5795d5419e09da9",
+            "e38763289479420c",
+            "841b422119fe680e",
+            "ecad9fe42a0d60ea",
+            "a4f58e4d49395130",
+            "63e8293cfda95fad",
+            "3ceb1b82821936e7",
+            "06cf660c90c157d7",
+            "efedd95291033898",
+            "007aa866aa6e34c7",
+            "4acb3694c87a3c4c",
+            "8cb30bd3a88980f3",
+            "a611491721e62f24",
+            "a728f7592d8bfc0a",
+            "077f19e1ef9aa8e8",
+            "9aa419a6cf299fbf",
+            "5abb11042bbe0453",
+            "5242c76442d1ef8c",
+            "dc64e9e429d51e43",
+            "f948082ecbe870ff",
+            "31ae310436e4ab26",
+            "7bc0dc06771d2f59",
+            "276fc70441782361",
+            "0eaf63c48a8c3c93",
+            "062ffba67454628a",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-29T04:46:35.881Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "45 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .tokenize/catalog.json, .tokenize/conflicts.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "info",
+          "code": "spec-extended",
+          "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/adr0149e-replay-env.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+        }
+      ]
     }
   ]
 }

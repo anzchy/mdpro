@@ -144,8 +144,10 @@ export function linkDependencies(cwd, dir, base, head) {
 
 /** Run the receipt's tests in `dir`: `{outcomes, compileError, error}`. */
 export function runTests(cwd, dir, { lane, files, laneCommand }) {
-  const env = { ...process.env, VITEST_MAX_WORKERS: "1" };
-  delete env.MDPRO_RED_EVIDENCE_DIR;
+  // The entry's own lock, selection and evidence variables must not reach the replayed
+  // tests: a test that spawns the entry would otherwise use this process's flock.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^MDPRO_(?:UNIT_RED_|RED_EVIDENCE_DIR$)/.test(key)));
+  env.VITEST_MAX_WORKERS = "1";
   const root = realpathSync.native(dir);
   if (lane === "rust") {
     if (!laneCommand) return { outcomes: new Map(), compileError: false, error: "no lane command recorded" };

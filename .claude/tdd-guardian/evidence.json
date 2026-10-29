@@ -43,7 +43,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-print.test.ts": "0785af9f9d49dbf328267268c1ad2823957f7487"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-3.json",
+        "digest": "2f02eea6e99dc92eef3b601a7687c21030b705763c1e82a2b407da36ed93c102",
+        "result": "failed",
+        "base": "de0f65ee8fbb7495737df85b67e73a2e0c5674c8",
+        "head": "3a201baf3c55b9b9a3aedf13cb04981479d516a9"
+      }
     },
     "ADR0149E-4a": {
       "id": "ADR0149E-4a",
@@ -114,7 +121,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-replay-pass.test.ts": "e0007c8add7f4b601b008432e5996bf19cd461d9"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-4a.json",
+        "digest": "c8e0ecbf4c9a879683bfd59bbe098c6b99d783dd2f48f3b7e7bb0a532a724432",
+        "result": "failed",
+        "base": "de0f65ee8fbb7495737df85b67e73a2e0c5674c8",
+        "head": "3a201baf3c55b9b9a3aedf13cb04981479d516a9"
+      }
     },
     "ADR0149E-4b": {
       "id": "ADR0149E-4b",
@@ -239,6 +253,41 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-replay-fail.test.ts": "ab5e16267de17153e864b967a6a0258166fbf8c3"
       }
+    },
+    "ADR0149E-4d": {
+      "id": "ADR0149E-4d",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-29T04:45:32.337Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "1",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-replay-env.test.ts\",\"ADR0149E-4d replay environment\",\"runs the replayed tests without the entry's lock, selection or evidence variables\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-replay-env.test.ts",
+            "line": 38
+          },
+          "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-4d/20261029T044532337Z/tests",
+        "tree": "9a758e4b4299f9830c0da811e7e34c8429a07365"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-replay-env.test.ts": "719525efb9cec24f9168ff4f3dea27825404b7db"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-replay-env.test.ts": "1173c1e9b8cd402fb26b43ce9ca7e1ccdeff6bd3"
+      },
+      "evidence_required": true
     },
     "ADR0149E-5": {
       "id": "ADR0149E-5",
