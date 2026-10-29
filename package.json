@@ -65,7 +65,8 @@
     "overrides": {
       "micromark-extension-gfm-table": "2.1.2",
       "picomatch": ">=4.0.4",
-      "rollup": ">=4.59.0"
+      "rollup": ">=4.59.0",
+      "vitest>tinypool": "2.1.2"
     },
     "patchedDependencies": {
       "prosemirror-tables@1.8.5": "patches/prosemirror-tables@1.8.5.patch"
@@ -82,10 +83,10 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "~3.2.7",
     "jsdom": "^26.1.0",
     "typescript": "~5.8.3",
     "vite": "^7.3.1",
-    "vitest": "^3.2.4"
+    "vitest": "~3.2.7"
   }
 }
