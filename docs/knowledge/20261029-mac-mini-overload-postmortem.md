@@ -187,6 +187,7 @@ settles it.
 |---|---|---|
 | ADR0150-WI1: the wrapper, `--hold`, `--guard-only`, the backstop and its installer, the vitest caps, the guide, the measured run | gpt-imple-1, branch `chore/adr0150-load-guard` | in implementation; then a High-tier audit by both auditors |
 | picsee's mirror and its end-to-end exit-76 test; measured budgets for its SwiftPM, App and GUI classes | picsee-delegator | waiting for mdpro's diff |
+| ADR-0150 WI-2: one lane entry point (`scripts/lanes/run.sh`, `pnpm lane:*`), `test:run`/`coverage`/`rules:check` routed through the guard, `role-guard.sh` and Codex rules refusing raw `vitest --coverage` / `pnpm coverage`, and a thin `.agents/skills/mdpro-lanes` Skill | unassigned, after WI-1 lands | approved by the user: 「Yes, as ADR-0150 WI-2 (Recommended)」 |
 | Installing the launchd backstop | herdr-delegator, with the user's word | after landing |
 | D312: the shared tool (phase 2) | unassigned | queued |
 | D332, D334: load-sensitive timeouts | PR #549 at the cap, landed open per 「Land open, track」 | waiting for the pause to lift |
