@@ -1,97 +1,104 @@
-# 0149. A broken RED receipt is judged by a base-tree fail-to-pass replay
+# 0149. A broken receipt is replayed against the PR base, with the RED-time test text kept for the auditors
 
 ## Status
 
-**Proposed, 2026-10-29, by herdr-delegator (Claude route).** Partially supersedes, on acceptance, ADR-0145 decision 1's
-snapshot, decision 2's replay target, decision 4's "the user rules on anything else" for a replayable receipt, and its
-Status line's "until the entry … ships, receipt exceptions keep the existing user path".
+**Proposed, 2026-10-29, by herdr-delegator (Claude route). Revision 2, after plan review round 1** (gpt-auditor
+C0 H5 M2, opus-auditor C0 H5 M7 L3; reports `herdr-spike/{gpt-auditor,opus-auditor}/ADR-0149-r1.md`). Round 1 found that
+revision 1 let a weakening inside a new test file clear unseen, could not be run on today's receipts (they store no
+failing test ids), left the auditors' rulings bound to no bytes, and contradicted ADR-0145 in clauses it did not name.
+Revision 2 keeps ADR-0145 almost whole and changes two of its clauses.
 
-The user asked 「针对上述问题，你的解决方案是什么，web search 查看最佳实践」 about recurring SEPARATION-BROKEN receipts, and
-chose 「All three layers (Recommended)」 (2026-10-29): layer 1 (the verifier's manual replay) and layer 2 (brief changes)
-**apply from that ruling**, before this record is accepted; layer 3 (the tool) waits for acceptance and plan review.
+The user's words: 「针对上述问题，你的解决方案是什么，web search 查看最佳实践」; 「All three layers (Recommended)」;
+「相关的解决方案尽快implement，优先级排最前面」; and, on round 1's finding about the interim,
+「Evidence + batched ruling (Recommended)」 (2026-10-29), which replaces revision 1's "layer 1 clears without the user".
+
+**On acceptance, partially supersedes** [ADR-0145](0145-a-broken-red-receipt-carries-its-own-evidence-and-the-auditors-rule-on-it.md):
+- decision 1's **snapshot of the code under test** (a commit object under `refs/receipts/<id>/<recorded-at>`), replaced by
+  decision 1 below (only the spec files are kept);
+- decision 2's **re-RED target** (the snapshot's non-test paths), replaced by the PR base (decision 2 below).
+
+Every other ADR-0145 clause stands as written, including its Status line's "until the entry … ships, receipt exceptions
+keep the existing user path", which decision 6 below makes concrete.
 
 ## Context
 
-- The tdd-guardian receipt proves "the test failed before the implementation" by fingerprinting every non-blank line of
-  each spec file at RED and comparing at the first green. Any edited or deleted recorded line is High
-  `spec-changed-under-green`, and the verdict SEPARATION-BROKEN is terminal (`verification.js:734`, `:774`).
-- The 2026-10-27 census (`docs/reference/20261027-receipt-separation-broken-causes.md`): 67 of 710 receipts BROKEN, all
-  `spec-changed-under-green`. Of the 38 that gate exceptions name, **one** was a real weakening (D318-F1-2). The rest
-  were corrected expected values, fixture, helper and import changes, edits undone, refactors and line-cap moves.
-  Receipts sharing a spec file within 24 h broke at 13 % (51/391) against 5 % (16/319) alone.
-- Each BROKEN receipt costs an evidence write-up and a user question: 17 exception groups from G519-1 to G-D331-2 and
-  G-ADR0146-2; on 2026-10-28 alone D331-F1-1, RESET-UPD-F2-1, ADR0146-G1-1, D332-F1-1 and ADR0147-WI1-3.
-- ADR-0145 (Accepted 2026-10-27) answers it with a snapshot of the code under test at RED (a local commit ref per
-  receipt, a content-addressed evidence packet and a repo-wide lock), a re-RED of the current tests against that
-  snapshot, and auditor clearing. As of 2026-10-29 nothing of it is implemented, and until it ships every exception
-  still goes to the user.
-- **Practice elsewhere** (web search, 2026-10-29):
-  - SWE-bench grades a fix by **FAIL_TO_PASS** (the final tests fail before the fix and pass after) and
-    **PASS_TO_PASS** (existing tests pass both before and after), always with the final test text
-    ([OpenAI, SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/)).
-  - The .NET MAUI "verify tests fail without fix" check reverts the fix files to the base branch, runs the tests and
-    requires failure, then restores the fix and requires a pass
-    ([skill](https://tessl.io/registry/skills/github/dotnet/maui/verify-tests-fail-without-fix)); the red-green-red
-    loop says the same ([joshka.net](https://www.joshka.net/practice/rules/testing/test-write-regression-tests-for-bug-fixes/)).
-  - Test-tamper research finds that a file-change check on tests catches tampering at no cost but flags every
-    legitimate edit and misses hard-coded outputs, so it is paired with a replay outside the agent's sandbox and a
-    process review ([EvilGenie summary](https://api.emergentmind.com/topics/evilgenie)).
-  - Mutation testing shows a test would fail on a wrong implementation, which red-green alone does not.
+- The tdd-guardian receipt fingerprints every non-blank line of the spec files at RED; any edited or deleted line at the
+  first green settles SEPARATION-BROKEN, terminally (`verification.js:734`, `:774`).
+- Census (2026-10-27, `docs/reference/20261027-receipt-separation-broken-causes.md`): 67 of 710 receipts BROKEN; of the
+  38 that exceptions name, one real weakening (D318-F1-2, an assertion removed from a **new** test). Seventeen exception
+  groups went to the user; five more receipts broke on 2026-10-28.
+- ADR-0145 (Accepted 2026-10-27) answers it with evidence at RED, a re-RED, auditor rulings bound by a content-addressed
+  packet, and auditor clearing; nothing of it is built. Its re-RED target is a commit snapshot of the whole code under test
+  at RED, kept under a local ref per receipt.
+- **Practice elsewhere** (web search, 2026-10-29): SWE-bench grades a fix by FAIL_TO_PASS (the final tests fail before
+  the fix and pass after) and PASS_TO_PASS ([OpenAI](https://openai.com/index/introducing-swe-bench-verified/)); the
+  .NET MAUI check reverts the fix files to the base branch and requires the tests to fail
+  ([skill](https://tessl.io/registry/skills/github/dotnet/maui/verify-tests-fail-without-fix)). Both use the base, which
+  git already holds, rather than a stored snapshot.
+- **Round 1's findings** that shape this revision: the final test text alone cannot show a weakening made after RED
+  inside a new file, because base has no such file; today's receipts hold only 16-hex line hashes and a whole-file sha
+  (`verification.js:331-342`) and no failing ids (`red-receipt.mjs:120-129`), so neither can be recovered; and rulings must
+  be bound to the bytes they read, which ADR-0145 decisions 3–4 already do.
 
 ## Options considered
 
-1. **Keep asking the user per BROKEN receipt** (today). Lost: 66 of 67 questions were about harmless edits; it does not
-   scale and trains a rubber stamp.
-2. **Implement ADR-0145 as accepted.** Lost: the snapshot ref, packet digest and evidence lock exist to keep the
-   RED-time production tree reachable, which `git merge-base` already gives; more machinery to build and keep correct
-   than the property needs.
-3. **Fingerprint only assertions** (census proposal P2). Lost: still a text test; a moved assertion or a corrected
-   literal still breaks, and a weakening outside an `expect` (a fixture, a mock return) passes unseen.
-4. **Base-tree fail-to-pass replay, plus a pre-existing-assertion diff, plus auditor ruling.** Chosen: it proves the
-   property that matters (the final test fails without this branch's production change and passes with it), with the
-   final test text, which is what lands.
+1. **Revision 1** (base replay, a base-existing-files diff, auditors clear, applying at once). Lost in review: the
+   weakening class it was built for passes unseen, and it could not run on today's receipts.
+2. **ADR-0145 as accepted.** Kept almost whole. Lost only in its whole-tree snapshot: the PR base gives the same
+   fail-without-the-change proof for the recorded ids without storing production code per receipt.
+3. **ADR-0145 with the spec text kept at RED and the replay pointed at the base.** Chosen.
 
 ## Decision
 
-1. **The replay.** For each BROKEN receipt the branch added, the landing verifier (layer 1, by hand; the repo entry
-   once layer 3 ships):
-   - in a detached verify worktree at the head, restores every **non-test** path to the PR base (`git merge-base`):
-     everything except `tests/`, and for Rust the head's `#[cfg(test)]` modules are kept while the rest of the file is
-     the base's;
-   - runs the receipt's own test ids with its lane: each must **fail with an assertion failure** (a compile, collect or
-     missing-module failure does not count), and none may pass or skip;
-   - runs the same ids at the head: each must pass.
-2. **The pre-existing-assertion diff (PASS_TO_PASS integrity).** The verifier lists every `expect`, `assert*`,
-   `toThrow`, `should_panic`, skip, `.only` or early `return` removed or changed in a test file **that exists at the
-   base**, and every changed fixture or mock those tests read. New test files are not listed: the replay covers them.
-3. **Who clears.** Both auditors, in the round they audit the range, rule each listed change non-weakening or
-   weakening on the replay output and the diff. A receipt clears when the replay passed and both rule non-weakening;
-   the delegator writes the gate-exception row citing both rulings, with no user question. **The user rules** when
-   either auditor reads a weakening, they disagree, or the replay fails or cannot run.
-4. **Class g stays with the user.** When the code under test lives in the spec file itself (a guard test's checker, a
-   Rust test in a production file), the replay cannot separate the two, and the exception goes to the user as today.
-5. **Prevention (layer 2).** Every brief says: commit shared fixtures, support files and imports **before** recording a
-   RED, and record one receipt per case; a test file another open receipt names is not edited without saying so in the
+1. **Evidence at RED (replaces ADR-0145 decision 1's snapshot; the rest of decision 1 stands).** The repo entry
+   (`scripts/tdd/red-receipt.mjs`, both lanes) records, beside the plugin's receipt and under ADR-0145 decision 6's lock and
+   sidecar:
+   - the **failing test ids** with their failure kind (assertion, panic, compile or collect error), as ADR-0145 decision 1
+     already says;
+   - the **spec files' text at RED**: each spec file's blob written with `git hash-object -w` and pinned by the local ref
+     `refs/receipts/<id>/<recorded-at>/spec` (a tree of those blobs), never pushed, deleted 30 days after landing;
+   - the plugin version, the lane command and its environment.
+2. **The replay (replaces ADR-0145 decision 2's target; its print step and fail-closed cases stand).** For a receipt that
+   ADR-0145 decision 2 or 5 sends to evidence:
+   - **print** the RED → head diff of every spec file from the pinned blobs, plus the base → head diff of the whole
+     `tests/` tree, so changed support, fixtures and **new** files are in the evidence;
+   - **replay** in a detached worktree at the head with every non-test path restored to the PR base
+     (`git merge-base`; `tests/` and Rust `#[cfg(test)]` modules kept at the head, as ADR-0145 decision 2 defines test
+     paths): each recorded failing id must **fail with an assertion failure**, none may pass, skip or disappear; then each
+     must pass at the head. It fails closed in ADR-0145 decision 2's three cases.
+   - Output goes to the sidecar evidence file. **The verdict stays BROKEN.**
+3. **Rulings, clearing, class g, holes, upstream: ADR-0145 decisions 3, 4, 5, 7, 8 and 9 stand unchanged.** The packet
+   digest now covers the pinned spec tree id in place of the snapshot commit id. Auditors rule non-weakening or weakening
+   on the printed diffs using ADR-0145 decision 3's oracle-change list; a ruling cites the digest; the delegator checks
+   the digest against the landing head under the evidence lock, and any mismatch (a fix round, a rebase, a later commit)
+   re-runs the replay and returns the receipt to both auditors.
+4. **Receipts recorded before decision 1 ships** have no failing ids and no RED-time text. They take the replay only as
+   far as it can run (the spec files' tests at base: list every case that passes there) and never clear without the user
+   (decision 6).
+5. **Prevention, in every brief from 2026-10-29:** commit shared fixtures, support files and imports **before** recording a
+   RED; record one receipt per case; a test file another open receipt names is not edited without saying so in the
    handoff.
-6. **Kept from ADR-0145:** `check-pending` on every lane; the verifier's blob-id comparison at landing; the Rust lane
-   through the repo entry and the rustfmt guard (decisions 5, 8); decision 9's upstream offer. **Dropped:** the RED-time
-   snapshot ref, the evidence packet digest and the evidence lock (decisions 1, 2's target, 6).
-7. **Layer 3, the tool.** `red-receipt.mjs replay --id <ID> --base <sha>` performs decisions 1–2 and writes the result
-   beside the receipt; the verifier runs it for every BROKEN receipt. A changed-lines mutation spot check is optional
-   evidence, not a gate.
+6. **Until the entry ships (ADR-0145 Status), the user still rules, once per landing.** The verifier runs decision 2 as far
+   as today's data allows (decision 4), both auditors rule on the printed diffs in their round, and the delegator asks the
+   user **one** question per landing listing every BROKEN receipt with its evidence and both rulings, instead of one
+   question per receipt. After the entry ships, ADR-0145 decision 4 applies: both auditors' non-weakening rulings on a
+   passed replay clear it, and the user is asked only about a weakening, a disagreement, or a replay that failed or could
+   not run.
+7. **The entry is built as one item, first in the queue** (user: 「相关的解决方案尽快implement，优先级排最前面」): ADR-0145
+   decisions 1 (as amended here), 2 (as amended), 5, 6 and 8, with `red-receipt.mjs replay --id <ID>` producing decision
+   2's evidence file, and the landing verifier's step 4 amended to run it for every BROKEN receipt and check the digest.
 
 ## Consequences
 
-- **Gained.** Most BROKEN receipts stop reaching the user; the proof is the one the industry uses; nothing new to keep
-  on disk; the test text that lands is the text that was proved.
+- **Gained.** A weakening made after RED, in a new or an old file, is printed for both auditors; most BROKEN receipts
+  stop reaching the user once the entry ships; until then the user answers one question per landing, not one per receipt.
+  Nothing per receipt is stored but its spec files' text.
 - **Costs.**
-  - A replay needs the head's tests to run against base production: a test that imports a module the branch created
-    fails with a missing module, which decision 1 does not count, so that receipt goes to the user. Such receipts are
-    the common case for brand-new modules; layer 2 reduces it only partly.
-  - It proves "fails without this branch", not "failed at RED before this cycle's change": a multi-cycle item whose
-    later case depends on an earlier cycle's code is replayed against the whole branch's absence, which is weaker per
-    cycle.
-  - The auditors' rulings add work to round one, and a weakening hidden in a new file's fixture is caught only by
-    their reading of the test diff, as today.
-  - Rust inline tests make the restore a per-file splice; until the tool does it, the verifier replays Rust receipts
-    only when the test lives in its own file, and sends the rest to the user.
+  - Replaying against the base proves each recorded id fails without **this branch's** production change, not without
+    **the cycle's** change. In a multi-cycle item, an id whose RED depended on an earlier cycle's code may still fail on
+    base for that earlier reason. The auditors read the RED → head diff to judge it.
+  - A test that imports a module the branch created fails on base with a collect or missing-module error, which does not
+    count, so such receipts go to the user. Decision 5 reduces this only partly.
+  - Rust inline tests make the restore a per-file splice, which the entry must implement.
+  - Pinned spec blobs live 30 days after landing, in every worktree's shared object store.
+  - Until the entry ships, the user still rules on every BROKEN receipt, though in one batch per landing.
