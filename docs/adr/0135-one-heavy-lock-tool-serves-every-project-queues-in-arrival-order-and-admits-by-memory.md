@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: partially superseded** (decision 6's warn-level start after five minutes) by [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md).
+
 Accepted, 2026-10-23. Decided by the user, recorded by herdr-delegator. The user's words: 「接受 (Recommended)」,
 choosing to accept it and queue D312 behind M1b and D255-WI-3d. The user asked for it the same day:
 「查看相关最佳实践，看看machine-wide，如何在多个项目测试间，避免过载前提下，协调多个项目的测试」, then 「开始起草」.

@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-29: partially superseded** (decisions 2, 3 (CPU clause) and 4 (vitest worker cap)) by [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md).
+
 **Accepted, 2026-10-29. Decided by the user**, recorded by herdr-delegator (Claude route), with picsee-delegator's
 agreement. The user's words:
 - the requirement: 「你和picsee商量一个方法，不能同时跑GUI test或者全量的unit lane，跑测试的时候，实时监控Mac Mini的CPU负载情况，一旦超过95%，停下跑测试」;
