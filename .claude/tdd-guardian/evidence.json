@@ -1612,6 +1612,17 @@
       },
       "spec_blobs": {
         "tests/tooling/adr0149e-normalise-law.test.ts": "e43435cfea41f454dc71c5425bae1e5ef443d56f"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "e517f3163760aa4446621699e89d4b060fd82031"
+      },
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-6.json",
+        "digest": "3ccc3019c1c21d0276d7bd7ffccc521efc4c9badabcb7dd8ffd5f6eacce324c1",
+        "result": "passed",
+        "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+        "head": "d16db0fa21ba594902545a0f0fe4f4f439ace1bc"
       }
     }
   }
