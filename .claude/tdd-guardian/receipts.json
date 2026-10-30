@@ -311126,9 +311126,20 @@
           "reason": ""
         }
       },
-      "verified_at": null,
-      "verdict": null,
-      "findings": []
+      "verified_at": "2026-10-30T06:32:50.705Z",
+      "verdict": "SEPARATION-BROKEN",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "50 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .tokenize/catalog.json, .tokenize/conflicts.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "high",
+          "code": "spec-changed-under-green",
+          "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/tooling/adr0149e-normalise-law.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+        }
+      ]
     }
   ]
 }
