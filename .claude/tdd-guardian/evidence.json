@@ -1120,7 +1120,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-digest-text.test.ts": "7bf9769d8d9c5e1726f5be91c582fb29ec53ae6d"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F3A.json",
+        "digest": "03b5c1589d103dd23f67dd30ec1f1019b3931ca8f906fe7145a7c2d23db4ce67",
+        "result": "passed",
+        "base": "7d9611e3a0b12ec6119f3052ad8ab4b60a6c47b8",
+        "head": "8915a0afff71d53e11836c1cc194fe71cf930bd6"
+      }
     },
     "ADR0149E-F3B": {
       "id": "ADR0149E-F3B",
@@ -1162,6 +1169,13 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0149e-digest-text.test.ts": "7bf9769d8d9c5e1726f5be91c582fb29ec53ae6d"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F3B.json",
+        "digest": "59f26765860df5374485f8c7bb4021dc827053302371cd33220481cda9747044",
+        "result": "passed",
+        "base": "7d9611e3a0b12ec6119f3052ad8ab4b60a6c47b8",
+        "head": "8915a0afff71d53e11836c1cc194fe71cf930bd6"
       }
     },
     "ADR0149E-F3C": {
@@ -1222,6 +1236,13 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0149e-normalise-law.test.ts": "87eaac5998a4d13361676219aa4e5b525ac9e875"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F3C.json",
+        "digest": "77f5bee8c4643d718edf6484d506bc1fa276fc5726e7419b5f4afbd051d4ec13",
+        "result": "passed",
+        "base": "7d9611e3a0b12ec6119f3052ad8ab4b60a6c47b8",
+        "head": "8915a0afff71d53e11836c1cc194fe71cf930bd6"
       }
     }
   }
