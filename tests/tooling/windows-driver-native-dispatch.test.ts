@@ -503,11 +503,11 @@ describe("B7 native PowerShell dispatch against controlled OS observations", () 
     } finally { await server.close(); }
   });
 
-  it("rejects a hit changed during the final identity helper", async () => {
+  it("rejects a hit changed after final native identity validation", async () => {
     const result = await runNative([
       { op: "clickat", x: 100, y: 100, nofocus: true, onError: "continue" },
       { op: "chord", keys: ["ctrl+b"], nofocus: true },
-    ], { overlayAtRectCall: 5 });
+    ], { overlayAtPointValidation: true });
     expect(result.status, JSON.stringify(result)).toBe(1);
     expect(result.trace.filter((line) => line.startsWith("mouse:"))).toEqual([]);
     expect(result.trace).not.toContain("logical:66:0");

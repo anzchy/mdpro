@@ -12,12 +12,17 @@ using System.Text.Json;
 public static class W32 {
   public struct RECT { public int L, T, R, B; }
   public struct POINT { public int X, Y; }
+  public static System.Collections.Generic.Dictionary<string, IntPtr> Props = new System.Collections.Generic.Dictionary<string, IntPtr>();
+  public static IntPtr GetProp(IntPtr h, string key) { return !NativeStale && Props.ContainsKey(key) ? Props[key] : IntPtr.Zero; }
+  public static bool SetProp(IntPtr h, string key, IntPtr value) { Props[key] = value; Trace("property:pin"); return true; }
+  public static IntPtr RemoveProp(IntPtr h, string key) { Trace("property:remove"); if (FailRemoveProp) return IntPtr.Zero; var value = GetProp(h, key); Props.Remove(key); return value; }
+  public static bool FailRemoveProp, RectChangesAfterPin;
   public static int RectCalls, ForegroundCalls, HklCalls, SendCalls, LogicalCalls, MouseCalls, ThreadCalls, ProcessCalls;
   public static int CursorX, CursorY, SetCursorCalls, HitCalls, SleepCalls;
   public static int RectChangeAt, ForegroundChangeAt, HklChangeAt, ShortSendAt, ThrowSendAt, ThrowReleaseAt, ThreadChangeAt, WrongExeAt, FocusChangesAfterMouseDownAt;
   public static int DriftX, DriftY, HitChangeAt, OverlayAtRectCall, FailSetCursorAt;
   public static int InitialForeground;
-  public static bool RefuseFocus, IgnoreFocus, DriftDuringFocusWait;
+  public static bool RefuseFocus, IgnoreFocus, DriftDuringFocusWait, OverlayAtPointValidation;
   public static bool DriftDuringWait, DriftAfterMouseDownToB, OverlayAtA, OverlayAfterMouseDown, StaleAfterMouseDown, NativeStale, FailCursorRead, NullHit, NullRoot, FailPopupThread, PopupBSharedThread, SecondMdpro;
   public static int DriftAtSleep;
   public static string PopupAtItem = "";
@@ -40,6 +45,8 @@ public static class W32 {
     DriftDuringWait = flag("driftDuringWait"); DriftAtSleep = number("driftAtSleep"); DriftX = number("driftX"); DriftY = number("driftY");
     OverlayAtA = flag("overlayAtA"); HitChangeAt = number("hitChangeAt"); OverlayAtRectCall = number("overlayAtRectCall");
     OverlayAfterMouseDown = flag("overlayAfterMouseDown"); PopupBSharedThread = flag("popupBSharedThread");
+    OverlayAtPointValidation = flag("overlayAtPointValidation");
+    FailRemoveProp = flag("failRemoveProp"); RectChangesAfterPin = flag("rectChangesAfterPin");
     StaleAfterMouseDown = flag("staleAfterMouseDown");
     DriftAfterMouseDownToB = flag("driftAfterMouseDownToB");
     SecondMdpro = flag("secondMdpro");
@@ -68,7 +75,7 @@ public static class W32 {
   public static bool GetWindowRect(IntPtr h, out RECT r) {
     RectCalls++;
     if (OverlayAtRectCall > 0 && RectCalls >= OverlayAtRectCall) OverlayAtA = true;
-    int x = RectChangeAt > 0 && RectCalls >= RectChangeAt ? 1 : 0;
+    int x = RectChangesAfterPin && Props.Count > 0 || RectChangeAt > 0 && RectCalls >= RectChangeAt ? 1 : 0;
     r = h.ToInt64() == 202
       ? new RECT { L = 900, T = 0, R = 1700, B = 600 }
       : new RECT { L = x, T = 0, R = 800 + x, B = 600 };
@@ -131,6 +138,7 @@ public static class W32 {
     CursorX = x; CursorY = y; return true;
   }
   public static bool GetCursorPos(out POINT point) {
+    if (OverlayAtPointValidation) OverlayAtA = true;
     Trace("observe:cursor:" + CursorX + ":" + CursorY);
     point = new POINT { X = CursorX, Y = CursorY }; return !FailCursorRead;
   }
@@ -195,6 +203,7 @@ export interface NativeScenario {
   overlayAtA?: boolean;
   overlayAtRectCall?: number;
   overlayAfterMouseDown?: boolean;
+  overlayAtPointValidation?: boolean;
   staleAfterMouseDown?: boolean;
   driftAfterMouseDownToB?: boolean;
   secondMdpro?: boolean;
@@ -206,13 +215,20 @@ export interface NativeScenario {
   nullRoot?: boolean;
   failPopupThread?: boolean;
   popupBSharedThread?: boolean;
+  failRemoveProp?: boolean;
+  rectChangesAfterPin?: boolean;
 }
 
-export async function runNative(
-  steps: unknown[], scenario: NativeScenario = {}, options: { cdpPort?: number; titlePath?: string } = {},
-): Promise<{ status: number | null; log: string[]; trace: string[]; stderr: string }> {
+export async function prepareNative(
+  // The scenario and options reach the script through runNative's environment, not this text.
+  steps: unknown[], _scenario: NativeScenario = {}, _options: { cdpPort?: number; titlePath?: string } = {},
+) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "mdpro-native-dispatch-"));
-  const source = await readFile(path.join(WINDOWS, "ui.ps1"), "utf8");
+  let source = await readFile(path.join(WINDOWS, "ui.ps1"), "utf8");
+  for (const file of ["native-platform.ps1", "native-runtime.ps1", "native-window.ps1", "native-input.ps1", "native-ops.ps1"]) {
+    const helper = await readFile(path.join(WINDOWS, file), "utf8");
+    source = source.replace(`. "$PSScriptRoot\\${file}"`, () => helper);
+  }
   const platformStart = source.indexOf("Add-Type -AssemblyName UIAutomationClient");
   const platformEnd = source.indexOf("[void][W32]::SetProcessDPIAware()");
   if (platformStart < 0 || platformEnd < 0) throw new Error("native driver prelude changed");
@@ -225,10 +241,11 @@ export async function runNative(
   const fixture = `
 [W32]::Configure($env:MDPRO_TEST_SCENARIO, $env:MDPRO_TEST_TRACE)
 function MdproWindows {
+  [IO.File]::AppendAllText($env:MDPRO_TEST_TRACE, "boundary:uia\n")
   [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 101; ProcessId = 11 } }
   if ([W32]::SecondMdpro) { [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 202; ProcessId = 11 } } }
 }
-function Get-Process { param($Id, $ErrorAction) return [pscustomobject]@{ Path = [W32]::ProcessPath(); Id = 11 } }
+function Get-Process { param($Id, $ErrorAction) return [pscustomobject]@{ Path = [W32]::ProcessPath(); Id = 11; StartTime = [datetime]"2026-01-01T00:00:00Z" } }
 function Start-Sleep { param($Milliseconds) [W32]::Sleep([int]$Milliseconds) }
 `;
   script = script.replace("$failed = $false; $n = 0", fixture + "\n$failed = $false; $n = 0");
@@ -239,6 +256,13 @@ function Start-Sleep { param($Milliseconds) [W32]::Sleep([int]$Milliseconds) }
   await Promise.all([
     writeFile(scriptPath, script), writeFile(stepsPath, JSON.stringify(steps)), writeFile(tracePath, ""),
   ]);
+  return { dir, scriptPath, stepsPath, outPath, tracePath };
+}
+
+export async function runNative(
+  steps: unknown[], scenario: NativeScenario = {}, options: { cdpPort?: number; titlePath?: string } = {},
+): Promise<{ status: number | null; log: string[]; trace: string[]; stderr: string }> {
+  const { scriptPath, stepsPath, outPath, tracePath } = await prepareNative(steps, scenario, options);
   const result = await new Promise<{ status: number | null; stderr: string }>((done) => {
     const child = spawn("pwsh", ["-NoProfile", "-File", scriptPath, "-Steps", stepsPath, "-Out", outPath], {
       env: { ...process.env, MDPRO_TEST_SCENARIO: JSON.stringify(scenario), MDPRO_TEST_TRACE: tracePath,

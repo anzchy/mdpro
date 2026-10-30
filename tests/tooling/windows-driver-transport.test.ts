@@ -40,12 +40,12 @@ describe("D228 — a mutation whose response was lost runs once and reports an u
     expect(r.stderr).toMatch(/UNKNOWN OUTCOME/);
   });
 
-  it("T2 ui.sh: the steps ran once, exit 3, and the cleanup backstop ran", () => {
-    const r = run([LOST, { execute: true, stdout: "" }], "ui.sh", '[{"op":"key","keys":"z"}]');
+  it("T2 ui.sh: the steps ran once, exit 3, and never invoke global cleanup", () => {
+    const r = run([LOST, { execute: true, stdout: "" }], "ui.sh", '[{"op":"chord","keys":["z"]}]');
     expect(count(r.ssh.executed(), "ui-run.ps1"), r.stderr).toBe(1);
     expect(r.status).toBe(3);
     expect(r.stderr).toMatch(/UNKNOWN OUTCOME/);
-    expect(count(r.ssh.calls(), "Get-ScheduledTask"), "cleanup ran").toBe(1);
+    expect(count(r.ssh.calls(), "Get-ScheduledTask"), "per-run supervisor owns cleanup even if SSH is lost").toBe(0);
   });
 
   it("T3 push.sh: a lost chunk append stops the upload; no chunk runs twice and none after it", () => {
@@ -129,7 +129,8 @@ describe("D228 — an idempotent read still retries once on a lost connection", 
 const MUTATIONS: Record<string, string[]> = {
   // WI-E2E-W item 3: ${W} is the optional --window label, the same two mutations.
   "cdp.sh": ["node cdp.mjs ${W}evalfile", "node cdp.mjs ${W}eval64"],
-  "ui.sh": ["ui-run.ps1"],
+  "ui-transaction.py": ["ui-run.ps1"],
+  "deploy.sh": ["native-build.ps1"],
   "mdpro.sh": ["runi.ps1"],
   "push.sh": ["Add-Content", "WriteAllBytes"],
 };
@@ -137,12 +138,15 @@ const MUTATIONS: Record<string, string[]> = {
 describe("D228 — every remote call is classified", () => {
   it("T7 a `win` call is a listed mutation, everything else uses win_read, and only common.sh runs ssh", () => {
     const unclassified: string[] = [];
-    for (const f of fs.readdirSync(MAC).filter((n) => n.endsWith(".sh"))) {
+    for (const f of fs.readdirSync(MAC).filter((n) => /\.(sh|py)$/.test(n))) {
       const lines = fs.readFileSync(path.join(MAC, f), "utf8").split("\n");
       lines.forEach((line, i) => {
         const code = line.replace(/^\s*#.*$/, "");
         if (f !== "common.sh" && /\bssh\s/.test(code)) unclassified.push(`${f}:${i + 1} runs ssh directly`);
         if (f === "common.sh") return;
+        if (f === "ui-transaction.py" && /invoke\("win",/.test(code) && !lines.some((v) => v.includes("ui-run.ps1"))) {
+          unclassified.push(`${f}:${i + 1} native mutation has no known dispatcher`);
+        }
         if (/(^|[\s($|;&])win\s/.test(code) && !(MUTATIONS[f] ?? []).some((m) => code.includes(m))) {
           unclassified.push(`${f}:${i + 1} ${code.trim().slice(0, 80)}`);
         }

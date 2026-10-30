@@ -12,3 +12,6 @@ for f in "$SKILL_DIR"/scripts/windows/*; do
   if printf '%s\n' "$hashes" | grep -qx "$n $h"; then echo "same $n"; continue; fi
   "$(dirname "$0")/push.sh" "$f" "$WIN_DIR\\$n" || exit $?
 done
+# Compile only during deployment, before a transaction can acquire desktop input ownership.
+# Hash-bound native-job-build.json is checked on every transaction; stale/missing binary refuses.
+win "powershell -NoProfile -ExecutionPolicy Bypass -File '$WIN_DIR\\native-build.ps1'" || exit $?

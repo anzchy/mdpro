@@ -6,14 +6,17 @@
  *
  * E1–E6 run the real Mac scripts with a fake ssh (tests/support/fakeSsh.ts) that answers as the
  * Windows side now does, in its PowerShell 5.1 mode (`remote`), so a code reaches the Mac only
- * through the D247 wrapper. P1–P3 guard the PowerShell side by its text: there is no pwsh on the Mac
- * or in CI, and the device run (W2–W4) exercises it for real.
+ * through the D247 wrapper. P1 and P3 execute the PowerShell decision code under controlled
+ * native/Scheduler boundaries; P2 and P4 retain generic runi source guards. Real Windows
+ * acceptance remains separate from this portable harness.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { makeFakeSsh, type FakeSsh, type SshReply } from "../support/fakeSsh";
+import { runNative } from "./windows-driver-native-harness";
+import { supervisorFixture } from "./windows-driver-native-supervisor-harness";
 
 const SKILL = path.resolve(__dirname, "../../.claude/skills/remote-windows-device-test/scripts");
 const MAC = path.join(SKILL, "mac");
@@ -87,16 +90,18 @@ describe("N1 — the Mac wrappers pass a Windows failure on", () => {
 
 const read = (f: string) => fs.readFileSync(path.join(WIN, f), "utf8");
 
-describe("N1 — the PowerShell side reports failure (source guards; W2–W4 run it for real)", () => {
-  it("P1 ui.ps1 stops at the first failed step unless the step opts in, and exits 1 when it stopped", () => {
-    const ps = read("ui.ps1");
-    const handler = ps.slice(ps.lastIndexOf("} catch {"));
-    expect(handler).toMatch(/\$s\.onError -ne "continue"/);
-    expect(handler).toMatch(/ABORTED at step/);
-    expect(handler).toMatch(/\bbreak\b/);
-    expect(ps.trimEnd()).toMatch(/if \(\$failed\) \{ exit 1 \}$/);
-    expect(ps, "the log is written before the exit").toMatch(/Set-Content -Encoding UTF8 \$Out\s+if \(\$failed\)/);
-  });
+describe("N1 — the PowerShell side reports failure", () => {
+  it("P1 ui.ps1 stops at the first failed step unless the step opts in, and exits 1 when it stopped", async () => {
+    const next = { op: "chord", keys: ["ctrl+a"], nofocus: true };
+    const failed = await runNative([{ op: "menuclick", path: ["Nope"] }, next]);
+    expect(failed.status, failed.stderr).toBe(1);
+    expect(failed.log.join(" ")).toContain("ABORTED at step 1");
+    expect(failed.trace).not.toContain("logical:65:0");
+    const continued = await runNative([{ op: "menuclick", path: ["Nope"], onError: "continue" }, next]);
+    expect(continued.status, continued.stderr).toBe(0);
+    expect(continued.log.join(" ")).toContain("ERROR menuclick");
+    expect(continued.trace).toContain("logical:65:0");
+  }, 15000);
 
   it("P2 runi.ps1 exits 124 on its timeout and passes the task's own result on", () => {
     const ps = read("runi.ps1");
@@ -105,13 +110,17 @@ describe("N1 — the PowerShell side reports failure (source guards; W2–W4 run
     expect(ps.trimEnd()).toMatch(/exit \$code$/);
   });
 
-  it("P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status", () => {
-    const ps = read("ui-run.ps1");
-    expect(ps).toMatch(/\$rc = \$LASTEXITCODE/);
-    expect(ps).toMatch(/ABORTED at step/);
-    expect(ps.trimEnd()).toMatch(/exit \$rc$/);
+  it("P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status", async () => {
+    const completed = await (await supervisorFixture("success")).start().result;
+    expect(completed.status, completed.stderr).toBe(0);
+    expect(completed.lines.join(" ")).toContain("phase:start success");
+    expect(completed.lines.join(" ")).toContain('"status":"completed"');
+    const failed = await (await supervisorFixture("discovery")).start().result;
+    expect(failed.status, failed.stderr).not.toBe(0);
+    expect(failed.lines.join(" ")).toContain("phase:start discovery");
+    expect(failed.lines.join(" ")).toContain('"status":"failed"');
     expect(read("ui.cmd")).toMatch(/exit \/b %errorlevel%/i);
-  });
+  }, 15000);
 });
 
 describe("N1 (audit b151 Medium) — a failed read is a failure, never an empty answer", () => {
