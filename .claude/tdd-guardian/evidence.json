@@ -1244,6 +1244,292 @@
         "base": "7d9611e3a0b12ec6119f3052ad8ab4b60a6c47b8",
         "head": "8915a0afff71d53e11836c1cc194fe71cf930bd6"
       }
+    },
+    "ADR0149E-F4-1": {
+      "id": "ADR0149E-F4-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T05:57:12.855Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 217
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F4-1/20261030T055712855Z/tests",
+        "tree": "c3471334044f82186ac73a374e42366492a00cc3"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "e9afeff9b3d8184810c4b03860e9e012b4600ab1"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-F4-2": {
+      "id": "ADR0149E-F4-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T05:58:43.996Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 217
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 224
+          },
+          "message": "AssertionError: expected 'AssertionError: worker pid <pid> exit…' to match /^AssertionError: worker pid 1 exited: /"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F4-2/20261030T055843996Z/tests",
+        "tree": "1d6998c82c83985581bbe2d38c14b923e242e807"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "1299e1261752632be74bdc2a0d979604c7a90269"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-F4-3": {
+      "id": "ADR0149E-F4-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T05:59:32.699Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 217
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 224
+          },
+          "message": "AssertionError: expected 'AssertionError: worker pid <pid> exit…' to match /^AssertionError: worker pid 1 exited: /"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-3: messages that differ only in an ISO timestamp digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 231
+          },
+          "message": "AssertionError: expected 'AssertionError: at <timestamp>: expec…' to match /^AssertionError: at 2026-10-30T01:02:…/"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F4-3/20261030T055932699Z/tests",
+        "tree": "4e6b9585ace2d109a994d8c876a201af7ce82b37"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "ccc3cc77bfa1d9660329488f21d1a1c113e05b7b"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-F4-4": {
+      "id": "ADR0149E-F4-4",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T06:01:20.477Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 217
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 224
+          },
+          "message": "AssertionError: expected 'AssertionError: worker pid <pid> exit…' to match /^AssertionError: worker pid 1 exited: /"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-3: messages that differ only in an ISO timestamp digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 231
+          },
+          "message": "AssertionError: expected 'AssertionError: at <timestamp>: expec…' to match /^AssertionError: at 2026-10-30T01:02:…/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp inside a runner line is normalised\",\"F4-4: two replays whose runner lines differ only in temp paths, pids and timestamps digest equal, and the assertion's own values stay\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 247
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' pi…' to be 'AssertionError: expected \\'/tmp/keep.…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F4-4/20261030T060120477Z/tests",
+        "tree": "4c31bc331b8593eeea6b745937216b37418299ef"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+      }
+    },
+    "ADR0149E-F4-5": {
+      "id": "ADR0149E-F4-5",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T06:02:25.217Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F2G1b a pre-entry base run's error is normalised in the digest\",\"a run that could not start names its path raw in the evidence and as <tmp> in the digest input\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 177
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"gives the runner view only to the reasons judge built from a run's error\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 131
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"judge names the reasons it built from a run's error, wherever they fall\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 142
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"keeps apart what differs outside a runner line and merges what differs only inside one\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 101
+          },
+          "message": "AssertionError: expected '/tmp/a.md' to be '/tmp/c.md' | expected '/tmp/b.md' to be '/tmp/c.md': expected 'expected \\'<tmp>\\' to be \\'<tmp>\\'' not to be 'expected \\'<tmp>\\' to be \\'<tmp>\\'' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"leaves each kind raw outside a runner line, also next to a span on another line\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 80
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to be 'AssertionError: expected \\'/tmp/a.md\\…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"normalises the replay's own error text whole, worktree first\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 121
+          },
+          "message": "AssertionError: expected undefined to be type of 'function'"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"recognises a runner line only at a line's start, by its exact tag or banner, and never across a newline\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 116
+          },
+          "message": "AssertionError: expected 'see [heavy-lock] pid <pid>' to be 'see [heavy-lock] pid 3' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside a runner line or the replay's own error\",\"rewrites every value in each runner line\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 92
+          },
+          "message": "AssertionError: expected '[heavy-lock] pid <pid>\\r\\nnext pid <p…' to be '[heavy-lock] pid <pid>\\r\\nnext pid 4' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F4-5/20261030T060225217Z/tests",
+        "tree": "2922ed3f2f502ea9b013280aa6ca500bf8df3e30"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "1cebe48179d3c29bb0d8c18d2bd2596b131533a2"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "3e9efb5ec28d9152f47a5a5387a41e6e8a9a2857"
+      },
+      "evidence_required": true
     }
   }
 }

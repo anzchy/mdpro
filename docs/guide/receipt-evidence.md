@@ -114,19 +114,43 @@ assertion message, raised in the same file, is required instead. Anything else f
 **The digest** is sha256 over canonical JSON, keys sorted at every level, of `id`, `recorded_at`,
 `tests_tree`, `base`, `head`, `head_tests_tree`, `spec_blobs` and `replay`. Here `replay` is the
 result, the reasons, and each id's status, kind, location and whole message at base and head. The
-text an auditor reads is therefore bound: a different message or reason gives a different digest.
+text an auditor reads is therefore bound: a message or reason that differs in anything other than
+the volatile values below gives a different digest.
 Any change of base or head changes it, and `--expect-digest` reports `digest mismatch`.
 
 **Normalisation.** Before reasons, messages and a pre-entry `base_run.error` enter the digest,
-`normaliseText` (`scripts/tdd/receipt-replay.mjs`) rewrites what varies by nature between two runs
-of the same base and head. It applies these rules, in this order, and nothing else:
-1. **Worktree.** The replay worktree's path, as created and as its realpath, becomes `<worktree>`.
-2. **Temp paths.** An absolute path under a temp root, up to the next whitespace, quote, bracket,
-   comma or colon, becomes `<tmp>`; a `:line:col` after it stays. The roots are `os.tmpdir()` and its realpath, `/tmp`, `/private/tmp`,
-   `/var/folders` and `/private/var/folders`.
-3. **Timestamps.** An ISO-8601 date with a time (`2026-10-30T01:02:03.456Z`) becomes `<timestamp>`.
-   A date alone stays.
-4. **Timing spans.** A duration is rewritten only inside a line of the runner's own timing
+`scripts/tdd/receipt-replay.mjs` rewrites what varies by nature between two runs of the same base
+and head. There are two views:
+- **The message view** (`normaliseText`) is for each id's message and for every reason that quotes
+  one (`<id>: failed at base at … (<message head>) …`, `<id>: disappeared at base`, …). It applies
+  rules 1, 2 and 3 below, and rule 2 only inside a runner line.
+- **The runner view** (`normaliseRunnerText`) is for text the replay itself produced: a pre-entry
+  `base_run.error`, and the `base run: <error>` and `head run: <error>` reasons. `judge` names those
+  reasons by index, so a test titled `base run: …` still takes the message view. It applies rules 1,
+  2 and 3, and rule 2 to the whole text.
+
+The rules, in this order, and nothing else:
+1. **Worktree.** The replay worktree's path, as created and as its realpath, becomes `<worktree>`,
+   anywhere in the text. It is the exact directory this replay created, not a pattern.
+2. **Temp paths, timestamps and pids**, each as follows:
+   - An absolute path under a temp root, up to the next whitespace, quote, bracket, comma or colon,
+     becomes `<tmp>`; a `:line:col` after it stays. The roots are `os.tmpdir()` and its realpath,
+     `/tmp`, `/private/tmp`, `/var/folders` and `/private/var/folders`.
+   - An ISO-8601 date with a time (`2026-10-30T01:02:03.456Z`) becomes `<timestamp>`. A date alone
+     stays.
+   - `pid` followed by a number on the same line, with an optional `=` or `:`, becomes `pid <pid>`.
+
+   In the message view these apply only inside a **runner line**: a whole line, matched from its
+   start after optional spaces or tabs, of one of these shapes:
+
+   | Runner line | Line shape | Example |
+   |---|---|---|
+   | Tool status line | `[heavy-lock]` or `[load-guard]`, then the rest of the line | `[heavy-lock] waiting for <lock>, held by: pid=N started=<ISO> cwd=<path>` |
+   | Vitest banner | `RUN`, spaces, `v` and a version, spaces, the root path | ` RUN  v3.2.4 /tmp/x` |
+
+   Anywhere else in a message, a temp path, timestamp or pid stays raw: `expected '/tmp/a.md'` and
+   `expected '/tmp/b.md'` digest apart, and so do `pid 1` and `pid 2`, or two ISO timestamps.
+3. **Timing spans.** A duration is rewritten only inside a line of the runner's own timing
    output. That output reaches a message when a test passes a nested run's output to `expect`, as
    `expect(result.status, result.output)` does throughout `tests/tooling/`. Each span is a whole
    line, matched from its start:
@@ -143,16 +167,17 @@ of the same base and head. It applies these rules, in this order, and nothing el
    else stays raw: `expected '10ms'`, `expected 2ms to be 3ms`, `Test timed out in 5000ms.`, an
    indented diff line such as `    + waited 20ms`, and a test title's own `10ms` before the trailing
    one. So does a clock outside a `Start at` line.
-5. **Pids.** `pid` followed by a number, with an optional `=` or `:`, becomes `pid <pid>`.
 
-Assertion text, the durations and numbers in it, other paths and `file:line` locations stay as they
-are. So `expected '10ms'` and `expected '20ms'` digest apart. The evidence file keeps the raw text,
+Assertion text, the paths, timestamps, pids, durations and numbers in it, and `file:line`
+locations stay as they are. So `expected '10ms'` and `expected '20ms'` digest apart. The evidence file keeps the raw text,
 and the judge compares raw text; only `digest_input` holds the normalised form. A message that
-varies some other way, such as a counter or a duration in the assertion's own words, changes the
-digest. The limits: a message line that its author wrote in exactly one of the span shapes above is
-rewritten like the runner's own line, and so is a nested test line whose title ends in a duration when
-the runner printed no timing after it (Vitest omits it for fast tests and for `↓` skips). The worktree,
-temp-path, timestamp and pid rules still apply to the whole text.
+varies some other way, such as a counter, or a duration, temp path, timestamp or pid in the
+assertion's own words, changes the digest. A test that writes a fresh `mkdtemp` path or the clock
+into its own assertion message therefore digests differently on every replay; put such a value in a
+runner line, or leave it out of the message. The limits: a message line that its author wrote in
+exactly one of the span or runner-line shapes above is rewritten like the runner's own line, and so is
+a nested test line whose title ends in a duration when the runner printed no timing after it (Vitest
+omits it for fast tests and for `↓` skips).
 
 **Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It

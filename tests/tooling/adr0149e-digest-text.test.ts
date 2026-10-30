@@ -6,7 +6,9 @@
  * replay worktree, timestamps, pids, and since fix 3 only the runner's own timing spans).
  * A changed message changes the digest; a changed temp path does not. Fix 3 (gpt-auditor
  * round two H1): a duration inside an assertion stays raw, so `'10ms'` and `'20ms'` digest
- * apart, while a nested runner's timing output still normalises.
+ * apart, while a nested runner's timing output still normalises. Fix 4 (gpt-auditor round
+ * three H1): a temp path, timestamp or pid in an assertion stays raw too, and normalises only
+ * inside a runner line (`[heavy-lock]`, `[load-guard]`, Vitest's `RUN` banner).
  */
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -60,11 +62,11 @@ describe("ADR0149E-F2G1 the normalisation rules", () => {
     expect(replayModule.normaliseText).toBeTypeOf("function");
     const n = (text: string, worktree = "/repo/mdpro-wt/verify-abc1234-replay-A-x1Y2z3") => replayModule.normaliseText(text, worktree);
     expect(n("at /repo/mdpro-wt/verify-abc1234-replay-A-x1Y2z3/tests/a.test.ts:4")).toBe("at <worktree>/tests/a.test.ts:4");
-    expect(n(`wrote ${join(tmpdir(), "mdpro-replay-run-AbC123", "vitest.json")} ok`)).toBe("wrote <tmp> ok");
-    expect(n("wrote /private/var/folders/yc/xyz/T/abc/f.json ok")).toBe("wrote <tmp> ok");
-    expect(n("wrote /tmp/abc/f.json, then")).toBe("wrote <tmp>, then");
-    expect(n("at 2026-10-30T01:02:03.456Z done")).toBe("at <timestamp> done");
-    expect(n("worker pid 4242 died; pid=77")).toBe("worker pid <pid> died; pid <pid>");
+    expect(n(`[heavy-lock] wrote ${join(tmpdir(), "mdpro-replay-run-AbC123", "vitest.json")} ok`)).toBe("[heavy-lock] wrote <tmp> ok");
+    expect(n("[heavy-lock] wrote /private/var/folders/yc/xyz/T/abc/f.json ok")).toBe("[heavy-lock] wrote <tmp> ok");
+    expect(n("[heavy-lock] wrote /tmp/abc/f.json, then")).toBe("[heavy-lock] wrote <tmp>, then");
+    expect(n("[heavy-lock] at 2026-10-30T01:02:03.456Z done")).toBe("[heavy-lock] at <timestamp> done");
+    expect(n("[heavy-lock] worker pid 4242 died; pid=77")).toBe("[heavy-lock] worker pid <pid> died; pid <pid>");
     expect(n("expected 1 to be 2")).toBe("expected 1 to be 2");
     expect(n("expected 1 to be 2")).not.toBe(n("expected 3 to be 2"));
     expect(n("tests/a.test.ts:12 failed 3 of 5")).toBe("tests/a.test.ts:12 failed 3 of 5");
@@ -95,17 +97,17 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1 the digest binds the text", () =>
     expect(b.digest).not.toBe(a.digest);
   });
 
-  it("the replay worktree, a temp path, pid or timestamp in the message keeps the digest; the evidence keeps the raw text", async () => {
+  it("the replay worktree, and a temp path, pid or timestamp in a runner line of the message, keep the digest; the evidence keeps the raw text", async () => {
     mkdirSync(join(homedir(), ".cache"), { recursive: true });
     const root = mkdtempSync(join(homedir(), ".cache", "mdpro-f2g1-root-"));
     try {
-      await receipt('`${process.cwd()} ${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} pid ${process.pid}, at ${new Date().toISOString()}`');
+      await receipt('`${process.cwd()}\\n[heavy-lock] ${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} pid ${process.pid}, at ${new Date().toISOString()}`');
       const a = await replay({ MDPRO_REPLAY_ROOT: root });
       const b = await replay({ MDPRO_REPLAY_ROOT: root });
       expect(a.status, a.output).toBe(0);
       expect(a.evidence.replay.ids[id].base.message).toMatch(/\/mdpro-f2g1-msg-[A-Za-z0-9]{6} pid /);
       expect(a.evidence.replay.ids[id].base.message).not.toBe(b.evidence.replay.ids[id].base.message);
-      expect(a.evidence.digest_input.replay.ids[id].base.message).toMatch(/^AssertionError: <worktree> <tmp> pid <pid>, at <timestamp>: expected 1 to be 2/);
+      expect(a.evidence.digest_input.replay.ids[id].base.message).toMatch(/^AssertionError: <worktree>\n\[heavy-lock\] <tmp> pid <pid>, at <timestamp>: expected 1 to be 2/);
       expect(b.digest).toBe(a.digest);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
@@ -121,13 +123,13 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1 the digest binds the text", () =>
     expect(b.digest).not.toBe(a.digest);
   });
 
-  it("a failed replay's reasons are normalised: volatile text in them keeps the digest", async () => {
-    await failingReceipt('`${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} at ${new Date().toISOString()}`');
+  it("a failed replay's reasons are normalised: the replay worktree quoted in them keeps the digest", async () => {
+    await failingReceipt('`${process.cwd()} at base`');
     const a = await replay();
     const b = await replay();
     expect(a.evidence.replay.result).toBe("failed");
     expect(a.evidence.replay.reasons.join("\n")).not.toBe(b.evidence.replay.reasons.join("\n"));
-    expect(a.evidence.digest_input.replay.reasons.join("\n")).toMatch(/<tmp> at <timestamp>/);
+    expect(a.evidence.digest_input.replay.reasons.join("\n")).toMatch(/\(AssertionError: <worktree> at base: expected false to be true/);
     expect(b.digest).toBe(a.digest);
   });
 
@@ -198,5 +200,53 @@ describe.skipIf(!pluginVersion)("ADR0149E-F3 the runner's timing output is norma
     expect(digested).toContain(" ❯ tests/x.test.ts (2 tests | 1 failed) <duration>\n   × fails <duration>\n");
     expect(digested).toContain("   Start at  <timestamp>\n   Duration  <duration> (transform <duration>, setup <duration>,");
     expect(digested).not.toMatch(/12ms|09:32:01|1\.20s/);
+  });
+});
+
+/** Two replays of one receipt whose RED message is `a`, then `b`: both pass, and each digested message is returned. */
+async function pair(a: string, b: string) {
+  await receipt('process.env.ADR0149E_MSG ?? "m"');
+  const first = await replay({ ADR0149E_MSG: a });
+  const second = await replay({ ADR0149E_MSG: b });
+  expect(first.status, first.output).toBe(0);
+  expect(second.status, second.output).toBe(0);
+  return { first, second, digested: [first, second].map((run) => run.evidence.digest_input.replay.ids[id].base.message as string) };
+}
+
+describe.skipIf(!pluginVersion)("ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound", () => {
+  it("F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart", async () => {
+    const { first, second, digested } = await pair("expected '/tmp/a.md' to be '/tmp/c.md'", "expected '/tmp/b.md' to be '/tmp/c.md'");
+    expect(digested[0]).toMatch(/^AssertionError: expected '\/tmp\/a\.md' to be '\/tmp\/c\.md': expected 1 to be 2/);
+    expect(digested[1]).toMatch(/^AssertionError: expected '\/tmp\/b\.md' to be '\/tmp\/c\.md': expected 1 to be 2/);
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart", async () => {
+    const { first, second, digested } = await pair("worker pid 1 exited", "worker pid 2 exited");
+    expect(digested[0]).toMatch(/^AssertionError: worker pid 1 exited: /);
+    expect(digested[1]).toMatch(/^AssertionError: worker pid 2 exited: /);
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("F4-3: messages that differ only in an ISO timestamp digest apart", async () => {
+    const { first, second, digested } = await pair("at 2026-10-30T01:02:03Z", "at 2026-10-30T09:09:09Z");
+    expect(digested[0]).toMatch(/^AssertionError: at 2026-10-30T01:02:03Z: /);
+    expect(digested[1]).toMatch(/^AssertionError: at 2026-10-30T09:09:09Z: /);
+    expect(second.digest).not.toBe(first.digest);
+  });
+});
+
+describe.skipIf(!pluginVersion)("ADR0149E-F4 a temp path, pid or timestamp inside a runner line is normalised", () => {
+  it("F4-4: two replays whose runner lines differ only in temp paths, pids and timestamps digest equal, and the assertion's own values stay", async () => {
+    const tmp = (prefix: string) => `\${mkdtempSync(join(tmpdir(), "mdpro-f4-${prefix}-"))}`;
+    await receipt(`\`expected '/tmp/keep.md' pid 7 at 2026-01-01T00:00:00Z\\n RUN  v3.2.4 ${tmp("root")}\\n[heavy-lock] waiting for ${tmp("lock")}/lock, held by: pid=\${process.pid} started=\${new Date().toISOString()} cwd=${tmp("cwd")}\\n[heavy-lock] still waiting (5s), held by: pid=\${process.pid + 1} started=\${new Date(Date.now() + 1000).toISOString()}\``);
+    const a = await replay();
+    const b = await replay();
+    expect(a.status, a.output).toBe(0);
+    expect(b.status, b.output).toBe(0);
+    expect(a.evidence.replay.ids[id].base.message).not.toBe(b.evidence.replay.ids[id].base.message);
+    expect(Object.keys(a.evidence.replay).sort()).toEqual(["ids", "reasons", "result"]);
+    expect(a.evidence.digest_input.replay.ids[id].base.message).toBe("AssertionError: expected '/tmp/keep.md' pid 7 at 2026-01-01T00:00:00Z\n RUN  v3.2.4 <tmp>\n[heavy-lock] waiting for <tmp>, held by: pid <pid> started=<timestamp> cwd=<tmp>\n[heavy-lock] still waiting (5s), held by: pid <pid> started=<timestamp>: expected 1 to be 2 // Object.is equality");
+    expect(b.digest).toBe(a.digest);
   });
 });
