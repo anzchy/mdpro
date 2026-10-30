@@ -1087,6 +1087,142 @@
         "base": "2c0bd49657e392405f6b8b797c9d5ee1eacbc8a5",
         "head": "0ae098c07c9c32582f8d429ef334811a2caf15d8"
       }
+    },
+    "ADR0149E-F3A": {
+      "id": "ADR0149E-F3A",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T01:38:23.757Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F3 a duration inside an assertion is bound\",\"F3A: messages that differ only in a time-like assertion value, '10ms' against '20ms', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 166
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<duration>…' to match /^AssertionError: expected '10ms': exp…/"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F3A/20261030T013823757Z/tests",
+        "tree": "b6c0244a877d1415d577cbe441be0f7e6d3c6de9"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "b12d3766e243b224b1ffba978052173843960f36"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "7bf9769d8d9c5e1726f5be91c582fb29ec53ae6d"
+      },
+      "evidence_required": true
+    },
+    "ADR0149E-F3B": {
+      "id": "ADR0149E-F3B",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T01:40:41.320Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F3 a duration inside an assertion is bound\",\"F3A: messages that differ only in a time-like assertion value, '10ms' against '20ms', digest apart\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 166
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<duration>…' to match /^AssertionError: expected '10ms': exp…/"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F3 the runner's timing output is normalised\",\"F3B: two copies of one failure whose nested runner timing differs digest equal, and the assertion value stays\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-digest-text.test.ts",
+            "line": 195
+          },
+          "message": "AssertionError: expected 'dd7f006859aaa0ef349292c77daec825eff55…' to be '4a152e65af01f0029b5b5540e24e9a9eff4d4…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F3B/20261030T014041320Z/tests",
+        "tree": "a3b9d3caec9e3a42aaad8c094f188b472319d360"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "7bf9769d8d9c5e1726f5be91c582fb29ec53ae6d"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-digest-text.test.ts": "7bf9769d8d9c5e1726f5be91c582fb29ec53ae6d"
+      }
+    },
+    "ADR0149E-F3C": {
+      "id": "ADR0149E-F3C",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T01:40:04.845Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"keeps an assertion value next to a timing span and normalises the span\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 33
+          },
+          "message": "AssertionError: expected 'AssertionError: expected \\'<duration>…' to be 'AssertionError: expected \\'10ms\\' to …' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"keeps apart what differs outside a span and merges what differs only inside one\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 59
+          },
+          "message": "AssertionError: expected 2ms to be 3ms | expected 4ms to be 3ms: expected 'expected <duration> to be <duration>' not to be 'expected <duration> to be <duration>' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"leaves every duration or clock outside a span raw\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 50
+          },
+          "message": "AssertionError: expected 'took <duration>, then <duration>, the…' to be 'took 1234 ms, then 2.5s, then 40ns' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"rewrites each named span\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 42
+          },
+          "message": "AssertionError: expected '   Start at  09:32:01' to be '   Start at  <timestamp>' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F3C/20261030T014004845Z/tests",
+        "tree": "a3b9d3caec9e3a42aaad8c094f188b472319d360"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "87eaac5998a4d13361676219aa4e5b525ac9e875"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "87eaac5998a4d13361676219aa4e5b525ac9e875"
+      }
     }
   }
 }

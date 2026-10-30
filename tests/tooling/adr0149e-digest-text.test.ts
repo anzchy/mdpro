@@ -3,8 +3,10 @@
  * ADR0149E-F2G1 (fix 2, gpt-auditor round one H1 and M2): the digest binds the text the
  * auditor reads (each outcome's message, the judge's reasons, a pre-entry base run's
  * error), after a documented normalisation of what varies by nature (temp paths, the
- * replay worktree, timestamps, durations, pids). A changed message changes the digest;
- * a changed temp path or duration does not.
+ * replay worktree, timestamps, pids, and since fix 3 only the runner's own timing spans).
+ * A changed message changes the digest; a changed temp path does not. Fix 3 (gpt-auditor
+ * round two H1): a duration inside an assertion stays raw, so `'10ms'` and `'20ms'` digest
+ * apart, while a nested runner's timing output still normalises.
  */
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -62,7 +64,6 @@ describe("ADR0149E-F2G1 the normalisation rules", () => {
     expect(n("wrote /private/var/folders/yc/xyz/T/abc/f.json ok")).toBe("wrote <tmp> ok");
     expect(n("wrote /tmp/abc/f.json, then")).toBe("wrote <tmp>, then");
     expect(n("at 2026-10-30T01:02:03.456Z done")).toBe("at <timestamp> done");
-    expect(n("took 1234 ms, then 2.5s, then 40ns")).toBe("took <duration>, then <duration>, then <duration>");
     expect(n("worker pid 4242 died; pid=77")).toBe("worker pid <pid> died; pid <pid>");
     expect(n("expected 1 to be 2")).toBe("expected 1 to be 2");
     expect(n("expected 1 to be 2")).not.toBe(n("expected 3 to be 2"));
@@ -94,17 +95,17 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1 the digest binds the text", () =>
     expect(b.digest).not.toBe(a.digest);
   });
 
-  it("the replay worktree, a temp path, duration, pid or timestamp in the message keeps the digest; the evidence keeps the raw text", async () => {
+  it("the replay worktree, a temp path, pid or timestamp in the message keeps the digest; the evidence keeps the raw text", async () => {
     mkdirSync(join(homedir(), ".cache"), { recursive: true });
     const root = mkdtempSync(join(homedir(), ".cache", "mdpro-f2g1-root-"));
     try {
-      await receipt('`${process.cwd()} ${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} took ${performance.now()} ms, pid ${process.pid}, at ${new Date().toISOString()}`');
+      await receipt('`${process.cwd()} ${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} pid ${process.pid}, at ${new Date().toISOString()}`');
       const a = await replay({ MDPRO_REPLAY_ROOT: root });
       const b = await replay({ MDPRO_REPLAY_ROOT: root });
       expect(a.status, a.output).toBe(0);
-      expect(a.evidence.replay.ids[id].base.message).toMatch(/\/mdpro-f2g1-msg-[A-Za-z0-9]{6} took /);
+      expect(a.evidence.replay.ids[id].base.message).toMatch(/\/mdpro-f2g1-msg-[A-Za-z0-9]{6} pid /);
       expect(a.evidence.replay.ids[id].base.message).not.toBe(b.evidence.replay.ids[id].base.message);
-      expect(a.evidence.digest_input.replay.ids[id].base.message).toMatch(/^AssertionError: <worktree> <tmp> took <duration>, pid <pid>, at <timestamp>: expected 1 to be 2/);
+      expect(a.evidence.digest_input.replay.ids[id].base.message).toMatch(/^AssertionError: <worktree> <tmp> pid <pid>, at <timestamp>: expected 1 to be 2/);
       expect(b.digest).toBe(a.digest);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
@@ -121,12 +122,12 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1 the digest binds the text", () =>
   });
 
   it("a failed replay's reasons are normalised: volatile text in them keeps the digest", async () => {
-    await failingReceipt('`${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} took ${performance.now()} ms`');
+    await failingReceipt('`${mkdtempSync(join(tmpdir(), "mdpro-f2g1-msg-"))} at ${new Date().toISOString()}`');
     const a = await replay();
     const b = await replay();
     expect(a.evidence.replay.result).toBe("failed");
     expect(a.evidence.replay.reasons.join("\n")).not.toBe(b.evidence.replay.reasons.join("\n"));
-    expect(a.evidence.digest_input.replay.reasons.join("\n")).toMatch(/<tmp> took <duration>/);
+    expect(a.evidence.digest_input.replay.reasons.join("\n")).toMatch(/<tmp> at <timestamp>/);
     expect(b.digest).toBe(a.digest);
   });
 
@@ -152,5 +153,50 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1 the digest binds the text", () =>
     expect(timedOut.evidence.digest_input.base_run.error).toMatch(/timed out|killed/);
     expect(refused.evidence.digest_input.base_run.error).toBe("heavy-lock refused the run (exit 76)");
     expect(refused.digest).not.toBe(timedOut.digest);
+  });
+});
+
+describe.skipIf(!pluginVersion)("ADR0149E-F3 a duration inside an assertion is bound", () => {
+  it("F3A: messages that differ only in a time-like assertion value, '10ms' against '20ms', digest apart", async () => {
+    await receipt('process.env.ADR0149E_MSG ?? "m"');
+    const a = await replay({ ADR0149E_MSG: "expected '10ms'" });
+    const b = await replay({ ADR0149E_MSG: "expected '20ms'" });
+    expect(a.status, a.output).toBe(0);
+    expect(b.status, b.output).toBe(0);
+    expect(a.evidence.digest_input.replay.ids[id].base.message).toMatch(/^AssertionError: expected '10ms': expected 1 to be 2/);
+    expect(b.evidence.digest_input.replay.ids[id].base.message).toMatch(/^AssertionError: expected '20ms': expected 1 to be 2/);
+    expect(b.digest).not.toBe(a.digest);
+  });
+});
+
+/** A failed nested Vitest run's output, as `expect(result.status, result.output)` puts it into a message. */
+const nestedRun = (test: string, file: string, clock: string, total: string) => [
+  "expected '10ms' from the child run:",
+  ` ❯ tests/x.test.ts (2 tests | 1 failed) ${file}`,
+  `   × fails ${test}`,
+  "     → expected 1 to be 2",
+  `   ✓ passes ${test}`,
+  "",
+  " Test Files  1 failed (1)",
+  "      Tests  1 failed | 1 passed (2)",
+  `   Start at  ${clock}`,
+  `   Duration  ${total} (transform 20ms, setup 0ms, collect ${test}, tests ${test}, environment 0ms, prepare 50ms)`,
+  "end of child output",
+].join("\n");
+
+describe.skipIf(!pluginVersion)("ADR0149E-F3 the runner's timing output is normalised", () => {
+  it("F3B: two copies of one failure whose nested runner timing differs digest equal, and the assertion value stays", async () => {
+    await receipt('process.env.ADR0149E_MSG ?? "m"');
+    const a = await replay({ ADR0149E_MSG: nestedRun("12ms", "15ms", "09:32:01", "1.20s") });
+    const b = await replay({ ADR0149E_MSG: nestedRun("340ms", "1.52s", "10:00:00", "2.50s") });
+    expect(a.status, a.output).toBe(0);
+    expect(b.status, b.output).toBe(0);
+    expect(a.evidence.replay.ids[id].base.message).not.toBe(b.evidence.replay.ids[id].base.message);
+    expect(b.digest).toBe(a.digest);
+    const digested = a.evidence.digest_input.replay.ids[id].base.message;
+    expect(digested).toContain("expected '10ms' from the child run:");
+    expect(digested).toContain(" ❯ tests/x.test.ts (2 tests | 1 failed) <duration>\n   × fails <duration>\n");
+    expect(digested).toContain("   Start at  <timestamp>\n   Duration  <duration> (transform <duration>, setup <duration>,");
+    expect(digested).not.toMatch(/12ms|09:32:01|1\.20s/);
   });
 });

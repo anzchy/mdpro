@@ -26,9 +26,10 @@
  *   location and the whole message (fix 2, gpt-auditor H1 and M2: the text the auditor
  *   reads is bound). Reasons, messages and a pre-entry `base_run.error` enter the digest
  *   through normaliseText, which rewrites only what varies by nature between two runs of
- *   the same base and head: the replay worktree, temp paths, ISO timestamps, durations and
- *   pids (docs/guide/receipt-evidence.md names each rule). The evidence file keeps the raw
- *   text, and the judge compares raw text.
+ *   the same base and head: the replay worktree, temp paths, ISO timestamps, the timing
+ *   inside the runner's own timing lines (fix 3, gpt-auditor r2 H1: never a duration in an
+ *   assertion) and pids (docs/guide/receipt-evidence.md names each rule). The evidence file
+ *   keeps the raw text, and the judge compares raw text.
  * @coordinates-with scripts/tdd/red-receipt.mjs, scripts/tdd/replay-worktree.mjs, .claude/agents/mdpro-landing-verifier.md
  */
 import { createHash } from "node:crypto";
@@ -97,23 +98,40 @@ const TEMP_ROOTS = (() => {
 })();
 const TEMP_PATH = new RegExp(`(?<![\\w./-])(?:${TEMP_ROOTS.map(escape).join("|")})(?=[/\\s'"\`()\\[\\]{}<>,:]|$)[^\\s'"\`()\\[\\]{}<>,:]*`, "g");
 
+const DURATION = /\d+(?:\.\d+)?\s?(?:ms|s)\b/g;
+/**
+ * The runner's own timing output, each recognised as a whole line, as a nested run's output
+ * reaches a message through `expect(result.status, result.output)`. Only the timing inside
+ * the line is rewritten: a Vitest test or file line's trailing duration; a Vitest `Duration`
+ * line's durations; a Vitest `Start at` clock; libtest's `finished in`; cargo's `Finished …
+ * target(s) in`. A duration anywhere else, as in `expected '10ms'`, stays (gpt-auditor r2 H1).
+ */
+const TIMING_SPANS = [
+  [/^([ \t]*[✓✔×✗❯↓][ \t].*[ \t]\(?)\d+(?:\.\d+)? ?m?s(\)?[ \t]*\r?)$/gm, "$1<duration>$2"],
+  [/^([ \t]*Duration[ \t]+)(\d.*)$/gm, (_, lead, rest) => lead + rest.replace(DURATION, "<duration>")],
+  [/^([ \t]*Start at[ \t]+)\d{2}:\d{2}:\d{2}/gm, "$1<timestamp>"],
+  [/^(test result: .*; finished in )\d+(?:\.\d+)?s(\r?)$/gm, "$1<duration>$2"],
+  [/^([ \t]*Finished .*target\(s\) in )(?:\d+m )?\d+(?:\.\d+)?s(\r?)$/gm, "$1<duration>$2"],
+];
+
 /**
  * The digest's view of a text: in this order, the replay worktree (as given and as its
  * realpath) → `<worktree>`; an absolute path under a temp root up to whitespace, a quote,
  * a bracket, a comma or a colon (so a `:line:col` stays) → `<tmp>`; an ISO-8601 date with a
- * time → `<timestamp>`; a number with ns, µs, us, ms or s at a word end → `<duration>`;
- * `pid` and a number → `pid <pid>`.
- * Nothing else changes, so assertion text, numbers and file:line locations stay bound.
+ * time → `<timestamp>`; the timing inside a TIMING_SPANS line → `<duration>` or
+ * `<timestamp>`; `pid` and a number → `pid <pid>`.
+ * Nothing else changes, so assertion text, its durations, numbers and file:line locations
+ * stay bound.
  */
 export function normaliseText(text, worktree) {
   if (typeof text !== "string") return text ?? null;
   let out = text;
   for (const dir of [worktree].flat().filter(Boolean).sort((a, b) => b.length - a.length)) out = out.split(dir).join("<worktree>");
-  return out
+  out = out
     .replace(TEMP_PATH, "<tmp>")
-    .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g, "<timestamp>")
-    .replace(/\b\d+(?:\.\d+)?\s?(?:ns|µs|us|ms|s)\b/g, "<duration>")
-    .replace(/\bpid\b[\s=:]*\d+/gi, "pid <pid>");
+    .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g, "<timestamp>");
+  for (const [span, to] of TIMING_SPANS) out = out.replace(span, to);
+  return out.replace(/\bpid\b[\s=:]*\d+/gi, "pid <pid>");
 }
 
 /** The replay's digested part: result, reasons, and each id's status, kind, location and message, normalised. */

@@ -126,13 +126,31 @@ of the same base and head. It applies these rules, in this order, and nothing el
    `/var/folders` and `/private/var/folders`.
 3. **Timestamps.** An ISO-8601 date with a time (`2026-10-30T01:02:03.456Z`) becomes `<timestamp>`.
    A date alone stays.
-4. **Durations.** A number followed by `ns`, `µs`, `us`, `ms` or `s` at a word end becomes
-   `<duration>`. `3 strings` and `2 msgs` stay.
+4. **Timing spans.** A duration is rewritten only inside a line of the runner's own timing
+   output. That output reaches a message when a test passes a nested run's output to `expect`, as
+   `expect(result.status, result.output)` does throughout `tests/tooling/`. Each span is a whole
+   line, matched from its start:
+
+   | Span | Line shape | Rewritten |
+   |---|---|---|
+   | Vitest test or file line | a status mark `✓ ✔ × ✗ ❯ ↓`, a space, any text, then a duration at the line's end: `12ms`, `1.52s`, `(12 ms)` | that trailing duration → `<duration>` |
+   | Vitest `Duration` line | `Duration`, spaces, then a number | every `Nms` and `Ns` on the line → `<duration>` |
+   | Vitest `Start at` line | `Start at`, spaces, `HH:MM:SS` | the clock → `<timestamp>` |
+   | libtest result line | `test result: …; finished in N.NNs` | the `N.NNs` → `<duration>` |
+   | cargo build line | `Finished … target(s) in [Nm ]N.NNs` | the duration → `<duration>` |
+
+   Leading spaces or tabs are allowed, and so is a `\r` before the line end. A duration anywhere
+   else stays raw: `expected '10ms'`, `expected 2ms to be 3ms`, `Test timed out in 5000ms.`, an
+   indented diff line such as `    + waited 20ms`, and a test title's own `10ms` before the trailing
+   one. So does a clock outside a `Start at` line.
 5. **Pids.** `pid` followed by a number, with an optional `=` or `:`, becomes `pid <pid>`.
 
-Assertion text, other numbers, other paths and `file:line` locations stay as they are. The
-evidence file keeps the raw text, and the judge compares raw text; only `digest_input` holds the
-normalised form. A message that varies some other way, such as a counter, changes the digest.
+Assertion text, the durations and numbers in it, other paths and `file:line` locations stay as they
+are. So `expected '10ms'` and `expected '20ms'` digest apart. The evidence file keeps the raw text,
+and the judge compares raw text; only `digest_input` holds the normalised form. A message that
+varies some other way, such as a counter or a duration in the assertion's own words, changes the
+digest. The limit: a message line that its author wrote in exactly one of the span shapes above is
+rewritten like the runner's own line.
 
 **Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It
