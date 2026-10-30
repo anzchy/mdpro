@@ -2,6 +2,8 @@
 
 ## Status
 
+**2026-10-30: partially superseded** (decision 7's state set, the keeper's stall rule and the owner record's fields; decision 8's "every case sets only `MDPRO_HEAVY_LOCK`") by [ADR-0155](0155-a-gui-keeper-holds-the-heavy-lock-in-a-holding-state-and-releases-itself-when-its-gui-lock-is-gone.md).
+
 **2026-10-29: extended** (decision 3's legacy-mode set, which now also carries the load guard's admission, runtime stops and GUI exclusion; decision 6 is pulled into phase 1) by [ADR-0150](0150-heavy-and-gui-runs-exclude-each-other-and-a-load-guard-stops-a-job-under-memory-or-cpu-overload.md) decision 8.
 
 **2026-10-29: partially superseded** (decision 6's "Unreadable … start", on macOS hosts) by [ADR-0152](0152-an-unreadable-memory-pressure-reading-on-macos-holds-the-job.md).
