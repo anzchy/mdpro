@@ -16,3 +16,16 @@ _Avoid_: keymap version, schema version
 
 **Owned elsewhere**: a chord that another program on the machine has registered system-wide, so mdpro never receives it.
 _Avoid_: blocked key, stolen shortcut
+
+## Landing
+
+**Policy file**:
+A file whose text instructs agents how to work, such as the project instructions, the always-on rules, agent definitions, skills, command rules and the agent docs under `docs/agents/`. Changing one changes agent behaviour.
+_Avoid_: docs, prose (for these files)
+
+**Knowledge document**:
+A file that records or explains, such as an ADR, a plan, a guide, a report or a log. Changing one changes no agent behaviour by itself.
+_Avoid_: policy
+
+**Gate exception**:
+A recorded, user-approved permission to land one change although a named landing condition is unmet.
