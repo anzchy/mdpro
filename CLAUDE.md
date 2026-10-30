@@ -269,6 +269,20 @@ Sequencing for this effort lives in
   spec snapshot under `docs/specs/<feature>/r<N>/` wins instead, and the row carries
   its ticket reference** ([ADR-0148](./docs/adr/0148-new-features-pass-grill-spec-and-tickets-before-implementation.md)).
 
+## Agent skills
+
+### Issue tracker
+
+Specs and tickets are GitHub issues in `anzchy/mdpro`, through `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels, each label string equal to its role. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
 ## Worktrees
 
 Parallel work (peer sessions, verification builds) uses git worktrees, and they
