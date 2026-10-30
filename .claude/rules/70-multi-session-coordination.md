@@ -378,7 +378,9 @@ change (on 2026-10-10: their
 archive moves, `tsconfig.node.tsbuildinfo`). Deleting a branch or worktree
 needs the user's confirmation (rule 25). The one exception is a detached
 `verify-<sha7>` worktree that `mdpro-landing-verifier` created for its own run;
-it removes that one when it finishes.
+it removes that one when it finishes. **A landed item's worktree is removed at landing without asking**, under the checks in
+[ADR-0157](../../docs/adr/0157-a-landed-branchs-worktree-is-removed-at-landing-without-asking.md), which supersedes the
+worktree half of the confirmation above; branches still need it.
 
 ## Reserving numbers
 
@@ -433,7 +435,7 @@ it. (User decision, 2026-10-10.)
   |---|---|---|
   | How | In that session, type `/clear`, then 「读 `~/.mdpro-redesign/handoff/mdpro-85-20261010-1051.md` 继续」 | Close the old one. Start a new one with the same role (`MDPRO_ROLE=implementor claude`) and the same permission mode as the other sessions, then send the same 「读 … 继续」 |
   | `ListAgents` name | Usually kept; nothing to update | New alias: the delegator updates the alias table above in its next commit |
-  | Worktree and branch | Kept; work carries on in them | The successor gets a new worktree, or the old one is handed over. A retired session's worktree is removed only after its handoff is archived and the user confirms (rule 25) |
+  | Worktree and branch | Kept; work carries on in them | The successor gets a new worktree, or the old one is handed over. A retired session's worktree is removed only after its handoff is archived and the user confirms (rule 25), except a landed per-item worktree (ADR-0157) |
   | Use when | The same session carries on the same area | The role changes, the area is handed to someone else, or the session itself misbehaves |
 
   The transcript starts fresh either way, so the hook's counts start again

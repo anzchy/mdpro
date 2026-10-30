@@ -302,6 +302,9 @@ scratchpad is wiped.
 - **Move only with `git worktree move`**, never `mv`. A plain `mv` leaves git's
   registry pointing at the old path, and the worktree shows as `prunable`.
 - **Remove once merged**: `git worktree remove <dir>` then `git branch -d <branch>`.
+  Since [ADR-0157](./docs/adr/0157-a-landed-branchs-worktree-is-removed-at-landing-without-asking.md), the delegator
+  removes a landed item's worktree at landing without asking, behind its identity, liveness and ignored-file checks;
+  the branch is still deleted only with the user's confirmation.
   A merged worktree left lying around gets its stale tdd-guardian state mistaken
   for live work.
 - **Exceptions**: `isolation: "worktree"` subagents create
