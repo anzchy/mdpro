@@ -149,8 +149,10 @@ Assertion text, the durations and numbers in it, other paths and `file:line` loc
 are. So `expected '10ms'` and `expected '20ms'` digest apart. The evidence file keeps the raw text,
 and the judge compares raw text; only `digest_input` holds the normalised form. A message that
 varies some other way, such as a counter or a duration in the assertion's own words, changes the
-digest. The limit: a message line that its author wrote in exactly one of the span shapes above is
-rewritten like the runner's own line.
+digest. The limits: a message line that its author wrote in exactly one of the span shapes above is
+rewritten like the runner's own line, and so is a nested test line whose title ends in a duration when
+the runner printed no timing after it (Vitest omits it for fast tests and for `↓` skips). The worktree,
+temp-path, timestamp and pid rules still apply to the whole text.
 
 **Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It
