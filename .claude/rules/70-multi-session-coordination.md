@@ -127,7 +127,9 @@ handoff. Each item is tagged `prep` or `impl`.
   revised grant first.
 - **Deferred items stay `prep`** until the user's priority order makes them
   current.
-- **Cap**: one unlanded implementation item per session and two machine-wide
+- **Cap**: one unlanded implementation item per session and **three** machine-wide since
+  2026-10-30 ([ADR-0156](../../docs/adr/0156-three-implementation-slots-and-opus-imple-2-joins-the-roster.md); user:
+  「Raise cap to 3, all start」). Before that, two machine-wide
   ([ADR-0124](../../docs/adr/0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md),
   superseding ADR-0119's four, with or without herdr; user decision, 2026-10-18: 「decrease slot
   (parallel implementor to 2)」, accepted 2026-10-20). Items already over the cap finish first.

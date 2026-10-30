@@ -2,6 +2,8 @@
 
 ## Status
 
+Partially superseded 2026-10-30 by [ADR-0156](0156-three-implementation-slots-and-opus-imple-2-joins-the-roster.md): decision 1's "two machine-wide" becomes three.
+
 Partially superseded 2026-10-23 by [ADR-0134](0134-the-herdr-roster-moves-to-the-mac-mini-isolated-from-picsee.md): decision 3's device-role bullet (the device roles are ADR-0134 decision 6).
 
 Partially superseded 2026-10-22 by [ADR-0133](0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md): "two machine-wide" gains one Low-tier slot for gpt-imple-3, under herdr only.

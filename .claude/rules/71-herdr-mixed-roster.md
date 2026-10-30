@@ -21,7 +21,7 @@ Added here, for Codex implementors:
 - `$tdd-guardian:tdd-guardian-workflow`, the installed plugin skill that runs the TDD stages.
 
 Unchanged from rule 70:
-- the slot cap, which is two everywhere (ADR-0124);
+- the slot cap, which is three everywhere since 2026-10-30 (ADR-0156, superseding ADR-0124's two);
 - landing (the three conditions, `--ff-only`, push);
 - the audit-round cap and landing conditions, except the two-verdict merge now replaced above;
 - ADR-0121's tiers; the round cap is now **two rounds, with gpt-auditor and opus-auditor both on every audit**, after which an open Critical or High goes to the user ([ADR-0143](../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), superseding ADR-0120's three rounds and folding in ADR-0142; user, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」). Where this file elsewhere calls opus-auditor optional or gpt-auditor the sole required auditor, ADR-0143 wins;
@@ -69,6 +69,12 @@ delegator addresses its blocking Critical/High findings before landing.
 | GUI tester for batches formerly assigned to dtrack, Mac mini and Windows | `gpt-auditor` | Codex herdr pane; Windows through `remote-windows-device-test` after the host-key/SSH checks | a fresh-pane device brief from the delegator | `~/.mdpro-redesign/device/<batch>-report.md`, then idle |
 
 The user decisions behind each row are quoted in ADR-0124.
+
+**Since 2026-10-30, `opus-imple-2` joins as a third implementor** ([ADR-0156](../../docs/adr/0156-three-implementation-slots-and-opus-imple-2-joins-the-roster.md);
+user: 「create a new pane opus-imple-2 and delegate tasks to it.」, 「Raise cap to 3, all start」): Claude Code on Opus
+(`--model opus --dangerously-skip-permissions`, `MDPRO_ROLE=implementor`), persistent worktree `mdpro-wt/opus-imple-2`,
+briefed by file plus `herdr agent prompt`, reporting to `~/.mdpro-redesign/herdr-spike/opus-imple-2/<item>-handoff.md`.
+Implementors: gpt-imple-1, opus-imple-1, opus-imple-2; gpt-imple-2 stays idle.
 
 **The live roster is five agents** (user decision, 2026-10-29: 「现在降低同时并行开发的数量：同时2个implementor（gpt-imple-*)，2个auditor，加上delegator本身，其他implementor retire」):
 herdr-delegator, `gpt-imple-1`, `gpt-imple-2`, `gpt-auditor` and `opus-auditor`. `gpt-imple-3` and `opus-imple-1` are
@@ -381,8 +387,8 @@ unproved in the handoff alone does not accept it.
 
 ## Slots
 
-**One unlanded implementation item per session, and two machine-wide**, as rule 70 says (ADR-0124,
-superseding ADR-0119's four). Items that were already over the cap finish first. Prep needs no slot.
+**One unlanded implementation item per session, and three machine-wide**, as rule 70 says (ADR-0156,
+2026-10-30, superseding ADR-0124's two, which superseded ADR-0119's four). Items that were already over the cap finish first. Prep needs no slot.
 
 **Closed 2026-10-29 with gpt-imple-3's retirement (§ Roster); kept as the record.** **Plus one Low-tier slot, held by gpt-imple-3 only** ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)
 decision 2; user decision, 2026-10-22: 「3rd slot, Low tier only (Recommended)」):
