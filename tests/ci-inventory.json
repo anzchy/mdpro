@@ -2251,7 +2251,7 @@
       "id": [
         "tests/tooling/adr0149e-digest-stable.test.ts",
         "ADR0149E-5b stable digest",
-        "digests status, kind, location and normalised message, so a varying duration in the message keeps the digest"
+        "digests status, kind, location and normalised message, so a nested run's varying timing line in the message keeps the digest"
       ],
       "prerequisite": "plugin"
     },
@@ -2275,7 +2275,7 @@
       "id": [
         "tests/tooling/adr0149e-digest-text.test.ts",
         "ADR0149E-F2G1 the digest binds the text",
-        "the replay worktree, a temp path, pid or timestamp in the message keeps the digest; the evidence keeps the raw text"
+        "the replay worktree, and a temp path, pid or timestamp in a runner line of the message, keep the digest; the evidence keeps the raw text"
       ],
       "prerequisite": "plugin"
     },
@@ -2291,7 +2291,7 @@
       "id": [
         "tests/tooling/adr0149e-digest-text.test.ts",
         "ADR0149E-F2G1 the digest binds the text",
-        "a failed replay's reasons are normalised: volatile text in them keeps the digest"
+        "a failed replay's reasons are normalised: the replay worktree quoted in them keeps the digest"
       ],
       "prerequisite": "plugin"
     },
@@ -2316,6 +2316,38 @@
         "tests/tooling/adr0149e-digest-text.test.ts",
         "ADR0149E-F3 the runner's timing output is normalised",
         "F3B: two copies of one failure whose nested runner timing differs digest equal, and the assertion value stays"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound",
+        "F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound",
+        "F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound",
+        "F4-3: messages that differ only in an ISO timestamp digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F4 a temp path, pid or timestamp inside a runner line is normalised",
+        "F4-4: two replays whose runner lines differ only in temp paths, pids and timestamps digest equal, and the assertion's own values stay"
       ],
       "prerequisite": "plugin"
     },
