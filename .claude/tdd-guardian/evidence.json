@@ -1277,7 +1277,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-1.json",
+        "digest": "1f8e1a4594f7e880d24fef9a9dcc35c0758fb7175eec1796d7140579df742af6",
+        "result": "passed",
+        "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+        "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+      }
     },
     "ADR0149E-F4-2": {
       "id": "ADR0149E-F4-2",
@@ -1320,7 +1327,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-2.json",
+        "digest": "035d5a9bd0ea5e6afd0d48c72d092e6adee31adac961059cd3a086aa4a45ccbd",
+        "result": "passed",
+        "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+        "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+      }
     },
     "ADR0149E-F4-3": {
       "id": "ADR0149E-F4-3",
@@ -1372,7 +1386,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-3.json",
+        "digest": "12bf1e6dde94dba313549121abf6168edda79e114308fd87db2bbab43d561d87",
+        "result": "passed",
+        "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+        "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+      }
     },
     "ADR0149E-F4-4": {
       "id": "ADR0149E-F4-4",
@@ -1432,6 +1453,13 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-4.json",
+        "digest": "a4c2a6c950dffa7083a8aa2f1505c70eaf31b1e1e6fb3a22e61ac176fc50b78e",
+        "result": "passed",
+        "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+        "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
       }
     },
     "ADR0149E-F4-5": {
@@ -1529,7 +1557,14 @@
       "settled_blobs": {
         "tests/tooling/adr0149e-normalise-law.test.ts": "3e9efb5ec28d9152f47a5a5387a41e6e8a9a2857"
       },
-      "evidence_required": true
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-5.json",
+        "digest": "5cd82b4069fd386706e4f7e78ba9d29572a283328e8198d0789a3cc8b762ad11",
+        "result": "passed",
+        "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+        "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+      }
     }
   }
 }
