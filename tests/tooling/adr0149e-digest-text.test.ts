@@ -246,7 +246,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-F4 a temp path, pid or timestamp insid
     expect(b.status, b.output).toBe(0);
     expect(a.evidence.replay.ids[id].base.message).not.toBe(b.evidence.replay.ids[id].base.message);
     expect(Object.keys(a.evidence.replay).sort()).toEqual(["ids", "reasons", "result"]);
-    expect(a.evidence.digest_input.replay.ids[id].base.message).toBe("AssertionError: expected '/tmp/keep.md' pid 7 at 2026-01-01T00:00:00Z\n RUN  v3.2.4 <tmp>\n[heavy-lock] waiting for <tmp>, held by: pid <pid> started=<timestamp> cwd=<tmp>\n[heavy-lock] still waiting (5s), held by: pid <pid> started=<timestamp>: expected 1 to be 2 // Object.is equality");
+    expect(a.evidence.digest_input.replay.ids[id].base.message).toBe("AssertionError: expected '/tmp/keep.md' pid 7 at 2026-01-01T00:00:00Z\n RUN  v3.2.4 <tmp>\n[heavy-lock] waiting for <tmp>, held by: pid <pid> started=<timestamp> cwd=<tmp>\n[heavy-lock] still waiting (<duration>), held by: pid <pid> started=<timestamp>: expected 1 to be 2 // Object.is equality");
     expect(b.digest).toBe(a.digest);
   });
 });

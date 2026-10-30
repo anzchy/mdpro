@@ -107,6 +107,11 @@ const TEMP_ROOTS = (() => {
 const TEMP_PATH = new RegExp(`(?<![\\w./-])(?:${TEMP_ROOTS.map(escape).join("|")})(?=[/\\s'"\`()\\[\\]{}<>,:]|$)[^\\s'"\`()\\[\\]{}<>,:]*`, "g");
 
 const DURATION = /\d+(?:\.\d+)?\s?(?:ms|s)\b/g;
+/** Vitest appends `: expected …` to a custom message's last line; from there on the line is assertion text. */
+const beforeSuffix = (line, rewrite) => {
+  const cut = line.indexOf(": expected ");
+  return cut < 0 ? rewrite(line) : rewrite(line.slice(0, cut)) + line.slice(cut);
+};
 /**
  * The runner's own timing output, each recognised as a whole line, as a nested run's output
  * reaches a message through `expect(result.status, result.output)`. Only the timing inside
@@ -116,22 +121,31 @@ const DURATION = /\d+(?:\.\d+)?\s?(?:ms|s)\b/g;
  */
 const TIMING_SPANS = [
   [/^([ \t]*[✓✔×✗❯↓][ \t].*[ \t]\(?)\d+(?:\.\d+)? ?m?s(\)?[ \t]*\r?)$/gm, "$1<duration>$2"],
-  [/^([ \t]*Duration[ \t]+)(\d.*)$/gm, (_, lead, rest) => lead + rest.replace(DURATION, "<duration>")],
+  [/^([ \t]*Duration[ \t]+)(\d.*)$/gm, (_, lead, rest) => lead + beforeSuffix(rest, (text) => text.replace(DURATION, "<duration>"))],
   [/^([ \t]*Start at[ \t]+)\d{2}:\d{2}:\d{2}/gm, "$1<timestamp>"],
   [/^(test result: .*; finished in )\d+(?:\.\d+)?s(\r?)$/gm, "$1<duration>$2"],
   [/^([ \t]*Finished .*target\(s\) in )(?:\d+m )?\d+(?:\.\d+)?s(\r?)$/gm, "$1<duration>$2"],
 ];
 
+const ISO_TIMESTAMP = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g;
+/** `ps -o lstart`, as heavy-lock's holder description prints `process_start=`. */
+const LSTART = /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d{1,2} \d{2}:\d{2}:\d{2} \d{4}\b/g;
+const volatileValues = (text) => text.replace(TEMP_PATH, "<tmp>").replace(ISO_TIMESTAMP, "<timestamp>").replace(/\bpid\b[ \t=:]*\d+/gi, "pid <pid>");
+const toolValues = (text) => volatileValues(text).replace(LSTART, "<timestamp>").replace(DURATION, "<duration>").replace(/\bcwd=(?!<)\S+/g, "cwd=<path>");
+
 /**
- * The runner's own lines that carry temp paths, timestamps and pids, each recognised as a
- * whole line from its start: a `[heavy-lock]` or `[load-guard]` status line (`waiting for
- * <lock>, held by: pid=N started=<ISO> cwd=<path>`), and Vitest's `RUN  v<version> <root>`
+ * The runner's own lines that carry volatile values, each recognised as a whole line from
+ * its start (or right after an error name, as on a message's first line), up to Vitest's
+ * appended `: expected …`: a `[heavy-lock]` or `[load-guard]` status line (`still waiting
+ * (Ns), held by: pid=N started=<ISO> process_start=<lstart> cwd=<path>`), whose wait
+ * counts, process start and cwd are rewritten too; and Vitest's `RUN  v<version> <root>`
  * banner. A temp path, timestamp or pid anywhere else in a message is assertion text and
  * stays (gpt-auditor r3 H1).
  */
-const RUNNER_LINES = [/^[ \t]*\[(?:heavy-lock|load-guard)\].*$/gm, /^[ \t]*RUN[ \t]+v\d[^ \t\r\n]*[ \t]+.*$/gm];
-const ISO_TIMESTAMP = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g;
-const volatileValues = (text) => text.replace(TEMP_PATH, "<tmp>").replace(ISO_TIMESTAMP, "<timestamp>").replace(/\bpid\b[ \t=:]*\d+/gi, "pid <pid>");
+const RUNNER_LINES = [
+  [/^(?:[ \t]*|[A-Za-z]*Error: )\[(?:heavy-lock|load-guard)\].*$/gm, toolValues],
+  [/^[ \t]*RUN[ \t]+v\d[^ \t\r\n]*[ \t]+.*$/gm, volatileValues],
+];
 
 function withoutWorktree(text, worktree) {
   let out = text;
@@ -148,7 +162,7 @@ function withoutTiming(text) {
 /**
  * The digest's view of a message, or of a reason that quotes one: in this order, the
  * replay worktree (as given and as its realpath) → `<worktree>`; inside a RUNNER_LINES
- * line only, an absolute path under a temp root up to whitespace, a quote, a bracket, a
+ * line only (and before Vitest's `: expected` suffix), an absolute path under a temp root up to whitespace, a quote, a bracket, a
  * comma or a colon (so a `:line:col` stays) → `<tmp>`, an ISO-8601 date with a time →
  * `<timestamp>`, and `pid` and a number → `pid <pid>`; the timing inside a TIMING_SPANS
  * line → `<duration>` or `<timestamp>`. Nothing else changes, so assertion text, its
@@ -157,7 +171,7 @@ function withoutTiming(text) {
 export function normaliseText(text, worktree) {
   if (typeof text !== "string") return text ?? null;
   let out = withoutWorktree(text, worktree);
-  for (const line of RUNNER_LINES) out = out.replace(line, (match) => volatileValues(match));
+  for (const [line, rewrite] of RUNNER_LINES) out = out.replace(line, (match) => beforeSuffix(match, rewrite));
   return withoutTiming(out);
 }
 

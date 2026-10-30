@@ -1565,6 +1565,54 @@
         "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
         "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
       }
+    },
+    "ADR0149E-F4-6": {
+      "id": "ADR0149E-F4-6",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-30T06:26:35.023Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-6 a runner line ends where Vitest's own suffix starts, and every holder field in it is normalised\",\"keeps the assertion values Vitest appends to a runner line or a Duration line\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 160
+          },
+          "message": "AssertionError: expected 'child\\n[heavy-lock] job done: expecte…' to be 'child\\n[heavy-lock] job done: expecte…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-6 a runner line ends where Vitest's own suffix starts, and every holder field in it is normalised\",\"normalises a runner line's wait counts, process start and any cwd, and only there\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 171
+          },
+          "message": "AssertionError: expected '[heavy-lock] still waiting (5s), held…' to be '[heavy-lock] still waiting (<duration…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F4-6 a runner line ends where Vitest's own suffix starts, and every holder field in it is normalised\",\"recognises a runner line right after the error name on a message's first line\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+            "line": 167
+          },
+          "message": "AssertionError: expected 'AssertionError: [heavy-lock] waiting …' to be 'AssertionError: [heavy-lock] waiting …' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0149E-F4-6/20261030T062635023Z/tests",
+        "tree": "de0ca43ee3ee78b1101b21af21b798b67d131f3c"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0149e-normalise-law.test.ts": "e43435cfea41f454dc71c5425bae1e5ef443d56f"
+      }
     }
   }
 }

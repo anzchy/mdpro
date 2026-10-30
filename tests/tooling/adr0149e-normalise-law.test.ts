@@ -5,7 +5,9 @@
  * before that error enters the digest. ADR0149E-F3C (fix 3, gpt-auditor round two H1):
  * a duration is normalised only inside the runner's own timing spans. ADR0149E-F4-5 (fix 4,
  * gpt-auditor round three H1): a temp path, timestamp or pid is normalised only inside a
- * runner line, or in the replay's own error text, which judge names by index.
+ * runner line, or in the replay's own error text, which judge names by index. ADR0149E-F4-6 (the
+ * final review): a runner line ends at Vitest's `: expected` suffix, may follow the error
+ * name, and has its wait counts, process start and cwd rewritten too.
  */
 import { chmodSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -86,7 +88,7 @@ describe("ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside 
   });
 
   it("rewrites every value in each runner line", () => {
-    expect(n("[heavy-lock] waiting for /tmp/l/lock, held by: pid=12 started=2026-10-30T01:02:03Z cwd=/tmp/w\n[heavy-lock] still waiting (5s), held by: pid=13 started=2026-10-30T01:02:08Z")).toBe("[heavy-lock] waiting for <tmp>, held by: pid <pid> started=<timestamp> cwd=<tmp>\n[heavy-lock] still waiting (5s), held by: pid <pid> started=<timestamp>");
+    expect(n("[heavy-lock] waiting for /tmp/l/lock, held by: pid=12 started=2026-10-30T01:02:03Z cwd=/tmp/w\n[heavy-lock] still waiting (5s), held by: pid=13 started=2026-10-30T01:02:08Z")).toBe("[heavy-lock] waiting for <tmp>, held by: pid <pid> started=<timestamp> cwd=<tmp>\n[heavy-lock] still waiting (<duration>), held by: pid <pid> started=<timestamp>");
     expect(n("\t[load-guard] pid 9 at 2026-10-30T01:02:03Z")).toBe("\t[load-guard] pid <pid> at <timestamp>");
     expect(n(" RUN  v3.2.4 /tmp/root-1")).toBe(" RUN  v3.2.4 <tmp>");
     expect(n(" RUN  v4.0.0-beta.1 /private/var/folders/a/T/r")).toBe(" RUN  v4.0.0-beta.1 <tmp>");
@@ -151,6 +153,28 @@ describe("ADR0149E-F4-5 a temp path, pid or timestamp is normalised only inside 
     const b = replayModule.judge("/nonexistent", { failures: [red], tests_tree: { tree: "t" } }, { ...empty, outcomes: new Map([["y", { status: "failed", kind: "assertion", message: "m" }]]) }, { ...empty, outcomes: new Map([["y", { status: "passed" }]]), error: "pid 4 killed" }, {});
     expect(b.reasons).toEqual(["head run: pid 4 killed"]);
     expect(b.runner).toEqual([0]);
+  });
+});
+
+describe("ADR0149E-F4-6 a runner line ends where Vitest's own suffix starts, and every holder field in it is normalised", () => {
+  it("keeps the assertion values Vitest appends to a runner line or a Duration line", () => {
+    const tail = "child\n[heavy-lock] job done: expected '/tmp/a.md' to be '/tmp/c.md' // Object.is equality";
+    expect(n(tail)).toBe(tail);
+    expect(n(tail)).not.toBe(n(tail.replace("/tmp/a.md", "/tmp/b.md")));
+    expect(n("[heavy-lock] pid 3 at /tmp/x: expected 'pid 1' to be 'pid 2'")).toBe("[heavy-lock] pid <pid> at <tmp>: expected 'pid 1' to be 'pid 2'");
+    expect(n("   Duration  1.20s: expected 10ms to be 20ms")).toBe("   Duration  <duration>: expected 10ms to be 20ms");
+  });
+
+  it("recognises a runner line right after the error name on a message's first line", () => {
+    expect(n("AssertionError: [heavy-lock] waiting for /tmp/x/lock, held by: pid=12\nrest pid 4")).toBe("AssertionError: [heavy-lock] waiting for <tmp>, held by: pid <pid>\nrest pid 4");
+  });
+
+  it("normalises a runner line's wait counts, process start and any cwd, and only there", () => {
+    expect(n("[heavy-lock] still waiting (5s), held by: pid=12 started=2026-10-30T14:00:00+0800 process_start=Thu Oct 30 14:00:00 2026 cwd=/Users/jack/mdpro-wt/gpt-imple-1")).toBe("[heavy-lock] still waiting (<duration>), held by: pid <pid> started=<timestamp> process_start=<timestamp> cwd=<path>");
+    expect(n("[heavy-lock] gave up after 600s (MDPRO_HEAVY_LOCK_WAIT_SECS=600); held by: pid=1")).toBe("[heavy-lock] gave up after <duration> (MDPRO_HEAVY_LOCK_WAIT_SECS=600); held by: pid <pid>");
+    expect(n("[heavy-lock] still waiting (5s), held by: pid=1 cwd=/Users/a")).toBe(n("[heavy-lock] still waiting (10s), held by: pid=2 cwd=/Users/b"));
+    for (const text of ["still waiting (5s) cwd=/Users/a", "process_start=Thu Oct 30 14:00:00 2026"]) expect(n(text)).toBe(text);
+    expect(n(n("[heavy-lock] still waiting (5s), held by: pid=1 process_start=Thu Oct 30 14:00:00 2026 cwd=/Users/a"))).toBe(n("[heavy-lock] still waiting (5s), held by: pid=1 process_start=Thu Oct 30 14:00:00 2026 cwd=/Users/a"));
   });
 });
 

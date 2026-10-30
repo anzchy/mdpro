@@ -140,13 +140,15 @@ The rules, in this order, and nothing else:
      stays.
    - `pid` followed by a number on the same line, with an optional `=` or `:`, becomes `pid <pid>`.
 
-   In the message view these apply only inside a **runner line**: a whole line, matched from its
-   start after optional spaces or tabs, of one of these shapes:
+   In the message view these apply only inside a **runner line**: a line, matched from its start
+   after optional spaces or tabs, of one of these shapes. It ends at the line's end, or earlier at
+   the first `: expected `, which is where Vitest appends its own assertion text to a custom
+   message's last line; everything from there on stays raw.
 
-   | Runner line | Line shape | Example |
-   |---|---|---|
-   | Tool status line | `[heavy-lock]` or `[load-guard]`, then the rest of the line | `[heavy-lock] waiting for <lock>, held by: pid=N started=<ISO> cwd=<path>` |
-   | Vitest banner | `RUN`, spaces, `v` and a version, spaces, the root path | ` RUN  v3.2.4 /tmp/x` |
+   | Runner line | Line shape | Also rewritten | Example |
+   |---|---|---|---|
+   | Tool status line | `[heavy-lock]` or `[load-guard]`, then the rest of the line; on a message's first line it may follow an error name (`AssertionError: [heavy-lock] …`) | a duration such as the wait count `(5s)` → `<duration>`; a `ps` start time (`Thu Oct 30 14:00:00 2026`) → `<timestamp>`; a `cwd=` value that is not already a placeholder → `cwd=<path>` | `[heavy-lock] still waiting (5s), held by: pid=N started=<ISO> process_start=<lstart> cwd=<path>` |
+   | Vitest banner | `RUN`, spaces, `v` and a version starting with a digit, spaces, the root path | — | ` RUN  v3.2.4 /tmp/x` |
 
    Anywhere else in a message, a temp path, timestamp or pid stays raw: `expected '/tmp/a.md'` and
    `expected '/tmp/b.md'` digest apart, and so do `pid 1` and `pid 2`, or two ISO timestamps.
@@ -177,7 +179,11 @@ into its own assertion message therefore digests differently on every replay; pu
 runner line, or leave it out of the message. The limits: a message line that its author wrote in
 exactly one of the span or runner-line shapes above is rewritten like the runner's own line, and so is
 a nested test line whose title ends in a duration when the runner printed no timing after it (Vitest
-omits it for fast tests and for `↓` skips).
+omits it for fast tests and for `↓` skips). A runner line's `cwd=` value ends at the first space, so a
+directory with a space in its name is only partly rewritten. Line starts follow JavaScript's multiline
+rule, so a lone `\r` also starts a line. Colour codes never reach these rules: the failure text is
+stripped of them before a message is built (`scripts/tdd/receipt-failures.mjs`). A `Duration` line's
+rewrite also stops at `: expected `.
 
 **Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It
