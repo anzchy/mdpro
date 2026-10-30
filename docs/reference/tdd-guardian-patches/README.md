@@ -1,3 +1,5 @@
+> Moved here from `.claude/tdd-guardian/patches/` on 2026-10-30 (chore/tddg-cleanup, base 81bc8384), when tdd-guardian was disabled at project scope; ADR-0125 cites the old path.
+
 # Local patches to the tdd-guardian plugin
 
 These patch a plugin that lives in a **cache directory**
@@ -17,7 +19,7 @@ Against upstream `71346d8` ("chore: release manifest fix", 2026-08-24) of
 
 ```bash
 cd ~/.claude/plugins/cache/xiaolai/tdd-guardian/0.9.1
-git apply /path/to/mdpro/.claude/tdd-guardian/patches/tdd-guardian-0.9.1-exec-counts-and-exit101.patch
+git apply /path/to/mdpro/docs/reference/tdd-guardian-patches/tdd-guardian-0.9.1-exec-counts-and-exit101.patch
 ```
 
 ### What it fixes

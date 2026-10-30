@@ -3,7 +3,8 @@
  * Unit matrix for `src/utils/largeDocumentGuard.ts#decideLargeDocumentGuard`
  * and its exported constants.
  *
- * Cases of `.claude/tdd-guardian/tests-20260920-211524.md` (revision 3):
+ * Cases of the matrix `.claude/tdd-guardian/tests-20260920-211524.md` (revision 3;
+ * removed with tdd-guardian's dead artifacts, kept in git history at 81bc8384):
  * G1', G2', G2b, G4', G5', G6', G7', G14', G17', G18', G20', G21', G22',
  * N1, N2, N3, N4, N5, N6, N8, N9, N-NL, N10, N11, N12, N13, N14, N15, N16,
  * N17 (the predicate) and M1, M2, M3 (the exported constants, WI-2).
