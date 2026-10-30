@@ -2275,7 +2275,7 @@
       "id": [
         "tests/tooling/adr0149e-digest-text.test.ts",
         "ADR0149E-F2G1 the digest binds the text",
-        "the replay worktree, a temp path, duration, pid or timestamp in the message keeps the digest; the evidence keeps the raw text"
+        "the replay worktree, a temp path, pid or timestamp in the message keeps the digest; the evidence keeps the raw text"
       ],
       "prerequisite": "plugin"
     },
@@ -2300,6 +2300,22 @@
         "tests/tooling/adr0149e-digest-text.test.ts",
         "ADR0149E-F2G1 the digest binds the text",
         "a pre-entry base run's error is bound: a timeout and a heavy-lock refusal digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F3 a duration inside an assertion is bound",
+        "F3A: messages that differ only in a time-like assertion value, '10ms' against '20ms', digest apart"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/adr0149e-digest-text.test.ts",
+        "ADR0149E-F3 the runner's timing output is normalised",
+        "F3B: two copies of one failure whose nested runner timing differs digest equal, and the assertion value stays"
       ],
       "prerequisite": "plugin"
     },
