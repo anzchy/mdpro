@@ -1,7 +1,7 @@
 # 0159. Landing is checked against the records by one command, and Policy files land by PR
 
-**Status**: Proposed (2026-10-30, drafted by herdr-delegator for I556 r2; revised for r3 and r4 the same day; snapshot
-`docs/specs/i556/r4/`, which supersedes r3).
+**Status**: Proposed (2026-10-30, drafted by herdr-delegator for I556 r2; revised for r3, r4 and r5 the same day;
+snapshot `docs/specs/i556/r5/`, which supersedes r4).
 
 The decision rests on these user words, all from 2026-10-30:
 - the grill of #556 item 4, four rounds, each answered 「全部同意」;
@@ -18,7 +18,17 @@ The decision rests on these user words, all from 2026-10-30:
   扩大门禁文件列表, routine 路由收窄」 (all four other drafting decisions confirmed);
 - the r4 cap rulings on the r3 round-2 plan review: 「修成 r4 + 限定复核 (Recommended)」 (fix Z1–Z8 as r4, then a
   scoped confirm by the raisers) and, on Z2, 「算，强制 High (Recommended)」 (rules 60, 70 and 71, `CLAUDE.md`,
-  `AGENTS.md` and the delegator Skill are gate-sensitive).
+  `AGENTS.md` and the delegator Skill are gate-sensitive);
+- the r5 ruling under ADR-0129 on gpt-auditor's open H3 after the r4 post-cap confirms: 「Narrow: refuse every land-open
+  (Recommended)」 (the command refuses every `post-cap land-open` row; landing a finding open is the user's, by hand).
+
+> **r5 revision.** This revision answers the post-cap confirms of r4. opus-auditor closed every finding; gpt-auditor
+> kept H3 open: the land-open check read only the item, the finding, the owner and the fix-by from the D row, not the
+> compensating control, the `CHANGELOG.md` Known issues line or the user's words that ADR-0129 decision 4's full record
+> needs. Under ADR-0129 (one return, no second fix) the user ruled 「Narrow: refuse every land-open (Recommended)」. The
+> edits: the command refuses every `post-cap land-open` row, failing closed (decision 4, option 13c); the D-row checks
+> that only land-open needed are dropped; the costs record that a finding landed open is landed by the user by hand.
+> Each edit is mapped in `changes-from-r4.md`.
 
 > **r4 revision.** This revision answers the r3 round-2 plan review after the two-round cap (gpt-auditor H3 M1,
 > opus-auditor H1 M3 L3), under the user's cap ruling above. The edits, Z1–Z8:
@@ -60,7 +70,8 @@ The decision rests on these user words, all from 2026-10-30:
 - ADR-0129 decision 8's Gate exceptions row grammar. It adds:
   - a check token at the head of Gate waived;
   - a `this landing only (PR #n, sha40)` scope;
-  - a `post-cap` scope in three forms, plus `single-auditor`;
+  - a `post-cap` scope in three forms (raiser-confirm and no-round, which count, and land-open, which the command always
+    refuses), plus `single-auditor`;
   - the rule that `any`/`until` rows count only when the verifier carries them.
 
 **Kept, and now enforced by the command:**
@@ -68,7 +79,8 @@ The decision rests on these user words, all from 2026-10-30:
 - ADR-0143: both auditors on every audit, routine Policy-file PRs included, capped at two rounds. The security section
   is required on High tier;
 - ADR-0144: device ACs are proved in the real app, under decision 5's identity;
-- ADR-0129: the post-cap rules, read through a recorded row;
+- ADR-0129: the post-cap rules, read through a recorded row. Landing a finding open (decision 4) stays its manual
+  path, by the user's ruling and by hand; the command refuses it rather than checking part of its record;
 - ADR-0121: the tiers, for every other path, with High tier enforced for every gate-sensitive path whatever the route
   marker;
 - ADR-0146: the audit dimensions file and its route;
@@ -169,6 +181,16 @@ For `release/x.y` (r3):
 - **12a. Out of scope.** Lost (opus M2): a raw hotfix landing would bypass every check.
 - **12b. `--target release/<x.y>`, with the hook refusing raw merges and pushes there.** Chosen.
 
+For a finding landed open after the cap (r5):
+- **13a. Check the D row's item, finding, owner and fix-by** (r4). Lost (gpt H3, post-cap confirm of r4): a D row
+  without the compensating control, the Known issues line or the user's words passed, though ADR-0129 decision 4 says
+  the finding keeps blocking without the full record.
+- **13b. Check every ADR-0129 decision 4 field mechanically.** Lost: it would be a second fix after the cap, which
+  ADR-0129 rules out, and fields such as "a compensating control, or none with the reason" are judgments a parser
+  cannot make.
+- **13c. Refuse every `post-cap land-open` row; the user lands such a finding by hand under ADR-0129.** Chosen (user,
+  2026-10-30: 「Narrow: refuse every land-open (Recommended)」).
+
 ## Decision
 
 1. **One landing command for both routes:**
@@ -191,8 +213,9 @@ For `release/x.y` (r3):
 4. **The only override is a Gate exception row,** read from the fetched `origin/master` in the grammar the spec pins,
    quoting the user, with a check token. Three kinds of row count:
    - **`--exception <id>`** accepts a `this landing only` row for this PR and SHA, or a post-cap row (raiser-confirm,
-     no-round, land-open, single-auditor). A land-open row maps each blocking finding to a D row that exists in the
-     sequencing doc on `origin/master` and names the item, the finding, an owner and a fix-by;
+     no-round, single-auditor);
+   - **a `post-cap land-open` row is always refused,** failing closed, whatever it and its D rows say. Landing a finding
+     open is the ADR-0129 manual path: the user rules and lands it by hand, outside the command;
    - **a standing `until` row** counts only when the verifier carries it, and only with the token `verifier`;
    - **a waived device AC** goes through a `device:<AC>` row.
 
@@ -254,6 +277,13 @@ For `release/x.y` (r3):
     code or a gate-sensitive path is refused and must go `audited`.
   - **Both auditors must report security on High tier.** An opus report that omits the security section is re-asked,
     and the landing waits for it. Today opus reports often omit it, so the first High-tier landings may wait.
+  - **No mechanical land-open** (r5, user, 「Narrow: refuse every land-open (Recommended)」). The command never lands
+    a Critical or High open. When the user rules a finding landed open under ADR-0129, the user lands it by hand,
+    outside the command, with ADR-0129 decision 4's full record written by hand; nothing checks that record
+    mechanically, and none of the command's other checks (verifier, `ci-gate`, device) runs for that landing unless
+    the user runs them. By hand means from the user's own shell: the role guard is a Claude Code hook, so it refuses a
+    raw landing from any Claude session in the main checkout, and the Codex rules forbid it to a Codex delegator.
+    Such landings are expected to be rare, since each one already needs a user ruling.
   - **The user's own sessions in the main checkout are guarded too.** With no role set, they can no longer raw-merge
     or push `master` or `release/*`, or `gh pr merge`. A manual landing there goes through the command.
   - **The Claude delegator now carries a Codex overlay file** in the main checkout and a role variable at launch. Both
@@ -264,8 +294,7 @@ For `release/x.y` (r3):
     - The two standing rows still open at `a39a04ad`, G-D325-1 and G-D327-1, need new-grammar rows before a verifier
       can carry them. G518-1 and G-D340-1 are closed and are never re-recorded as open.
   - **More records must be written exactly.**
-    - A post-cap ruling now also needs an audit-log row in one of the four forms; a land-open ruling also needs its D
-      rows, with owner and fix-by, on `origin/master` first.
+    - A post-cap ruling now also needs an audit-log row in one of the three accepted forms.
     - On Claude, the verifier writes its record as a file.
     - Auditors write to the file name the request pins.
 - **Known limits:**
