@@ -1,7 +1,7 @@
 # 0159. Landing is checked against the records by one command, and Policy files land by PR
 
-**Status**: Proposed (2026-10-30, drafted by herdr-delegator for I556 r2; revised for r3 the same day; snapshot
-`docs/specs/i556/r3/`).
+**Status**: Proposed (2026-10-30, drafted by herdr-delegator for I556 r2; revised for r3 and r4 the same day; snapshot
+`docs/specs/i556/r4/`, which supersedes r3).
 
 The decision rests on these user words, all from 2026-10-30:
 - the grill of #556 item 4, four rounds, each answered 「全部同意」;
@@ -15,7 +15,24 @@ The decision rests on these user words, all from 2026-10-30:
 - the r3 confirmation rulings: 「同意收紧 (Recommended)」 (exceptions through the verifier's CARRIED line; `ci-gate`
   exceptions for one landing and one SHA), 「同意 (Recommended)」 (an unset role in the main checkout counts as the
   delegator), 「两个都强制」 (both auditors' security lines required on High tier), and 「release/x.y 纳入范围, 带开放问题落地,
-  扩大门禁文件列表, routine 路由收窄」 (all four other drafting decisions confirmed).
+  扩大门禁文件列表, routine 路由收窄」 (all four other drafting decisions confirmed);
+- the r4 cap rulings on the r3 round-2 plan review: 「修成 r4 + 限定复核 (Recommended)」 (fix Z1–Z8 as r4, then a
+  scoped confirm by the raisers) and, on Z2, 「算，强制 High (Recommended)」 (rules 60, 70 and 71, `CLAUDE.md`,
+  `AGENTS.md` and the delegator Skill are gate-sensitive).
+
+> **r4 revision.** This revision answers the r3 round-2 plan review after the two-round cap (gpt-auditor H3 M1,
+> opus-auditor H1 M3 L3), under the user's cap ruling above. The edits, Z1–Z8:
+> - gate-sensitive paths require `tier High` from both reports (decision 6, and ADR-0121 under Kept);
+> - the gate-sensitive subset gains the landing-condition prose and the delegator Skill (decision 6, costs);
+> - High tier is set by either report or by a gate-sensitive path, and each post-cap form names the security line it
+>   reads (decisions 2 and 4);
+> - land-open rows map each blocking finding to an existing, complete D row (decision 4);
+> - only G-D325-1 and G-D327-1 are re-recorded, and a closed row is never reopened (costs);
+> - a carried row's token must be `verifier` (decision 4);
+> - `--create-release <tag>` cuts a `release/<x.y>` branch (decision 1);
+> - the spec's Solution names both auditors' security sections.
+>
+> Each finding's edit is mapped in `changes-from-r3.md`.
 
 > **r3 revision.** This revision answers the r2 round-1 plan review: gpt-auditor C0 H2 M2, opus-auditor C0 H2 M7 L7.
 > The merged verdict is planner-local. The edits:
@@ -52,7 +69,8 @@ The decision rests on these user words, all from 2026-10-30:
   is required on High tier;
 - ADR-0144: device ACs are proved in the real app, under decision 5's identity;
 - ADR-0129: the post-cap rules, read through a recorded row;
-- ADR-0121: the tiers, for every other path;
+- ADR-0121: the tiers, for every other path, with High tier enforced for every gate-sensitive path whatever the route
+  marker;
 - ADR-0146: the audit dimensions file and its route;
 - ADR-0083: `release/x.y` hotfix branches, landed only by the delegator;
 - ADR-0084 and ADR-0157.
@@ -155,13 +173,17 @@ For `release/x.y` (r3):
 
 1. **One landing command for both routes:**
    `land-guard.mjs <sha> [--item <id>] [--target release/<x.y>] [--exception <id>]…`. It checks, and then does the
-   fast-forward and push itself. It also has a docs-only mode, a dry run and a read-only replay mode. `--item` is
+   fast-forward and push itself. It also has a docs-only mode, a dry run, a read-only replay mode, and
+   `--create-release <tag>`, which cuts a new `release/<x.y>` at a `v<x.y>.*` tag's commit only when that branch does
+   not exist (ADR-0083 decision 3). `--item` is
    optional. Without it, records are found by SHA, and a rebased or post-cap landing is refused, naming `--item`.
 2. **It checks five kinds of evidence at the SHA:**
    - the verifier's PASS record;
    - each auditor's highest-round report, with a range ending at the SHA, or at an audited head the SHA is an accepted
      rebase of, and zero blocking Critical and High;
-   - on High tier, both auditors' clear security lines;
+   - on High tier, both auditors' clear security lines. A landing is High tier when either report says `tier High` or
+     any changed path is gate-sensitive. Each post-cap form names the security line it reads, and a single-auditor
+     landing at High tier also needs a `security` exception for this landing;
    - a green `ci-gate` on the PR whose head is the SHA and whose base is the target;
    - the cited device reports, whose `IDENTITY releaseId` SHA has the landing SHA's ADR-0144 decision 5 identity.
 3. **Fail closed.** A check that cannot run, or a record that cannot be read or parsed, refuses the landing. Every
@@ -169,8 +191,9 @@ For `release/x.y` (r3):
 4. **The only override is a Gate exception row,** read from the fetched `origin/master` in the grammar the spec pins,
    quoting the user, with a check token. Three kinds of row count:
    - **`--exception <id>`** accepts a `this landing only` row for this PR and SHA, or a post-cap row (raiser-confirm,
-     no-round, land-open, single-auditor);
-   - **a standing `until` row** counts only when the verifier carries it, and never for `ci-gate`;
+     no-round, land-open, single-auditor). A land-open row maps each blocking finding to a D row that exists in the
+     sequencing doc on `origin/master` and names the item, the finding, an owner and a fix-by;
+   - **a standing `until` row** counts only when the verifier carries it, and only with the token `verifier`;
    - **a waived device AC** goes through a `device:<AC>` row.
 
    Old rows match nothing.
@@ -190,10 +213,12 @@ For `release/x.y` (r3):
      and `docs/agents/**`. They land only by PR, with `ci-gate` and the policy tests. A routine change gets a Low-tier
      mini audit by both auditors and needs no verifier record. Every other change gets the two-auditor audit at its
      tier, plus the verifier.
-   - **Gate-sensitive Policy files** never take the routine route. The command refuses it. They are the landing
-     command and its modules, the hooks and settings, the agent definitions, the tdd-guardian state, the Codex rules
-     and agents, the skills' scripts, the delegator templates, and the audit dimensions file. Every executable or data
-     file under a Policy prefix is among them.
+   - **Gate-sensitive Policy files** never take the routine route, and a change to any of them is High tier: both
+     qualifying reports must say `tier High`, or the command refuses. They are the landing command and its modules,
+     the hooks and settings, the agent definitions, the tdd-guardian state, the Codex rules and agents, the skills'
+     scripts, the delegator Skill and its `references/**`, the audit dimensions file, and the prose that states the
+     landing conditions: rules 60, 70 and 71, `CLAUDE.md` and `AGENTS.md`. Every executable or data file under a Policy
+     prefix is among them.
    - **Knowledge documents** go by docs-only, through the same command.
 7. **The policy tests:** change classification treats Policy files as code, and a path check refuses known-wrong
    prefixes.
@@ -221,8 +246,10 @@ For `release/x.y` (r3):
   - **GitHub must be reachable to land.** When it is not, landing waits. A `ci-gate` exception is for one landing and
     one SHA only, so an outage never becomes a standing waiver.
   - **Every routine Policy PR costs two Low-tier mini audits and a CI run,** where it used to be a direct commit. This
-    includes every `CLAUDE.md` wording edit. A gate-sensitive one costs the full audit and the verifier, even for a
-    one-line fix.
+    A gate-sensitive one costs the full High-tier audit by both auditors and the verifier, even for a one-line fix.
+  - **A typo fix in rules 60, 70 or 71, `CLAUDE.md`, `AGENTS.md` or the delegator Skill needs a High-tier audit**
+    (user, 「算，强制 High (Recommended)」). These files state the landing conditions, so a wording change can move a
+    gate; the price is that no edit to them, however small, is cheap.
   - **A routine Policy PR skips the verifier,** so nothing re-checks its lanes or receipts. A routine PR that touches
     code or a gate-sensitive path is refused and must go `audited`.
   - **Both auditors must report security on High tier.** An opus report that omits the security section is re-asked,
@@ -234,10 +261,11 @@ For `release/x.y` (r3):
   - **Old records do not fit the pinned grammar.**
     - Old exception rows match nothing, so a historical replay may refuse landings that were proper at the time, #551
       among them. G551-1 is not re-recorded.
-    - The open standing rows (G-D325-1, G-D327-1, G-D340-1, G518-1) need new-grammar rows before a verifier can carry
-      them.
+    - The two standing rows still open at `a39a04ad`, G-D325-1 and G-D327-1, need new-grammar rows before a verifier
+      can carry them. G518-1 and G-D340-1 are closed and are never re-recorded as open.
   - **More records must be written exactly.**
-    - A post-cap ruling now also needs an audit-log row in one of the four forms.
+    - A post-cap ruling now also needs an audit-log row in one of the four forms; a land-open ruling also needs its D
+      rows, with owner and fix-by, on `origin/master` first.
     - On Claude, the verifier writes its record as a file.
     - Auditors write to the file name the request pins.
 - **Known limits:**
