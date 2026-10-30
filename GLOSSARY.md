@@ -14,7 +14,7 @@ _Avoid_: alias key, alternate
 versions migrates only the values that still equal the old default.
 _Avoid_: keymap version, schema version
 
-**Owned elsewhere**: a chord that another program on the machine has registered system-wide, so mdpro never receives it.
+**Owned elsewhere**: a chord that something else on the machine takes before mdpro sees it, so mdpro never receives it. That can be a system-wide hotkey another program registered, a low-level keyboard hook, or an input method's hotkey while that input method is active.
 _Avoid_: blocked key, stolen shortcut
 
 ## Landing
