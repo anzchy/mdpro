@@ -48,10 +48,11 @@ function readFolder(cacheDir, folder) {
   return { version: folder };
 }
 
+/** `{ok, version, reason}` for a cache root; never throws (a stat or read error other than "absent" is `unreadable`). */
 export function checkMattPocockVersion(cacheDir) {
-  if (!statSync(cacheDir, { throwIfNoEntry: false })?.isDirectory()) return { ok: false, version: null, reason: `missing: ${cacheDir} is not a directory` };
   let entries;
   try {
+    if (!statSync(cacheDir, { throwIfNoEntry: false })?.isDirectory()) return { ok: false, version: null, reason: `missing: ${cacheDir} is not a directory` };
     entries = readdirSync(cacheDir, { withFileTypes: true });
   } catch (error) {
     return { ok: false, version: null, reason: `unreadable: ${cacheDir}: ${error instanceof Error ? error.message : String(error)}` };

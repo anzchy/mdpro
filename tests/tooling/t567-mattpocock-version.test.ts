@@ -185,6 +185,29 @@ describe("T567 checkMattPocockVersion on fixture caches", () => {
     }
   });
 
+  it("reports a cache under an unsearchable parent as unreadable, from the function and the CLI, without throwing", async () => {
+    const parent = path.join(scratch, `parent-${made++}`);
+    fs.mkdirSync(parent);
+    const dir = path.join(parent, "c");
+    fs.mkdirSync(dir);
+    fs.chmodSync(parent, 0o000);
+    try {
+      let outcome: unknown;
+      try {
+        const result = checkMattPocockVersion(dir);
+        outcome = { ok: result.ok, version: result.version, unreadable: result.reason.startsWith("unreadable") };
+      } catch (error) {
+        outcome = { threw: error instanceof Error ? error.message : String(error) };
+      }
+      const run = await runCli(dir);
+      const lines = run.stdout.split("\n").filter(Boolean);
+      expect({ outcome, code: run.code, lines: lines.length, unreadable: lines.length === 1 && JSON.parse(lines[0]).reason.startsWith("unreadable") })
+        .toEqual({ outcome: { ok: false, version: null, unreadable: true }, code: 1, lines: 1, unreadable: true });
+    } finally {
+      fs.chmodSync(parent, 0o755);
+    }
+  });
+
   it("reports an unreadable manifest as malformed, naming its folder", () => {
     const dir = makeCache({ "1.3.1": manifest("1.3.1") });
     const file = path.join(dir, "1.3.1/.claude-plugin/plugin.json");

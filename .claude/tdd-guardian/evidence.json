@@ -3893,6 +3893,39 @@
         "tests/tooling/t567-mattpocock-version.test.ts": "df3ef790924f0469245d9c87b110ffd5ca238198"
       }
     },
+    "T567-S37": {
+      "id": "T567-S37",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:24:49.072Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"reports a cache under an unsearchable parent as unreadable, from the function and the CLI, without throwing\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-mattpocock-version.test.ts",
+            "line": 205
+          },
+          "message": "AssertionError: expected { …(4) } to deeply equal { outcome: { ok: false, …(2) }, …(3) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S37/20261031T162449072Z/tests",
+        "tree": "72424967013142833fc2da42bc05aeaba06bef72"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-mattpocock-version.test.ts": "3c2a81510d3d7cd727bddc9a36dca7e011885771"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-mattpocock-version.test.ts": "3c2a81510d3d7cd727bddc9a36dca7e011885771"
+      }
+    },
     "T567-S4": {
       "id": "T567-S4",
       "lane": "unit-red",
