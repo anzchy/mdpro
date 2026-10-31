@@ -5,36 +5,32 @@
  * Pipeline: parse → OS flock (receipt-locks) → per-id lock → action.
  * Key decisions: the plugin's receipts.json never gains a field; the entry's evidence
  * lives in the sidecar (receipt-evidence) and the pinned test tree (receipt-tree), written
- * only after the plugin's record succeeded (receipt-capture).
- * @coordinates-with scripts/tdd/unit-red-lane.mjs, scripts/cargo-test-lane.mjs, .claude/agents/mdpro-landing-verifier.md
+ * only after the plugin's record succeeded (receipt-capture). The plugin is the vendored
+ * engine under vendor/ (#566), never a plugin cache; its version stamps the evidence.
+ * @coordinates-with scripts/tdd/unit-red-lane.mjs, scripts/cargo-test-lane.mjs, scripts/tdd/receipt-engine.mjs, .claude/agents/mdpro-landing-verifier.md
  */
-import { existsSync, fstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { existsSync, fstatSync, mkdtempSync, readFileSync, rmSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { usageError, validateFiles, validateId } from "./unit-red-lane.mjs";
-const require = createRequire(import.meta.url);
 const RECEIPTS = ".claude/tdd-guardian/receipts.json";
 import { barrier, guardianBoundMs, laneTimeoutMs, withOperationLock, withOsLock } from "./receipt-locks.mjs";
 import { validateRustFiles, requireRustfmtClean } from "./receipt-rust.mjs";
 import { capture, prepare } from "./receipt-capture.mjs";
 import { entryFor, readEvidence, removeEntry, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
 import { replay } from "./receipt-replay.mjs";
+import { loadEngine } from "./receipt-engine.mjs";
 const LANES = new Set(["unit-red", "rust"]);
 const GENUINE = new Set(["assertion-failure", "opaque-failure"]);
 const redOk = (lane, kind) => (lane === "unit-red" ? kind === "assertion-failure" : GENUINE.has(kind));
-const pluginVersion = () => dirname(guardianPath()).split("/").at(-3);
+const ENGINE = join(dirname(fileURLToPath(import.meta.url)), "vendor", "tdd-guardian-0.10.2");
+const pluginVersion = () => ENGINE.split("tdd-guardian-").at(-1);
+let modules;
+const engine = (name) => (modules ??= loadEngine(ENGINE))[name];
 const validateFor = (lane, cwd, files) => (lane === "rust" ? validateRustFiles(cwd, files) : validateFiles(cwd, files));
-function guardianPath() {
-  const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-  const versions = (existsSync(cache) ? readdirSync(cache) : []).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
-  const version = versions.find((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js")));
-  if (!version) throw usageError("The installed tdd-guardian receipt.js was not found.");
-  return join(cache, version, "scripts/tdd-guardian/receipt.js");
-}
 function parse(argv) {
   const [action, ...tail] = argv;
   if (!["record", "verify", "discard", "check-pending", "replay"].includes(action)) throw usageError("Use record, verify, discard, check-pending or replay.");
@@ -119,7 +115,7 @@ function withSelection(cwd, files, callback, expectedReceipt = null) {
   }
 }
 function callGuardian(cwd, args, env) {
-  const result = spawnSync(process.execPath, [guardianPath(), ...args, "--cwd", cwd], {
+  const result = spawnSync(process.execPath, [join(ENGINE, "receipt.js"), ...args, "--cwd", cwd], {
     cwd,
     env,
     encoding: "utf8",
@@ -133,7 +129,7 @@ function callGuardian(cwd, args, env) {
   return result.status;
 }
 function laneConfig(cwd, name) {
-  const config = require(join(dirname(guardianPath()), "lib/config.js")).load(cwd);
+  const config = engine("config").load(cwd);
   if (config.errors.length || !config.config) throw usageError("The tdd-guardian lane config is invalid.");
   const lane = config.config.lanes.find((item) => item.name === name);
   if (!lane) throw usageError(`The ${name} lane is missing.`);
@@ -141,7 +137,7 @@ function laneConfig(cwd, name) {
 }
 function runGuardedVerification(cwd, env, name = "unit-red") {
   const lane = laneConfig(cwd, name);
-  const lanes = require(join(dirname(guardianPath()), "lib/lanes.js"));
+  const lanes = engine("lanes");
   const keys = ["MDPRO_UNIT_RED_FILES", "MDPRO_UNIT_RED_MARKER", "MDPRO_UNIT_RED_NONCE"];
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   try {
@@ -204,7 +200,7 @@ function verify(args) {
   barrier("verify-preflight");
   const result = lane === "unit-red" ? withSelection(args.cwd, files, (env) => runGuardedVerification(args.cwd, env), receipt) : runGuardedVerification(args.cwd, process.env, lane);
   if (!result.ok) throw usageError(`Verification lane is ${result.status}; receipt stays open.`);
-  const verification = require(join(dirname(guardianPath()), "lib/verification.js"));
+  const verification = engine("verification");
   const judged = verification.verifyAll({ schemaVersion: 2, receipts: [receipt] }, args.cwd, {
     greenLanes: new Set([lane]),
   }).store.receipts[0];
@@ -228,7 +224,7 @@ function discard(args) {
     throw usageError("Discard requires a current non-master branch.");
   }
   if (masterReceipts(args.cwd).some((receipt) => receipt.id === args.id)) throw usageError("Cannot discard a receipt inherited from master.");
-  const verification = require(join(dirname(guardianPath()), "lib/verification.js"));
+  const verification = engine("verification");
   const loaded = verification.loadReceipts(args.cwd);
   if (loaded.error || loaded.problems.length) throw usageError("Receipt store is malformed; discard refused.");
   const receipt = find(loaded.store, args.id);
@@ -261,13 +257,12 @@ function discard(args) {
 function checkPending(args) {
   const master = new Set(masterReceipts(args.cwd).map((receipt) => receipt.id));
   const evidence = withEvidenceLock(args.cwd, () => readEvidence(args.cwd));
-  let version; // the plugin is needed only to judge a branch receipt (a CI runner has none)
   const problems = [];
   for (const receipt of currentStore(args.cwd).receipts.filter((item) => !master.has(item.id))) {
     const reasons = [];
     if (!redOk(receipt.lane, receipt.red?.kind)) reasons.push(`RED kind ${receipt.red?.kind || "missing"}`);
     if (receipt.verdict !== "SEPARATION-HELD") reasons.push(`verdict ${receipt.verdict || "unsettled"}`);
-    const entry = entryFor(evidence, receipt, (version ??= pluginVersion()));
+    const entry = entryFor(evidence, receipt, pluginVersion());
     if (!entry) reasons.push("no evidence");
     else if (entry.evidence_required) reasons.push("evidence required (spec bytes changed since RED)");
     else if (receipt.verdict === "SEPARATION-HELD") {
@@ -285,6 +280,7 @@ function checkPending(args) {
 }
 try {
   const args = parse(process.argv.slice(2));
+  engine("config"); // fail closed before any lock or lane when the vendored engine is incomplete
   if (args.action !== "check-pending" && !process.env.MDPRO_UNIT_RED_FLOCK_FD) process.exitCode = await withOsLock(args, fileURLToPath(import.meta.url));
   else if (args.action !== "check-pending" && fstatSync(Number(process.env.MDPRO_UNIT_RED_FLOCK_FD)).ino !== statSync(join(args.cwd, ".claude/tdd-guardian", `.unit-red-${args.id}.flock`)).ino) throw usageError("OS receipt lock descriptor is invalid.");
   else if (args.action === "record") withOperationLock(args.cwd, args.id, () => record(args));

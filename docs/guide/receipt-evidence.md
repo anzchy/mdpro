@@ -6,6 +6,13 @@ come from [ADR-0145](../adr/0145-a-broken-red-receipt-carries-its-own-evidence-a
 as amended by [ADR-0149](../adr/0149-a-broken-receipt-is-judged-by-a-base-tree-fail-to-pass-replay.md).
 The plugin's `receipts.json` is untouched: it never gains a field, and nothing here changes a verdict.
 
+**The engine the entry runs is vendored**, at `scripts/tdd/vendor/tdd-guardian-0.10.2/`: tdd-guardian's `receipt.js`
+and its `lib/` closure, byte-identical to the 0.10.2 plugin, with its ISC licence and a README that pins each file's
+SHA-256 ([#566](https://github.com/anzchy/mdpro/issues/566)). The entry never reads `~/.claude/plugins` or
+`~/.codex/plugins`, and it has no fallback: a missing file, or one that does not load, stops every command with the
+vendored path named. Evidence is stamped with that version (`plugin_version`). Upgrading is a reviewed diff of the
+directory, landed through the normal audit, never a side effect of a plugin update; see the directory's README.
+
 ## Commands
 
 | Command | What it does |
@@ -14,7 +21,7 @@ The plugin's `receipts.json` is untouched: it never gains a field, and nothing h
 | `node scripts/tdd/red-receipt.mjs record --id <ID> --lane rust --test src-tauri/<file>.rs` | Rust RED on the `rust` lane. It refuses any file that is not `rustfmt`-clean at the crate's edition, before the lane runs. |
 | `node scripts/tdd/red-receipt.mjs verify --id <ID>` | Settles the receipt on its own lane. It also exits non-zero with **evidence required** when the plugin holds but a spec file's bytes changed since RED: an inserted `return`, a blank line, anything. |
 | `node scripts/tdd/red-receipt.mjs discard --id <ID>` | Drops an unsettled branch receipt and its sidecar entry. Its pin ref stays for the sweep. |
-| `node scripts/tdd/red-receipt.mjs check-pending` | Judges every branch receipt on every lane and names each one that needs review, with its reason. It needs the installed tdd-guardian plugin only when the branch has a receipt of its own; on a runner without it, such a branch fails closed with the plugin named. |
+| `node scripts/tdd/red-receipt.mjs check-pending` | Judges every branch receipt on every lane and names each one that needs review, with its reason. It runs the vendored engine, so a CI runner needs no plugin; an incomplete vendored engine fails closed with its path named. |
 | `node scripts/tdd/red-receipt.mjs replay --id <ID> [--base <rev>] [--expect-digest <hex>]` | Prints the diffs, replays the RED against the PR base, and digests the result. |
 
 **Recording rules** (ADR-0149 d5):

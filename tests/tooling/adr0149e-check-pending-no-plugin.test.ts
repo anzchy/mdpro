@@ -1,9 +1,8 @@
 // @vitest-environment node
 /**
- * ADR0149E-F2CI (fix 2, the Linux CI failure): `check-pending` needs the installed
- * tdd-guardian plugin only to judge a branch receipt's evidence. On a runner with no plugin
- * (CI), a branch without receipts of its own passes, and a branch receipt fails closed with
- * the plugin named, never as a silent pass.
+ * ADR0149E-F2CI (fix 2, the Linux CI failure): on a runner with no tdd-guardian plugin cache
+ * (CI), a branch without receipts of its own passes, and a branch receipt is judged by the
+ * vendored engine (#566), never passed silently. A missing engine is T566-3's case.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -37,12 +36,12 @@ describe("ADR0149E-F2CI check-pending on a runner without the plugin", () => {
     expect(result.status, result.output).toBe(0);
   });
 
-  it("fails closed, naming the plugin, when a branch receipt needs judging", async () => {
+  it("judges a branch receipt through the vendored engine, never passing it silently", async () => {
     repo.write(".claude/tdd-guardian/receipts.json", JSON.stringify({ schemaVersion: 2, receipts: [receipt("B")] }));
     await repo.commit("branch receipt");
     const result = await checkPending();
-    expect(result.status).toBe(64);
-    expect(result.stderr).toMatch(/tdd-guardian receipt\.js was not found/);
+    expect(result.status, result.output).toBe(1);
+    expect(result.stderr).toMatch(/^  B \(unit-red\): .*no evidence/m);
     expect(result.stdout).not.toMatch(/No unsettled/);
   });
 });

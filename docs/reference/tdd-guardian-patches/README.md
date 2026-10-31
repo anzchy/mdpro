@@ -11,6 +11,11 @@ attached to the evidence that motivated it.
 They are **not applied automatically.** Nothing in this repo reaches into the
 plugin cache. After a plugin update, reapply by hand and re-check.
 
+**Since #566 (2026-10-31) the receipt entry runs a vendored copy of the engine**,
+`scripts/tdd/vendor/tdd-guardian-0.10.2/`, not the plugin cache. The patch below is
+**not applied there**: the repo's lane wrappers keep the engine off both holes it
+fixes. The reasons, and the tests that keep them true, are in that directory's README.
+
 ## `tdd-guardian-0.9.1-exec-counts-and-exit101.patch`
 
 Against upstream `71346d8` ("chore: release manifest fix", 2026-08-24) of

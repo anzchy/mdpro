@@ -1949,6 +1949,393 @@
       "settled_blobs": {
         "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
       }
+    },
+    "T566-1": {
+      "id": "T566-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T03:47:12.003Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"discards an unsettled RED with a poisoned cache present\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 94
+          },
+          "message": "AssertionError: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"judges an unsettled receipt through the engine with an empty HOME\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 73
+          },
+          "message": "AssertionError: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"leaves an inherited parent record and its evidence alone while settling a branch RED\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 107
+          },
+          "message": "AssertionError: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"never probes the plugin cache directories\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 38
+          },
+          "message": "AssertionError: \n[red-receipt] The installed tdd-guardian receipt.js was not found.\n: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"never runs a poisoned Claude or Codex cache, and stamps evidence with the vendored version\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 38
+          },
+          "message": "AssertionError: \n[red-receipt] Record refused: missing is not a counted RED for this selection. Use discard for stale evidence.\n: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"records, verifies, checks and replays a frontend RED with an empty HOME\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 38
+          },
+          "message": "AssertionError: \n[red-receipt] The installed tdd-guardian receipt.js was not found.\n: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the rust lane needs no plugin cache\",\"records and verifies a rust RED with a poisoned HOME\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-no-cache.test.ts",
+            "line": 142
+          },
+          "message": "AssertionError: \n[red-receipt] Record refused: missing is not a counted RED for this selection. Use discard for stale evidence.\n: expected 64 to be +0 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T566-1/20261031T034712003Z/tests",
+        "tree": "d89433b2012d9346b606967ceb8f6194a13c872b"
+      },
+      "spec_blobs": {
+        "tests/tooling/t566-no-cache.test.ts": "722b7354873a80a74f49458f3d39917daf2a9429"
+      },
+      "settled_blobs": {
+        "tests/tooling/t566-no-cache.test.ts": "722b7354873a80a74f49458f3d39917daf2a9429"
+      }
+    },
+    "T566-2": {
+      "id": "T566-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T03:47:15.756Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the exec.js patch is not needed\",\"keeps exec.js at its unpatched upstream bytes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 127
+          },
+          "message": "AssertionError: expected false to be '1ad0c9ecc746f5ff44ae315d647763d1f36a3…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the exec.js patch is not needed\",\"never sees cargo's 101: the wrapper turns a FAILED summary into exit 1, which the engine reads as a failure\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 103
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the exec.js patch is not needed\",\"parses the line unit-red-lane.mjs prints\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 103
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the exec.js patch is not needed\",\"reads the normalised line past a Vitest todo line, which the patch exists for\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 103
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the inventory's plugin prerequisite reads the vendored engine\",\"is false without the vendored engine, even with a full cache in HOME\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 153
+          },
+          "message": "AssertionError: expected 'true' to be 'false' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"carries the ISC licence and its provenance\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 91
+          },
+          "message": "AssertionError: expected '' to contain 'ISC License'"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"holds the whole require closure, and nothing reaches outside it\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 73
+          },
+          "message": "AssertionError: receipt.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"is the one vendored version, and both scripts name it\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 83
+          },
+          "message": "AssertionError: expected [] to deeply equal [ 'tdd-guardian-0.10.2' ]"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"passes the manifest check, and every hash equals the pinned upstream bytes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [ 'missing: README.md' ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed LICENSE, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: LICENSE: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed lib/config.js, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: lib/config.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed lib/coverage.js, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: lib/coverage.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed lib/exec.js, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: lib/exec.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed lib/lanes.js, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: lib/lanes.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed lib/verification.js, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: lib/verification.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed package.json, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: package.json: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a changed receipt.js, and nothing else\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: receipt.js: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a file whose README row was removed, and a duplicated row\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 60
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports a missing closure file\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 47
+          },
+          "message": "AssertionError: expected [ 'missing: README.md' ] to deeply equal [ 'missing: lib/coverage.js' ]"
+        },
+        {
+          "id": "[\"tests/tooling/t566-vendor-manifest.test.ts\",\"T566-2 the vendored engine is pinned\",\"reports unlisted files, hidden and nested ones too\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-vendor-manifest.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected [ 'missing: README.md' ] to deeply equal [ 'unlisted: .DS_Store', …(2) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T566-2/20261031T034715756Z/tests",
+        "tree": "d89433b2012d9346b606967ceb8f6194a13c872b"
+      },
+      "spec_blobs": {
+        "tests/tooling/t566-vendor-manifest.test.ts": "a9e0491705679948410a8ce627d03bfd963ca6a5"
+      },
+      "settled_blobs": {
+        "tests/tooling/t566-vendor-manifest.test.ts": "a9e0491705679948410a8ce627d03bfd963ca6a5"
+      }
+    },
+    "T566-3": {
+      "id": "T566-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T03:47:24.730Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses check-pending, verify, discard and replay without lib/verification.js\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 65
+          },
+          "message": "AssertionError: \n[red-receipt] Record refused: missing is not a counted RED for this selection. Use discard for stale evidence.\n: expected 64 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when lib/config.js does not load\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 74
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when receipt.js does not compile, before the lane runs\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 80
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when the CommonJS shim is deleted\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 96
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when the CommonJS shim is set to ESM\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 96
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when the vendored directory is gone\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 49
+          },
+          "message": "AssertionError: expected '\\n[red-receipt] Record refused: missi…' to contain '/private/var/folders/yc/pj8fy0nj7vs0s…'"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record without receipt.js, before the lane runs\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 49
+          },
+          "message": "AssertionError: expected '\\n[red-receipt] Record refused: missi…' to contain '/private/var/folders/yc/pj8fy0nj7vs0s…'"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 the rust lane fails closed\",\"refuses to record a rust RED without receipt.js\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fail-closed.test.ts",
+            "line": 49
+          },
+          "message": "AssertionError: expected '\\n[red-receipt] Record refused: missi…' to contain '/private/var/folders/yc/pj8fy0nj7vs0s…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T566-3/20261031T034724730Z/tests",
+        "tree": "d89433b2012d9346b606967ceb8f6194a13c872b"
+      },
+      "spec_blobs": {
+        "tests/tooling/t566-fail-closed.test.ts": "51e9607d2ffdbcab90f1ffb6e22600e4dfa69a91"
+      },
+      "settled_blobs": {
+        "tests/tooling/t566-fail-closed.test.ts": "51e9607d2ffdbcab90f1ffb6e22600e4dfa69a91"
+      }
     }
   }
 }

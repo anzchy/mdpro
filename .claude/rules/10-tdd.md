@@ -89,6 +89,11 @@ and `check-pending` judges every lane. `node scripts/tdd/red-receipt.mjs replay 
 the diffs and replays the RED against the PR base. See
 [`docs/guide/receipt-evidence.md`](../../docs/guide/receipt-evidence.md).
 
+**The receipt engine is vendored at `scripts/tdd/vendor/tdd-guardian-0.10.2/`** (#566). The entry runs it from
+there and never reads a plugin cache under `~/.claude` or `~/.codex`; a missing or unloadable engine file stops it
+with the path named. Upgrading the engine is a reviewed diff of that directory (its README pins each file's SHA-256),
+never a side effect of a plugin update.
+
 ## How much to run, and when
 
 Several sessions share one machine, so **run the full suite once per commit,

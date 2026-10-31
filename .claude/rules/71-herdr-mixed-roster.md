@@ -194,7 +194,8 @@ alias here.
 
   Rust REDs use the same entry with `--lane rust` (`record`, then `verify`), after `cargo fmt`
   (ADR-0145 d1, d8). The rust lane's own command runs under `scripts/heavy-lock.sh`. The full frontend coverage lane
-  also keeps the heavy lock.
+  also keeps the heavy lock. The entry runs the receipt engine vendored at `scripts/tdd/vendor/tdd-guardian-0.10.2/`,
+  never the Claude or Codex plugin cache (#566); an engine upgrade is a reviewed diff of that directory.
   **Record the red before the production change it tests.** A receipt that carries
   `implementation-already-present` is named in the handoff (M3a, 2026-10-20).
 - **Restart, and every reset, is a new pane** ([ADR-0133](../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)

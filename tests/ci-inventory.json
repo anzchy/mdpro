@@ -417,6 +417,22 @@
     },
     {
       "id": [
+        "tests/tooling/t566-no-cache.test.ts",
+        "T566-1 the rust lane needs no plugin cache",
+        "records and verifies a rust RED with a poisoned HOME"
+      ],
+      "prerequisite": "rustfmt"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fail-closed.test.ts",
+        "T566-3 the rust lane fails closed",
+        "refuses to record a rust RED without receipt.js"
+      ],
+      "prerequisite": "rustfmt"
+    },
+    {
+      "id": [
         "tests/tooling/red-receipt-boundary.test.ts",
         "fix1 boundary regressions",
         "detects a stale upsert that clears a settled verdict"

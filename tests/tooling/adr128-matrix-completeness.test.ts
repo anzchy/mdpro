@@ -61,7 +61,8 @@ describe("ADR128 matrix completeness", () => {
     const script = pathToFileURL(path.join(root, "scripts/ci/verify-inventory.mjs")).href;
     const emptyHome = fs.mkdtempSync(path.join(os.tmpdir(), "adr128-prereq-"));
     try {
-      for (const tag of ["plugin", "macos", "hook-token", "rustfmt"]) {
+      // `plugin` reads the vendored engine, not HOME (#566); its absent case is T566-2's probe.
+      for (const tag of ["macos", "hook-token", "rustfmt"]) {
         const code = `Object.defineProperty(process,'platform',{value:'linux'});const m=await import(${JSON.stringify(script)});process.stdout.write(String(m.hasPrerequisite(${JSON.stringify(tag)})));`;
         const result = await child(["--input-type=module", "-e", code], { ...process.env, HOME: emptyHome, PATH: "" });
         expect(result.status, tag).toBe(0);

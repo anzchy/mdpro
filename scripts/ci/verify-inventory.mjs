@@ -8,10 +8,8 @@ import { compare, parseInventory } from "./compare-report.mjs";
 
 export function hasPrerequisite(tag) {
   if (tag === "macos") return process.platform === "darwin";
-  if (tag === "plugin") {
-    const cache = path.join(os.homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-    return fs.existsSync(cache) && fs.readdirSync(cache).some((name) => fs.existsSync(path.join(cache, name, "scripts/tdd-guardian/receipt.js")));
-  }
+  // The receipt engine is vendored (#566); the plugin cache is never read.
+  if (tag === "plugin") return fs.existsSync(new URL("../tdd/vendor/tdd-guardian-0.10.2/receipt.js", import.meta.url));
   if (tag === "hook-token") return fs.existsSync(path.join(os.homedir(), ".mdpro-redesign/hooks/token"));
   if (tag === "rustfmt") {
     const folders = [...(process.env.PATH ?? "").split(path.delimiter), path.join(os.homedir(), ".cargo/bin")];
