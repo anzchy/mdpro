@@ -29,3 +29,17 @@ _Avoid_: policy
 
 **Gate exception**:
 A recorded, user-approved permission to land one change although a named landing condition is unmet.
+
+## TDD
+
+**Test matrix**: the list of cases written before any implementation, each naming its situation and the effect it checks (a document, state or IPC effect, not a boolean).
+_Avoid_: test plan, test list
+
+**Matrix attack**: a search, by an attacker who shares none of the designer's context, for wrong implementations that pass every case in a test matrix.
+_Avoid_: spec review, test review
+
+**RED receipt**: the record that a test failed on its assertion before the production change, later judged by verify for whether that change alone turned it green.
+_Avoid_: red proof, failing snapshot
+
+**Cycle**: one matrix case taken through its RED receipt, the minimal change, a small refactor while green, and verify, settled before the next begins.
+_Avoid_: step, iteration
