@@ -196,3 +196,15 @@ produced **wrong verdicts**; the rest cost time.
       against the real validator and the Mac caller's actual base64 output. On PowerShell 7,
       `-NoEnumerate` alone adds a PSObject wrapper that can satisfy `-is [pscustomobject]`;
       the local 5.1-shape reproduction must also verify the unwrapped array's actual type.
+
+27. **A precompiled EXE was rejected as an Add-Type source path** (D344).
+    - `Add-Type -Path native-job.exe` refuses the `.EXE` extension before step 1, even
+      though the binary is a valid managed assembly. Windows PowerShell 5.1 documents
+      source files and assembly DLLs for `-Path`; the local PowerShell 7 probe also refuses it.
+    - Load the precompiled assembly with `[System.Reflection.Assembly]::LoadFrom()` only
+      after the existing source/binary hash checks. The types then resolve in that same
+      session without executing the EXE or compiling during input. Repeated loads must
+      recheck both files; a real assembly-load error must retain its own diagnostic.
+    - Before a Windows smoke, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+      C:\Users\jack\mdpro-audit\native-setup-probe.ps1`. The read-only probe checks bootstrap
+      hashes/loading, type resolution and the fixed smoke JSON without input, tasks or jobs.

@@ -4849,6 +4849,207 @@
       "settled_blobs": {
         "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
       }
+    },
+    "D344-1": {
+      "id": "D344-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:53:00.289Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"does not bypass changed manifest binary hash after a successful load\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 78
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"does not bypass changed manifest source hash after a successful load\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 78
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"loads the actual EXE silently and exposes its public type in a fresh session\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 12
+          },
+          "message": "AssertionError: expected 'Cannot add type. The \".EXE\" extension…' to be null"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"preserves a real assembly failure when the corrupt binary matches its manifest\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 44
+          },
+          "message": "AssertionError: expected 'Cannot add type. The \".EXE\" extension…' to match /LoadFrom/"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"revalidates actual binary bytes after repeated successful loads\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 60
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"revalidates actual source bytes after repeated successful loads\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 60
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D344-1/20261031T165300289Z/tests",
+        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d344-loader.test.ts": "2a3781b53a57d3ee35139f0054456a102765a1db"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d344-loader.test.ts": "2a3781b53a57d3ee35139f0054456a102765a1db"
+      }
+    },
+    "D344-2": {
+      "id": "D344-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:53:38.552Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-policy.test.ts\",\"D344 unsupported EXE Add-Type guard\",\"scans every Windows PowerShell script, including variable paths\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-policy.test.ts",
+            "line": 17
+          },
+          "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D344-2/20261031T165338552Z/tests",
+        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d344-policy.test.ts": "10e105ab1bcc3d3ed691e04c3f90d08423146a7a"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d344-policy.test.ts": "10e105ab1bcc3d3ed691e04c3f90d08423146a7a"
+      }
+    },
+    "D344-3": {
+      "id": "D344-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:53:53.766Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"allows only setup reads and metadata operations in the complete transitive probe source\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 49
+          },
+          "message": "AssertionError: expected '' not to be '' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"keeps a matching-hash assembly error distinct from hash and JSON refusal\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to match /^FAIL bootstrap-load .*LoadFrom/"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"loads, resolves and validates the fixed smoke steps without file changes on repeat\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 13
+          },
+          "message": "AssertionError: expected [ 'FAIL probe-missing' ] to deeply equal [ 'OK bootstrap-load', …(2) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports binary without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports missing-binary without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports missing-manifest without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports source without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D344-3/20261031T165353766Z/tests",
+        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d344-probe.test.ts": "b55275699761ff0861fe5adf7c47f90116a5b7f1"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d344-probe.test.ts": "b55275699761ff0861fe5adf7c47f90116a5b7f1"
+      }
     }
   }
 }
