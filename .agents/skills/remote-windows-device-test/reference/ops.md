@@ -1,6 +1,7 @@
 # Ops reference
 
-Kept in sync with `scripts/windows/ui.ps1` and `scripts/windows/cdp.mjs`. When one changes,
+Kept in sync with `scripts/windows/ui.ps1`, its `native-*.ps1` helpers, `ui-run.ps1`,
+`native-reconcile.ps1` and `scripts/windows/cdp.mjs`. When one changes,
 this file changes in the same commit.
 
 ## Desktop-session driver: `scripts/mac/ui.sh '<json steps>'`
@@ -44,12 +45,14 @@ and again immediately before release, so a reused numeric HWND is not enough.
 | `menuinfo` | — | hwnd, HMENU and item count. A count of `-1` means the handle is invalid, so use `menuat`. |
 | `clickat` | `x, y, right?` | One real mouse click at screen coordinates. |
 | `chord` | `keys: ["ctrl+s","esc"], nofocus?, window?` | Logical real key events (`keybd_event`, scan code zero). Key names: `ctrl shift alt win enter esc tab back del up down left right home end space pageup pagedown f1–f12 backtick slash minus equals period comma semicolon quote lbracket rbracket backslash`, letters and digits. Anything else is refused. Use `nofocus:true` after a `clickat` into the editor, so `focus` doesn't disturb keyboard focus. Pressed keys are released if an identity check fails mid-chord. This op cannot prove physical `event.code` or AltGraph. |
-| `layout` | `window?` | Reads the selected HWND's thread HKL as 16 hex digits. Capture it immediately before a physical chord; a layout change invalidates the recorded value. |
-| `physicalChord` | `window?, keys: ["AltRight","KeyQ"], hkl: "0000000004070407", nofocus?` | Sends one ordered physical chord through `SendInput` scan codes. `keys` uses physical DOM-style names from the allowlist, including `KeyQ`, `KeyE`, `KeyK`, `BracketLeft`, `BracketRight`, `Digit7`, `ControlLeft`, `ShiftLeft`, `AltLeft`, `AltRight`. `hkl` must equal the selected window thread's `layout` output. Right Alt is extended for AltGr. Events are released in reverse order; a short injection aborts, attempts reverse cleanup of every pressed key even if one release fails, and stops following steps. This is the route for real `event.code`/AltGraph proof. |
-| `filedialog` | `path` or `cancel:true` | Drives the foreground common Open / 另存为 dialog. It sets the Win32 `Edit` by `WM_SETTEXT` and presses Enter (or Esc). |
+| `layout` | `window?` | Reads the HKL, as 16 hex digits, of the **focused input child's thread** inside the selected window (the WebView2 input child, not the top-level HWND's own thread), and logs `layout hwnd= input= thread= hkl=`. Capture it immediately before a physical chord; a layout change invalidates the recorded value. |
+| `physicalChord` | `window?, keys: ["AltRight","KeyQ"], hkl: "0000000004070407", nofocus?` | Sends one ordered physical chord through `SendInput` scan codes. `keys` uses physical DOM-style names from the allowlist, including `KeyQ`, `KeyE`, `KeyK`, `BracketLeft`, `BracketRight`, `Digit7`, `ControlLeft`, `ShiftLeft`, `AltLeft`, `AltRight`. `hkl` must equal the `layout` output for the same window and input context. Right Alt is extended for AltGr. Events are released in reverse order; a short injection aborts, attempts reverse cleanup of every pressed key even if one release fails, and stops following steps. This is the route for real `event.code`/AltGraph proof. |
+| `setLayout` | `window?, klid: "00000407"` | Activates an **installed** keyboard layout on the verified input context: posts `WM_INPUTLANGCHANGEREQUEST` to the focused input child and reads the result back on that child's thread. `klid` is exactly 8 hex digits. The context's first prior HKL is restored at the end of the run (see § Keyboard layout). |
+| `filedialog` | `window?` or `receipt`, and `path` or `cancel:true` | Drives the common Open / 另存为 dialog **owned by the verified mdpro window**. The dialog is found by its owner chain, the owner's process lifetime and executable, class `#32770` and exactly one filename `Edit`, never by title or foreground. It must already be foreground; the driver never steals focus for it. It sets the `Edit` by `WM_SETTEXT` and presses Enter (or Esc), then waits for it to close. Use `receipt` when the dialog was opened in an earlier invocation (§ File dialogs and receipts). |
+| `dialogReceipt` | `window?` | Issues a one-use modal-owner receipt for the bound window and logs `receipt <64 hex>`. Pass that token as `receipt` to a later `filedialog`. |
 | `shot` | `out, screen?` | PNG of the mdpro window, or of the whole screen with `screen:true`. A whole-screen shot shows the user's private desktop: never commit it. |
 | `open` | `path` | Starts `tauri-app.exe <path>`, which routes into the running app through **single-instance**. Paths opened this way carry `\\?\` on 0.3.1; File → Open does not. |
-| `run` | `exe, args` | Starts any process in the desktop session. |
+| `run` | `exe, args` | Starts a process in the desktop session inside an owned, nested kernel job, waits for it within the phase budget, and kills its descendants when the phase ends. Explorer and COM brokers escape any job: what they start is not owned and is not cleaned up. |
 | `visible` | — | `IsWindowVisible` for each listed window. |
 | `showall` | — | Shows every hidden `mdpro` top-level window, found by `EnumWindows` (`MainWindowHandle` is 0 while hidden). |
 | `tree` | `depth` | The UIA tree of the foreground window. The WebView2 subtree is skipped, because it times out. |
@@ -164,9 +167,98 @@ window. Stop and inspect pointer/button state and both documents before any furt
 `PHYSICAL_RELEASE_FAILED`; reconcile keyboard state before further input. A transport exit
 **3**, **70** or **124** is still an uncertain outcome and is never replayed automatically.
 
+## Native transaction: budgets, outcome, lock and reconcile
+
+One `ui.sh` call is one native transaction with one random `runId`. The budgets come from the
+environment of the Mac caller, are checked by `ui-transaction.py` and checked again on Windows.
+A value that is out of range, out of order or not a plain integer is refused before any lock,
+task or input with `UI_BUDGET_INVALID` (exit **2**).
+
+| Variable | Default | Range | Bounds |
+|---|---|---|---|
+| `MDPRO_UI_PHASE_MS` | 5000 | 10–5000 | one phase (a resolver, a wait, a helper) |
+| `MDPRO_UI_TRANSACTION_MS` | 30000 | 50–85000 | the whole native run, cleanup included |
+| `MDPRO_UI_OUTER_MS` | 90000 | 100–90000 | the Mac's wait for an answer; exit **124** when it expires |
+| `MDPRO_UI_CLEANUP_MS` | 5000 | 10–5000 | the reserve kept for cleanup |
+| `MDPRO_UI_POLL_MS` | 25 | 1–1000 | the poll interval |
+
+Ordering: phase < transaction < outer, cleanup < transaction, and phase + cleanup ≤ transaction.
+
+**Outcome.** Each run ends with one `OUTCOME {…}` line, also committed as `runs/<runId>/result.json`:
+`runId`, `status` (`completed` | `failed`), `phase`, `step`, `op`, `elapsedMs`, `completedSteps`,
+`inputOutcome` (`none` | `partial` | `unknown`), `heldInput` (`released` | `uncertain`) and `cleanup`
+(`complete` | `failed` | `not-started`). A task exit of 0 is not proof: only a committed
+`completed` result is. A stalled phase fails with `NATIVE_PHASE_TIMEOUT phase=<name>`, an
+overrun with `NATIVE_TRANSACTION_TIMEOUT phase=<name>` (exit **1**). Cleanup ends every
+process the run owns, by kernel job and by birth time plus executable; one still alive at the
+cleanup deadline is `NATIVE_OWNED_PROCESSES_REMAIN` (or `NATIVE_CONTROL_PROCESSES_REMAIN` for the
+supervisor's own helpers).
+
+**Session lock and latch.** One native run at a time: a second gets `NATIVE_SESSION_BUSY`. A run
+whose cleanup failed, whose held input is uncertain, or whose worker left no result writes
+`native-session-blocked.json`; every later run refuses with `NATIVE_RECONCILIATION_REQUIRED`
+until the run is reconciled. The evidence stays in `runs/<runId>/`.
+
+**Reconcile** runs on the PC (there is no Mac wrapper):
+`native-reconcile.ps1 -RunId <runId> [-InputReleasedConfirmed]`. It never replays and never
+deletes: after its checks it writes `runs/<runId>/reconcile-checks.json` and moves the latch to
+`runs/<runId>/reconciled.json`. It refuses, exit **1** unless noted, with:
+
+| Code | Meaning |
+|---|---|
+| `NATIVE_RECONCILE_INVALID` (**2**) | Malformed run id or budget. |
+| `NATIVE_RECONCILE_NOT_LATCHED` | No latch to clear. |
+| `NATIVE_RECONCILE_RUN_MISMATCH` | The latch names another run. |
+| `NATIVE_RECONCILE_TASK_PRESENT` | The run's scheduled task still exists, or its absence could not be proved. Only a definite not-found counts as absent. |
+| `NATIVE_RECONCILE_MANIFEST_MISSING` / `_INVALID` | The run's owned-process manifest is gone or unreadable. |
+| `NATIVE_RECONCILE_OWNED_ALIVE pid=` | A process the run owned is still alive (same birth and executable). |
+| `NATIVE_RECONCILE_INPUT_UNCONFIRMED` | Held input was not proved released. Look at the desktop, release any stuck key or button, then pass `-InputReleasedConfirmed`. |
+
+## File dialogs and receipts
+
+`filedialog` acts only on the dialog that the verified owner window owns (`IDENTITY_DIALOG_*`
+otherwise): `NOT_FOUND`, `AMBIGUOUS`, `CONTROL_NOT_FOUND`, `CONTROL_AMBIGUOUS` (the filename
+control is `Edit` 1001 inside combo 1148, or the legacy 1152), `FOREGROUND` (the dialog is not
+foreground), `CHANGED` (dialog or control replaced before the write), `LIFETIME` (a pin was lost),
+and `PIN_FAILED`, `UNPIN_FAILED`, `RELEASE_FAILED`. `UI_DIALOG_PATH_INVALID` refuses a bad path,
+`UI_DIALOG_NOT_DISMISSED` a dialog that stayed open.
+
+A dialog opened by one invocation (for example a `menuclick` that blocks on the modal) is
+driven in the next one by **receipt**:
+
+1. **Issue.** `dialogReceipt` (labelled, through the title challenge, or for the sole window)
+   pins a receipt-only property on the owner, restores its title before any modal opens, and
+   stores the record on the PC under the SHA-256 of a random token; only the token is printed.
+   It expires 30 s after issue. Issuing again for the same owner invalidates the earlier one.
+2. **Consume.** `filedialog` with `receipt:<token>` takes the record exactly once, by an atomic
+   move, with no CDP. It then trusts only native observations: the stored owner, its process
+   lifetime and the pin.
+
+Refusals: `IDENTITY_RECEIPT_INVALID` (unknown, used or malformed), `IDENTITY_RECEIPT_EXPIRED`,
+`IDENTITY_RECEIPT_LABEL_MISMATCH` (the step's `window` is not the receipt's), and
+`IDENTITY_RECEIPT_PIN_FAILED`.
+
+## Keyboard layout
+
+`layout` and `setLayout` work on the input context: the focused input child of the bound
+window, which the first `setLayout` on it pins for the rest of the run. The context's checks are `LAYOUT_INPUT_UNREADABLE`, `_OUTSIDE`
+(the focused child is not inside the bound window), `_CHANGED` / `_REPLACED` (focus moved, or the
+child was replaced), and `_PIN_FAILED`. Other refusals: `LAYOUT_KLID_INVALID`,
+`LAYOUT_UNAVAILABLE` (not an installed layout), `LAYOUT_HKL_UNREADABLE`,
+`LAYOUT_REQUEST_REJECTED` (the request could not be posted), and `LAYOUT_NOT_OBSERVED` (the readback is not the requested layout).
+
+**Restore.** Each context keeps one baseline, its HKL before the first `setLayout` in the run. A
+revisit never replaces it. At the end of the run, success or abort, every touched context is
+restored in reverse order of first activation, and one failure does not stop the others:
+`layout-restore input= thread= prior= observed= restored` per context, or
+`LAYOUT_RESTORE_FAILED` / `LAYOUT_RESTORE_UNCERTAIN … reason=request-pending` (the request was
+never observed, so its later effect is unknown), all failures joined in one error. Whether a
+layout change reaches only that window or the whole input thread (R-5) has not been measured
+on Windows yet; do not rely on per-window isolation.
+
 ## Safety rules in the scripts
 
-- Every one-off scheduled task (`runi.ps1`) is waited for and then **unregistered** (try/finally). `ui-run.ps1` deletes its step and output files, so nothing can replay them.
+- Every one-off scheduled task (`runi.ps1`) is waited for and then **unregistered** (try/finally). `ui-run.ps1` keeps each run's `steps.json`, `ui-out.json` and `result.json` under `runs/<runId>/` as evidence; a run id is never reused (`NATIVE_RUN_ID_REUSED`), so nothing replays them.
 - Every value interpolated into a remote PowerShell command goes through `psq` (it doubles `'`) inside `'…'`, after a validator: Windows paths must match `^[A-Za-z]:\\` with no quote, backtick or `$`; file names must match `^[A-Za-z0-9._-]+$`, not starting with a dot. `WIN_DIR` is validated once, in `common.sh`. Keep this for any new wrapper.
 - **A lost response is never replayed** (D228). `common.sh` has two ssh calls: `win` for anything that changes state, never retried, and `win_read` for idempotent reads, retried once on ssh exit 255. When `win` loses the connection the wrapper exits **3**, `UNKNOWN OUTCOME`: the command may or may not have run, so check the state before anything else (pitfalls 21). `cdp.mjs`'s own exit 3, `CDP_TIMEOUT`, means the same thing.
 - **The Windows side's exit codes reach the Mac caller** (D247). OpenSSH there runs every command in PowerShell 5.1, which exits 1 for any failure; `win` and `win_read` wrap each command (`ps_wrap` in `common.sh`) so a failed program's own code comes back: `ui.sh`'s 124, `cdp.mjs`'s 1–6. A failed cmdlet is still 1, success 0.

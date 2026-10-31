@@ -101,10 +101,16 @@ An unsafe point aborts before the down. If identity changes after a down, it rel
 release onto the bound window; an unprovable safe release reports an error for manual recovery.
 Actual A/B effects and DPI alignment remain 未验证 until the locked
 Windows build's cleared device run. See `reference/ops.md` for the operation and error codes.
-For physical `event.code` and AltGr, read the target-thread HKL with `layout`, then send
-`physicalChord` using physical names and that exact HKL. The logical `chord` retains its
+For physical `event.code` and AltGr, read the input context's HKL with `layout` (the focused
+WebView2 input child's thread, not the window's), or switch it with `setLayout` (`klid`), then send
+`physicalChord` using physical names and that exact HKL. The driver restores every layout it
+changed at the end of the run. The logical `chord` retains its
 existing virtual-key behavior. The German-layout effect remains 未验证 until the separately
 cleared de-DE device proof, including restored language settings and saved-byte controls.
+A file dialog is driven only when the verified window owns it (owner chain, never title or
+foreground); a dialog opened in an earlier call needs a `dialogReceipt` token. A run whose
+cleanup or input release is uncertain latches the session (`NATIVE_RECONCILIATION_REQUIRED`)
+until `native-reconcile.ps1` clears it. Budgets, outcome, receipts and layout: `reference/ops.md`.
 
 ## 3. Reporting
 
@@ -140,7 +146,8 @@ $S/mdpro.sh cleanup        # backstop: unregister any mdpro-audit-* task (runi.p
 - **Discard** the drafts the run created (Recover drafts → Discard).
 - **Restore** what you changed: font size, theme, and a hidden window (`showall`).
 - **Left behind:** `%WIN_DIR%` keeps the scripts, `fx\`, `out\` and PNGs. No scheduled task
-  stays registered: `runi.ps1` unregisters each one when it finishes, `ui-run.ps1` deletes
-  `steps.json` / `ui-out.json`, and `mdpro.sh` runs `cleanup` on exit. Delete full-screen shots
+  stays registered: `runi.ps1` unregisters each one when it finishes, and `mdpro.sh` runs
+  `cleanup` on exit. `ui-run.ps1` keeps each run's evidence under `runs/<runId>/` (never
+  replayed: a run id is used once), and `dialog-receipts\` holds only inert, expiring records. Delete full-screen shots
   right away.
 - **Deleting the folder itself** is a rule-25 action: ask first.

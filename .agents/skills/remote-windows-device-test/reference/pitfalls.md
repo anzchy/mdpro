@@ -67,7 +67,10 @@ produced **wrong verdicts**; the rest cost time.
     - After a second window has been closed, `GetMenu` on the main window returns an invalid
       handle (`menuinfo` count -1) although real clicks still work; use `menuat`.
 11. **File dialogs:** AutomationId 1001 is the combo box; the name box is the Win32 class
-    `Edit`, set by `WM_SETTEXT`; `SetFocus` is refused, but Enter works.
+    `Edit`, set by `WM_SETTEXT`; `SetFocus` is refused, but Enter works. `filedialog` used to
+    drive whatever dialog was foreground (D336); it now resolves the one the verified mdpro
+    window owns, by owner chain, and refuses `IDENTITY_DIALOG_FOREGROUND` rather than stealing
+    focus. A dialog opened by an earlier call is reached through a `dialogReceipt` token.
 12. **Toasts last about 3 s:** call `__a.toastsOn()` before the action, and `__a.toasts()`
     after it.
 13. **Two open routes:**
@@ -77,7 +80,9 @@ produced **wrong verdicts**; the rest cost time.
       route the row names.
 14. **Scheduled tasks persisted** (fixed 2026-10-13, independent review C1): before the fix, every
     `mdpro-audit-*` task stayed registered until a manual `cleanup`, and `mdpro-audit-ui`
-    would replay a leftover `steps.json`. `runi.ps1` now unregisters its task in `finally`.
+    would replay a leftover `steps.json`. `runi.ps1` now unregisters its task in `finally`. Since
+    D337, `ui-run.ps1` gives each call a fresh run id and directory, so a kept `steps.json` is
+    evidence, never input; a run id is refused if reused.
 15. **Exit / kill / relaunch:**
     - On 0.3.1, mdpro → Exit quits instantly, even with dirty documents.
     - A relaunch shows a modal "Recover drafts" dialog that blocks later probes.
@@ -157,3 +162,21 @@ produced **wrong verdicts**; the rest cost time.
       secondary monitor before accepting any tolerance. Two identically maximized windows stay
       ambiguous, so record that binding subcase as 未验证. Native A/B effects on a locked installer
       remain 未验证 until the cleared Windows run.
+23. **A native run that hung held the desktop** (D337).
+    - What happened: a stalled step or helper could outlive its `ui.sh` call, keep a key or
+      button down, and race the next call.
+    - Now: every phase and the whole transaction have budgets (`MDPRO_UI_*_MS`), owned processes
+      run in a kernel job and are ended at cleanup, and only one native run holds the session.
+      A run that cannot prove its cleanup and input release latches the session; every later run
+      refuses `NATIVE_RECONCILIATION_REQUIRED`. Inspect the desktop and `runs/<runId>/`, then run
+      `native-reconcile.ps1 -RunId <id>` (add `-InputReleasedConfirmed` only after checking that
+      no key or button is held). Reconcile never replays the run.
+24. **The layout read the wrong thread** (D338).
+    - What happened: `layout` read the top-level HWND's thread, but WebView2 takes keys on its
+      input child's thread, so the HKL passed to `physicalChord` could describe a layout the
+      keys never used.
+    - Now: `layout`, `setLayout` and the `physicalChord` check all use the focused input child
+      inside the bound window, pinned by the first `setLayout`; a focus move or replaced child aborts.
+      `setLayout` restores each context it changed, in reverse order, even after an abort. Whether
+      one window's change reaches others on the same thread is still unmeasured: check the other
+      window's `layout` before relying on it.
