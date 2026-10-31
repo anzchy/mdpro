@@ -1,14 +1,19 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { cp, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
+import { access, cp, mkdtemp, readFile, rename, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
+import { reconcileProcessBoundary } from "./windows-driver-native-linux-start";
 
+const execFileAsync = promisify(execFile);
 const WINDOWS = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows");
 // Orchestration harness: NativeJobScope and Scheduler OS observations are substitutes.
 // Real supervisor/deadline/run-lock/artifact decisions execute. Kernel containment
 // policy itself is covered separately by windows-driver-native-job-harness.ts.
-const jobBoundary = String.raw`Add-Type @"
-using System;
+// The NativeJobScope substitute is compiled once and loaded precompiled, as production loads
+// native-job.exe (native-job.ps1: "Never compile during input"); see jobAssembly().
+const jobSource = String.raw`using System;
 using System.IO;
 using System.Diagnostics;
 using System.Collections.Generic;
@@ -36,18 +41,47 @@ public sealed class NativeJobScope : IDisposable {
      foreach (var line in File.ReadAllLines(Path.Combine(Root,"members"))) { int id; if (Int32.TryParse(line,out id)) ids.Add(id); }
    } else if (!Input) foreach (var id in children) ids.Add(id);
    foreach (int id in ids) {
+     if (Reaped(id)) continue;
      try { var p = Process.GetProcessById(id); if (!p.HasExited) result.Add(new NativeJobMember { pid=id, birth=p.StartTime.ToUniversalTime().Ticks.ToString(), exe=p.MainModule.FileName }); }
      catch (ArgumentException) { } catch (InvalidOperationException) { }
+     // As native-job.cs: a member whose identity cannot be read stays listed, with no birth.
+     catch (Exception e) { result.Add(new NativeJobMember { pid=id, birth="", exe="unreadable: " + e.GetType().Name + ": " + e.Message }); }
    }
    return result.ToArray();
  }
+ // A Linux zombie has exited but is not yet reaped: kill(pid, 0) still succeeds, so .NET's HasExited is
+ // false for a process it did not start, and its MainModule is null. A Windows job no longer counts it.
+ static bool Reaped(int id) {
+   try { var stat = File.ReadAllText("/proc/" + id + "/stat"); return stat.Substring(stat.LastIndexOf(')') + 2, 1) == "Z"; }
+   catch (IOException) { return false; } catch (UnauthorizedAccessException) { return false; }
+ }
  public void Stop() {
-   foreach (var m in Snapshot()) { try { Process.GetProcessById(m.pid).Kill(); } catch (ArgumentException) { } }
+   foreach (var m in Snapshot()) { try { Process.GetProcessById(m.pid).Kill(); } catch (ArgumentException) { } catch (InvalidOperationException) { } }
    foreach (var p in inputs) { try { if (!p.HasExited) p.Kill(); p.WaitForExit(1000); } catch (InvalidOperationException) { } }
  }
  public void Dispose() { Stop(); }
 }
-"@`;
+`;
+let jobAssemblyBuild: Promise<string> | undefined;
+/**
+ * The substitute's assembly, compiled once per source text and cached in the temp dir. Compiling it inside
+ * each run (Add-Type of source) cost every ui-run and reconcile pwsh about 0.4 s idle and over 2 s on a
+ * loaded runner, before and inside the run's own phase budgets; production never compiles there.
+ */
+function jobAssembly() {
+  jobAssemblyBuild ??= (async () => {
+    const final = path.join(os.tmpdir(), `mdpro-native-job-fake-${createHash("sha256").update(jobSource).digest("hex").slice(0, 16)}.dll`);
+    if (await access(final).then(() => true, () => false)) return final;
+    const work = await mkdtemp(path.join(os.tmpdir(), "mdpro-native-job-fake-"));
+    const env = { ...process.env, FAKE_SRC: path.join(work, "fake.cs"), FAKE_OUT: path.join(work, "fake.dll") };
+    await writeFile(env.FAKE_SRC, jobSource);
+    await execFileAsync("pwsh", ["-NoProfile", "-Command",
+      "Add-Type -TypeDefinition ([IO.File]::ReadAllText($env:FAKE_SRC)) -OutputAssembly $env:FAKE_OUT -OutputType Library"], { env });
+    await rename(env.FAKE_OUT, final); // atomic: a concurrent worker sees no file or the whole assembly
+    return final;
+  })();
+  return jobAssemblyBuild;
+}
 const schedulerBoundary = `
 function New-ScheduledTaskAction { param($Execute,$Argument) [pscustomobject]@{ Execute=$Execute; Argument=$Argument } }
 function New-ScheduledTaskPrincipal { param($UserId,$LogonType,$RunLevel) [pscustomobject]@{ UserId=$UserId } }
@@ -147,14 +181,20 @@ export async function supervisorFixture(scenario: string, options: {
   let scheduler = await readFile(path.join(dir, "native-scheduler.ps1"), "utf8");
   scheduler = scheduler.replace("try {", schedulerBoundary + "\ntry {")
     .replace("([Security.Principal.WindowsIdentity]::GetCurrent().Name)", '"fixture-user"');
+  const reconcileScript = await readFile(path.join(dir, "native-reconcile.ps1"), "utf8");
+  if (!reconcileScript.includes('$ErrorActionPreference = "Stop"')) throw new Error("native-reconcile.ps1 changed shape");
   await Promise.all([
-    writeFile(path.join(dir, "native-job.ps1"), jobBoundary), writeFile(path.join(dir, "native-scheduler.ps1"), scheduler),
+    writeFile(path.join(dir, "native-reconcile.ps1"),
+      reconcileScript.replace('$ErrorActionPreference = "Stop"', '$ErrorActionPreference = "Stop"\n' + reconcileProcessBoundary)),
+    writeFile(path.join(dir, "native-job.ps1"), `Add-Type -LiteralPath '${await jobAssembly()}'\n`), writeFile(path.join(dir, "native-scheduler.ps1"), scheduler),
     writeFile(path.join(dir, "worker.ps1"), worker), writeFile(path.join(dir, "descendant.ps1"), descendant),
   ]);
   const runId = "a".repeat(32);
   function start(id = runId, env: Record<string, string> = {}): { child: ChildProcess; result: Promise<{ status: number | null; lines: string[]; stderr: string }> } {
+    // PhaseMs bounds each Scheduler control pwsh. At 1500 it sat below that process's boot plus script on a loaded
+    // Linux runner (about 1.4 s on CI). 3000 is inside production's 5000 cap, and PhaseMs + CleanupMs fits the deadline.
     const entry = { StepsB64: Buffer.from(options.rawSteps ?? JSON.stringify(options.steps ?? [])).toString("base64"), RunId: id,
-      DeadlineMs: String(Date.now() + 10000), PhaseMs: "1500", CleanupMs: "4000", PollMs: "10", ...options.entry };
+      DeadlineMs: String(Date.now() + 10000), PhaseMs: "3000", CleanupMs: "4000", PollMs: "10", ...options.entry };
     const child = spawn("pwsh", ["-NoProfile", "-File", path.join(dir, "ui-run.ps1"),
       ...Object.entries(entry).flatMap(([name, value]) => ["-" + name, value])], {
       env: { ...process.env, TEST_ROOT: dir, TEST_RUN_ID: id, TEST_SCENARIO: scenario, ...options.env, ...env },
