@@ -180,3 +180,9 @@ produced **wrong verdicts**; the rest cost time.
       `setLayout` restores each context it changed, in reverse order, even after an abort. Whether
       one window's change reaches others on the same thread is still unmeasured: check the other
       window's `layout` before relying on it.
+25. **Parsed numeric budgets became strings again** (D342).
+    - Assigning a parsed number back into a `[string]` PowerShell parameter re-applies its type:
+      `"25" -gt 1000` is true, so the Mac's default poll interval rejected every native call.
+    - Keep raw integer budget parameters untyped until strict `Read-NativeInteger` validation
+      replaces them with numbers. Test the real Mac defaults against the real Windows validator,
+      including values whose numeric order disagrees with their string order.

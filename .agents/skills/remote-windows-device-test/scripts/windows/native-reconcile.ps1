@@ -1,6 +1,7 @@
 # Purpose: clear the native-session latch for one named run, only after proving that run is over.
 # Never deletes evidence and never replays input. Contract: ../../reference/ops.md (reconcile).
-param([string]$RunId = "", [switch]$InputReleasedConfirmed, [string]$PhaseMs = "5000", [string]$PollMs = "25")
+# Untyped budget parameters retain Read-NativeInteger's numeric results for the shared supervisor.
+param([string]$RunId = "", [switch]$InputReleasedConfirmed, $PhaseMs = "5000", $PollMs = "25")
 $ErrorActionPreference = "Stop"
 $rc = 1; $checks = [ordered]@{}; $lock = $null; $controlJob = $null
 $blocked = Join-Path $PSScriptRoot "native-session-blocked.json"
