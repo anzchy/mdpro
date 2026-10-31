@@ -76,6 +76,11 @@ user: 「create a new pane opus-imple-2 and delegate tasks to it.」, 「Raise c
 briefed by file plus `herdr agent prompt`, reporting to `~/.mdpro-redesign/herdr-spike/opus-imple-2/<item>-handoff.md`.
 Implementors: gpt-imple-1, opus-imple-1, opus-imple-2; gpt-imple-2 stays idle.
 
+**Since 2026-10-31, `gpt-imple-1` is the primary implementor** (user: 「gpt-imple-1 成为主力 implementor」): the
+delegator grants each new item to `gpt-imple-1` first, and to `opus-imple-1` or `opus-imple-2` only when gpt-imple-1 already
+holds an unlanded item or the user names another implementor. Items already assigned keep their owner, including
+#567's tickets on `opus-imple-1` (「让 opus-imple-1 实现 jack-tdd-workflow Skill 相关」). The slot cap is unchanged.
+
 **The live roster is five agents** (user decision, 2026-10-29: 「现在降低同时并行开发的数量：同时2个implementor（gpt-imple-*)，2个auditor，加上delegator本身，其他implementor retire」):
 herdr-delegator, `gpt-imple-1`, `gpt-imple-2`, `gpt-auditor` and `opus-auditor`. `gpt-imple-3` and `opus-imple-1` are
 retired (panes closed; worktrees kept until their removal is confirmed under rule 25), and the Low-tier slot in § Slots is
