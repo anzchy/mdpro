@@ -82,13 +82,13 @@ describe("T566-3 a missing or broken vendored engine fails closed", () => {
   });
 
   it("refuses to record when lib/config.js does not load", async () => {
-    expect(existsSync(engine)).toBe(true);
+    expect(existsSync(join(engine, "lib/config.js"))).toBe(true);
     writeFileSync(join(engine, "lib/config.js"), "const broken = ;\n");
     await expectClosed(await record(), storeBytes(), "lib/config.js");
   });
 
   it("refuses to record when receipt.js does not compile, before the lane runs", async () => {
-    expect(existsSync(engine)).toBe(true);
+    expect(existsSync(join(engine, "receipt.js"))).toBe(true);
     writeFileSync(join(engine, "receipt.js"), "#!/usr/bin/env node\nconst broken = ;\n");
     await expectClosed(await record(), storeBytes(), "receipt.js");
     expect(await repo.refs()).toEqual([]);

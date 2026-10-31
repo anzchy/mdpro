@@ -82,7 +82,9 @@ describe("T566-2 the vendored engine is pinned", () => {
 
   it("is the one vendored version, and both scripts name it", () => {
     const vendor = join(repoRoot, "scripts/tdd/vendor");
-    expect(existsSync(vendor) ? readdirSync(vendor).filter((name) => name.startsWith("tdd-guardian-")) : []).toEqual([`tdd-guardian-${ENGINE_VERSION}`]);
+    const engines = existsSync(vendor) ? readdirSync(vendor).filter((name) => name.startsWith("tdd-guardian-")) : [];
+    expect(engines.filter((name) => existsSync(join(vendor, name, "receipt.js")))).toEqual([`tdd-guardian-${ENGINE_VERSION}`]);
+    expect(engines).toEqual([`tdd-guardian-${ENGINE_VERSION}`]);
     for (const script of ["scripts/tdd/red-receipt.mjs", "scripts/ci/verify-inventory.mjs"]) {
       expect(readFileSync(join(repoRoot, script), "utf8"), script).toContain(`tdd-guardian-${ENGINE_VERSION}`);
     }
