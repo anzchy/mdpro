@@ -32,6 +32,12 @@ what actually happens: <the seam, and the probe to run>. Write the observed orde
 assumed one. Write "WI-0: none, because <reason>" when no AC rests on platform behaviour. (D261 → D319: four
 implementations and seven audit rounds came from an assumed AppKit order.)
 
+**Smoke ([ADR-0162](../../../../../docs/adr/0162-rework-countermeasures-before-0-3-6-and-a-process-freeze.md) decision 2):**
+"Smoke: owed, <operation>, run by <implementor|tester>" when a `device` AC exists, the item changes
+`.agents/skills/*/scripts/**`, `scripts/{device,control}/**` or `scripts/redesign/device/**`, or it touches window and menu
+targeting; otherwise "Smoke: none, because <reason>". It runs after implementation on each audited head, through the real
+caller with its default arguments, and is not the ADR-0144 card.
+
 ## 3. Acceptance criteria
 1. **AC-1 [unit|device].** <behaviour>. Proof: <test file and case, or command>; expected <decisive output>. RED first:
    `<ID>-WI-1`. A `device` AC also names its ADR-0144 list entry (native menu or window order, cross-window or dialog
@@ -48,7 +54,9 @@ implementations and seven audit rounds came from an assumed AppKit order.)
 ## 5. Gates
 Decisive files unlocked (≤2 workers) during RED→GREEN; then the full unit coverage lane and `typecheck:tests` + `build`
 under `scripts/heavy-lock.sh`; the `rust` and `rust-verify-run` lanes if `src-tauri` changed; `pnpm ledger:check`. Put
-`$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin` on PATH for every gate (the rustfmt guard test needs it).
+`$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin` on PATH for every gate (the rustfmt guard test needs it);
+`node scripts/lint/conditional-tests.mjs` (ADR-0162 decision 3). A Claude pane runs `command -v cargo` and `command -v rustfmt`
+before any other step and stops if either is missing (ADR-0162 decision 4).
 Commit on the branch; no push.
 
 ## 6. Self-acceptance

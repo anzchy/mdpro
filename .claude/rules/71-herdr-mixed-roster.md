@@ -385,6 +385,11 @@ unproved in the handoff alone does not accept it.
 
 ## Audits under herdr
 
+- **Before the first audit, until 0.3.6 ships** ([ADR-0162](../../docs/adr/0162-rework-countermeasures-before-0-3-6-and-a-process-freeze.md),
+  user 「Accept r3 (Recommended)」): the delegator pushes the handoff head and waits for a green `ci-gate` on it before
+  dispatching the verifier and both audits; an owed boundary smoke (decision 2) has passed on that head. A red head or a wrong
+  smoke effect goes back to the implementor and is not an audit round. A fix or rebased head repeats both before its confirm.
+  This partially supersedes rule 70 § Commits item 2's dispatch order.
 - **Dimensions.** Both auditors use `docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`
   named in the request, with one pin for the full review (ADR-0146).
 - **PRs.** The delegator sends one fresh-pane request to `gpt-auditor` on the exact range.
