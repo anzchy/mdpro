@@ -1916,6 +1916,141 @@
         "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
       }
     },
+    "D342-1": {
+      "id": "D342-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:44:09.239Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"accepts the real direct default argument line past validation\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: real-defaults: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"op\":\"\",\"heldInput\":\"released\",\"elapsedMs\":10,\"inputOutcome\":\"none\",\"runId\":\"dddddddddddddddddddddddddddddddd\",\"status\":\"failed\",\"cleanup\":\"not-started\",\"completedSteps\":0,\"phase\":\"setup: UI_BUDGET_INVALID\",\"step\":0}: expected 2 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"caps deadlines numerically even when their digit count differs from this clock\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: past 12-digit deadline: ERROR UI: NATIVE_RECONCILIATION_REQUIRED OUTCOME {\"step\":0,\"cleanup\":\"not-started\",\"runId\":\"dddddddddddddddddddddddddddddddd\",\"elapsedMs\":1,\"op\":\"\",\"status\":\"failed\",\"phase\":\"setup: NATIVE_RECONCILIATION_REQUIRED\",\"heldInput\":\"released\",\"inputOutcome\":\"none\",\"completedSteps\":0}: expected 1 to be 2 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"completes the real supervisor path and carries default PollMs 25 into its worker\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 102
+          },
+          "message": "AssertionError: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"phase\":\"setup: UI_BUDGET_INVALID\",\"status\":\"failed\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"elapsedMs\":83,\"op\":\"\",\"step\":0,\"inputOutcome\":\"none\",\"cleanup\":\"not-started\",\"completedSteps\":0,\"heldInput\":\"released\"}: expected 2 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"isolates each numeric range, including values whose text order disagrees\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: PollMs=2: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"phase\":\"setup: UI_BUDGET_INVALID\",\"cleanup\":\"not-started\",\"status\":\"failed\",\"inputOutcome\":\"none\",\"elapsedMs\":0,\"runId\":\"dddddddddddddddddddddddddddddddd\",\"step\":0,\"op\":\"\",\"heldInput\":\"released\",\"completedSteps\":0}: expected 2 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"preserves classification under legal zero-prefixed decimal representations\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: PollMs=2: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"runId\":\"dddddddddddddddddddddddddddddddd\",\"phase\":\"setup: UI_BUDGET_INVALID\",\"op\":\"\",\"status\":\"failed\",\"cleanup\":\"not-started\",\"step\":0,\"inputOutcome\":\"none\",\"completedSteps\":0,\"elapsedMs\":0,\"heldInput\":\"released\"}: expected 2 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D342-1/20261031T094409239Z/tests",
+        "tree": "ec652ba64df6479bfaa71109d907dee1689e5346"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d342-budget-types.test.ts": "77ad179822e267f98086489403ee0a93bf6320d9"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d342-budget-types.test.ts": "77ad179822e267f98086489403ee0a93bf6320d9"
+      }
+    },
+    "D342-2": {
+      "id": "D342-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:44:17.307Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts\",\"D342 reconcile preserves numeric budgets through the real supervisor boundary\",\"retains PhaseMs and PollMs 25 as numeric state while moving the exact latch bytes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts",
+            "line": 21
+          },
+          "message": "AssertionError: expected { phaseType: 'System.String', …(3) } to deeply equal { phase: 5000, poll: 25, …(2) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D342-2/20261031T094417307Z/tests",
+        "tree": "ec652ba64df6479bfaa71109d907dee1689e5346"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts": "5b41d1af08e964930101275f1a89d30e00a6d82a"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts": "5b41d1af08e964930101275f1a89d30e00a6d82a"
+      }
+    },
+    "D342-3": {
+      "id": "D342-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:44:27.846Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-default-budget-contract.test.ts\",\"D342 real Mac defaults agree with real Windows entry validation\",\"feeds the actual default argument line through the real ui-run latch guard\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-default-budget-contract.test.ts",
+            "line": 37
+          },
+          "message": "AssertionError: ERROR UI: UI_BUDGET_INVALID\nOUTCOME {\"elapsedMs\":76,\"completedSteps\":0,\"runId\":\"7abb7d4c12454552ad0ae868d50aff2c\",\"status\":\"failed\",\"heldInput\":\"released\",\"inputOutcome\":\"none\",\"cleanup\":\"not-started\",\"phase\":\"setup: UI_BUDGET_INVALID\",\"step\":0,\"op\":\"\"}\n: expected 2 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D342-3/20261031T094427846Z/tests",
+        "tree": "ec652ba64df6479bfaa71109d907dee1689e5346"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d342-default-budget-contract.test.ts": "0e79212c97f6015772335ab41118e3aea239227d"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d342-default-budget-contract.test.ts": "0e79212c97f6015772335ab41118e3aea239227d"
+      }
+    },
     "TDDG-FIX1-PROMPT": {
       "id": "TDDG-FIX1-PROMPT",
       "lane": "unit-red",
