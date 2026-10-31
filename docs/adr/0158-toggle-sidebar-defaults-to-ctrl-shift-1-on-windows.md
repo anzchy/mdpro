@@ -1,6 +1,12 @@
 # 0158. Toggle Sidebar defaults to Ctrl+Shift+1 on Windows, with Ctrl+Shift+L kept as a secondary
 
-**Status**: Proposed (2026-10-30; revised 2026-10-31 for spec r2). Spec [#553](https://github.com/anzchy/mdpro/issues/553),
+**Status**: Rejected (2026-10-31). Decided by the user: the cause was AMD Radeon Software's system-wide Ctrl+Shift+L
+binding, not mdpro. The user turned it off and kept the existing default: 「我已经关闭了AMD上的ctrl+shift+l（原本用于AMD
+Radeon 软件的 "Toggle Performance"），Windows上 Toggle Sidebar 仍然用这个快捷键，D50 问题已经解决，你复核一下」; after the
+recheck ([record](../test/20261031-d50-windows-recheck.md)), 「Close as environment (Recommended)」. Before that, r2's
+round-2 plan review found a device-route High, and the user's ruling 「give up ctrl+shift+1, stick to ctrl+shfit+f」 led to an
+r3 draft that was never committed. Windows keeps Ctrl+Shift+L; the residual is a CHANGELOG Known issue.
+Earlier status: Proposed (2026-10-30; revised 2026-10-31 for spec r2). Spec [#553](https://github.com/anzchy/mdpro/issues/553),
 snapshot `docs/specs/d50/r2/` (r1 chose Ctrl+Shift+F). The user accepted every grill recommendation: 「全部同意」.
 Earlier, on D50's route, they chose 「New Windows default (gated)」. After r1's plan review: 「Probe the IME first
 (Recommended)」, then 「Pick a different chord (Recommended)」 and 「Ctrl+Shift+1 (Recommended)」. If accepted, this
