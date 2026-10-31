@@ -41,5 +41,5 @@ _Avoid_: spec review, test review
 **RED receipt**: the record that a test failed on its assertion before the production change, later judged by verify for whether that change alone turned it green.
 _Avoid_: red proof, failing snapshot
 
-**Cycle**: one matrix case taken through its RED receipt, the minimal change, a small refactor while green, and verify, settled before the next begins.
+**Cycle**: one matrix case taken through its RED receipt, the minimal change, verify, and then a small refactor with tests green, settled before the next begins.
 _Avoid_: step, iteration

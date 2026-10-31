@@ -1,17 +1,28 @@
 # 0161. Implementors on both runtimes follow one project skill, jack-tdd-workflow, and Codex retires tdd-guardian at its go-live
 
 **Status**: Proposed (2026-10-31). Spec [#568](https://github.com/anzchy/mdpro/issues/568); tickets #569–#571; snapshot
-`docs/specs/567-tdd-skill/r1/`. Grill answers: round 1 「是」; round 2 「Q9 用`jack-tdd-workflow` 作为name，其他的同意」;
+`docs/specs/567-tdd-skill/r2/` (r1 superseded after plan review round 1). Grill answers: round 1 「是」; round 2 「Q9 用`jack-tdd-workflow` 作为name，其他的同意」;
 round 3 「Q5 Matt的Skill有codex版本,已经安装了，check一下.其他问题是」; round 4 「上面问题回答：是」; round 5 「Q15-Q16 agree」. After the
-grill: 「codex 的tdd-guardian 在jack-tdd-workflow 上线之后就retire」. If accepted, this partially supersedes
+grill: 「codex 的tdd-guardian 在jack-tdd-workflow 上线之后就retire」. After plan review round 1 (2026-10-31): Codex attacker
+「Same as Claude」; mid-item matrix change 「Split by kind (Recommended)」; cycle order 「Verify, then refactor (Recommended)」;
+version gate 「prompt.sh + local test (Recommended)」. If accepted, this partially supersedes
 [ADR-0148](0148-new-features-pass-grill-spec-and-tickets-before-implementation.md):
-- Context's "Codex has no Matt Pocock plugin";
+- decision 7's "Matrix and attack first" clause, where it names tdd-guardian's test-designer and spec-adversary;
+- decision 7's "Step 4 becomes `tdd` cycles" clause: its cycle steps, and its sentence "a changed seam or behaviour is
+  re-attacked before its cycle";
 - decision 7's "Review" clause (refactoring in the `code-review` stage);
 - decision 7's "Runtimes" clause (vendored copies for Codex, and Codex keeping tdd-guardian until a validated cycle);
-- decision 7's "Matrix and attack first" clause, where it names tdd-guardian's test-designer and spec-adversary.
+- the Status line's scoping of the rule 71 step 4 replacement to gated items, widened here to every implementor item.
 
-It also partially supersedes [ADR-0138](0138-effort-follows-task-difficulty-and-audits-read-from-the-diff-outward.md)'s
-`mdpro-spec-adversary` row, for both runtimes.
+ADR-0148's Context line "Codex has no Matt Pocock plugin" is stale (it described the time) and is noted below, not
+superseded. For both runtimes this also supersedes:
+- [ADR-0138](0138-effort-follows-task-difficulty-and-audits-read-from-the-diff-outward.md)'s `mdpro-spec-adversary` row
+  of decision 2, and decision 5's sentence that re-dispatches `mdpro-spec-adversary` on `gpt-6-astra` high after the pilot;
+- [ADR-0139](0139-routine-implementor-items-run-on-gpt-6-luna-high-as-a-pilot.md) decision 3, where routine items keep
+  `mdpro-spec-adversary-std`.
+
+[ADR-0133](0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)'s
+fresh-context guarantee for the adversary is kept: the attacker is still a fresh agent.
 
 ## Context
 - **#564 turned tdd-guardian off for Claude.** Its two parts that mattered, the independent matrix attack (added 2026-10-20
@@ -20,7 +31,8 @@ It also partially supersedes [ADR-0138](0138-effort-follows-task-difficulty-and-
   prompt. fable-auditor's carried Medium on #564: ADR-0148 decision 7 and ADR-0138 still name the plugin for Claude.
 - **Codex still runs tdd-guardian**, so one brief means two procedures.
 - **Codex now has Matt Pocock's skills.** `mattpocock-skills` 1.3.2 is installed and enabled for Codex; Claude has 1.3.1.
-  `tdd`, `diagnosing-bugs` and `codebase-design` are byte-identical across the two. ADR-0148's "Codex has no Matt Pocock
+  The `SKILL.md` files of `tdd`, `diagnosing-bugs` and `codebase-design` are byte-identical across the two. `code-review`'s
+  `SKILL.md` differs: 1.3.2 adds "start every sub-agent with a fresh context window". ADR-0148's "Codex has no Matt Pocock
   plugin" is stale, and with it the reason for vendored copies.
 - **Receipts still load the engine from the plugin cache.** #566 vendors and pins it, and blocks this work.
 - **Primary sources disagree with "all REDs first".** Codex and Fable reviewed the slicing practice independently on
@@ -46,23 +58,40 @@ It also partially supersedes [ADR-0138](0138-effort-follows-task-difficulty-and-
 1. **One skill.** `jack-tdd-workflow`, a project skill (canonical under `.agents/skills/`, linked from `.claude/skills`), holds the
    implementor's method from the test matrix to the handoff's self-acceptance table on both runtimes. The rules hold the law;
    the skill holds the method. Briefs and `prompt.sh` name the skill instead of restating the method.
-2. **Matrix attack.** A fresh subagent attacks the matrix, never a fork or a resumed agent. It runs once per grant, with at
-   most one re-attack. On Claude it is an Opus subagent at default effort. On Codex it is a fresh agent given the same attack
-   prompt. A rejected gap needs a counter-proof. The `mdpro-spec-adversary` row of ADR-0138 no longer applies.
-3. **Cycles for every implementor item, gated or not.** Each cycle is one matrix case, its RED receipt, the minimal change, a
-   small refactor while green inside that cycle, then `verify`. The acceptance check may be recorded RED before the first
-   cycle. Unit REDs are never batched. A one-test fix round is one cycle. A refactor too big for one cycle goes to the
+2. **Matrix attack.** A fresh subagent attacks the matrix, never a fork or a resumed agent, given the skill's attack prompt,
+   the brief and the matrix file. It runs once per grant, with at most one re-attack. On Claude it is an Opus subagent at
+   default effort; on Codex it is a fresh Codex agent at its default model and effort. A rejected gap needs a counter-proof.
+   No effort or model routing by difficulty applies to the attacker, and the `.codex/agents/mdpro-spec-adversary*` agents
+   are removed.
+3. **Cycles for every implementor item, gated or not.** Each cycle is one matrix case: its RED receipt `<ID>-S<n>`, the
+   minimal change, `verify`, then a small refactor with tests green. A cycle has one intended assertion and records one
+   `--test` file. The acceptance check, a single exit-condition test, may be recorded RED as `<ID>-ACC` before the first
+   cycle and is verified when the last cycle settles. Unit REDs are never batched. A one-test fix round is one cycle. A refactor too big for one cycle goes to the
    delegator as a separate prefactor item. This replaces rule 71 step 4's "all REDs first", and ADR-0148's refactoring in
    the `code-review` stage. `code-review` still runs on the committed candidate before the handoff.
-4. **Matrix amendment.** A case found mid-cycle is marked "added in cycle n" and needs no re-attack. A case that changes what
-   an AC means or covers stops for the delegator.
-5. **Matt Pocock's skills.** They are not vendored. Each runtime uses its installed plugin, at a minimum of 1.3.1, checked by
-   a tooling test.
+4. **Matrix amendment.** A new case inside an existing seam and AC is marked "added in cycle n" and needs no re-attack. A new
+   seam, a changed behaviour, or a case that changes what an AC means or covers stops for the delegator, who decides
+   whether a re-attack runs (still at most one per grant). Rule 12's new-seam stop stands.
+5. **Matt Pocock's skills.** They are not vendored. Each runtime uses its installed plugin, at a minimum of 1.3.1. One
+   version function enforces the minimum in three places:
+   - `prompt.sh` runs it on the target runtime's installed cache before it sends a brief, and refuses to send (fail
+     closed) on a missing, old or malformed install;
+   - a macOS-only tooling case runs it on both real caches;
+   - CI runs it on fixture caches.
+
+   Each brief keeps its pin of the skill version.
 6. **Codex retires tdd-guardian at go-live,** the landing that points both runtimes' briefs and `prompt.sh` at the skill.
    From then on no mdpro rule, brief, prompt or skill routes either runtime to tdd-guardian. Disabling it in the shared Codex
    install is the user's own step.
-7. **Proof on real work.** The delegator confirms the first gated Claude item and the first Codex item after go-live: a
-   genuine assertion RED, an attack file and a HELD `verify`. This ADR is accepted before the first of them runs.
+7. **Proof on real work.** The delegator holds the first gated Claude grant until both 0.3.6 and go-live have landed. It then
+   confirms that item, and the first Codex item after go-live that runs a full matrix. It looks for:
+   - a genuine assertion RED;
+   - an attack file from a fresh dispatch;
+   - a HELD `verify`;
+   - receipts showing each cycle settled before the next.
+
+   It records them as audit-log rows in a docs-only commit. This is a process check, not an ADR-0144 `device` AC. This ADR
+   is accepted before the first of these items runs.
 
 ## Consequences
 - One method text for both runtimes; a change to the method is one edit, and briefs get shorter.
@@ -75,7 +104,9 @@ It also partially supersedes [ADR-0138](0138-effort-follows-task-difficulty-and-
   - There is no gradual rollout: if the skill is wrong, both runtimes go wrong at once. The proof run is after go-live, not
     before.
   - A Matt Pocock plugin upgrade can change `tdd` or `code-review` under the skill. The version check sets a minimum, not
-    a pin.
+    a pin, and `prompt.sh` now refuses to send a brief where the install is missing or below it.
+  - Codex loses the difficulty-routed `gpt-6-astra` adversary on hard items; its attacker runs at its default model and
+    effort, like Claude's.
   - Every implementor item is now built in cycles, including the non-gated D items, which costs more receipts per item than
     "all REDs first".
 - Dated guides, historical handoffs and the archived `.codex/skills/mdpro-tdd-workflow/` port keep naming the old flow.
