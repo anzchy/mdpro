@@ -16,7 +16,7 @@ function Read-NativeSteps([string]$Encoded) {
     $steps = @($raw | ConvertFrom-Json)
     # ConvertFrom-Json emits no pipeline values for [], which is a valid no-op.
     if ($steps.Count -gt 1000) { throw "UI_STEPS_INVALID" }
-    $operations = @('windows','focus','max','menuinfo','visible','showall','restore','layout','setLayout','chord','physicalChord','menus','shot','wait','filedialog','clickat','menuat','menuclick','open','run','tree')
+    $operations = @('windows','focus','max','menuinfo','visible','showall','restore','layout','setLayout','chord','physicalChord','menus','shot','wait','filedialog','dialogReceipt','clickat','menuat','menuclick','open','run','tree')
     foreach ($step in $steps) {
       if ($null -eq $step -or $step -isnot [pscustomobject] -or $step.op -isnot [string] -or $step.op -cnotin $operations) { throw "UI_STEPS_INVALID" }
       if ($step.PSObject.Properties.Name -contains 'window' -and ($step.window -isnot [string] -or -not $step.window)) { throw "UI_STEPS_INVALID" }

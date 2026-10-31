@@ -51,7 +51,7 @@ def main():
         raise ValueError("UI_STEPS_TOO_LARGE")
     steps = json.loads(raw)
     operations = {"windows", "focus", "max", "menuinfo", "visible", "showall", "restore", "layout", "setLayout",
-                  "chord", "physicalChord", "menus", "shot", "wait", "filedialog", "clickat", "menuat", "menuclick", "open", "run", "tree"}
+                  "chord", "physicalChord", "menus", "shot", "wait", "filedialog", "dialogReceipt", "clickat", "menuat", "menuclick", "open", "run", "tree"}
     if not isinstance(steps, list) or len(steps) > 1000 or any(
         not isinstance(s, dict) or "_identity" in s or s.get("op") not in operations or
         ("window" in s and (not isinstance(s["window"], str) or not s["window"])) for s in steps

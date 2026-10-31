@@ -35,6 +35,12 @@ public static class W32 {
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int n);
   // Top-level, unowned windows of a process, hidden ones included (MainWindowHandle is 0 while hidden).
   public static System.Collections.Generic.List<IntPtr> Tops(uint pid) { var r = new System.Collections.Generic.List<IntPtr>(); EnumWindows((h, l) => { uint p; GetWindowThreadProcessId(h, out p); if (p == pid && GetWindow(h, 4) == IntPtr.Zero) r.Add(h); return true; }, IntPtr.Zero); return r; }
+  // Every top-level window of a process, owned ones included (a common dialog is owned by its window).
+  public static System.Collections.Generic.List<IntPtr> AllTops(uint pid) { var r = new System.Collections.Generic.List<IntPtr>(); EnumWindows((h, l) => { uint p; GetWindowThreadProcessId(h, out p); if (p == pid) r.Add(h); return true; }, IntPtr.Zero); return r; }
+  [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr parent, EnumProc f, IntPtr l);
+  public static System.Collections.Generic.List<IntPtr> Children(IntPtr parent) { var r = new System.Collections.Generic.List<IntPtr>(); EnumChildWindows(parent, (h, l) => { r.Add(h); return true; }, IntPtr.Zero); return r; }
+  [DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr h);
   public static string Title(IntPtr h) { var sb = new System.Text.StringBuilder(256); GetWindowText(h, sb, 256); return sb.ToString(); }
   [DllImport("user32.dll")] public static extern IntPtr GetMenu(IntPtr h);
   [DllImport("user32.dll")] public static extern int GetMenuItemCount(IntPtr m);

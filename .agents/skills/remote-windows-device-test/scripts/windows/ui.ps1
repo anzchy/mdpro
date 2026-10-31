@@ -14,13 +14,15 @@ if ($env:MDPRO_NATIVE_JOB) { . "$PSScriptRoot\native-job.ps1" }
 . "$PSScriptRoot\native-window.ps1"
 . "$PSScriptRoot\native-input.ps1"
 . "$PSScriptRoot\native-ops.ps1"
+. "$PSScriptRoot\native-dialog.ps1"
+. "$PSScriptRoot\native-dialog-receipt.ps1"
 $failed = $false; $n = 0
 foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
   $n++
   $script:currentStep = $n; $script:currentOp = [string]$s.op
   try {
     Start-Phase ("op:" + $s.op)
-    if ($null -ne $s.window -and $s.op -in @("windows", "visible", "showall", "wait", "open", "run", "tree", "filedialog")) { throw "IDENTITY_UNSUPPORTED_OP" }
+    if ($null -ne $s.window -and $s.op -in @("windows", "visible", "showall", "wait", "open", "run", "tree")) { throw "IDENTITY_UNSUPPORTED_OP" }
     switch ($s.op) {
       "windows" { foreach ($w in MdproWindows) { L ("window '" + $w.Current.Name + "' hwnd=" + $w.Current.NativeWindowHandle + " rect=" + $w.Current.BoundingRectangle) } }
       "focus"   { Focus (Target $s); [void](Target $s $true); L "focused" }
@@ -40,22 +42,8 @@ foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
       "settext" { throw "unsupported: see reference/ops.md (never reached mdpro on 2026-10-12)" }
       "shot"    { $w = if ($s.screen) { $null } else { Target $s }; Shot $w $s.out $s.screen; L ("shot " + $s.out) }
       "wait"    { Start-Sleep -Milliseconds $s.ms }
-      "filedialog" {
-        # Common file dialog in the foreground: set the file-name box (AutomationId 1001 / 1148) and press Enter.
-        if (@(MdproWindows).Count -ne 1) { throw "IDENTITY_DIALOG_AMBIGUOUS" }
-        $fg = $AE::FromHandle([W32]::GetForegroundWindow()); L ("dialog '" + $fg.Current.Name + "'")
-        $edits = $fg.FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Edit)))
-        $ed = $edits | Where-Object { $_.Current.AutomationId -eq "1001" -or ($_.Current.Name -match "^(文件名|File name)") } | Select-Object -First 1
-        if (-not $ed) { $ed = $fg.FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ClassNameProperty, "Edit"))) | Select-Object -First 1 }
-        if (-not $ed) { foreach ($e in $edits) { L ("edit name='" + $e.Current.Name + "' aid=" + $e.Current.AutomationId + " class=" + $e.Current.ClassName) }; throw "file name box not found" }
-        $vp = $null; try { $vp = $ed.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern) } catch {}
-        if ($vp) { L ("name was '" + $vp.Current.Value + "'"); if ($s.path) { $vp.SetValue($s.path) } }
-        elseif ($s.path) { [void][W32]::SendMessageW([IntPtr]$ed.Current.NativeWindowHandle, 0x000C, [IntPtr]::Zero, $s.path); L "set via WM_SETTEXT" }
-        Start-Sleep -Milliseconds 200
-        if ($s.cancel) { [W32]::keybd_event(0x1B, 0, 0, [UIntPtr]::Zero); [W32]::keybd_event(0x1B, 0, 2, [UIntPtr]::Zero); L "cancelled" }
-        else { try { $ed.SetFocus() } catch {}; [W32]::keybd_event(0x0D, 0, 0, [UIntPtr]::Zero); [W32]::keybd_event(0x0D, 0, 2, [UIntPtr]::Zero); L ("entered " + $s.path) }
-        Start-Sleep -Milliseconds 800
-      }
+      "filedialog" { Invoke-FileDialog $s }
+      "dialogReceipt" { Invoke-DialogReceipt $s }
       "clickat" { $targetEl = Target $s; $pointRect = New-Object W32+RECT
                   if (-not [W32]::GetWindowRect([IntPtr]$targetEl.Current.NativeWindowHandle, [ref]$pointRect) -or
                       [int]$s.x -lt $pointRect.L -or [int]$s.x -ge $pointRect.R -or [int]$s.y -lt $pointRect.T -or [int]$s.y -ge $pointRect.B) { throw "IDENTITY_POINT_OUTSIDE" }

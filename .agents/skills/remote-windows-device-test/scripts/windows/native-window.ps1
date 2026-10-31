@@ -51,7 +51,9 @@ function Target($step, [bool]$foreground = $false) {
   }
   $windows = @()
   Start-Phase "discovery"
-  $elements = @(MdproWindows)
+  # An owned window (a file dialog, a popup) is never a candidate: only unowned top-levels are
+  # mdpro windows, so an open dialog cannot make the sole route ambiguous or bind itself (D336).
+  $elements = @(MdproWindows | Where-Object { [W32]::GetWindow([IntPtr]$_.Current.NativeWindowHandle, 4) -eq [IntPtr]::Zero })
   foreach ($el in $elements) {
     $h = [IntPtr]$el.Current.NativeWindowHandle; $windowPid = [uint32]0; [void][W32]::GetWindowThreadProcessId($h, [ref]$windowPid)
     $process = Get-Process -Id $windowPid -ErrorAction Stop

@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { dialogFakeSource } from "./windows-driver-native-dialog-fake";
 
 const WINDOWS = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows");
 
@@ -9,13 +10,13 @@ const fakeW32 = `Add-Type @"
 using System;
 using System.IO;
 using System.Text.Json;
-public static class W32 {
+public static partial class W32 {
   public struct RECT { public int L, T, R, B; }
   public struct POINT { public int X, Y; }
   public static System.Collections.Generic.Dictionary<string, IntPtr> Props = new System.Collections.Generic.Dictionary<string, IntPtr>();
-  public static IntPtr GetProp(IntPtr h, string key) { return !NativeStale && Props.ContainsKey(key) ? Props[key] : IntPtr.Zero; }
-  public static bool SetProp(IntPtr h, string key, IntPtr value) { Props[key] = value; Trace("property:pin"); return true; }
-  public static IntPtr RemoveProp(IntPtr h, string key) { Trace("property:remove"); if (FailRemoveProp) return IntPtr.Zero; var value = GetProp(h, key); Props.Remove(key); return value; }
+  public static IntPtr GetProp(IntPtr h, string key) { if (DialogFake.Has(h)) return DialogFake.GetProp(h, key); return !NativeStale && Props.ContainsKey(key) ? Props[key] : IntPtr.Zero; }
+  public static bool SetProp(IntPtr h, string key, IntPtr value) { if (DialogFake.Has(h)) return DialogFake.SetProp(h, key, value); Props[key] = value; Trace("property:pin"); return true; }
+  public static IntPtr RemoveProp(IntPtr h, string key) { if (DialogFake.Has(h)) return DialogFake.RemoveProp(h, key); Trace("property:remove"); if (FailRemoveProp) return IntPtr.Zero; var value = GetProp(h, key); Props.Remove(key); return value; }
   public static bool FailRemoveProp, RectChangesAfterPin;
   public static int RectCalls, ForegroundCalls, HklCalls, SendCalls, LogicalCalls, MouseCalls, ThreadCalls, ProcessCalls;
   public static int CursorX, CursorY, SetCursorCalls, HitCalls, SleepCalls;
@@ -57,12 +58,14 @@ public static class W32 {
     if (InitialForeground != 0) Foreground = InitialForeground;
     RefuseFocus = flag("refuseFocus"); IgnoreFocus = flag("ignoreFocus");
     DriftDuringFocusWait = flag("driftDuringFocusWait");
+    DialogFake.Configure(root);
   }
-  static void Trace(string s) { File.AppendAllText(TracePath, s + "\\n"); }
+  public static void Trace(string s) { File.AppendAllText(TracePath, s + "\\n"); }
   public static bool SetProcessDPIAware() { return true; }
-  public static bool IsWindowVisible(IntPtr h) { return h.ToInt64() == 101 || SecondMdpro && h.ToInt64() == 202; }
+  public static bool IsWindowVisible(IntPtr h) { if (DialogFake.Has(h)) return DialogFake.Visible(h); return h.ToInt64() == 101 || SecondMdpro && h.ToInt64() == 202; }
   public static uint GetWindowThreadProcessId(IntPtr h, out uint pid) {
     ThreadCalls++;
+    if (DialogFake.Has(h)) { pid = DialogFake.Pid(h); return 7u; }
     if (h.ToInt64() == 302) { pid = PopupBSharedThread ? 11u : 22u; return FailPopupThread ? 0u : PopupBSharedThread ? 7u : 8u; }
     if (h.ToInt64() == 301) { pid = 11; return FailPopupThread ? 0u : 7u; }
     pid = NativeStale || ThreadChangeAt > 0 && ThreadCalls >= ThreadChangeAt ? 22u : 11u;
@@ -83,12 +86,13 @@ public static class W32 {
     return true;
   }
   public static IntPtr GetForegroundWindow() {
-    ForegroundCalls++;
+    ForegroundCalls++; DialogFake.BeforeForeground();
     if (ForegroundChangeAt > 0 && ForegroundCalls >= ForegroundChangeAt) Foreground = 202;
     Trace("observe:foreground:" + ForegroundCalls + ":" + Foreground);
     return new IntPtr(Foreground);
   }
   public static string Title(IntPtr h) {
+    if (DialogFake.Has(h)) return DialogFake.Title(h);
     var titlePath = Environment.GetEnvironmentVariable("MDPRO_TEST_TITLE");
     return h.ToInt64() == 202 ? "mdpro B" : titlePath != null ? File.ReadAllText(titlePath) : "mdpro";
   }
@@ -99,7 +103,7 @@ public static class W32 {
     return new IntPtr(value);
   }
   public static void keybd_event(byte key, byte scan, uint flags, UIntPtr extra) {
-    LogicalCalls++; Trace("key:" + key + ":" + flags);
+    LogicalCalls++; Trace("key:" + key + ":" + flags); DialogFake.Key(key, flags);
     Trace("key-target:" + (Foreground == 101 ? "A" : "B") + ":" + key + ":" + flags);
     Trace((key == 18 ? "focus:" : "logical:") + key + ":" + flags);
     if (key == 18 && flags == 2 && Foreground != 101) Trace("effect:B");
@@ -122,7 +126,7 @@ public static class W32 {
     if (flags == 4 || flags == 16) {
       if (HeldRecipient == recipient && recipient == "B") Trace("effect:B");
       if (HeldRecipient == recipient && recipient == "A") Trace("effect:A");
-      HeldRecipient = "";
+      HeldRecipient = ""; DialogFake.MouseUp(CursorX, CursorY);
       if (CursorX == 100 && CursorY == 100 && PopupAtItem == "") PopupAtItem = "A";
     }
     if ((FocusChangesAfterMouseDown || (FocusChangesAfterMouseDownAt > 0 && MouseCalls == FocusChangesAfterMouseDownAt)) &&
@@ -151,7 +155,7 @@ public static class W32 {
     return new IntPtr(NativeStale ? 101 : HitRecipient() == "A" ? 101 : 202);
   }
   public static IntPtr GetAncestor(IntPtr h, uint mode) { return NullRoot ? IntPtr.Zero : h; }
-  public static string ClassName(IntPtr h) { return h.ToInt64() == 301 || h.ToInt64() == 302 ? "#32768" : "mdpro"; }
+  public static string ClassName(IntPtr h) { if (DialogFake.Has(h)) return DialogFake.Class(h); return h.ToInt64() == 301 || h.ToInt64() == 302 ? "#32768" : "mdpro"; }
   public static IntPtr MenuOwner(uint threadId) { return new IntPtr(PopupAtItem == "B" ? 202 : 101); }
   public static IntPtr GetMenu(IntPtr h) { return new IntPtr(400); }
   public static int GetMenuItemCount(IntPtr m) { return 1; }
@@ -178,6 +182,7 @@ public static class W32 {
   }
   public static bool ShowWindow(IntPtr h, int command) { return true; }
 }
+${dialogFakeSource}
 "@`;
 
 export interface NativeScenario {
@@ -219,15 +224,20 @@ export interface NativeScenario {
   rectChangesAfterPin?: boolean;
 }
 
+/** `receiptDir` stands in for the host's receipt store; `receiptNow` fixes the receipt clock; `processStart` is mdpro's start time. */
+export interface NativeOptions { cdpPort?: number; titlePath?: string; receiptDir?: string; receiptNow?: number; processStart?: string }
+
 export async function prepareNative(
   // The scenario and options reach the script through runNative's environment, not this text.
-  steps: unknown[], _scenario: NativeScenario = {}, _options: { cdpPort?: number; titlePath?: string } = {},
+  steps: unknown[], _scenario: NativeScenario = {}, _options: NativeOptions = {},
 ) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "mdpro-native-dispatch-"));
   let source = await readFile(path.join(WINDOWS, "ui.ps1"), "utf8");
-  for (const file of ["native-platform.ps1", "native-runtime.ps1", "native-window.ps1", "native-input.ps1", "native-ops.ps1"]) {
+  for (const file of ["native-platform.ps1", "native-runtime.ps1", "native-window.ps1", "native-input.ps1", "native-ops.ps1", "native-dialog.ps1", "native-dialog-receipt.ps1"]) {
+    const line = `. "$PSScriptRoot\\${file}"`;
+    if (!source.includes(line)) continue;
     const helper = await readFile(path.join(WINDOWS, file), "utf8");
-    source = source.replace(`. "$PSScriptRoot\\${file}"`, () => helper);
+    source = source.replace(line, () => helper);
   }
   const platformStart = source.indexOf("Add-Type -AssemblyName UIAutomationClient");
   const platformEnd = source.indexOf("[void][W32]::SetProcessDPIAware()");
@@ -236,17 +246,21 @@ export async function prepareNative(
   script = script.replace("$AE = [System.Windows.Automation.AutomationElement]", "$AE = $null")
     .replace("$TS = [System.Windows.Automation.TreeScope]", "$TS = $null")
     .replaceAll("$PSScriptRoot\\window-binding.mjs", path.join(WINDOWS, "window-binding.mjs"))
+    .replaceAll("$PSScriptRoot\\dialog-binding.mjs", path.join(WINDOWS, "dialog-binding.mjs"))
     .replaceAll("$PSScriptRoot\\physical-chord.mjs", path.join(WINDOWS, "physical-chord.mjs"))
-    .replaceAll("$PSScriptRoot\\cdp.mjs", path.join(WINDOWS, "cdp.mjs"));
+    .replaceAll("$PSScriptRoot\\cdp.mjs", path.join(WINDOWS, "cdp.mjs"))
+    .replaceAll("$PSScriptRoot\\dialog-receipts", _options.receiptDir ?? path.join(dir, "dialog-receipts"));
   const fixture = `
 [W32]::Configure($env:MDPRO_TEST_SCENARIO, $env:MDPRO_TEST_TRACE)
 function MdproWindows {
   [IO.File]::AppendAllText($env:MDPRO_TEST_TRACE, "boundary:uia\n")
   [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 101; ProcessId = 11 } }
   if ([W32]::SecondMdpro) { [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = 202; ProcessId = 11 } } }
+  if ([DialogFake]::InUiaRoot) { foreach ($d in [DialogFake]::Open) { [pscustomobject]@{ Current = [pscustomobject]@{ NativeWindowHandle = $d.Hwnd; ProcessId = [int]$d.Pid } } } }
 }
-function Get-Process { param($Id, $ErrorAction) return [pscustomobject]@{ Path = [W32]::ProcessPath(); Id = 11; StartTime = [datetime]"2026-01-01T00:00:00Z" } }
+function Get-Process { param($Id, $ErrorAction) return [pscustomobject]@{ Path = [W32]::ProcessPath(); Id = 11; StartTime = [datetime]$(if ($env:MDPRO_TEST_PROCESS_START) { $env:MDPRO_TEST_PROCESS_START } else { "2026-01-01T00:00:00Z" }) } }
 function Start-Sleep { param($Milliseconds) [W32]::Sleep([int]$Milliseconds) }
+if ($env:MDPRO_TEST_RECEIPT_NOW) { function Get-ReceiptNowMs { [long]$env:MDPRO_TEST_RECEIPT_NOW } }
 `;
   script = script.replace("$failed = $false; $n = 0", fixture + "\n$failed = $false; $n = 0");
   const scriptPath = path.join(dir, "ui-test.ps1");
@@ -260,13 +274,14 @@ function Start-Sleep { param($Milliseconds) [W32]::Sleep([int]$Milliseconds) }
 }
 
 export async function runNative(
-  steps: unknown[], scenario: NativeScenario = {}, options: { cdpPort?: number; titlePath?: string } = {},
+  steps: unknown[], scenario: NativeScenario = {}, options: NativeOptions = {},
 ): Promise<{ status: number | null; log: string[]; trace: string[]; stderr: string }> {
   const { scriptPath, stepsPath, outPath, tracePath } = await prepareNative(steps, scenario, options);
   const result = await new Promise<{ status: number | null; stderr: string }>((done) => {
     const child = spawn("pwsh", ["-NoProfile", "-File", scriptPath, "-Steps", stepsPath, "-Out", outPath], {
       env: { ...process.env, MDPRO_TEST_SCENARIO: JSON.stringify(scenario), MDPRO_TEST_TRACE: tracePath,
-        MDPRO_TEST_TITLE: options.titlePath, MDPRO_CDP_PORT: options.cdpPort?.toString() },
+        MDPRO_TEST_TITLE: options.titlePath, MDPRO_CDP_PORT: options.cdpPort?.toString(),
+        MDPRO_TEST_RECEIPT_NOW: options.receiptNow?.toString(), MDPRO_TEST_PROCESS_START: options.processStart },
     });
     let stderr = "";
     child.stderr.on("data", (data) => { stderr += String(data); });

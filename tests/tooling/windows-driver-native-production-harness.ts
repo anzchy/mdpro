@@ -9,7 +9,7 @@ import { supervisorFixture } from "./windows-driver-native-supervisor-harness";
 // boundary only: Win32 (the native harness's W32), UIA (the types below), process enumeration,
 // the node launch (a PATH shim that runs the real resolver/cdp.mjs) and CDP (a fake endpoint).
 // MDPRO_TEST_STALL names the one boundary that blocks; the launcher stands in for ui.cmd/native-job.exe.
-export type ProductionStall = "none" | "discovery" | "uia" | "uia-read" | "resolver" | "stdout";
+export type ProductionStall = "none" | "discovery" | "uia" | "uia-read" | "resolver" | "stdout" | "dialog-write";
 
 const fakeUia = String.raw`Add-Type @"
 namespace System.Windows.Automation {
@@ -60,8 +60,12 @@ exit $code
 /** exitStatus "propagated" is the real chain (ui.cmd and native-job.exe return ui.ps1's code); "lost" reads 0. */
 export async function productionWorkerFixture(stall: ProductionStall, steps: unknown[], options: {
   cdpPort?: number; titlePath?: string; entry?: Record<string, string>; exitStatus?: "propagated" | "lost";
+  /** The native harness scenario (Win32 doubles, dialogs); empty by default. */
+  scenario?: object;
+  /** Stands in for the host's dialog receipt store; a fresh folder by default. */
+  receiptDir?: string;
 } = {}) {
-  const prepared = await prepareNative([]);
+  const prepared = await prepareNative([], {}, { receiptDir: options.receiptDir });
   let script = await readFile(prepared.scriptPath, "utf8");
   const fixtureWindows = /function MdproWindows \{\n {2}\[IO\.File\]::AppendAllText[\s\S]*?\n\}\n/;
   const processDouble = "function Get-Process { param($Id, $ErrorAction) ";
@@ -91,7 +95,7 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
   execFileSync(path.join(bin, "node"), ["-e", "0"], { env: { ...process.env, TEST_ROOT: bin, MDPRO_TEST_STALL: "none" } });
   const env: Record<string, string> = {
     PATH: bin + path.delimiter + (process.env.PATH ?? ""), MDPRO_TEST_STALL: stall,
-    MDPRO_TEST_SCENARIO: "{}", MDPRO_TEST_TRACE: trace,
+    MDPRO_TEST_SCENARIO: JSON.stringify(options.scenario ?? {}), MDPRO_TEST_TRACE: trace,
   };
   if ((options.exitStatus ?? "propagated") === "propagated") env.TEST_TASK_EXIT_FILE = path.join(fixture.dir, "task-exit");
   if (options.cdpPort) env.MDPRO_CDP_PORT = String(options.cdpPort);
