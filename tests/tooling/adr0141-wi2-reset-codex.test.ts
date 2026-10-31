@@ -27,6 +27,13 @@ function harness(name = "gpt-imple-2") {
   for (const dir of [main, wt, bin, path.join(main, ".codex/rules"), path.join(wt, ".codex/rules"), path.join(main, "scripts/codex-rules")]) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(main, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: delegator\n");
   fs.writeFileSync(path.join(wt, ".codex/rules/mdpro.rules"), "# shared rules\n");
+  // ADR-0162 d4: implementor and device resets refuse without cargo and rustfmt in the HOME rustup toolchain.
+  const toolchain = path.join(root, ".rustup/toolchains/stable-aarch64-apple-darwin/bin");
+  fs.mkdirSync(toolchain, { recursive: true });
+  for (const tool of ["cargo", "rustfmt"]) {
+    fs.writeFileSync(path.join(toolchain, tool), `#!/bin/sh\necho ${tool}\n`);
+    fs.chmodSync(path.join(toolchain, tool), 0o755);
+  }
   const log = path.join(root, "calls.jsonl");
   const fake = path.join(bin, "herdr");
   fs.writeFileSync(fake, `#!/usr/bin/env node

@@ -8,6 +8,10 @@
 # verify argv and the status line. Exit 0 = verified; 3 = started but the status line could not be read (pane too
 # narrow: zoom it and check by eye before dispatching); 1 = failed.
 # Implementors and gpt-auditor device panes get -s danger-full-access; audit panes stay sandboxed.
+# ADR-0162 d4: every new pane gets PATH=<rustup stable toolchain>:$PATH. An implementor or device reset refuses (exit 2,
+# old pane untouched) unless cargo and rustfmt in that toolchain are what `command -v` finds, first before the split,
+# then in the new pane's own shell, which is closed again if its PATH does not resolve them. Audit panes get the PATH
+# without the refusal. MDPRO_RUST_TOOLCHAIN_BIN overrides the toolchain directory only under MDPRO_GUARD_TEST=1.
 set -u
 (( $# == 5 )) || { echo "REFUSED: reset-codex.sh needs implementor, auditor or device mode" >&2; exit 2; }
 name=$1 wt=$2 model=$3 effort=$4 role=$5
@@ -31,6 +35,28 @@ sys.exit(0 if os.path.isabs(p) and os.path.exists(p) and os.path.commonpath((os.
     exit 2
   }
 fi
+tc=$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin
+if [[ ${MDPRO_GUARD_TEST:-} == 1 ]] && (( ${+MDPRO_RUST_TOOLCHAIN_BIN} )); then
+  tc=$MDPRO_RUST_TOOLCHAIN_BIN
+  /usr/bin/python3 -c 'import os,sys,tempfile
+p=sys.argv[1]
+t=os.path.realpath(tempfile.gettempdir())
+sys.exit(0 if os.path.isabs(p) and os.path.commonpath((os.path.realpath(p),t))==t and os.path.realpath(p)!=t else 1)' "$tc" || {
+    echo "REFUSED: test MDPRO_RUST_TOOLCHAIN_BIN override must resolve under tmpdir" >&2
+    exit 2
+  }
+fi
+pane_path="$tc:$PATH"
+needs_rust=0
+[[ $role == implementor || $role == device ]] && needs_rust=1
+if (( needs_rust )); then
+  for tool in cargo rustfmt; do
+    [[ -f $tc/$tool && -x $tc/$tool && $(PATH=$pane_path; command -v $tool) == $tc/$tool ]] || {
+      echo "REFUSED: Rust toolchain $tc has no executable $tool for the pane PATH; old pane left untouched" >&2
+      exit 2
+    }
+  done
+fi
 info=$(herdr --session mdpro agent get $name 2>&1)
 old=$(print -r -- $info | grep -oE '"pane_id":"[^"]+"' | head -1 | cut -d'"' -f4)
 st=$(print -r -- $info | grep -oE '"agent_status":"[a-z]+"' | head -1 | cut -d'"' -f4)
@@ -44,11 +70,26 @@ overlay="$wt/.codex/rules/mdpro-role.rules"
   echo "REFUSED: invalid $expected overlay after installation; old pane left untouched" >&2
   exit 2
 }
-extra=() ; sandbox=()
-[[ $role == implementor ]] && { extra=(--env MDPRO_ROLE=implementor); sandbox=(-s danger-full-access); }
+extra=(--env "PATH=$pane_path") ; sandbox=()
+[[ $role == implementor ]] && { extra=(--env MDPRO_ROLE=implementor $extra); sandbox=(-s danger-full-access); }
 [[ $role == device ]] && sandbox=(-s danger-full-access)
 new=$(herdr --session mdpro pane split ${old:-w1:p1} --direction down --cwd $wt --no-focus $extra 2>&1 | grep -oE 'w1:p[0-9A-Za-z]+' | tail -1)
 [[ -n $new ]] || { echo "FAIL split; old pane $old left untouched"; exit 1; }
+if (( needs_rust )); then
+  # The sentinel is assembled by printf, so the echoed command line can never match it. A fresh shell may not take
+  # input yet: retry the run, then wait a bounded time for the sentinel.
+  pane_check_ms=20000 pane_run_tries=3 ran=0
+  check="[ \"\$(command -v cargo)\" = ${(qq)tc}/cargo ] && [ \"\$(command -v rustfmt)\" = ${(qq)tc}/rustfmt ] && printf 'MDPRO_RUST_%s\\n' OK"
+  for i in {1..$pane_run_tries}; do
+    herdr --session mdpro pane run $new "$check" >/dev/null 2>&1 && { ran=1; break; }
+    sleep 3
+  done
+  if (( ! ran )) || ! herdr --session mdpro pane wait-output --match MDPRO_RUST_OK --source recent-unwrapped --timeout $pane_check_ms $new >/dev/null 2>&1; then
+    herdr --session mdpro pane close $new >/dev/null 2>&1
+    echo "REFUSED: cargo or rustfmt does not resolve to $tc in the new pane $new; closed it, old pane ${old:-none} left untouched" >&2
+    exit 2
+  fi
+fi
 [[ -n $old ]] && herdr --session mdpro pane close $old >/dev/null 2>&1
 sleep 4
 argv="" ok=0
