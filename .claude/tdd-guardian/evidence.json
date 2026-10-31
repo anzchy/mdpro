@@ -1625,6 +1625,290 @@
         "head": "d16db0fa21ba594902545a0f0fe4f4f439ace1bc"
       }
     },
+    "D336-FIX1-RACE-DIALOG": {
+      "id": "D336-FIX1-RACE-DIALOG",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:01:49.155Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts\",\"D336 fix 1 a transition at the progress write never reaches a dialog mutation\",\"a foreground switch at the cancel phase's progress write sends no Esc\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts",
+            "line": 29
+          },
+          "message": "AssertionError: expected [ 'key-hwnd:602:27:0', …(2) ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts\",\"D336 fix 1 a transition at the progress write never reaches a dialog mutation\",\"a foreground switch at the path phase's progress write sends no path\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts",
+            "line": 24
+          },
+          "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts\",\"D336 fix 1 a transition at the progress write never reaches a dialog mutation\",\"a same-HWND dialog successor at the submit phase's progress write gets no Enter\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts",
+            "line": 34
+          },
+          "message": "AssertionError: expected [ …(4) ] to deeply equal [ Array(1) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D336-FIX1-RACE-DIALOG/20261031T040149155Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts": "80fd26b8269f7f788eef4494fd22268a94121200"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts": "80fd26b8269f7f788eef4494fd22268a94121200"
+      }
+    },
+    "D336-FIX1-SETTEXT": {
+      "id": "D336-FIX1-SETTEXT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:28.378Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d336-fix1-settext.test.ts\",\"D336 fix 1 a failed path write is never submitted\",\"WM_SETTEXT returning FALSE stops before Enter\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d336-fix1-settext.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: expected [ …(4) ] to deeply equal [ Array(1) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d336-fix1-settext.test.ts\",\"D336 fix 1 a failed path write is never submitted\",\"a read-back that differs from the path stops before Enter\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d336-fix1-settext.test.ts",
+            "line": 27
+          },
+          "message": "AssertionError: expected [ …(4) ] to deeply equal [ Array(1) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D336-FIX1-SETTEXT/20261031T040228378Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d336-fix1-settext.test.ts": "500df96fbcf1fd2e4c37837228d56ede97fd30ac"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d336-fix1-settext.test.ts": "500df96fbcf1fd2e4c37837228d56ede97fd30ac"
+      }
+    },
+    "D337-FIX1-EXIT": {
+      "id": "D337-FIX1-EXIT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:35.335Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d337-fix1-exit.test.ts\",\"D337 fix 1 a Windows-bounded timeout exits 1\",\"a stalled phase ends with exit 1, not 124\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d337-fix1-exit.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: phase:start discovery OUTCOME {\"completedSteps\":0,\"op\":\"clickat\",\"heldInput\":\"released\",\"status\":\"failed\",\"cleanup\":\"complete\",\"phase\":\"NATIVE_PHASE_TIMEOUT phase=discovery worker-phase=discovery\",\"elapsedMs\":2569,\"step\":1,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"inputOutcome\":\"none\"}: expected 124 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D337-FIX1-EXIT/20261031T040235335Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-exit.test.ts": "1d51b6ab94c4a411bae1d2ba23c2d3b881646aaf"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-exit.test.ts": "1d51b6ab94c4a411bae1d2ba23c2d3b881646aaf"
+      }
+    },
+    "D337-FIX1-OUTER": {
+      "id": "D337-FIX1-OUTER",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:17.848Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d337-fix1-outer.test.ts\",\"D337 fix 1 the Mac's wait outlasts a Windows run that uses its whole deadline\",\"a transaction-deadline stall reaches the caller as the phase-named outcome, with the latch written\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d337-fix1-outer.test.ts",
+            "line": 52
+          },
+          "message": "AssertionError: {\"runId\": \"17e9e295227c41b0b2aba80b57aa5d30\", \"phase\": \"native-transport\", \"status\": \"timeout\", \"inputOutcome\": \"unknown\", \"heldInput\": \"uncertain\", \"cleanup\": \"unproved\", \"replay\": false}\n: expected { named: false, latched: false } to deeply equal { named: true, latched: true }"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d337-fix1-outer.test.ts\",\"D337 fix 1 the Mac's wait outlasts a Windows run that uses its whole deadline\",\"ui-run.ps1 bounds its own run by -TimeoutSec when the deadline it was given lies beyond it\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d337-fix1-outer.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 1793419355589 to be less than 1793419350589"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D337-FIX1-OUTER/20261031T040217848Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-outer.test.ts": "6e814a9b9c0ded31faabee8d1805096bdb439b25"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-outer.test.ts": "b86e5a9bda5b0f42e52bb0667b99507ed26677fa"
+      },
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/D337-FIX1-OUTER.json",
+        "digest": "ea7fc7fa4626924e0eb2c8be35fdcfe888837b6f4cf453b4a75467e1ec148133",
+        "result": "failed",
+        "base": "376c7e184e904927965311fd0f492f3bd1c003fb",
+        "head": "8722b51c81077c0e228f3921fcc043c0a226ae19"
+      }
+    },
+    "D337-FIX1-RACE-INPUT": {
+      "id": "D337-FIX1-RACE-INPUT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:01:55.317Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d337-fix1-race-input.test.ts\",\"D337 fix 1 a transition at the held-input progress write never reaches a down event\",\"a foreground switch at the logical chord's held write sends no key\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d337-fix1-race-input.test.ts",
+            "line": 18
+          },
+          "message": "AssertionError: expected [ 'key:17:0', 'key:17:2' ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d337-fix1-race-input.test.ts\",\"D337 fix 1 a transition at the held-input progress write never reaches a down event\",\"an overlay at the mouse click's held write sends no button\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d337-fix1-race-input.test.ts",
+            "line": 24
+          },
+          "message": "AssertionError: expected [ 'mouse:2' ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D337-FIX1-RACE-INPUT/20261031T040155317Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-race-input.test.ts": "163bfa22170708204a1b6ad30f07564f22373ad3"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-race-input.test.ts": "163bfa22170708204a1b6ad30f07564f22373ad3"
+      }
+    },
+    "D337-FIX1-SNAPSHOT": {
+      "id": "D337-FIX1-SNAPSHOT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:40.109Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d337-fix1-snapshot.test.ts\",\"D337 fix 1 Snapshot survives one member's identity read throwing\",\"reports every live member and raises nothing\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts",
+            "line": 20
+          },
+          "message": "AssertionError: expected { …(2) } to deeply equal { error: '', pids: [ 95496, 95497 ] }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D337-FIX1-SNAPSHOT/20261031T040240109Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts": "614a5abd88e8820b9c307c636dfbf04feb99274b"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts": "614a5abd88e8820b9c307c636dfbf04feb99274b"
+      }
+    },
+    "D338-FIX1-RACE-HKL": {
+      "id": "D338-FIX1-RACE-HKL",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:01.187Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts\",\"D338 fix 1 a transition at the held-input progress write never reaches a scan\",\"an HKL change on the input thread at the first held write sends no scan\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts",
+            "line": 20
+          },
+          "message": "AssertionError: expected [ 'scan:56:False:True', …(1) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D338-FIX1-RACE-HKL/20261031T040201187Z/tests",
+        "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
+      }
+    },
     "TDDG-FIX1-PROMPT": {
       "id": "TDDG-FIX1-PROMPT",
       "lane": "unit-red",

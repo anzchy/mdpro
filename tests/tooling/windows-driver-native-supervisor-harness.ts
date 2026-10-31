@@ -85,7 +85,7 @@ function Get-ScheduledTaskInfo {
 function Stop-ScheduledTask { param($TaskName,$ErrorAction) }
 function Unregister-ScheduledTask {
  param($TaskName,$Confirm,$ErrorAction)
- if ($env:TEST_SCENARIO -eq "cleanup-stall") { [Threading.Thread]::Sleep(10000) }
+ if ($env:TEST_SCENARIO -eq "cleanup-stall" -or $env:TEST_SCENARIO -eq "deadline-stall") { [Threading.Thread]::Sleep(10000) }
  [IO.File]::Delete("$env:TEST_ROOT/task")
 }
 `;
@@ -107,6 +107,9 @@ if($phase -eq "lost-progress") {
  Start-Process pwsh -ArgumentList @("-NoProfile","-Command", "[Threading.Thread]::Sleep(2500); [IO.File]::Delete('$out.progress.json')")
 }
 [IO.File]::WriteAllText("$env:TEST_ROOT/started","ready")
+[IO.File]::WriteAllText("$env:TEST_ROOT/worker-deadline","$env:MDPRO_NATIVE_CLEANUP_DEADLINE_MS")
+# deadline-stall: every phase completes, the run never does, so only the transaction deadline ends it.
+if($phase -eq "deadline-stall") { $state.phaseComplete=$true; $state|ConvertTo-Json -Compress|Set-Content "$out.progress.json"; [Threading.Thread]::Sleep(60000) }
 if($phase -eq "tree") {
  $child=Start-Process pwsh -ArgumentList @("-NoProfile","-File","$env:TEST_ROOT/descendant.ps1","-Depth","1") -PassThru
  [Threading.Thread]::Sleep(500)

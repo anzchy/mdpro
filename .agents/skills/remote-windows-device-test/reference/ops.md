@@ -177,19 +177,22 @@ task or input with `UI_BUDGET_INVALID` (exit **2**).
 | Variable | Default | Range | Bounds |
 |---|---|---|---|
 | `MDPRO_UI_PHASE_MS` | 5000 | 10–5000 | one phase (a resolver, a wait, a helper) |
-| `MDPRO_UI_TRANSACTION_MS` | 30000 | 50–85000 | the whole native run, cleanup included |
-| `MDPRO_UI_OUTER_MS` | 90000 | 100–90000 | the Mac's wait for an answer; exit **124** when it expires |
+| `MDPRO_UI_TRANSACTION_MS` | 30000 | 50–85000 | the whole native run, cleanup included: Windows ends the run by this deadline |
+| `MDPRO_UI_OUTER_MS` | 90000 | 100–90000 | the Mac's wait for the dispatched run's answer, from the call's start; sent as `-TimeoutSec`, which also caps the run on Windows' own clock. Exit **124** (`native-transport`, outcome unknown) only when it expires with no answer |
 | `MDPRO_UI_CLEANUP_MS` | 5000 | 10–5000 | the reserve kept for cleanup |
 | `MDPRO_UI_POLL_MS` | 25 | 1–1000 | the poll interval |
 
 Ordering: phase < transaction < outer, cleanup < transaction, and phase + cleanup ≤ transaction.
+The gap between transaction and outer is the slack in which a run that used its whole deadline
+still returns its `OUTCOME` and latch; keep it to seconds, not milliseconds (the defaults leave 60 s).
 
 **Outcome.** Each run ends with one `OUTCOME {…}` line, also committed as `runs/<runId>/result.json`:
 `runId`, `status` (`completed` | `failed`), `phase`, `step`, `op`, `elapsedMs`, `completedSteps`,
 `inputOutcome` (`none` | `partial` | `unknown`), `heldInput` (`released` | `uncertain`) and `cleanup`
 (`complete` | `failed` | `not-started`). A task exit of 0 is not proof: only a committed
 `completed` result is. A stalled phase fails with `NATIVE_PHASE_TIMEOUT phase=<name>`, an
-overrun with `NATIVE_TRANSACTION_TIMEOUT phase=<name>` (exit **1**). Cleanup ends every
+overrun with `NATIVE_TRANSACTION_TIMEOUT phase=<name>`; every Windows-side failure, these
+included, exits **1**, and **124** is kept for the Mac's outer wait. Cleanup ends every
 process the run owns, by kernel job and by birth time plus executable; one still alive at the
 cleanup deadline is `NATIVE_OWNED_PROCESSES_REMAIN` (or `NATIVE_CONTROL_PROCESSES_REMAIN` for the
 supervisor's own helpers).
@@ -261,7 +264,7 @@ on Windows yet; do not rely on per-window isolation.
 - Every one-off scheduled task (`runi.ps1`) is waited for and then **unregistered** (try/finally). `ui-run.ps1` keeps each run's `steps.json`, `ui-out.json` and `result.json` under `runs/<runId>/` as evidence; a run id is never reused (`NATIVE_RUN_ID_REUSED`), so nothing replays them.
 - Every value interpolated into a remote PowerShell command goes through `psq` (it doubles `'`) inside `'…'`, after a validator: Windows paths must match `^[A-Za-z]:\\` with no quote, backtick or `$`; file names must match `^[A-Za-z0-9._-]+$`, not starting with a dot. `WIN_DIR` is validated once, in `common.sh`. Keep this for any new wrapper.
 - **A lost response is never replayed** (D228). `common.sh` has two ssh calls: `win` for anything that changes state, never retried, and `win_read` for idempotent reads, retried once on ssh exit 255. When `win` loses the connection the wrapper exits **3**, `UNKNOWN OUTCOME`: the command may or may not have run, so check the state before anything else (pitfalls 21). `cdp.mjs`'s own exit 3, `CDP_TIMEOUT`, means the same thing.
-- **The Windows side's exit codes reach the Mac caller** (D247). OpenSSH there runs every command in PowerShell 5.1, which exits 1 for any failure; `win` and `win_read` wrap each command (`ps_wrap` in `common.sh`) so a failed program's own code comes back: `ui.sh`'s 124, `cdp.mjs`'s 1–6. A failed cmdlet is still 1, success 0.
+- **The Windows side's exit codes reach the Mac caller** (D247). OpenSSH there runs every command in PowerShell 5.1, which exits 1 for any failure; `win` and `win_read` wrap each command (`ps_wrap` in `common.sh`) so a failed program's own code comes back: `ui-run.ps1`'s 1 and 2, `cdp.mjs`'s 1–6. A failed cmdlet is still 1, success 0.
 - **Exit 70, `NATIVE_CRASH`: the remote program crashed** (D248). A Windows crash code is an NTSTATUS (0xC0000409, 0xC0000005), outside 0–255; ssh would cut it to a byte that can look like a driver's own code (0xC0000005 → 5, `WINDOW_NOT_FOUND`), so `ps_wrap` reports any code outside 0–255 as 70. The outcome is unknown, as for 3: check the state, never re-run a mutation on it.
 - The only listener is WebView2's DevTools port, on `127.0.0.1:9222`, and only while mdpro runs from `launch.cmd`.
 

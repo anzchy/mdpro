@@ -55,6 +55,9 @@ public static class W32 {
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetMenuString(IntPtr m, uint id, System.Text.StringBuilder s, int max, uint flags);
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr SendMessageW(IntPtr h, uint msg, IntPtr w, string l);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode, EntryPoint="SendMessageW")] private static extern IntPtr SendMessageBuffer(IntPtr h, uint msg, IntPtr w, System.Text.StringBuilder l);
+  // WM_GETTEXT read-back (0x000D); one unit beyond a 259-unit path plus its NUL, so a longer text never matches.
+  public static string ControlText(IntPtr h) { var sb = new System.Text.StringBuilder(262); SendMessageBuffer(h, 0x000D, new IntPtr(262), sb); return sb.ToString(); }
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
   [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);

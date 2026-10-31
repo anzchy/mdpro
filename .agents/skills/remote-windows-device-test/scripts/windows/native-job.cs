@@ -1,5 +1,6 @@
 // Purpose: kernel job lifetime containment. Built by native-build.ps1 before transactions.
 // No child executes input before job assignment; only explicit app launches may break away.
+// Snapshot lists every member, an unreadable one with an empty birth, and never throws per member.
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -107,6 +108,12 @@ public sealed class NativeJobScope : IDisposable {
             if (!p.HasExited) members.Add(identity);
           }
         } catch (ArgumentException) { /* Process exited after the kernel snapshot. */ }
+        catch (Exception e) {
+          // One member whose identity cannot be read (access denied, a handle or module read failing
+          // mid-termination) must not hide the others (opus M2). It stays listed, so cleanup still sees
+          // it remaining, with no birth: its manifest record fails reconcile closed instead of matching.
+          members.Add(new NativeJobMember { pid = pid, birth = "", exe = "unreadable: " + e.GetType().Name + ": " + e.Message });
+        }
       }
       return members.ToArray();
     } finally { Marshal.FreeHGlobal(buffer); }

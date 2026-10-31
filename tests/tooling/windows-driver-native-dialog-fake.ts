@@ -29,6 +29,10 @@ export interface DialogScenario {
   ownerProps?: Record<string, string>;
   /** UIA lists each open dialog as a top-level window of mdpro's process, beside its owner. */
   dialogInUiaRoot?: boolean;
+  /** WM_SETTEXT returns FALSE and leaves the control's text unchanged (an Edit that refused the text). */
+  dialogWriteRejected?: boolean;
+  /** WM_SETTEXT returns TRUE but the control then holds this text (a read-back that differs). */
+  dialogWriteText?: string;
 }
 
 export const dialogFakeSource = String.raw`
@@ -40,8 +44,10 @@ public static class DialogFake {
     public System.Collections.Generic.Dictionary<string, IntPtr> Props = new System.Collections.Generic.Dictionary<string, IntPtr>(); }
   public static System.Collections.Generic.List<Dlg> Open = new System.Collections.Generic.List<Dlg>(), Pending = new System.Collections.Generic.List<Dlg>();
   public static string OpensOn = "start", Replace = ""; public static long OpenForeground, ForegroundAfterWrite, ReplaceHwnd; public static bool StaysOpen, Pinned, Replaced;
-  public static Dlg Added; public static bool InUiaRoot;
+  public static Dlg Added; public static bool InUiaRoot, WriteRejected; public static string WriteText;
   public static void Configure(System.Text.Json.JsonElement root) {
+    WriteRejected = root.TryGetProperty("dialogWriteRejected", out var wr) && wr.GetBoolean();
+    if (root.TryGetProperty("dialogWriteText", out var wt)) WriteText = wt.GetString();
     InUiaRoot = root.TryGetProperty("dialogInUiaRoot", out var uia) && uia.GetBoolean();
     if (root.TryGetProperty("ownerProps", out var op)) foreach (var x in op.EnumerateObject()) W32.Props[x.Name] = new IntPtr(long.Parse(x.Value.GetString()));
     if (!root.TryGetProperty("dialogs", out var list)) return;
@@ -125,11 +131,13 @@ public static partial class W32 {
     Trace("dialog-write:" + h.ToInt64() + ":" + msg + ":" + text);
     // A hung dialog: WM_SETTEXT is a cross-thread SendMessage that never returns.
     if (System.Environment.GetEnvironmentVariable("MDPRO_TEST_STALL") == "dialog-write") System.Threading.Thread.Sleep(60000);
-    if (c != null && msg == 0x000C) c.Text = text;
+    if (c != null && msg == 0x000C && !DialogFake.WriteRejected) c.Text = DialogFake.WriteText ?? text;
     if (DialogFake.ForegroundAfterWrite != 0) W32.Foreground = DialogFake.ForegroundAfterWrite;
     if (DialogFake.Replace == "after-write") DialogFake.ReplaceNow();
     if (DialogFake.Added != null) { DialogFake.Open.Add(DialogFake.Added); DialogFake.Added = null; Trace("dialog-open:after-write"); }
-    return new IntPtr(1);
+    return new IntPtr(DialogFake.WriteRejected ? 0 : 1);
   }
+  // WM_GETTEXT read-back of a control's text.
+  public static string ControlText(IntPtr h) { var c = DialogFake.Control(h.ToInt64()); Trace("dialog-read:" + h.ToInt64()); return c != null ? c.Text : ""; }
 }
 `;

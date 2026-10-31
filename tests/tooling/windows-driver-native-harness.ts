@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { dialogFakeSource } from "./windows-driver-native-dialog-fake";
 import { layoutFakeSource } from "./windows-driver-native-layout-fake";
+import { progressFakeSource, type ProgressScenario } from "./windows-driver-native-progress-fake";
 
 const WINDOWS = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows");
 
@@ -59,7 +60,7 @@ public static partial class W32 {
     if (InitialForeground != 0) Foreground = InitialForeground;
     RefuseFocus = flag("refuseFocus"); IgnoreFocus = flag("ignoreFocus");
     DriftDuringFocusWait = flag("driftDuringFocusWait");
-    DialogFake.Configure(root); LayoutFake.Configure(root);
+    DialogFake.Configure(root); LayoutFake.Configure(root); ProgressFake.Configure(root);
   }
   public static void Trace(string s) { File.AppendAllText(TracePath, s + "\\n"); }
   public static bool SetProcessDPIAware() { return true; }
@@ -185,7 +186,7 @@ public static partial class W32 {
   public static bool ShowWindow(IntPtr h, int command) { return true; }
 }
 ${dialogFakeSource}
-${layoutFakeSource}
+${layoutFakeSource}${progressFakeSource}
 "@`;
 
 export interface NativeScenario {
@@ -225,6 +226,7 @@ export interface NativeScenario {
   popupBSharedThread?: boolean;
   failRemoveProp?: boolean;
   rectChangesAfterPin?: boolean;
+  progressTransition?: ProgressScenario["progressTransition"];
 }
 
 /** `phaseMs` overrides the per-phase budget, `deadlineMs` the transaction budget (from spawn); `receiptDir` stands in for the receipt store; `receiptNow` fixes its clock; `processStart` is mdpro's start time. */
@@ -264,6 +266,7 @@ function MdproWindows {
 function Get-Process { param($Id, $ErrorAction) return [pscustomobject]@{ Path = [W32]::ProcessPath(); Id = 11; StartTime = [datetime]$(if ($env:MDPRO_TEST_PROCESS_START) { $env:MDPRO_TEST_PROCESS_START } else { "2026-01-01T00:00:00Z" }) } }
 function Start-Sleep { param($Milliseconds) [W32]::Sleep([int]$Milliseconds) }
 if ($env:MDPRO_TEST_RECEIPT_NOW) { function Get-ReceiptNowMs { [long]$env:MDPRO_TEST_RECEIPT_NOW } }
+$script:progressWrite = \${function:Write-Progress}; function Write-Progress { & $script:progressWrite; [ProgressFake]::Written([string]$script:phase, [int]$script:heldCount) }
 `;
   script = script.replace("$failed = $false; $n = 0", fixture + "\n$failed = $false; $n = 0");
   const scriptPath = path.join(dir, "ui-test.ps1");

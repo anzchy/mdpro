@@ -142,10 +142,13 @@ function ReleaseMouseOnTarget($step, [uint32]$up) {
   [W32]::mouse_event($up, 0, 0, 0, [UIntPtr]::Zero)
 }
 function MouseClick($step, [uint32]$down, [uint32]$up, [int]$x, [int]$y, [bool]$popup) {
-  MousePoint $step $x $y $popup # final observation after the wait and resolver, immediately before down
+  MousePoint $step $x $y $popup # observation after the wait and resolver
   Start-Phase "input:mouse-click"
+  # The press is durable before the final pin, foreground, cursor and hit check; no file I/O between
+  # that check and the down (fix 1, MH1). A refused press is withdrawn, never sent.
+  $mark = Begin-Input
+  try { MousePoint $step $x $y $popup } catch { Withdraw-Input $mark; throw }
   $held = $true
-  Set-HeldInput 1
   try {
     [W32]::mouse_event($down, 0, 0, 0, [UIntPtr]::Zero)
     MousePoint $step $x $y $popup $true

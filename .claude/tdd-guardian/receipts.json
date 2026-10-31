@@ -319122,6 +319122,439 @@
       "verified_at": null,
       "verdict": null,
       "findings": []
+    },
+    {
+      "id": "D336-FIX1-RACE-DIALOG",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:01:49.155Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "3 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts": {
+          "state": "ok",
+          "sha": "d2d7db6ac7cfb73e63b1b4557539025315afa6774742e284b544f6f70d6b10b7",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "a7d984bb6b85ebf7",
+            "468a093eb041195a",
+            "48f48824c947de2c",
+            "0c901acb42b51759",
+            "c890ba1027b2aa07",
+            "ed9623369ff082ab",
+            "b8cbd764da70a65b",
+            "9bd7ae9a23b58595",
+            "e5d3126656ba054a",
+            "631293d71c49226d",
+            "0b28d389d9b46960",
+            "cd0e74caff94d3cc",
+            "192bdb4b886db2c2",
+            "e21cdda917e7149d",
+            "43b70cc5a2265287",
+            "efadf7072d6d2490",
+            "ff017b2956742157",
+            "cf77924163f44bca",
+            "1dff249421680779",
+            "29576b54e255e3c9",
+            "a38bfcc0d956b5ed",
+            "0c86b75c65e4561d",
+            "1dff249421680779",
+            "29576b54e255e3c9",
+            "2a213030cfeb4099",
+            "5470b47211b1e686",
+            "2034592677535cc9",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:03.400Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D337-FIX1-RACE-INPUT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:01:55.317Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d337-fix1-race-input.test.ts": {
+          "state": "ok",
+          "sha": "f41da0a4a288be9b1fd3c9b325e73c0328c5390fe607ef4f7889e25fb051ebe9",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "b9627d63efcc8500",
+            "043dd686a23253b9",
+            "fbb85786100e8dae",
+            "79ebb335ac37f0a5",
+            "27f8da05d0aaab91",
+            "ed9623369ff082ab",
+            "b8cbd764da70a65b",
+            "9a0d16283bbf003d",
+            "e5d3126656ba054a",
+            "b666ba21963044bd",
+            "a5cc82e848c55791",
+            "9a474ce0df2c413c",
+            "0eea36aa4b74d69f",
+            "5a130ea51a167fe1",
+            "29576b54e255e3c9",
+            "94c977851896a4dc",
+            "4267ab27c5610998",
+            "d3933c0441cdc013",
+            "c3edc78125f78789",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:08.434Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D338-FIX1-RACE-HKL",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:01.187Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": {
+          "state": "ok",
+          "sha": "dd1ed7271b827837375311707bebf0132656111303c2db17fbb2d17263abcdcb",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "a1913d8f6e07edf1",
+            "f6211c4bc4f35791",
+            "edddf2631e5c4e4a",
+            "4e1bd23829565e40",
+            "ed9623369ff082ab",
+            "b8cbd764da70a65b",
+            "80f5e52f9f775ff6",
+            "eadc2223467fc9c7",
+            "583d0d84622ec70d",
+            "e523b81a24cc7ad0",
+            "a5d9bb0955911287",
+            "16d0debe6716851a",
+            "c2cfe2fa9fe8f34a",
+            "4fc7d2ee10c6e4fc",
+            "cefe97ae79ef4e0d",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:14.846Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D337-FIX1-OUTER",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:17.848Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d337-fix1-outer.test.ts": {
+          "state": "ok",
+          "sha": "d7784b5423046e58349d8450eac32fae5ce3655f92703e2b685c10f61a6a8620",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "3cee8aab18bb4a2b",
+            "8d8c81baf3d0786a",
+            "b9611e1516f45b11",
+            "92ba57222ce4c5b2",
+            "aadeffc0f1c56c29",
+            "eac32c0dcf63fe76",
+            "b35bfe50fc40c1d5",
+            "ed9623369ff082ab",
+            "ad7364b69ca8c1ef",
+            "54bb85537d667d1a",
+            "aa2bc7cd756da3c4",
+            "9c94784f8cfa14e6",
+            "323f24a37742b20d",
+            "303431d5e7d36c21",
+            "e162f4a089dd7802",
+            "14ba9bc23d11123a",
+            "b545181d9002388a",
+            "dc950cca4bd8e51d",
+            "2d26e13a9e782caa",
+            "8be84baa52494319",
+            "c72121d9bb9aff28",
+            "4b0a0bd5ca2000e4",
+            "b3db9e698a043548",
+            "2dca5ac204485848",
+            "f182e64cfaeed715",
+            "ddd7f30b1eff15db",
+            "f9be879c57de25d4",
+            "bb4f8032959e4b15",
+            "8e2285e1be16fd28",
+            "4a3ba9cad8a325b2",
+            "34395b6f71f82e5c",
+            "22d8babb040a0a6f",
+            "3d7f1feac44a37c5",
+            "ab907ece54363ae5",
+            "244cbdff893929b5",
+            "3cf602c5c9e67c8a",
+            "03d9aba6351173e5",
+            "c55b93c919532a26",
+            "400825f254ebeb4e",
+            "9c1ee5e919bebff4",
+            "77f9f0876e01941b",
+            "96fc3ab8ca89770d",
+            "866c9bdf57769d20",
+            "29576b54e255e3c9",
+            "a3f9072b2f88d6c3",
+            "551d736b266ba16d",
+            "421bdbc5b1f89c7f",
+            "83b07cef61a625f5",
+            "d8447467220b1625",
+            "160275e1c7fd7730",
+            "d10b36aa74a59bcf",
+            "e4c5bb1807cdd71a",
+            "e06e6fd30eefb0f5",
+            "9ec4cea258580169",
+            "d4aff1a92de91679",
+            "15a7067a826b7532",
+            "81cb4521b8e7128a",
+            "7f48d3da5e7388c3",
+            "5e9a61e538c1259c",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:30.953Z",
+      "verdict": "SEPARATION-BROKEN",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        },
+        {
+          "severity": "high",
+          "code": "spec-changed-under-green",
+          "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/tooling/windows-driver-d337-fix1-outer.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+        }
+      ]
+    },
+    {
+      "id": "D336-FIX1-SETTEXT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:28.378Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d336-fix1-settext.test.ts": {
+          "state": "ok",
+          "sha": "1f457487bf6e2939383d27e79a0ee0ba4c6beb2c368a11b23f3fb9c5afd59211",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "88035e5b36cc87c3",
+            "dc3044131beabc4e",
+            "51bdd336c1550f2e",
+            "ed9623369ff082ab",
+            "b8cbd764da70a65b",
+            "9bd7ae9a23b58595",
+            "e5d3126656ba054a",
+            "631293d71c49226d",
+            "0b28d389d9b46960",
+            "cd0e74caff94d3cc",
+            "37c9533a4162de2a",
+            "813b1194ea1efc85",
+            "b4ccd3d1c45158d8",
+            "f8610d97ef22be24",
+            "59c7bf875cceeaaa",
+            "e6c394b74f49ac25",
+            "2034592677535cc9",
+            "29576b54e255e3c9",
+            "d7753e3ea3238565",
+            "5a870234c7aaca70",
+            "2034592677535cc9",
+            "29576b54e255e3c9",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:36.334Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D337-FIX1-EXIT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:35.335Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d337-fix1-exit.test.ts": {
+          "state": "ok",
+          "sha": "9cf00adc4455ea38bfdd63d498e2cc0863b896a4bea2ab1816dda50bdb1051b5",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "d5ab3eb5de57ff1a",
+            "fdbc6e42252d3f44",
+            "cd3ac97b53961932",
+            "757ba3a2fc3b424b",
+            "ed9623369ff082ab",
+            "9c94784f8cfa14e6",
+            "323f24a37742b20d",
+            "a2d0e43274b7960e",
+            "497f427feb61d016",
+            "b7b0af4a480070f2",
+            "2d1181af0ca87d02",
+            "9b947be1ef9d0a64",
+            "ac5507a0dee97ea8",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:43.639Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
+    },
+    {
+      "id": "D337-FIX1-SNAPSHOT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T04:02:40.109Z",
+      "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+      "dirty_source": [
+        ".tokenize/ledger/28105.ndjson",
+        ".tokenize/ledger/71749.ndjson"
+      ],
+      "red": {
+        "red": true,
+        "kind": "assertion-failure",
+        "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+      },
+      "test_files": {
+        "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts": {
+          "state": "ok",
+          "sha": "3522edc79a72447a73747b242cb16da5f977220abcfa8f1fa6fbb243ff210e92",
+          "lines": [
+            "e89bcc293adfc2b4",
+            "8d64a30d9de151b6",
+            "6fd51a61127c995a",
+            "299bb9c7eeefe49e",
+            "18a81d609935be63",
+            "caed48f3f5c4e02c",
+            "ed9623369ff082ab",
+            "9c94784f8cfa14e6",
+            "7c63ff5d7a08b4cb",
+            "dbd5211ae5beef9c",
+            "94d2ab98d51c0aee",
+            "7b9f6fc529acf8af",
+            "ce7ee90e7476b527",
+            "ff21b47c7e5a345e",
+            "19060f4de2875e1c",
+            "c74a866abadc0337",
+            "b2ccfee9117c41df",
+            "7d17c118a32eb412",
+            "8a2d25fc81ed5898",
+            "d4711283aad8139c",
+            "29576b54e255e3c9"
+          ],
+          "reason": ""
+        }
+      },
+      "verified_at": "2026-10-31T04:13:48.269Z",
+      "verdict": "SEPARATION-HELD",
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "implementation-already-present",
+          "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+        }
+      ]
     }
   ]
 }

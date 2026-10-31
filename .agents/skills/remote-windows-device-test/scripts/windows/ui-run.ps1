@@ -1,5 +1,6 @@
 # Purpose: one run-bound desktop transaction with a held session lock and retained evidence.
 # No shared steps/output, name-wide cleanup or replay. Failed cleanup/held input latches refusal.
+# The run's deadline is the earlier of -DeadlineMs and -TimeoutSec from its own start.
 param([string]$StepsB64, [string]$RunId = ([guid]::NewGuid().ToString("N")),
       [string]$DeadlineMs = "0", [string]$PhaseMs = "5000", [string]$CleanupMs = "5000",
       [string]$PollMs = "25", [string]$TimeoutSec = "90")
@@ -16,9 +17,14 @@ try {
   $DeadlineMs = Read-NativeInteger $DeadlineMs 0 ([long]::MaxValue)
   if ($DeadlineMs -eq 0) { $DeadlineMs = $started + 30000 }
   if ($TimeoutSec -notmatch '^[0-9]+(\.[0-9]{1,3})?$') { throw "UI_BUDGET_INVALID" }
-  $TimeoutSec = [double]::Parse($TimeoutSec, [Globalization.CultureInfo]::InvariantCulture)
+  # A new variable: assigned back to the [string] parameter, the parsed value would be a string again,
+  # and its comparisons below lexical ("100" -gt 90 is false).
+  $timeoutSeconds = [double]::Parse($TimeoutSec, [Globalization.CultureInfo]::InvariantCulture)
+  # -TimeoutSec is the caller's whole wait; on this clock no run outlives it, whatever deadline came.
+  $timeoutEnd = $started + [long][math]::Floor($timeoutSeconds * 1000)
+  if ($DeadlineMs -gt $timeoutEnd) { $DeadlineMs = $timeoutEnd }
   if ($RunId -notmatch '^[a-f0-9]{32}$' -or $PhaseMs -lt 10 -or $PhaseMs -gt 5000 -or $CleanupMs -lt 10 -or $CleanupMs -gt 5000 -or
-      $PollMs -lt 1 -or $PollMs -gt 1000 -or $DeadlineMs -lt $started + $PhaseMs + $CleanupMs -or $DeadlineMs -gt $started + 85000 -or $TimeoutSec -lt 0.1 -or $TimeoutSec -gt 90) { throw "UI_BUDGET_INVALID" }
+      $PollMs -lt 1 -or $PollMs -gt 1000 -or $DeadlineMs -lt $started + $PhaseMs + $CleanupMs -or $DeadlineMs -gt $started + 85000 -or $timeoutSeconds -lt 0.1 -or $timeoutSeconds -gt 90) { throw "UI_BUDGET_INVALID" }
   $bytes = Read-NativeSteps $StepsB64
   $env:MDPRO_NATIVE_POLL_MS = $PollMs.ToString()
   $env:MDPRO_NATIVE_CLEANUP_DEADLINE_MS = $DeadlineMs.ToString()

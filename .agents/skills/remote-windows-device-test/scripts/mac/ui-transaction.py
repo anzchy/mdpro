@@ -59,6 +59,10 @@ def main():
         raise ValueError("UI_STEPS_INVALID")
     labels = [s["window"] for s in steps if "window" in s and "receipt" not in s]
     remaining = lambda: transaction - int((time.monotonic() - start) * 1000)
+    # The dispatched run ends itself by the transaction deadline, cleanup included, and then still
+    # writes its OUTCOME and latch; the Mac waits for that answer until the outer bound, so a run that
+    # spends its whole deadline is never cut off as a transport loss (D337 fix 1, opus H1).
+    outer_remaining = lambda: outer - int((time.monotonic() - start) * 1000)
     win_dir = os.environ.get("WIN_DIR", r"C:\Users\jack\mdpro-audit")
     if not re.fullmatch(r"[A-Za-z]:\\[A-Za-z0-9 ._\\-]*", win_dir) or ".." in win_dir:
         raise ValueError("UI_WINDOWS_PATH_INVALID")
@@ -117,7 +121,7 @@ def main():
         # Cleanup changes $?, so preserve the native status before it and exit
         # explicitly past ps_wrap; SSH must never truncate a Windows NTSTATUS.
         command = "$ErrorActionPreference='Stop'; try { " + command + "; $mdproUiRc=$LASTEXITCODE } finally { [IO.File]::Delete('" + payload_path + "') }; if ($mdproUiRc -lt 0 -or $mdproUiRc -gt 255) { exit 70 }; exit $mdproUiRc"
-    status, answer = invoke("win", command, remaining())
+    status, answer = invoke("win", command, outer_remaining())
     if status == 3:
         return 3
     if status == 124 and not answer.strip():

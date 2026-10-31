@@ -24,7 +24,8 @@ const bodies: Record<string, string> = {
     var p=Handles[process]; Trace("assign:"+p.Id);
     if(FailAssign) return false;
     Jobs[job].Add(p); Assigned.Add(p.Id); AssignedJob[p.Id]=job; return true;`,
-  IsProcessInJob: `member=!RejectMember && (!Handles.ContainsKey(process) || Assigned.Contains(Handles[process].Id)); return true;`,
+  // ThrowIdentityOnce models a member that exits (or turns unreadable) between the kernel list and its identity read.
+  IsProcessInJob: `if(ThrowIdentityOnce) { ThrowIdentityOnce=false; throw new InvalidOperationException("injected identity read failure"); } member=!RejectMember && (!Handles.ContainsKey(process) || Assigned.Contains(Handles[process].Id)); return true;`,
   // JOB_TEST_STOP_DELAY_MS models Windows' asynchronous job termination; unset keeps it synchronous.
   TerminateJobObject: `if(FailJobStop) return false;
     var members=new List<Process>(Jobs[job]); int delay=Int32.Parse(Environment.GetEnvironmentVariable("JOB_TEST_STOP_DELAY_MS") ?? "0");
@@ -55,7 +56,7 @@ const bodies: Record<string, string> = {
 
 const kernelState = `
   public static string Root=Environment.GetEnvironmentVariable("JOB_TEST_ROOT");
-  public static bool FailAssign, FailQuery, RejectMember, FailTerminate, FailResume, FailJobStop, FailWait;
+  public static bool ThrowIdentityOnce, FailAssign, FailQuery, RejectMember, FailTerminate, FailResume, FailJobStop, FailWait;
   public static int ReportedPid, LastPid, WaitTimeoutCount;
   public static uint ObservedFlags, LastCreationFlags;
   static long Next=100;

@@ -1,4 +1,5 @@
-# Purpose: durable phase journal, absolute deadlines, bounded child I/O and truthful input outcomes.
+# Purpose: durable phase journal, absolute deadlines, bounded child I/O and truthful input outcomes;
+# Begin-/Withdraw-Input make an input durable before its final checks (D336-D338 fix 1).
 # ui-run supervises this file externally because a blocked OS provider cannot interrupt itself.
 $script:startedMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 if ($DeadlineMs -eq 0) { $DeadlineMs = $script:startedMs + 30000 }
@@ -39,6 +40,21 @@ function Set-HeldInput([int]$Delta) {
   $script:inputTouched = $true
   $script:heldCount += $Delta
   if ($script:heldCount -lt 0) { $script:heldCount = 0; $script:releaseUncertain = $true }
+  Write-Progress
+}
+# Check-to-input order (D336-D338 fix 1, MH1): the journal records an input as possibly sent BEFORE
+# its last native checks, and nothing touches the disk between those checks and the OS call. So a
+# desktop change during the write is seen by the checks, and a kill after them still reads uncertain.
+# Begin-Input announces one held input (or, with -Touch, a text write) and returns the prior state;
+# Withdraw-Input takes the announcement back when the checks refused, since nothing was sent.
+function Begin-Input([switch]$Touch) {
+  $mark = $script:inputTouched
+  if ($Touch) { $script:inputTouched = $true; Write-Progress } else { Set-HeldInput 1 }
+  return $mark
+}
+function Withdraw-Input([bool]$Mark, [switch]$Touch) {
+  if (-not $Touch) { $script:heldCount -= 1 }
+  $script:inputTouched = $Mark
   Write-Progress
 }
 function Invoke-NodeBounded([string]$Name, [string[]]$Arguments, [switch]$Cleanup, [switch]$AllowFailure) {

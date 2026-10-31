@@ -66,7 +66,9 @@ function Invoke-NativeSupervisor {
   } catch {
     $script:supervisorError = $_.Exception.Message
     if ($script:lastProgress) { $script:supervisorError += " worker-phase=" + $script:lastProgress.phase }
-    $script:workerStatus = if ($script:supervisorError -match "TIMEOUT") { 124 } else { 1 }
+    # Every Windows-side failure, timeouts included, exits 1 with its phase in OUTCOME; 124 is only the
+    # Mac's own "no answer by the outer bound", so the two never share a code (opus M4, ops.md).
+    $script:workerStatus = 1
   } finally {
     # A kernel job owns lifetimes even if their parents exit, detach or their PIDs are later reused.
     $errors = New-Object System.Collections.ArrayList

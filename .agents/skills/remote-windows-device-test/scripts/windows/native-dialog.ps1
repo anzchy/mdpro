@@ -1,7 +1,7 @@
 # Purpose: owner-bound common file dialog (D336). The dialog is chosen by dialog-binding.mjs from
 # native observations of the verified owner's process: owner chain, process lifetime, executable,
 # the common-dialog class and one filename Edit. Title, foreground and order never select it;
-# foreground is only the final safety check before text and keys. The resolved dialog and control
+# foreground is only the final safety check before text and keys, made after the journal write. The resolved dialog and control
 # are pinned to their window lifetime by an unpredictable window property, as the owner is, so a
 # same-HWND successor never inherits the authorization. Contract: ../../reference/ops.md.
 $script:dialogChainLimit = 32
@@ -65,8 +65,12 @@ function Clear-DialogPins {
 function Assert-DialogForeground($dialog) {
   if ([W32]::GetForegroundWindow().ToInt64().ToString() -cne [string]$dialog.dialogHwnd) { throw "IDENTITY_DIALOG_FOREGROUND" }
 }
-function Send-DialogKey([byte]$Key) {
-  $held = $true; Set-HeldInput 1
+# The key is durable before the final foreground and pin checks, and nothing between them and the
+# key touches the disk (fix 1, MH1); a refused key is withdrawn, never sent.
+function Send-DialogKey([byte]$Key, $dialog) {
+  $mark = Begin-Input
+  try { Assert-DialogForeground $dialog; Assert-DialogLifetime } catch { Withdraw-Input $mark; throw }
+  $held = $true
   try {
     [W32]::keybd_event($Key, 0, 0, [UIntPtr]::Zero)
     [W32]::keybd_event($Key, 0, 2, [UIntPtr]::Zero); $held = $false; Set-HeldInput -1
@@ -109,20 +113,23 @@ function Invoke-FileDialog($s) {
     Assert-DialogLifetime
     if ($s.cancel) {
       Start-Phase "input:dialog-cancel"
-      Send-DialogKey 0x1B
+      Send-DialogKey 0x1B $dialog
       L "dialog cancelled"
       Wait-DialogDismissed $dialog
     } else {
       Start-Phase "input:dialog-path"
-      $script:inputTouched = $true; Write-Progress
-      [void][W32]::SendMessageW([IntPtr]([int64]$dialog.controlHwnd), 0x000C, [IntPtr]::Zero, [string]$s.path) # WM_SETTEXT
+      $control = [IntPtr]([int64]$dialog.controlHwnd)
+      $mark = Begin-Input -Touch
+      try { Assert-DialogForeground $dialog; Assert-DialogLifetime } catch { Withdraw-Input $mark -Touch; throw }
+      $written = [W32]::SendMessageW($control, 0x000C, [IntPtr]::Zero, [string]$s.path) # WM_SETTEXT
+      # The Edit must take the text and hold exactly it, or Enter would submit a name never written (gpt M1).
+      if ($written -eq [IntPtr]::Zero) { throw "UI_DIALOG_WRITE_REJECTED" }
+      if ([W32]::ControlText($control) -cne [string]$s.path) { throw "UI_DIALOG_WRITE_MISMATCH" }
       L "dialog path set"
       $again = Resolve-OwnedDialog $s
       if ($again.dialogHwnd -cne $dialog.dialogHwnd -or $again.controlHwnd -cne $dialog.controlHwnd) { throw "IDENTITY_DIALOG_CHANGED" }
-      Assert-DialogForeground $again
-      Assert-DialogLifetime
       Start-Phase "input:dialog-submit"
-      Send-DialogKey 0x0D
+      Send-DialogKey 0x0D $again
       L ("dialog submitted " + $s.path)
       Wait-DialogDismissed $dialog
     }

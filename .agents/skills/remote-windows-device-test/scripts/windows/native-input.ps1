@@ -1,4 +1,5 @@
 # Purpose: logical and real physical dispatch with native-only per-event validation and reverse release.
+# Each press is journalled before its final checks, so no file I/O separates check and event.
 # TargetHkl (the input-thread HKL read before every physical event) lives in native-layout.ps1.
 . "$PSScriptRoot\native-layout.ps1"
 function PhysicalPlan($step, $actualHkl) {
@@ -28,9 +29,10 @@ function Invoke-LogicalChord($s) {
           $held = New-Object System.Collections.ArrayList
           try {
             foreach ($k in $codes) {
-              [void](Target $s $true)
+              # Durable first, then the last check, then the key: no file I/O between them (fix 1, MH1).
+              $mark = Begin-Input
+              try { [void](Target $s $true) } catch { Withdraw-Input $mark; throw }
               [void]$held.Add($k)
-              Set-HeldInput 1
               [W32]::keybd_event([byte]$k, 0, 0, [UIntPtr]::Zero)
               Start-Sleep -Milliseconds 30
             }
@@ -67,9 +69,14 @@ function Invoke-PhysicalChord($s) {
         Start-Phase "input:physical-chord"
         try {
           foreach ($event in @($plan.events)) {
-            [void](Target $s $true)
-            if ((TargetHkl $s) -ne $expectedHkl) { throw "PHYSICAL_HKL_MISMATCH" }
-            if (-not $event.up) { [void]$held.Add($event); Set-HeldInput 1 }
+            # A press is durable before its last pin, foreground and HKL checks; nothing between them
+            # and SendScan touches the disk (fix 1, MH1). A refused press is withdrawn, never sent.
+            if (-not $event.up) { $mark = Begin-Input }
+            try {
+              [void](Target $s $true)
+              if ((TargetHkl $s) -ne $expectedHkl) { throw "PHYSICAL_HKL_MISMATCH" }
+            } catch { if (-not $event.up) { Withdraw-Input $mark }; throw }
+            if (-not $event.up) { [void]$held.Add($event) }
             if ([W32]::SendScan([uint16]$event.scan, [bool]$event.up, [bool]$event.extended) -ne 1) {
               if (-not $event.up) { $held.RemoveAt($held.Count - 1); Set-HeldInput -1 }
               throw "PHYSICAL_SEND_SHORT"

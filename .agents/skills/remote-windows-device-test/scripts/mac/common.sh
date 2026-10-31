@@ -20,7 +20,7 @@ check_winpath "$WIN_DIR"
 mkdir -p "$OUT"
 
 # win-desktop's OpenSSH runs every command in Windows PowerShell 5.1 (its DefaultShell), which exits 1
-# for any failure, so a native program's own code (ui-run.ps1's 124, cdp.mjs's 3 CDP_TIMEOUT, 4, 5,
+# for any failure, so a native program's own code (ui-run.ps1's 2, cdp.mjs's 3 CDP_TIMEOUT, 4, 5,
 # 6) reached the Mac as 1 (D247). ps_wrap keeps the same rule (the last statement's $?, so a failed
 # cmdlet is still 1 and success 0) but returns a failed native program's $LASTEXITCODE. An explicit
 # `exit N` inside the command still wins. A code outside 0-255 is a native crash (an NTSTATUS such
