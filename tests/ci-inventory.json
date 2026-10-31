@@ -154,6 +154,7 @@
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "refuses an unknown delegator runtime before dispatch"], "prerequisite": "macos"},
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "sends an Opus request on Claude when its brief records the user request and sufficient usage"], "prerequisite": "macos"},
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "serializes simultaneous heartbeat notes without losing or truncating one"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route"], "prerequisite": "macos"},
     {
       "id": ["tests/control/device-identity-process-scan.test.ts", "real executable scan", "finds two live main executables when one has a spoofed argv0"],
       "prerequisite": "macos"
