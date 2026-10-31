@@ -2239,6 +2239,13 @@
       },
       "settled_blobs": {
         "tests/tooling/t566-vendor-manifest.test.ts": "a9e0491705679948410a8ce627d03bfd963ca6a5"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/T566-2.json",
+        "digest": "d86c45e61c3606c78a509c8453e0429015c37b119a6e283e36a96a2e231fe1cb",
+        "result": "passed",
+        "base": "dbe26389715455965e540a439c0e5271d01bf7c3",
+        "head": "d2e82c7acf6fb4454ee696cdf65e7f75b4ae81fd"
       }
     },
     "T566-3": {
@@ -2335,6 +2342,13 @@
       },
       "settled_blobs": {
         "tests/tooling/t566-fail-closed.test.ts": "51e9607d2ffdbcab90f1ffb6e22600e4dfa69a91"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/T566-3.json",
+        "digest": "597fb189155f01ae855089de79530fcf3764a5133a5eb9a64c4ecceed8eda00f",
+        "result": "passed",
+        "base": "dbe26389715455965e540a439c0e5271d01bf7c3",
+        "head": "d2e82c7acf6fb4454ee696cdf65e7f75b4ae81fd"
       }
     }
   }
