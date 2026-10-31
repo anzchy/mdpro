@@ -1674,6 +1674,13 @@
       },
       "settled_blobs": {
         "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts": "80fd26b8269f7f788eef4494fd22268a94121200"
+      },
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/D336-FIX1-RACE-DIALOG.json",
+        "digest": "6d35a70e8b455c1adcf8e92f2c227cbed44cd2d18fda2a3dcb49a8331e0bb6a1",
+        "result": "failed",
+        "base": "376c7e184e904927965311fd0f492f3bd1c003fb",
+        "head": "4d1dda9a2d3ff125220b04b641b4df955a539038"
       }
     },
     "D336-FIX1-SETTEXT": {
@@ -1795,10 +1802,10 @@
       "evidence_required": true,
       "replay": {
         "path": ".claude/tdd-guardian/evidence/D337-FIX1-OUTER.json",
-        "digest": "ea7fc7fa4626924e0eb2c8be35fdcfe888837b6f4cf453b4a75467e1ec148133",
+        "digest": "c3eff44a01fe032d442e0c1937c60abe48c71f29638efef229ebf853a0ec6f35",
         "result": "failed",
         "base": "376c7e184e904927965311fd0f492f3bd1c003fb",
-        "head": "8722b51c81077c0e228f3921fcc043c0a226ae19"
+        "head": "4d1dda9a2d3ff125220b04b641b4df955a539038"
       }
     },
     "D337-FIX1-RACE-INPUT": {
