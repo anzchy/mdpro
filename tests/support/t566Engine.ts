@@ -103,11 +103,17 @@ export const rustfmt = [
   ...(existsSync(toolchains) ? readdirSync(toolchains).map((name) => join(toolchains, name, "bin/rustfmt")) : []),
 ].find((path) => existsSync(path)) ?? null;
 
-/** Child env for a replaced HOME: corepack keeps its real cache (no download), and rustfmt stays on PATH. */
+/**
+ * Child env for a replaced HOME: corepack keeps its real cache (no download), and rustfmt stays on PATH.
+ * The rustup and cargo homes stay the real ones too: a rustup proxy (CI's only rustfmt) resolves its toolchain from
+ * `RUSTUP_HOME`, else `$HOME/.rustup`, and exits nonzero under an empty HOME, which the rustfmt guard reads as unclean.
+ */
 export function homeEnv(home: string): Record<string, string> {
   return {
     HOME: home,
     COREPACK_HOME: process.env.COREPACK_HOME ?? join(homedir(), ".cache/node/corepack"),
+    RUSTUP_HOME: process.env.RUSTUP_HOME ?? join(homedir(), ".rustup"),
+    CARGO_HOME: process.env.CARGO_HOME ?? join(homedir(), ".cargo"),
     PATH: [rustfmt ? dirname(rustfmt) : null, process.env.PATH].filter(Boolean).join(delimiter),
   };
 }
