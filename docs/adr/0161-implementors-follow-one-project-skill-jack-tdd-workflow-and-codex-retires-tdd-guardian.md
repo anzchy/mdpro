@@ -1,6 +1,6 @@
 # 0161. Implementors on both runtimes follow one project skill, jack-tdd-workflow, and Codex retires tdd-guardian at its go-live
 
-**Status**: Proposed (2026-10-31). Spec [#568](https://github.com/anzchy/mdpro/issues/568); tickets #569–#571; snapshot
+**Status**: Accepted (2026-10-31, by the user: 「Accept ADR-0161 (Recommended)」, after plan review r4 READY from both auditors). Proposed 2026-10-31. Spec [#568](https://github.com/anzchy/mdpro/issues/568); tickets #569–#571; snapshot
 `docs/specs/567-tdd-skill/r4/` (r1–r3 superseded after plan review rounds 1 and 2 and the post-cap confirm). Grill answers: round 1 「是」; round 2 「Q9 用`jack-tdd-workflow` 作为name，其他的同意」;
 round 3 「Q5 Matt的Skill有codex版本,已经安装了，check一下.其他问题是」; round 4 「上面问题回答：是」; round 5 「Q15-Q16 agree」. After the
 grill: 「codex 的tdd-guardian 在jack-tdd-workflow 上线之后就retire」. After plan review round 1 (2026-10-31): Codex attacker
