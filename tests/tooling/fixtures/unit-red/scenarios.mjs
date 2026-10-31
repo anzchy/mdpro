@@ -1,9 +1,9 @@
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmdirSync, rmSync, symlinkSync, writeFileSync, chmodSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmdirSync, rmSync, symlinkSync, writeFileSync, chmodSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 
-const [scenario, repo] = process.argv.slice(2);
+const [scenario, repo, receiptScript] = process.argv.slice(2);
 const root = mkdtempSync(join(tmpdir(), "mdpro-unit-red-scenario-"));
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
 const lane = join(repo, "scripts/tdd/unit-red-lane.mjs");
@@ -145,10 +145,8 @@ async function runScenario() {
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     config.lanes.find((item) => item.name === "unit").command = "sh -c 'echo failure; exit 1'";
     writeFileSync(configPath, JSON.stringify(config));
-    const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-    const version = readdirSync(cache).filter((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js"))).sort((x, y) => y.localeCompare(x, undefined, { numeric: true }))[0];
-    const plugin = join(cache, version, "scripts/tdd-guardian/receipt.js");
-    const result = spawnSync(process.execPath, [plugin, "record", "--id", "A", "--files", a, "--cwd", root], { cwd: root, encoding: "utf8", env: cleanEnv() });
+    if (!receiptScript) throw Error("bare_record needs the receipt.js to run as its third argument");
+    const result = spawnSync(process.execPath, [receiptScript, "record", "--id", "A", "--files", a, "--cwd", root], { cwd: root, encoding: "utf8", env: cleanEnv() });
     return { status: result.status, lane: store().receipts[0]?.lane };
   }
   if (scenario === "module_message") {

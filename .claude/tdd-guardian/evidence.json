@@ -2350,6 +2350,153 @@
         "base": "dbe26389715455965e540a439c0e5271d01bf7c3",
         "head": "d2e82c7acf6fb4454ee696cdf65e7f75b4ae81fd"
       }
+    },
+    "T566-F2-1": {
+      "id": "T566-F2-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T08:59:51.160Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"bare_record spawns exactly the receipt.js it is handed\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+            "line": 73
+          },
+          "message": "Error: ENOENT: no such file or directory, open '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-stub-9fHHm7/stub-ran'"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"loads and spawns only the vendored engine in red-receipt and unit-red-lane, under a poisoned cache\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+            "line": 55
+          },
+          "message": "AssertionError: JSON report written to /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-report-OnULWf/vitest.json\n\n: expected [] to deeply equal [ 'passed' ]"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"runs adr0149e-record-evidence with a poisoned newer cache (9.9.9): every test passes, none skips\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+            "line": 42
+          },
+          "message": "AssertionError: expected [ { …(2) } ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"runs adr0149e-record-evidence with no cache at all: every test passes, none skips\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+            "line": 43
+          },
+          "message": "AssertionError: JSON report written to /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-report-NgQbdo/vitest.json\n\n: expected { skipped: 6 } to deeply equal { passed: 6 }"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"runs adr0149e-record-evidence with unreadable plugin roots: every test passes, none skips\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+            "line": 43
+          },
+          "message": "AssertionError: JSON report written to /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-report-5H8ua1/vitest.json\n\n: expected { skipped: 6 } to deeply equal { passed: 6 }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T566-F2-1/20261031T085951160Z/tests",
+        "tree": "efc95d6d3f1d9f03c3c2743a991f02ae8cae7dfa"
+      },
+      "spec_blobs": {
+        "tests/tooling/t566-fix2-cache-free.test.ts": "36f197d60d5c7567233500008ce0e0ef8edf7a65"
+      },
+      "settled_blobs": {
+        "tests/tooling/t566-fix2-cache-free.test.ts": "36f197d60d5c7567233500008ce0e0ef8edf7a65"
+      }
+    },
+    "T566-F2-2": {
+      "id": "T566-F2-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:05:34.534Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"defines the gate as 'not a GitHub runner', and takes the version and engine from t566Engine\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+            "line": 115
+          },
+          "message": "AssertionError: expected '/**\\n * Purpose: Shared pieces of the…' to match /^export const receiptSuites = !proce…/m"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"hands bare_record its receipt.js instead of finding one\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+            "line": 124
+          },
+          "message": "AssertionError: expected 'import { existsSync, mkdtempSync, mkd…' not to match /readdirSync|[\"'`]vendor[\"'`]/"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"names a plugin cache only in the poison builder and two literal-only files\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+            "line": 92
+          },
+          "message": "AssertionError: expected [ Array(24) ] to deeply equal [ 'tests/support/t566Engine.ts', …(2) ]"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"reads no HOME in any receipt suite (bar digest-text's subject), and gates each on receiptSuites, pluginVersion or rustfmt\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+            "line": 106
+          },
+          "message": "AssertionError: tests/tooling/adr0149e-rust-lane.test.ts: expected [ …(3) ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 receipt suites skip on GitHub runners\",\"skips every plugin-tagged test with RUNNER_OS=Linux, and the ubuntu comparator passes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+            "line": 52
+          },
+          "message": "AssertionError: \n: expected [ Array(261) ] to deeply equal []"
+        },
+        {
+          "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 receipt suites skip on GitHub runners\",\"skips every plugin-tagged test with RUNNER_OS=macOS, and the macos comparator passes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+            "line": 52
+          },
+          "message": "AssertionError: \n: expected [ Array(261) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T566-F2-2/20261031T090534534Z/tests",
+        "tree": "07273ee1543d510f074caa68aca8524a07f1f762"
+      },
+      "spec_blobs": {
+        "tests/tooling/t566-fix2-ci-shape.test.ts": "c37b5d19b4ca28ae9313aeff5f5c187cd5318974"
+      },
+      "settled_blobs": {
+        "tests/tooling/t566-fix2-ci-shape.test.ts": "c37b5d19b4ca28ae9313aeff5f5c187cd5318974"
+      }
     }
   }
 }

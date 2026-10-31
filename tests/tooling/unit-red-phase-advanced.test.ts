@@ -1,13 +1,11 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { createOwnerChildRunner } from "./d302Child";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 90_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const hasPlugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 let owner: ReturnType<typeof createOwnerChildRunner> | null = null;
 beforeEach((context) => { owner = createOwnerChildRunner(context.signal); });
 afterEach(async () => { await owner?.close(); owner = null; });
@@ -19,7 +17,7 @@ async function scenario(name: string) {
   return JSON.parse(result.stdout) as { red: { status: number; kind: string }; green: { status: number; verdict: string } | null; setupReached: string | null; overlap: boolean | null; attempts: number | null };
 }
 
-describe.skipIf(!hasPlugin)("fix1 WI-1 adversarial phase boundaries", () => {
+describe.skipIf(!receiptSuites)("fix1 WI-1 adversarial phase boundaries", () => {
   it.each([
     "nestedBeforeAll", "nestedAfterAll", "nestedParentBeforeEach",
     "nestedBeforeAllAlone", "nestedAfterAllAlone", "nestedParentBeforeEachAlone",

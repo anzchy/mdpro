@@ -1,21 +1,20 @@
 /**
  * Purpose: A throwaway git repository for the ADR0149E receipt-evidence tests: `master`
- * plus a `feature` branch, the real tdd-guardian plugin, the repo's `unit-red` lane, a
+ * plus a `feature` branch, the vendored tdd-guardian engine (via the entry), the repo's `unit-red` lane, a
  * `rust` lane whose cargo is `fixtures/adr0149e/fake-cargo.mjs`, and helpers to drive
  * `scripts/tdd/red-receipt.mjs` against it.
  * @coordinates-with tests/tooling/d302Child.ts
  */
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { ENGINE_VERSION, receiptSuites } from "../support/t566Engine";
 import { createOwnerChildRunner } from "./d302Child";
 
 export const repo = resolve(import.meta.dirname, "../..");
 export const entryScript = join(repo, "scripts/tdd/red-receipt.mjs");
-const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-export const pluginVersion = existsSync(cache)
-  ? readdirSync(cache).filter((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js"))).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0] ?? null
-  : null;
+/** The engine version the entry stamps into evidence; null where the receipt suites do not run. */
+export const pluginVersion = receiptSuites ? ENGINE_VERSION : null;
 
 export interface Receipt { id: string; lane: string; recorded_at: string; verdict: string | null; red: { kind: string }; test_files: Record<string, unknown> }
 export type ReceiptRepo = Awaited<ReturnType<typeof createReceiptRepo>>;

@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, watch, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 const roots: string[] = [];
 
 function project(config = true) {
@@ -51,7 +51,7 @@ function waitMarker(directory: string, name: string) {
 
 afterEach(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }); roots.length = 0; });
 
-describe.skipIf(!plugin)("fix1 runner artifacts", () => {
+describe.skipIf(!receiptSuites)("fix1 runner artifacts", () => {
   it("does not add a concurrent runner's generated files to another RED's dirty source", async () => {
     const root = project();
     const gate = join(root, "barrier"); mkdirSync(gate);

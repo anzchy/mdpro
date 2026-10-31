@@ -1,13 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { homedir } from "node:os";
-import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 90_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 
 async function scenario(name: string, variant: string) {
   const script = join(repo, "tests/tooling/fixtures/unit-red/d301-async-cases.mjs");
@@ -20,7 +18,7 @@ async function scenario(name: string, variant: string) {
   return JSON.parse(run.stdout) as { red: { status: number; kind: string | null; output: string }; green: { status: number; verdict: string | null } | null };
 }
 
-describe.skipIf(!plugin)("D301 async assertion provenance", () => {
+describe.skipIf(!receiptSuites)("D301 async assertion provenance", () => {
   it.each(["fixture", "beforeEach"])("refuses %s failure with passing body", async phase => {
     const seen = await scenario(phase, "alone");
     expect(seen.red.status).toBe(64);

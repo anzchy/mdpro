@@ -7,18 +7,13 @@
  */
 import { spawn, type SpawnOptions } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, symlinkSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { rustfmt } from "../support/t566Engine";
 import { createReceiptRepo, pluginVersion, repo as repoRoot, type ReceiptRepo } from "./adr0149eRepo";
 
 vi.setConfig({ testTimeout: 180_000 });
-const toolchains = join(homedir(), ".rustup/toolchains");
-const rustfmt = [
-  ...(process.env.PATH ?? "").split(":").map((dir) => join(dir, "rustfmt")),
-  join(homedir(), ".cargo/bin/rustfmt"),
-  ...(existsSync(toolchains) ? readdirSync(toolchains).map((name) => join(toolchains, name, "bin/rustfmt")) : []),
-].find((path) => existsSync(path));
 let repo: ReceiptRepo;
 beforeEach(async (context) => { repo = await createReceiptRepo(context.signal); });
 afterEach(async () => { await repo.close(); });

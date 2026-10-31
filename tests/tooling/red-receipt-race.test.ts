@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, watch, writeFileSync } from "node:fs";
-import { tmpdir, homedir } from "node:os";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 const roots: string[] = [];
 
 function run(cwd: string, args: string[]) {
@@ -77,7 +77,7 @@ function release(directory: string, name: string) { writeFileSync(join(directory
 
 afterEach(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }); roots.length = 0; });
 
-describe.skipIf(!plugin)("fix1 WI-2 receipt mutation races", () => {
+describe.skipIf(!receiptSuites)("fix1 WI-2 receipt mutation races", () => {
   it("serializes a second same-id record until the first operation releases", async () => {
     const root = fixture();
     const before = receiptBytes(root);

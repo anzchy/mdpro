@@ -2479,6 +2479,54 @@
         "removes the worktree when the restore refuses part-way"
       ],
       "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fix2-cache-free.test.ts",
+        "T566-F2-1 receipt suites ignore the plugin cache",
+        "pins the evidence version to the vendored engine, not the newest cache"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fix2-cache-free.test.ts",
+        "T566-F2-1 receipt suites ignore the plugin cache",
+        "runs adr0149e-record-evidence with a poisoned newer cache (9.9.9): every test passes, none skips"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fix2-cache-free.test.ts",
+        "T566-F2-1 receipt suites ignore the plugin cache",
+        "runs adr0149e-record-evidence with no cache at all: every test passes, none skips"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fix2-cache-free.test.ts",
+        "T566-F2-1 receipt suites ignore the plugin cache",
+        "runs adr0149e-record-evidence with unreadable plugin roots: every test passes, none skips"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fix2-cache-free.test.ts",
+        "T566-F2-1 receipt suites ignore the plugin cache",
+        "loads and spawns only the vendored engine in red-receipt and unit-red-lane, under a poisoned cache"
+      ],
+      "prerequisite": "plugin"
+    },
+    {
+      "id": [
+        "tests/tooling/t566-fix2-cache-free.test.ts",
+        "T566-F2-1 receipt suites ignore the plugin cache",
+        "bare_record spawns exactly the receipt.js it is handed"
+      ],
+      "prerequisite": "plugin"
     }
   ],
   "exclusions": [

@@ -1,15 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 
-describe.skipIf(!plugin)("fix1 reviewer phase regressions", () => {
+describe.skipIf(!receiptSuites)("fix1 reviewer phase regressions", () => {
   it.each(["fixtureSetupThrow", "busyBodyTimeout"])("refuses %s outside-body failure", name => {
     const script = join(repo, "tests/tooling/fixtures/unit-red/fix1-phase-cases.mjs");
     const result = spawnSync(process.execPath, [script, name, repo], { cwd: repo, encoding: "utf8", timeout: 60_000 });

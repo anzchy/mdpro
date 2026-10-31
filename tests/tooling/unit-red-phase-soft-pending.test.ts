@@ -1,13 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 90_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 
 async function scenario(name: string, variant: string) {
   const script = join(repo, "tests/tooling/fixtures/unit-red/d301-async-cases.mjs");
@@ -25,7 +23,7 @@ async function scenario(name: string, variant: string) {
   };
 }
 
-describe.skipIf(!plugin)("D301 FX2 delayed soft cleanup after pending snapshot", () => {
+describe.skipIf(!receiptSuites)("D301 FX2 delayed soft cleanup after pending snapshot", () => {
   it("refuses a body RED paired with a later soft cleanup failure", async () => {
     const seen = await scenario("lateSoftPending", "mixed");
     expect(seen.red.evidence.failureCount).toBe(2);

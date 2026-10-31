@@ -1,21 +1,20 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createOwnerChildRunner } from "./d302Child";
 import { createRequire } from "node:module";
+import { receiptSuites, vendorDir } from "../support/t566Engine";
 import { vi } from "vitest";
 vi.setConfig({ testTimeout: 90_000 });
 
 const repo = resolve(import.meta.dirname, "../..");
 const lane = join(repo, "scripts/tdd/unit-red-lane.mjs");
-const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-const version = existsSync(cache) ? readdirSync(cache).filter((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js"))).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0] : null;
-const guardian = version ? join(cache, version, "scripts/tdd-guardian/lib") : "";
+const guardian = join(vendorDir, "lib");
 const require = createRequire(import.meta.url);
-const exec = version ? require(join(guardian, "exec.js")) : null;
-const classifyRedRun = version ? require(join(guardian, "verification.js")).classifyRedRun : null;
+const exec = receiptSuites ? require(join(guardian, "exec.js")) : null;
+const classifyRedRun = receiptSuites ? require(join(guardian, "verification.js")).classifyRedRun : null;
 let root: string;
 let owner: ReturnType<typeof createOwnerChildRunner> | null = null;
 
@@ -54,7 +53,7 @@ async function run(files?: string[], extra: Record<string, string> = {}) {
 async function scenario(name: string) {
   if (!owner || owner.closed) throw Error("D302 owner closed");
   const script = join(repo, "tests/tooling/fixtures/unit-red/scenarios.mjs");
-  const result = await runCommand(process.execPath, [script, name, repo], { cwd: repo, timeout: 60_000 });
+  const result = await runCommand(process.execPath, [script, name, repo, join(vendorDir, "receipt.js")], { cwd: repo, timeout: 60_000 });
   expect(result.status, result.stderr).toBe(0);
   return JSON.parse(result.stdout);
 }
@@ -83,7 +82,7 @@ describe("unit-red lane child", () => {
     expect((await run(["tests/a.test.ts"], { MDPRO_UNIT_RED_NONCE: "wrong" })).status).toBe(64);
   });
 
-  it.skipIf(!version)("uses JSON counts and hides fake summaries from both output streams", async () => {
+  it.skipIf(!receiptSuites)("uses JSON counts and hides fake summaries from both output streams", async () => {
     const failing = fixture("fail", 'it("fails", () => { console.error("Tests 999 passed (999)"); throw Error("red"); });');
     const red = (await run([failing]));
     expect(red.status).toBe(1);
@@ -119,7 +118,7 @@ describe("unit-red lane child", () => {
     expect((await run([a])).status).toBe(0);
   });
 
-  it.skipIf(!version)("captures error-looking assertion failures in its log", async () => {
+  it.skipIf(!receiptSuites)("captures error-looking assertion failures in its log", async () => {
     const file = fixture("enoent", 'it("ENOENT assertion", () => { expect(() => { throw Error(["No such", "file or directory"].join(" ")); }).not.toThrow(); });');
     const result = (await run([file]));
     expect(result.status).toBe(1);
@@ -168,7 +167,7 @@ describe("unit-red lane child", () => {
     expect(readFileSync(capture, "utf8")).toMatch(/--maxWorkers(?:=|\n)2/);
   });
 
-  it.skipIf(!version)("configures unit-red as an unlocked manual-only lane without coverage", () => {
+  it.skipIf(!receiptSuites)("configures unit-red as an unlocked manual-only lane without coverage", () => {
     const configPath = join(repo, ".claude/tdd-guardian/config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     const laneConfig = config.lanes.find((item: { name: string }) => item.name === "unit-red");
@@ -244,7 +243,7 @@ describe("unit-red lane child", () => {
     expect((await run([file])).status).toBe(0);
   });
 
-  it.skipIf(!version)("refuses a receipt selection changed inside the plugin lane", async () => {
+  it.skipIf(!receiptSuites)("refuses a receipt selection changed inside the plugin lane", async () => {
     mkdirSync(join(root, ".claude/tdd-guardian"), { recursive: true });
     mkdirSync(join(root, "scripts/tdd"), { recursive: true });
     symlinkSync(lane, join(root, "scripts/tdd/unit-red-lane.mjs"));
@@ -269,35 +268,35 @@ describe("unit-red lane child", () => {
     expect((await invoke("verify", "--id", "A")).status).toBe(64);
   });
 
-  it.skipIf(!version)("binds a successful two-file RED and GREEN", async () => {
+  it.skipIf(!receiptSuites)("binds a successful two-file RED and GREEN", async () => {
     expect((await scenario("multi_cycle"))).toMatchObject({ red: 0, green: 0, repeat: 64, verdict: "SEPARATION-HELD", files: ["tests/a.test.ts", "tests/b.test.ts"] });
   });
-  it.skipIf(!version)("refuses absolute, traversal, comma, duplicate and empty selectors before running", async () => { expect((await scenario("invalid_paths"))).toMatchObject({ statuses: [64, 64, 64, 64, 64, 64, 64, 64, 64], unchanged: true, ran: false }); });
-  it.skipIf(!version)("refuses wrong lanes, master discard and invalid retry", async () => {
+  it.skipIf(!receiptSuites)("refuses absolute, traversal, comma, duplicate and empty selectors before running", async () => { expect((await scenario("invalid_paths"))).toMatchObject({ statuses: [64, 64, 64, 64, 64, 64, 64, 64, 64], unchanged: true, ran: false }); });
+  it.skipIf(!receiptSuites)("refuses wrong lanes, master discard and invalid retry", async () => {
     expect((await scenario("wrong_lane"))).toMatchObject({ first: 0, second: 0, verify: 64, discard: 64, other: null });
     expect((await scenario("master_discard"))).toMatchObject({ discard: 64 });
     expect((await scenario("existing_bad_retry"))).toMatchObject({ first: 0, retry: 64, unchanged: true });
     expect((await scenario("settled_record"))).toMatchObject({ red: 0, green: 0, retry: 64, unchanged: true }); expect((await scenario("pending_store"))).toMatchObject({ discard: 64, unchanged: true });
   });
-  it.skipIf(!version)("ignores inherited pending receipts but refuses malformed stores", async () => {
+  it.skipIf(!receiptSuites)("ignores inherited pending receipts but refuses malformed stores", async () => {
     expect((await scenario("inherited_pending"))).toMatchObject({ recorded: 0, inherited: 0, malformed: 64 });
   });
-  it.skipIf(!version)("stores an assertion RED despite module-like assertion text", async () => {
+  it.skipIf(!receiptSuites)("stores an assertion RED despite module-like assertion text", async () => {
     expect((await scenario("module_message"))).toMatchObject({ status: 0, kind: "assertion-failure" });
   });
-  it.skipIf(!version)("leaves bare plugin record bound to the existing unit lane", async () => {
+  it.skipIf(!receiptSuites)("leaves bare plugin record bound to the existing unit lane", async () => {
     expect((await scenario("bare_record"))).toMatchObject({ status: 0, lane: "unit" });
   });
-  it.skipIf(!version)("keeps parallel record logs and receipts independent", async () => {
+  it.skipIf(!receiptSuites)("keeps parallel record logs and receipts independent", async () => {
     const result = (await scenario("concurrent_records"));
     expect(result.one.status).toBe(0); expect(result.two.status).toBe(64);
     expect(result.one.log).not.toBe(result.two.log);
     expect(result.receipts.sort()).toEqual([["A", "assertion-failure"], ["B", "green"]]);
   });
-  it.skipIf(!version)("preserves B recorded while A verification waits", async () => {
+  it.skipIf(!receiptSuites)("preserves B recorded while A verification waits", async () => {
     expect((await scenario("concurrent_verify"))).toMatchObject({ red: 0, other: 0, verify: 0, receipts: [["A", "SEPARATION-HELD"], ["B", null]] });
   });
-  it.skipIf(!version)("preserves concurrent B while discarding A under the receipt lock", async () => {
+  it.skipIf(!receiptSuites)("preserves concurrent B while discarding A under the receipt lock", async () => {
     expect((await scenario("concurrent_discard"))).toMatchObject({ first: 0, blocked: true, discard: 0, recordB: 0, ids: ["B"] });
   });
   it("refuses contradictory JSON, absent suite and interrupted runner", async () => {

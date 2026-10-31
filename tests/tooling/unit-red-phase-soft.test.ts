@@ -1,13 +1,11 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { createOwnerChildRunner } from "./d302Child";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 90_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 const phases = ["beforeEach", "beforeEachCleanup", "fixtureSetup", "fixtureTeardown", "afterEach", "onFinished", "onFailed"] as const;
 let owner: ReturnType<typeof createOwnerChildRunner> | null = null;
 beforeEach((context) => { owner = createOwnerChildRunner(context.signal); });
@@ -25,7 +23,7 @@ async function scenario(phase: string, variant: string) {
   };
 }
 
-describe.skipIf(!plugin)("fix2 WI-1 soft-error phase provenance through real entry/plugin", () => {
+describe.skipIf(!receiptSuites)("fix2 WI-1 soft-error phase provenance through real entry/plugin", () => {
   it.each(phases)("refuses %s soft failure with a passing body", async phase => {
     const seen = await scenario(phase, "alone");
     expect(seen.phaseRan).toBe(true);

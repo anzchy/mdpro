@@ -1,20 +1,18 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 function scenario(name: string) {
   const script = join(repo, "tests/tooling/fixtures/unit-red/fix1-phase-cases.mjs");
   const result = spawnSync(process.execPath, [script, name, repo], { cwd: repo, encoding: "utf8", timeout: 60_000 });
   expect(result.status, result.stderr).toBe(0);
   return JSON.parse(result.stdout) as { red: { status: number; kind: string }; green: { status: number; verdict: string } | null };
 }
-describe.skipIf(!plugin)("fix1 true phase provenance", () => {
+describe.skipIf(!receiptSuites)("fix1 true phase provenance", () => {
   it.each(["fixturePrebuilt", "fixtureString"])("refuses %s setup failure before body entry", name => {
     const result = scenario(name);
     expect(result.red.status).toBe(64);

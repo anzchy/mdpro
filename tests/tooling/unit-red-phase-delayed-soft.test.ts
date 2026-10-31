@@ -1,13 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 async function scenario(variant: string, phase = "fixtureDelayedSoft") {
   const script = join(repo, "tests/tooling/fixtures/unit-red/fix2-soft-cases.mjs");
   const run = await new Promise<{ status: number | null; stdout: string; stderr: string }>(done => {
@@ -18,7 +16,7 @@ async function scenario(variant: string, phase = "fixtureDelayedSoft") {
   expect(run.status, run.stderr).toBe(0);
   return JSON.parse(run.stdout) as { red: { status: number; kind: string | null; output: string }; green: { status: number; verdict: string | null } | null; phaseRan: boolean };
 }
-describe.skipIf(!plugin)("fix2 delayed fixture soft attribution", () => {
+describe.skipIf(!receiptSuites)("fix2 delayed fixture soft attribution", () => {
   it("refuses a setup-started soft promise that rejects after the body passes", async () => {
     const seen = await scenario("alone");
     expect(seen.phaseRan).toBe(true);

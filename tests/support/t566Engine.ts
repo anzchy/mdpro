@@ -1,6 +1,7 @@
 /**
  * Purpose: Shared pieces of the #566 tests: the vendored receipt engine's location and
- * upstream hashes, the README manifest check, and a `HOME` whose plugin caches are poisoned.
+ * upstream hashes, the README manifest check, the `receiptSuites` gate every receipt suite skips on, and a
+ * `HOME` whose plugin caches are poisoned.
  * @coordinates-with tests/tooling/t566-no-cache.test.ts, tests/tooling/t566-vendor-manifest.test.ts, tests/tooling/t566-fail-closed.test.ts
  */
 import { createHash } from "node:crypto";
@@ -11,6 +12,11 @@ import { delimiter, dirname, join, relative, resolve } from "node:path";
 export const repoRoot = resolve(import.meta.dirname, "../..");
 export const ENGINE_VERSION = "0.10.2";
 export const vendorDir = join(repoRoot, `scripts/tdd/vendor/tdd-guardian-${ENGINE_VERSION}`);
+/**
+ * Whether the `plugin`-tagged receipt suites run: everywhere but a GitHub runner, as ADR-0128's inventory says.
+ * Nothing here probes a cache or the vendored copy, so a missing engine fails those suites rather than skipping them.
+ */
+export const receiptSuites = !process.env.RUNNER_OS;
 
 /** SHA-256 of each file in the vendored closure: upstream 0.10.2 bytes, plus mdpro's CommonJS scope shim. */
 export const PINNED: Record<string, string> = {

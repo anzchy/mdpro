@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, watch, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 const roots: string[] = [];
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "mdpro-flock-fix1-")); roots.push(root);
@@ -36,7 +36,7 @@ function waitMarker(directory: string, name: string) {
   });
 }
 afterEach(() => { for (const root of roots) rmSync(root, { recursive: true, force: true }); roots.length = 0; });
-describe.skipIf(!plugin)("fix1 OS receipt lock", () => {
+describe.skipIf(!receiptSuites)("fix1 OS receipt lock", () => {
   it("refuses a same-ID operation while an external process holds its OS lock", async () => {
     const root = fixture();
     const before = readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8");

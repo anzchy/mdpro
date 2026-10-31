@@ -1,11 +1,12 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir, homedir } from "node:os";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { createOwnerChildRunner } from "./d302Child";
 import { collectionCases } from "../support/collectionCases";
+import { receiptSuites } from "../support/t566Engine";
 
 declare global {
   namespace NodeJS {
@@ -20,8 +21,6 @@ declare global {
 vi.setConfig({ testTimeout: 90_000 });
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
-const pluginCache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-const hasPlugin = existsSync(pluginCache);
 let roots: string[] = [];
 let owner: ReturnType<typeof createOwnerChildRunner> | null = null;
 beforeEach((context) => { owner = createOwnerChildRunner(context.signal); });
@@ -118,7 +117,7 @@ const sources: Record<string, string> = {
   timeout: `${imports} it("case", async () => { if (process.env.PHASE_FAIL === "1") await new Promise(() => {}); ${body} }, 20);`,
 };
 
-describe.skipIf(!hasPlugin)("fix1 WI-1 phase evidence through the real entry and plugin", () => {
+describe.skipIf(!receiptSuites)("fix1 WI-1 phase evidence through the real entry and plugin", () => {
   it.each(collectionCases("tests/tooling/unit-red-phase.test.ts:121", Object.entries(sources)))("refuses %s failure alone and beside a body failure", async (_name, source) => {
     for (const bodyFailure of ["0", "1"]) {
       const root = await project(source);

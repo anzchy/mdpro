@@ -1,15 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { homedir } from "node:os";
-import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { receiptSuites } from "../support/t566Engine";
 
 vi.setConfig({ testTimeout: 90_000 });
 // Keep the recorded configuration line intact; this later setting covers the child budget.
 vi.setConfig({ testTimeout: 180_000 });
 const repo = resolve(import.meta.dirname, "../..");
-const plugin = existsSync(join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian"));
 
 async function scenario(phase: string, variant: string) {
   const script = join(repo, "tests/tooling/fixtures/unit-red/d301-fix1-late-cases.mjs");
@@ -35,7 +33,7 @@ function childLog(seen: Awaited<ReturnType<typeof scenario>>) {
   return (seen.red as typeof seen.red & { vitestLog: string }).vitestLog;
 }
 
-describe.skipIf(!plugin)("D301 fix1 late async assertion after result delivery", () => {
+describe.skipIf(!receiptSuites)("D301 fix1 late async assertion after result delivery", () => {
   it.each(["finish", "timer"])("refuses %s late rejection beside B's body RED", async phase => {
     const seen = await scenario(phase, "failing");
     expect(seen.delivered).toBe(true);

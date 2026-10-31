@@ -1,19 +1,18 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createOwnerChildRunner } from "./d302Child";
 import { createRequire } from "node:module";
+import { receiptSuites, vendorDir } from "../support/t566Engine";
 
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
-const cache = join(homedir(), ".claude/plugins/cache/xiaolai/tdd-guardian");
-const version = existsSync(cache) ? readdirSync(cache).filter((name) => existsSync(join(cache, name, "scripts/tdd-guardian/receipt.js"))).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0] : null;
-const guardian = version ? join(cache, version, "scripts/tdd-guardian/receipt.js") : "";
+const guardian = join(vendorDir, "receipt.js");
 const require = createRequire(import.meta.url);
-const guardianExec = version ? require(join(guardian, "../lib/exec.js")) : null;
-const classifyRedRun = version ? require(join(guardian, "../lib/verification.js")).classifyRedRun : null;
+const guardianExec = receiptSuites ? require(join(vendorDir, "lib/exec.js")) : null;
+const classifyRedRun = receiptSuites ? require(join(vendorDir, "lib/verification.js")).classifyRedRun : null;
 let root: string;
 let owner: ReturnType<typeof createOwnerChildRunner> | null = null;
 
@@ -70,7 +69,7 @@ afterEach(async () => {
   rmSync(root, { recursive: true, force: true }); owner = null;
 });
 
-describe.skipIf(!version)("red-receipt entry", () => {
+describe.skipIf(!receiptSuites)("red-receipt entry", () => {
   it("rejects invalid file selections before running or storing", async () => {
     const good = fixture("good", 'import { it } from "vitest"; it("fails", () => { throw Error("red"); });');
     mkdirSync(join(root, "tests/directory"));
