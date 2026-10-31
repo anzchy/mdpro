@@ -17,6 +17,11 @@ public static class W32 {
   [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f, IntPtr l);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
   [DllImport("user32.dll")] public static extern IntPtr GetKeyboardLayout(uint threadId);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr LoadKeyboardLayout(string klid, uint flags);
+  [DllImport("user32.dll")] public static extern bool UnloadKeyboardLayout(IntPtr hkl);
+  [DllImport("user32.dll")] private static extern int GetKeyboardLayoutList(int count, IntPtr[] list);
+  // The installed layouts; an empty list when the count changes between the two calls.
+  public static IntPtr[] LayoutList() { int n = GetKeyboardLayoutList(0, null); var r = new IntPtr[n > 0 ? n : 0]; return n > 0 && GetKeyboardLayoutList(n, r) == n ? r : new IntPtr[0]; }
   [StructLayout(LayoutKind.Sequential)] public struct KEYBDINPUT {
     public ushort wVk, wScan; public uint dwFlags, time; public UIntPtr dwExtraInfo;
   }
@@ -61,6 +66,11 @@ public static class W32 {
     public uint cbSize, flags; public IntPtr hwndActive, hwndFocus, hwndCapture, hwndMenuOwner, hwndMoveSize, hwndCaret; public RECT rcCaret;
   }
   [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(uint threadId, ref GUITHREADINFO info);
+  // The thread's focused window: for mdpro, the input child that receives keys, not the outer HWND.
+  public static IntPtr FocusWindow(uint threadId) {
+    var info = new GUITHREADINFO { cbSize = (uint)Marshal.SizeOf(typeof(GUITHREADINFO)) };
+    return GetGUIThreadInfo(threadId, ref info) ? info.hwndFocus : IntPtr.Zero;
+  }
   public static IntPtr MenuOwner(uint threadId) {
     var info = new GUITHREADINFO { cbSize = (uint)Marshal.SizeOf(typeof(GUITHREADINFO)) };
     return GetGUIThreadInfo(threadId, ref info) ? info.hwndMenuOwner : IntPtr.Zero;

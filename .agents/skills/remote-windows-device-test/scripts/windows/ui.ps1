@@ -31,8 +31,8 @@ foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
       "visible" { foreach ($w in MdproWindows) { L ("visible=" + [W32]::IsWindowVisible([IntPtr]$w.Current.NativeWindowHandle)) } }
       "showall" { foreach ($p in Get-Process tauri-app -ErrorAction SilentlyContinue) { foreach ($h in [W32]::Tops([uint32]$p.Id)) { if ([W32]::Title($h) -ne "mdpro") { continue }; $was = [W32]::IsWindowVisible($h); if (-not $was) { [void][W32]::ShowWindow($h, 5) }; L ("hwnd=" + $h + " wasVisible=" + $was + " nowVisible=" + [W32]::IsWindowVisible($h)) } } }
       "restore" { $m = Target $s; [void][W32]::ShowWindow([IntPtr]$m.Current.NativeWindowHandle, 9); L "restored" }
-      "layout" { $targetEl = Target $s; $hkl = TargetHkl $s
-                 L ("layout hwnd=" + $targetEl.Current.NativeWindowHandle + " hkl=" + $hkl) }
+      "layout" { Read-Layout $s }
+      "setLayout" { Invoke-SetLayout $s }
       "keys" { throw "unsupported: see reference/ops.md (never reached mdpro on 2026-10-12)" }
       "chord" { Invoke-LogicalChord $s }
       "physicalChord" { Invoke-PhysicalChord $s }
@@ -84,11 +84,11 @@ foreach ($s in (Get-Content -Raw -Encoding UTF8 $Steps | ConvertFrom-Json)) {
   } catch {
     $script:failedPhase = $script:phase
     L ("ERROR " + $s.op + ": " + $_.Exception.Message)
-    if ($_.Exception.Message -match "IDENTITY_|PHYSICAL_|NATIVE_|UI_" -or $s.onError -ne "continue") { $failed = $true; L ("ABORTED at step " + $n); break }
+    if ($_.Exception.Message -match "IDENTITY_|PHYSICAL_|NATIVE_|UI_|LAYOUT_" -or $s.onError -ne "continue") { $failed = $true; L ("ABORTED at step " + $n); break }
   }
 }
 try {
-  Start-Phase "title-restore" -Cleanup
+  $layoutRestore = Restore-Layouts; Start-Phase "title-restore" -Cleanup
   foreach ($label in @($script:markers.Keys)) {
     $nonce = $script:markers[$label].nonce
     $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((@{ nonce = $nonce } | ConvertTo-Json -Compress)))
@@ -100,7 +100,7 @@ try {
       if ([W32]::RemoveProp([IntPtr]([int64]$token.hwnd), $token.nativeKey).ToInt64().ToString() -cne $token.nativeValue) { throw "IDENTITY_WINDOW_UNPIN_FAILED" }
     }
   }
-  $script:cleanupState = "complete"
+  if ($layoutRestore) { throw $layoutRestore }; $script:cleanupState = "complete"
   Complete-Phase
 } catch {
   L ("ERROR cleanup: " + $_.Exception.Message); $failed = $true; $script:cleanupState = "failed"

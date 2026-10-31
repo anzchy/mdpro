@@ -1,15 +1,6 @@
 # Purpose: logical and real physical dispatch with native-only per-event validation and reverse release.
-function TargetHkl($step) {
-  $el = Target $step $true
-  $h = [IntPtr]$el.Current.NativeWindowHandle; $processId = [uint32]0
-  $threadId = [W32]::GetWindowThreadProcessId($h, [ref]$processId)
-  if ($threadId -eq 0 -or [int]$processId -ne [int]$el.Current.ProcessId) { throw "PHYSICAL_THREAD_MISMATCH" }
-  $layout = [W32]::GetKeyboardLayout($threadId)
-  if ($layout -eq [IntPtr]::Zero) { throw "PHYSICAL_HKL_MISSING" }
-  $bindingKey = if ($null -ne $step.window) { "label:$($step.window)" } else { "sole" }
-  [void](ValidateNative $script:bindings[$bindingKey] $true)
-  return $layout.ToInt64().ToString("X16")
-}
+# TargetHkl (the input-thread HKL read before every physical event) lives in native-layout.ps1.
+. "$PSScriptRoot\native-layout.ps1"
 function PhysicalPlan($step, $actualHkl) {
   $target = Target $step $true
   $planArgs = @{ keys = @($step.keys); expectedHkl = $step.hkl; actualHkl = $actualHkl;

@@ -3,6 +3,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { dialogFakeSource } from "./windows-driver-native-dialog-fake";
+import { layoutFakeSource } from "./windows-driver-native-layout-fake";
 
 const WINDOWS = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows");
 
@@ -14,9 +15,9 @@ public static partial class W32 {
   public struct RECT { public int L, T, R, B; }
   public struct POINT { public int X, Y; }
   public static System.Collections.Generic.Dictionary<string, IntPtr> Props = new System.Collections.Generic.Dictionary<string, IntPtr>();
-  public static IntPtr GetProp(IntPtr h, string key) { if (DialogFake.Has(h)) return DialogFake.GetProp(h, key); return !NativeStale && Props.ContainsKey(key) ? Props[key] : IntPtr.Zero; }
-  public static bool SetProp(IntPtr h, string key, IntPtr value) { if (DialogFake.Has(h)) return DialogFake.SetProp(h, key, value); Props[key] = value; Trace("property:pin"); return true; }
-  public static IntPtr RemoveProp(IntPtr h, string key) { if (DialogFake.Has(h)) return DialogFake.RemoveProp(h, key); Trace("property:remove"); if (FailRemoveProp) return IntPtr.Zero; var value = GetProp(h, key); Props.Remove(key); return value; }
+  public static IntPtr GetProp(IntPtr h, string key) { if (LayoutFake.Has(h)) return LayoutFake.GetProp(h, key); if (DialogFake.Has(h)) return DialogFake.GetProp(h, key); return !NativeStale && Props.ContainsKey(key) ? Props[key] : IntPtr.Zero; }
+  public static bool SetProp(IntPtr h, string key, IntPtr value) { if (LayoutFake.Has(h)) return LayoutFake.SetProp(h, key, value); if (DialogFake.Has(h)) return DialogFake.SetProp(h, key, value); Props[key] = value; Trace("property:pin"); return true; }
+  public static IntPtr RemoveProp(IntPtr h, string key) { if (LayoutFake.Has(h)) return LayoutFake.RemoveProp(h, key); if (DialogFake.Has(h)) return DialogFake.RemoveProp(h, key); Trace("property:remove"); if (FailRemoveProp) return IntPtr.Zero; var value = GetProp(h, key); Props.Remove(key); return value; }
   public static bool FailRemoveProp, RectChangesAfterPin;
   public static int RectCalls, ForegroundCalls, HklCalls, SendCalls, LogicalCalls, MouseCalls, ThreadCalls, ProcessCalls;
   public static int CursorX, CursorY, SetCursorCalls, HitCalls, SleepCalls;
@@ -58,13 +59,14 @@ public static partial class W32 {
     if (InitialForeground != 0) Foreground = InitialForeground;
     RefuseFocus = flag("refuseFocus"); IgnoreFocus = flag("ignoreFocus");
     DriftDuringFocusWait = flag("driftDuringFocusWait");
-    DialogFake.Configure(root);
+    DialogFake.Configure(root); LayoutFake.Configure(root);
   }
   public static void Trace(string s) { File.AppendAllText(TracePath, s + "\\n"); }
   public static bool SetProcessDPIAware() { return true; }
   public static bool IsWindowVisible(IntPtr h) { if (DialogFake.Has(h)) return DialogFake.Visible(h); return h.ToInt64() == 101 || SecondMdpro && h.ToInt64() == 202; }
   public static uint GetWindowThreadProcessId(IntPtr h, out uint pid) {
     ThreadCalls++;
+    if (LayoutFake.Has(h)) { pid = LayoutFake.Pid(h); return LayoutFake.Thread(h); }
     if (DialogFake.Has(h)) { pid = DialogFake.Pid(h); return 7u; }
     if (h.ToInt64() == 302) { pid = PopupBSharedThread ? 11u : 22u; return FailPopupThread ? 0u : PopupBSharedThread ? 7u : 8u; }
     if (h.ToInt64() == 301) { pid = 11; return FailPopupThread ? 0u : 7u; }
@@ -94,11 +96,11 @@ public static partial class W32 {
   public static string Title(IntPtr h) {
     if (DialogFake.Has(h)) return DialogFake.Title(h);
     var titlePath = Environment.GetEnvironmentVariable("MDPRO_TEST_TITLE");
-    return h.ToInt64() == 202 ? "mdpro B" : titlePath != null ? File.ReadAllText(titlePath) : "mdpro";
+    return h.ToInt64() == 202 ? LayoutFake.TitleB() : titlePath != null ? File.ReadAllText(titlePath) : "mdpro";
   }
   public static IntPtr GetKeyboardLayout(uint threadId) {
     HklCalls++;
-    long value = threadId == 0 || (HklChangeAt > 0 && HklCalls >= HklChangeAt) ? 0x04090409 : 0x04070407;
+    long value = LayoutFake.Active ? LayoutFake.Read(threadId) : threadId == 0 || (HklChangeAt > 0 && HklCalls >= HklChangeAt) ? 0x04090409 : 0x04070407;
     Trace("observe:hkl:" + HklCalls + ":" + threadId + ":" + value);
     return new IntPtr(value);
   }
@@ -154,7 +156,7 @@ public static partial class W32 {
     if (point.X == 150 && point.Y == 150 && PopupAtItem != "") return new IntPtr(PopupAtItem == "A" ? 301 : 302);
     return new IntPtr(NativeStale ? 101 : HitRecipient() == "A" ? 101 : 202);
   }
-  public static IntPtr GetAncestor(IntPtr h, uint mode) { return NullRoot ? IntPtr.Zero : h; }
+  public static IntPtr GetAncestor(IntPtr h, uint mode) { return NullRoot ? IntPtr.Zero : LayoutFake.Has(h) ? LayoutFake.Root(h) : h; }
   public static string ClassName(IntPtr h) { if (DialogFake.Has(h)) return DialogFake.Class(h); return h.ToInt64() == 301 || h.ToInt64() == 302 ? "#32768" : "mdpro"; }
   public static IntPtr MenuOwner(uint threadId) { return new IntPtr(PopupAtItem == "B" ? 202 : 101); }
   public static IntPtr GetMenu(IntPtr h) { return new IntPtr(400); }
@@ -183,6 +185,7 @@ public static partial class W32 {
   public static bool ShowWindow(IntPtr h, int command) { return true; }
 }
 ${dialogFakeSource}
+${layoutFakeSource}
 "@`;
 
 export interface NativeScenario {
@@ -224,8 +227,8 @@ export interface NativeScenario {
   rectChangesAfterPin?: boolean;
 }
 
-/** `receiptDir` stands in for the host's receipt store; `receiptNow` fixes the receipt clock; `processStart` is mdpro's start time. */
-export interface NativeOptions { cdpPort?: number; titlePath?: string; receiptDir?: string; receiptNow?: number; processStart?: string }
+/** `phaseMs` overrides the per-phase budget, `deadlineMs` the transaction budget (from spawn); `receiptDir` stands in for the receipt store; `receiptNow` fixes its clock; `processStart` is mdpro's start time. */
+export interface NativeOptions { phaseMs?: number; deadlineMs?: number; cdpPort?: number; titlePath?: string; receiptDir?: string; receiptNow?: number; processStart?: string }
 
 export async function prepareNative(
   // The scenario and options reach the script through runNative's environment, not this text.
@@ -233,7 +236,7 @@ export async function prepareNative(
 ) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "mdpro-native-dispatch-"));
   let source = await readFile(path.join(WINDOWS, "ui.ps1"), "utf8");
-  for (const file of ["native-platform.ps1", "native-runtime.ps1", "native-window.ps1", "native-input.ps1", "native-ops.ps1", "native-dialog.ps1", "native-dialog-receipt.ps1"]) {
+  for (const file of ["native-platform.ps1", "native-runtime.ps1", "native-window.ps1", "native-input.ps1", "native-layout.ps1", "native-ops.ps1", "native-dialog.ps1", "native-dialog-receipt.ps1"]) {
     const line = `. "$PSScriptRoot\\${file}"`;
     if (!source.includes(line)) continue;
     const helper = await readFile(path.join(WINDOWS, file), "utf8");
@@ -278,7 +281,7 @@ export async function runNative(
 ): Promise<{ status: number | null; log: string[]; trace: string[]; stderr: string }> {
   const { scriptPath, stepsPath, outPath, tracePath } = await prepareNative(steps, scenario, options);
   const result = await new Promise<{ status: number | null; stderr: string }>((done) => {
-    const child = spawn("pwsh", ["-NoProfile", "-File", scriptPath, "-Steps", stepsPath, "-Out", outPath], {
+    const child = spawn("pwsh", ["-NoProfile", "-File", scriptPath, "-Steps", stepsPath, "-Out", outPath, ...(options.phaseMs ? ["-PhaseMs", String(options.phaseMs)] : []), ...(options.deadlineMs ? ["-DeadlineMs", String(Date.now() + options.deadlineMs)] : [])], {
       env: { ...process.env, MDPRO_TEST_SCENARIO: JSON.stringify(scenario), MDPRO_TEST_TRACE: tracePath,
         MDPRO_TEST_TITLE: options.titlePath, MDPRO_CDP_PORT: options.cdpPort?.toString(),
         MDPRO_TEST_RECEIPT_NOW: options.receiptNow?.toString(), MDPRO_TEST_PROCESS_START: options.processStart },

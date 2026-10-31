@@ -25,32 +25,36 @@ export function fileDialog(hwnd: number, owner: number, extra: Partial<FakeDialo
 
 /**
  * `noCdp` runs with no CDP endpoint at all, as a separate receipt consumer must; `unbindFails`
- * makes the page refuse the title restore; `processStart` gives mdpro a different start time.
+ * makes the page refuse the title restore; `processStart` gives mdpro a different start time;
+ * `phaseMs` and `deadlineMs` override the phase and transaction budgets. `pageB` adds B's page
+ * (p2), so label B binds in-run through the same title challenge, on its own title file.
  */
 export async function runDialog(steps: unknown[], scenario: NativeScenario & DialogScenario,
-  options: Pick<NativeOptions, "receiptDir" | "receiptNow" | "processStart"> & { noCdp?: boolean; unbindFails?: boolean } = {}) {
+  options: Pick<NativeOptions, "receiptDir" | "receiptNow" | "processStart" | "phaseMs" | "deadlineMs"> & { noCdp?: boolean; unbindFails?: boolean; pageB?: boolean } = {}) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mdpro-dialog-"));
   const titlePath = path.join(dir, "title.txt");
-  await fs.writeFile(titlePath, "mdpro");
-  const page: FakePage = { id: "p1", evaluate: (expression) => {
+  const titleB = path.join(dir, "title-b.txt");
+  await Promise.all([fs.writeFile(titlePath, "mdpro"), fs.writeFile(titleB, "mdpro B")]);
+  const page = (id: string, label: string, base: string, file: string): FakePage => ({ id, evaluate: (expression) => {
+    const record = identity.find((entry) => entry.label === label);
     if (expression.includes("IDENTITY_STALE_BEFORE_BIND")) {
       const nonce = /mdpro-b7:([a-f0-9]{32})/.exec(expression)?.[1];
       if (!nonce) return { result: { type: "object" }, exceptionDetails: { text: "no nonce" } };
-      const challenge = `mdpro [mdpro-b7:${nonce}]`;
-      writeFileSync(titlePath, challenge);
-      return { result: { type: "object", value: { label: "A", rect: [0, 0, 800, 600], challenge } } };
+      const challenge = `${base} [mdpro-b7:${nonce}]`;
+      writeFileSync(file, challenge);
+      return { result: { type: "object", value: { label, rect: record?.rect, challenge } } };
     }
     if (expression.includes("IDENTITY_UNBIND_MARKER_MISSING")) {
       if (options.unbindFails) return { result: { type: "object" }, exceptionDetails: { text: "unbind refused" } };
-      writeFileSync(titlePath, "mdpro");
-      return { result: { type: "object", value: { label: "A", restored: true } } };
+      writeFileSync(file, base);
+      return { result: { type: "object", value: { label, restored: true } } };
     }
-    return { result: { type: "string", value: "A" } };
-  } };
-  const server = await startFakeCdp([page]);
+    return { result: { type: "string", value: label } };
+  } });
+  const server = await startFakeCdp([page("p1", "A", "mdpro", titlePath), ...(options.pageB ? [page("p2", "B", "mdpro B", titleB)] : [])]);
   try {
-    const result = await runNative(steps, { secondMdpro: true, ...scenario },
-      { cdpPort: options.noCdp ? 1 : server.port, titlePath, receiptDir: options.receiptDir, receiptNow: options.receiptNow, processStart: options.processStart });
+    const result = await runNative(steps, { secondMdpro: true, ...scenario, ...(options.pageB ? { titleB } : {}) } as NativeScenario,
+      { cdpPort: options.noCdp ? 1 : server.port, titlePath, receiptDir: options.receiptDir, receiptNow: options.receiptNow, processStart: options.processStart, phaseMs: options.phaseMs, deadlineMs: options.deadlineMs });
     const outcome = JSON.parse(result.log.filter((line) => line.startsWith("OUTCOME ")).at(-1)?.slice(8) ?? "null");
     return { ...result, outcome, title: await fs.readFile(titlePath, "utf8") };
   } finally { await server.close(); }
