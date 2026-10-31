@@ -3,7 +3,8 @@
  * T566-F2-1 (#566 fix 2, AC-F2-1/2): the receipt suites stay local-only. On a GitHub runner (`RUNNER_OS` set) every
  * test tagged `plugin` in `tests/ci-inventory.json` skips and the CI comparator passes, so ADR-0128's split is kept;
  * and no test reaches a plugin cache, globs the vendor tree or hard-codes the engine version. Ungated: runs on CI too.
- * Forbidden names are built from pieces, so this file needs no allowlist entry of its own.
+ * Forbidden names are built from pieces, so this file needs no allowlist entry of its own. #569 T-01 adds one named
+ * non-receipt file, `t567-mattpocock-version.test.ts`, whose single live case reads the real caches by design.
  */
 import { readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -16,6 +17,10 @@ vi.setConfig({ testTimeout: 600_000 });
 type Entry = { id: string[]; prerequisite: string };
 const inventory = JSON.parse(readFileSync(join(repoRoot, "tests/ci-inventory.json"), "utf8")) as { schemaVersion: number; tests: Entry[]; exclusions: Array<{ id: string[] }> };
 const CACHE_FREE = "tests/tooling/t566-fix2-cache-free.test.ts";
+/** #569 T-01's live case: not a receipt suite. It reads the real plugin caches on a developer Mac by design, so it carries one `plugin` id. */
+const MATTPOCOCK = "tests/tooling/t567-mattpocock-version.test.ts";
+const MATTPOCOCK_HOME = /^\s*const home = os\.homedir\(\);$/;
+const MATTPOCOCK_PREDICATE = "liveCaseEnabled(process)";
 /** The 39 receipt suites tagged `plugin` before fix 2 (255 ids); fix 2 adds only `CACHE_FREE`. */
 const RECEIPT_SUITES = [
   ...["digest-stable", "digest-text", "digest", "holes", "launcher-bound", "lock-wait-bound", "message-fallback", "normalise-law", "pin",
@@ -33,9 +38,10 @@ const scratch: string[] = [];
 afterEach(() => { for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 describe("T566-F2-1 the plugin inventory is conserved", () => {
-  it("tags exactly the 39 receipt suites (255 ids) and the cache-free file, with the exclusions unchanged", () => {
-    expect(pluginFiles).toEqual([...RECEIPT_SUITES, CACHE_FREE].sort());
-    expect(pluginEntries.filter((item) => item.id[0] !== CACHE_FREE)).toHaveLength(255);
+  it("tags exactly the 39 receipt suites (255 ids), the cache-free file and T-01's one live case, with the exclusions unchanged", () => {
+    expect(pluginFiles).toEqual([...RECEIPT_SUITES, CACHE_FREE, MATTPOCOCK].sort());
+    expect(pluginEntries.filter((item) => item.id[0] !== CACHE_FREE && item.id[0] !== MATTPOCOCK)).toHaveLength(255);
+    expect(pluginEntries.filter((item) => item.id[0] === MATTPOCOCK)).toHaveLength(1);
     expect(inventory.exclusions).toHaveLength(73);
     expect(inventory.exclusions.map((item) => item.id)).toContainEqual(["tests/tooling/unit-red-phase.test.ts", "D302 owner cleanup probe"]);
   });
@@ -88,9 +94,9 @@ const HOME_SUBJECT = /import \{ homedir, tmpdir \} from "node:os";|join\(homedir
 
 describe("T566-F2-1 no test reaches a plugin cache or the vendor tree on its own", () => {
   const all = walk(join(repoRoot, "tests"));
-  it("names a plugin cache only in the poison builder and two literal-only files", () => {
+  it("names a plugin cache only in the poison builder, two literal-only files and T-01's live case", () => {
     expect(all.filter((file) => CACHE_NAME.test(read(file))).sort()).toEqual([
-      "tests/support/t566Engine.ts", "tests/tooling/d187-receipt-rustfmt-guard.test.ts", "tests/tooling/t566-vendor-manifest.test.ts",
+      "tests/support/t566Engine.ts", "tests/tooling/d187-receipt-rustfmt-guard.test.ts", "tests/tooling/t566-vendor-manifest.test.ts", MATTPOCOCK,
     ]);
   });
   it("reaches the vendored engine only through t566Engine's vendorDir", () => {
@@ -98,14 +104,15 @@ describe("T566-F2-1 no test reaches a plugin cache or the vendor tree on its own
       "tests/support/t566Engine.ts", "tests/tooling/t566-fail-closed.test.ts", "tests/tooling/t566-vendor-manifest.test.ts",
     ]);
   });
-  it("reads no HOME in any receipt suite (bar digest-text's subject), and gates each on receiptSuites, pluginVersion or rustfmt", () => {
+  it("reads no HOME in any receipt suite (bar digest-text's subject and T-01's live case), and gates each on receiptSuites, pluginVersion or rustfmt", () => {
     const exempt: string[] = [];
     for (const file of [...pluginFiles, "tests/tooling/adr0149eRepo.ts", "tests/tooling/fixtures/unit-red/scenarios.mjs", "tests/support/t566Child.ts"]) {
       const text = read(file);
       const reads = text.split("\n").filter((line) => line.match(HOME_READ));
-      expect(reads.filter((line) => !(file === DIGEST_TEXT && HOME_SUBJECT.test(line))), file).toEqual([]);
+      expect(reads.filter((line) => !(file === DIGEST_TEXT && HOME_SUBJECT.test(line)) && !(file === MATTPOCOCK && MATTPOCOCK_HOME.test(line))), file).toEqual([]);
       for (const [, predicate] of text.matchAll(/\.(?:skipIf|runIf)\(([^)]*\)?)\)/g)) {
         if (predicate.includes("D302_OWNER_INNER")) { exempt.push(file); continue; }
+        if (file === MATTPOCOCK) { expect(predicate, file).toBe(MATTPOCOCK_PREDICATE); continue; }
         for (const term of predicate.split("||")) expect(term.trim(), `${file}: ${predicate}`).toMatch(file === CACHE_FREE ? /^!local$/ : /^!(receiptSuites|pluginVersion|rustfmt)$/);
       }
     }

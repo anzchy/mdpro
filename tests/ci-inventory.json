@@ -2565,7 +2565,15 @@
     {"id": ["tests/tooling/adr0162-wi4-ac2-split-path.test.ts","ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)","with no old pane, a successful reset closes no pane"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0162-wi4-ac3-auditor.test.ts","ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)","gpt-auditor auditor with toolchain absent still resets"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0162-wi4-ac3-auditor.test.ts","ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)","gpt-auditor auditor with toolchain cargo only still resets"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/adr0162-wi4-ac3-auditor.test.ts","ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)","auditor mode still refuses a test-mode override outside tmpdir"], "prerequisite": "macos"}
+    {"id": ["tests/tooling/adr0162-wi4-ac3-auditor.test.ts","ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)","auditor mode still refuses a test-mode override outside tmpdir"], "prerequisite": "macos"},
+    {
+      "id": [
+        "tests/tooling/t567-mattpocock-version.test.ts",
+        "T567 live case on the real caches",
+        "both runtimes have mattpocock-skills at or above the minimum, installed where checked and enabled"
+      ],
+      "prerequisite": "plugin"
+    }
   ],
   "exclusions": [
     {
