@@ -186,3 +186,13 @@ produced **wrong verdicts**; the rest cost time.
     - Keep raw integer budget parameters untyped until strict `Read-NativeInteger` validation
       replaces them with numbers. Test the real Mac defaults against the real Windows validator,
       including values whose numeric order disagrees with their string order.
+
+26. **A JSON array became one native step** (D343).
+    - Windows PowerShell 5.1 emits the whole decoded array as one pipeline object. Capturing
+      `@($raw | ConvertFrom-Json)` can therefore validate an `Object[]` as though it were a step
+      and reject every call with `UI_STEPS_INVALID`.
+    - Preserve the top-level array before iterating its elements, and reject array elements
+      explicitly so nested lists cannot pass through member enumeration. Test both parser shapes
+      against the real validator and the Mac caller's actual base64 output. On PowerShell 7,
+      `-NoEnumerate` alone adds a PSObject wrapper that can satisfy `-is [pscustomobject]`;
+      the local 5.1-shape reproduction must also verify the unwrapped array's actual type.
