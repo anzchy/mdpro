@@ -1,9 +1,10 @@
 # Purpose: one run-bound desktop transaction with a held session lock and retained evidence.
 # No shared steps/output, name-wide cleanup or replay. Failed cleanup/held input latches refusal.
 # The run's deadline is the earlier of -DeadlineMs and -TimeoutSec from its own start.
+# Integer budget parameters stay untyped: strict parsing below replaces CLI text with numeric values.
 param([string]$StepsB64, [string]$RunId = ([guid]::NewGuid().ToString("N")),
-      [string]$DeadlineMs = "0", [string]$PhaseMs = "5000", [string]$CleanupMs = "5000",
-      [string]$PollMs = "25", [string]$TimeoutSec = "90")
+      $DeadlineMs = "0", $PhaseMs = "5000", $CleanupMs = "5000",
+      $PollMs = "25", [string]$TimeoutSec = "90")
 $ErrorActionPreference = "Stop"
 $started = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 $rc = 1; $lock = $null; $inputJob = $null; $controlJob = $null
