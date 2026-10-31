@@ -1,11 +1,12 @@
 # 0161. Implementors on both runtimes follow one project skill, jack-tdd-workflow, and Codex retires tdd-guardian at its go-live
 
 **Status**: Proposed (2026-10-31). Spec [#568](https://github.com/anzchy/mdpro/issues/568); tickets #569–#571; snapshot
-`docs/specs/567-tdd-skill/r2/` (r1 superseded after plan review round 1). Grill answers: round 1 「是」; round 2 「Q9 用`jack-tdd-workflow` 作为name，其他的同意」;
+`docs/specs/567-tdd-skill/r3/` (r1 and r2 superseded after plan review rounds 1 and 2). Grill answers: round 1 「是」; round 2 「Q9 用`jack-tdd-workflow` 作为name，其他的同意」;
 round 3 「Q5 Matt的Skill有codex版本,已经安装了，check一下.其他问题是」; round 4 「上面问题回答：是」; round 5 「Q15-Q16 agree」. After the
 grill: 「codex 的tdd-guardian 在jack-tdd-workflow 上线之后就retire」. After plan review round 1 (2026-10-31): Codex attacker
 「Same as Claude」; mid-item matrix change 「Split by kind (Recommended)」; cycle order 「Verify, then refactor (Recommended)」;
-version gate 「prompt.sh + local test (Recommended)」. If accepted, this partially supersedes
+version gate 「prompt.sh + local test (Recommended)」. After plan review round 2: T-03's route 「T-03 gets a brief and PR
+(Recommended)」. If accepted, this partially supersedes
 [ADR-0148](0148-new-features-pass-grill-spec-and-tickets-before-implementation.md):
 - decision 7's "Matrix and attack first" clause, where it names tdd-guardian's test-designer and spec-adversary;
 - decision 7's "Step 4 becomes `tdd` cycles" clause: its cycle steps, and its sentence "a changed seam or behaviour is
@@ -60,7 +61,8 @@ fresh-context guarantee for the adversary is kept: the attacker is still a fresh
    the skill holds the method. Briefs and `prompt.sh` name the skill instead of restating the method.
 2. **Matrix attack.** A fresh subagent attacks the matrix, never a fork or a resumed agent, given the skill's attack prompt,
    the brief and the matrix file. It runs once per grant, with at most one re-attack. On Claude it is an Opus subagent at
-   default effort; on Codex it is a fresh Codex agent at its default model and effort. A rejected gap needs a counter-proof.
+   default effort; on Codex it is a fresh Codex agent at its default model and effort, started as a new `codex exec` process with no
+   resumed session and given only those three files. A rejected gap needs a counter-proof.
    No effort or model routing by difficulty applies to the attacker, and the `.codex/agents/mdpro-spec-adversary*` agents
    are removed.
 3. **Cycles for every implementor item, gated or not.** Each cycle is one matrix case: its RED receipt `<ID>-S<n>`, the
@@ -90,8 +92,9 @@ fresh-context guarantee for the adversary is kept: the attacker is still a fresh
    - a HELD `verify`;
    - receipts showing each cycle settled before the next.
 
-   It records them as audit-log rows in a docs-only commit. This is a process check, not an ADR-0144 `device` AC. This ADR
-   is accepted before the first of these items runs.
+   It records them as two audit-log rows, carried by T-03's own brief and PR (rule 12: one ticket, one brief, one PR),
+   audited at Low tier and landed by `--ff-only`. This is a process check, not an ADR-0144 `device` AC. This ADR is
+   accepted before the first of these items runs.
 
 ## Consequences
 - One method text for both runtimes; a change to the method is one edit, and briefs get shorter.
