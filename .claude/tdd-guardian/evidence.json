@@ -1624,6 +1624,40 @@
         "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
         "head": "d16db0fa21ba594902545a0f0fe4f4f439ace1bc"
       }
+    },
+    "TDDG-FIX1-PROMPT": {
+      "id": "TDDG-FIX1-PROMPT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T00:27:05.519Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/mdpro-delegator-listener.test.ts",
+            "line": 105
+          },
+          "message": "AssertionError: expected 'herdr-delegator: read /var/folders/yc…' to be 'herdr-delegator: read /var/folders/yc…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/TDDG-FIX1-PROMPT/20261031T002705519Z/tests",
+        "tree": "99a6dd39d220edd79e8868db928c2f7c309d0055"
+      },
+      "spec_blobs": {
+        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
+      },
+      "settled_blobs": {
+        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
+      }
     }
   }
 }

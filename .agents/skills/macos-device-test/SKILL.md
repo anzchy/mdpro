@@ -474,9 +474,9 @@ follow-up**:
 - A criterion that passed and changes user-visible behaviour rewrites its row
   in `docs/feature-ledger.md` **in the same commit**. `Partial` must carry a
   literal `限制：`.
-- A defect found here is a bug fix, so it goes back through
-  `/tdd-guardian:plan` → `:design-tests` → `:implement` with a regression test
-  that fails without the fix. Manual QA finds the defect; it does not license
+- A defect found here is a bug fix, so it goes back through rule 10's
+  RED → GREEN cycle, with a regression test that fails without the fix and a
+  receipt from `node scripts/tdd/red-receipt.mjs`. Manual QA finds the defect; it does not license
   an ad-hoc patch.
 - Re-run the full criteria table after the fix. A fix verified only against the
   criterion that failed has not been verified.

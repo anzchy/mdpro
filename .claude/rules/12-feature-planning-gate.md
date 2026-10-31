@@ -54,7 +54,9 @@
 - **Precedence:** spec snapshot, then ticket, then brief, then card. This replaces CLAUDE.md's "the original plan wins" and ADR-0144's
   plan or D-row anchor for gated items. A card may quote a snapshot AC id.
 - **Implementation:**
-  - **Matrix and attack first.** Rule 71 steps 1–3 are unchanged on both runtimes (tdd-guardian test-designer and spec-adversary).
+  - **Matrix and attack first.** Rule 71 steps 1–3 are unchanged on both runtimes. Codex runs the tdd-guardian test-designer and
+    spec-adversary. A Claude implementor designs the matrix itself and has a fresh subagent, outside its own context, attack it
+    with `matrix-attack-prompt.md`, or writes `ATTACK-NOT-RUN` (the plugin is off for Claude: 「Disable + narrow cleanup (Recommended)」).
   - **Then the `tdd` cycle loop,** which replaces rule 71's "all REDs first" step 4. Each cycle takes one matrix case at one agreed seam:
     test, intended failure, a RED receipt `<ID>-S<n>`, the minimal change, `verify`. The cycle settles before the next begins.
   - **Seams.** The spec's Testing Decisions are the seam confirmation. A new seam stops the work and goes to the delegator.

@@ -2,8 +2,8 @@
 # prompt.sh <agent> <file> [verb] [timeout_ms=7200000] [expected_report]
 # Sends the standard pointer prompt and waits for the agent to settle. Run in the background.
 # Codex gets an explicit Herdr wake-up; Claude resumes from the background Bash result.
-#   verb: "brief" (implementors: read the brief and run $tdd-guardian:tdd-guardian-workflow) or "request" (auditors: read BRIEF.md
-#   first). After launching, check `herdr agent get <agent>` shows "working": a prompt sent while a new pane was still
+#   verb: "brief" (implementors: read the brief, then a Codex target runs $tdd-guardian:tdd-guardian-workflow and a Claude
+#   target follows rule 71 § Briefs for Claude) or "request" (auditors: read BRIEF.md first). After launching, check `herdr agent get <agent>` shows "working": a prompt sent while a new pane was still
 #   starting was lost once.
 set -eu
 a=$1 f=$2 verb=${3:-request} to=${4:-7200000} report=${5:-}
@@ -122,7 +122,13 @@ case $a in
   *) pre="" ;;
 esac
 if [[ $verb == brief ]]; then
-  text="herdr-delegator: read $f and everything it names, then do it with \$tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop."
+  if [[ $target_kind == claude ]]; then
+    # The Claude plugin is disabled at project scope (「Disable + narrow cleanup (Recommended)」); Codex keeps its own.
+    tdd="by rule 71 § Briefs for Claude: design the test matrix yourself, have a fresh independent subagent attack it with .agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md (ATTACK-NOT-RUN if it cannot run), and record each RED with the rule 10 receipt CLI, node scripts/tdd/red-receipt.mjs"
+  else
+    tdd="with \$tdd-guardian:tdd-guardian-workflow"
+  fi
+  text="herdr-delegator: read $f and everything it names, then do it $tdd. Write the handoff it names and stop."
 else
   text="herdr-delegator: $pre the request $f. Do what it describes, write the report to the path it names, then stop."
 fi

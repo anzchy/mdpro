@@ -91,6 +91,25 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
     }
   });
 
+  it("routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route", async () => {
+    const h = harness();
+    const brief = path.join(h.dir, "brief.md");
+    fs.writeFileSync(brief, "# brief\n");
+    try {
+      const codex = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
+      expect(codex.status).toBe(0);
+      const claude = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude", FAKE_INITIAL_STATE: "idle" });
+      expect(claude.status).toBe(0);
+      const sent = (agent: string) => h.calls().find(args => args[2] === "agent" && args[3] === "prompt" && args[4] === agent)?.[5];
+      expect(sent("gpt-imple-1")).toBe(`herdr-delegator: read ${brief} and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.`);
+      expect(sent("opus-imple-1")).toBe(`herdr-delegator: read ${brief} and everything it names, then do it by rule 71 § Briefs for Claude: design the test matrix yourself, have a fresh independent subagent attack it with .agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md (ATTACK-NOT-RUN if it cannot run), and record each RED with the rule 10 receipt CLI, node scripts/tdd/red-receipt.mjs. Write the handoff it names and stop.`);
+      expect(sent("opus-imple-1")).not.toContain("tdd-guardian:");
+    } finally {
+      fs.unlinkSync(brief);
+      h.cleanup();
+    }
+  });
+
   it("refuses an already idle agent without a duplicate notification", async () => {
     const h = harness();
     try {

@@ -316,7 +316,10 @@ were cases nobody had tested:
 
 It works in four steps inside the implementor's run of
 `$tdd-guardian:tdd-guardian-workflow` (current user decision, 2026-10-24). The previous
-`.codex/skills/mdpro-tdd-workflow/` port is retained only for historical handoffs:
+`.codex/skills/mdpro-tdd-workflow/` port is retained only for historical handoffs.
+**A Claude implementor runs the same four steps without the plugin**, which is disabled for Claude Code at project scope
+(user, 2026-10-30: 「Disable + narrow cleanup (Recommended)」; 2026-10-31: 「修复 PR #564 的 High」). Codex's own install is
+unaffected:
 1. **Design tests.** The plugin's design-tests stage writes and attacks the test matrix before implementation.
    The implementor also records the matrix under
    `~/.mdpro-redesign/herdr-spike/<name>/<item>-test-matrix.md` for the delegator. For each AC it lists:
@@ -329,6 +332,7 @@ It works in four steps inside the implementor's run of
    - platform, where it applies.
 
    Each case names its assertion (document, state or IPC effect, not a boolean) and its test file.
+   On Claude, the implementor designs the matrix itself, to the same list.
 2. **Independent matrix attack.** The plugin's spec-adversary attacks the completed matrix.
    The implementor copies its findings verbatim to `<item>-attack.md`. The adversary returns:
    - each wrong implementation that would pass every case;
@@ -336,6 +340,9 @@ It works in four steps inside the implementor's run of
 
    The implementor must not run the attack itself. If the plugin's adversary cannot run, it writes
    `ATTACK-NOT-RUN` and stops for a delegator ruling.
+   On Claude, the attacker is a fresh subagent, never a fork or a resumed one, so it shares none of the
+   implementor's context. It gets `.agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md`, the
+   brief and the matrix file, and nothing else. If it cannot run, the implementor writes `ATTACK-NOT-RUN` and stops.
 3. **The implementor amends the matrix.** It adds each gap's case, or rejects the gap in the attack
    file with a counter-proof: an existing case that kills it, or the brief's Out of scope. If it added
    cases, it re-attacks once. It stops and asks the delegator about:
@@ -349,7 +356,8 @@ It works in four steps inside the implementor's run of
 The delegator checks the attack file and the matrix when it confirms the handoff. The plugin runs
 plan, per-WI RED receipts, coverage, optional mutation, review, and its commit gate. The mdpro brief
 adds exact lanes and a self-acceptance handoff. The plugin does not commit; after its gates complete,
-the implementor makes the branch commit required by the brief outside the workflow.
+the implementor makes the branch commit required by the brief outside the workflow. On Claude, the
+brief's lanes and the rule 10 receipt CLI (`node scripts/tdd/red-receipt.mjs`) do that work.
 
 The step applies to every grant. On a fix round it applies when the finding is a missed case,
 which covers all three Highs above. A fix the brief fully specifies with its regression test can

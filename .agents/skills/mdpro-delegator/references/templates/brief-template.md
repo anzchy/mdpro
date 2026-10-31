@@ -1,7 +1,9 @@
 # <ITEM>: <one-line defect or work item> (<date>, herdr-delegator)
 
 **Tier: <High|Medium|Low>** (ADR-0121: why). **Difficulty: <routine|standard|hard>** (ADR-0138: why; it sets your
-effort and the adversary). Fresh session. Run `$tdd-guardian:tdd-guardian-workflow` for the whole item, including the matrix attack.
+effort and the adversary). Fresh session. On Codex, run `$tdd-guardian:tdd-guardian-workflow` for the whole item, including the
+matrix attack. On Claude (the plugin is off there), follow rule 71 § Briefs for Claude: design the matrix yourself, have a fresh
+subagent attack it with `references/templates/matrix-attack-prompt.md`, and record REDs with `node scripts/tdd/red-receipt.mjs`.
 
 ## 1. Background
 - **The row.** `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>` (and the plan row, if any).
