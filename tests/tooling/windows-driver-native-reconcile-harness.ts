@@ -1,7 +1,10 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { supervisorFixture } from "./windows-driver-native-supervisor-harness";
+
+const execFileAsync = promisify(execFile);
 
 // Runs the real native-reconcile.ps1 inside a supervisor fixture copy. Only the kernel-job
 // and Scheduler OS boundaries are substitutes (see windows-driver-native-supervisor-harness.ts).
@@ -38,8 +41,8 @@ export function reconcile(dir: string, args: string[], env: Record<string, strin
 }
 
 /** The pid, birth and exe of a live process, read the way NativeJobScope.Snapshot records them. */
-export function identity(pid: number) {
-  const [birth, exe] = execFileSync("pwsh", ["-NoProfile", "-Command",
-    `$p=Get-Process -Id ${pid}; $p.StartTime.ToUniversalTime().Ticks.ToString(); $p.Path`], { encoding: "utf8" }).trim().split(/\r?\n/);
+export async function identity(pid: number) {
+  const [birth, exe] = (await execFileAsync("pwsh", ["-NoProfile", "-Command",
+    `$p=Get-Process -Id ${pid}; $p.StartTime.ToUniversalTime().Ticks.ToString(); $p.Path`], { encoding: "utf8" })).stdout.trim().split(/\r?\n/);
   return { pid, birth, exe };
 }

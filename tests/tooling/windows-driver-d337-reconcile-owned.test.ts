@@ -9,7 +9,7 @@ describe("D337 native-reconcile: no process the run owned may be alive", () => {
     const survivor = spawn(process.execPath, ["-e", "setInterval(()=>{},1000)"]);
     try {
       const dir = await reconcileDir();
-      await writeLatch(dir, RUN, {}, identity(survivor.pid!)); // one member serializes as an object, not an array
+      await writeLatch(dir, RUN, {}, await identity(survivor.pid!)); // one member serializes as an object, not an array
       const r = await reconcile(dir, ["-RunId", RUN]);
       expect(r.result, r.stdout + r.stderr).toMatchObject({ status: "refused", reason: `NATIVE_RECONCILE_OWNED_ALIVE pid=${survivor.pid}` });
       expect(r.status).toBe(1);

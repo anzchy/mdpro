@@ -29,7 +29,7 @@ describe("D337 native-reconcile: a proven-over run's latch is moved, never delet
     const other = spawn(process.execPath, ["-e", "setInterval(()=>{},1000)"]);
     try {
       const dir = await reconcileDir();
-      await writeLatch(dir, RUN, {}, [{ ...identity(other.pid!), birth: "1" }]);
+      await writeLatch(dir, RUN, {}, [{ ...(await identity(other.pid!)), birth: "1" }]);
       const r = await reconcile(dir, ["-RunId", RUN]);
       expect(r.result, r.stdout + r.stderr).toMatchObject({ status: "reconciled", checks: { owned: "none-alive", heldInput: "released" } });
       expect(r.status).toBe(0);

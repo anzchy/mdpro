@@ -1,8 +1,11 @@
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { prepareNative } from "./windows-driver-native-harness";
 import { supervisorFixture } from "./windows-driver-native-supervisor-harness";
+
+const execFileAsync = promisify(execFile);
 
 // Production worker under the real supervisor: ui-run.ps1 -> (fake Scheduler/kernel job) -> the
 // production ui.ps1 with its native-window/runtime/input/ops helpers. Doubles stay at the OS
@@ -92,7 +95,7 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
   ]);
   await chmod(path.join(bin, "node"), 0o755);
   // The first exec of a new script can take seconds on macOS; pay it here, outside every phase budget.
-  execFileSync(path.join(bin, "node"), ["-e", "0"], { env: { ...process.env, TEST_ROOT: bin, MDPRO_TEST_STALL: "none" } });
+  await execFileAsync(path.join(bin, "node"), ["-e", "0"], { env: { ...process.env, TEST_ROOT: bin, MDPRO_TEST_STALL: "none" } });
   const env: Record<string, string> = {
     PATH: bin + path.delimiter + (process.env.PATH ?? ""), MDPRO_TEST_STALL: stall,
     MDPRO_TEST_SCENARIO: JSON.stringify(options.scenario ?? {}), MDPRO_TEST_TRACE: trace,
