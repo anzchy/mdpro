@@ -17,12 +17,28 @@ const jobSource = String.raw`using System;
 using System.IO;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 public sealed class NativeJobMember { public int pid; public string birth; public string exe; }
 public sealed class NativeJobScope : IDisposable {
  public string Name; List<int> children = new List<int>(); static List<Process> inputs = new List<Process>();
  bool Input { get { return Name.EndsWith(Environment.GetEnvironmentVariable("TEST_RUN_ID")); } }
  string Root { get { return Environment.GetEnvironmentVariable("TEST_ROOT"); } }
  public NativeJobScope(string name) { Name = name; }
+ // Reconcile probes the exact input job, then closes any opened handle before refusing.
+ static HashSet<IntPtr> probes = new HashSet<IntPtr>();
+ private static IntPtr OpenJobObject(uint access, bool inherit, string name) {
+   if (access != 4 || inherit || name != "Global\\mdpro-driver-" + Environment.GetEnvironmentVariable("TEST_RUN_ID")) throw new Exception("WRONG_JOB_PROBE");
+   string state = Environment.GetEnvironmentVariable("TEST_JOB_STATE") ?? "absent";
+   File.AppendAllText(Path.Combine(Environment.GetEnvironmentVariable("TEST_ROOT"),"job-probes"),"open:"+name+"\n");
+   Marshal.SetLastPInvokeError(state == "denied" ? 5 : state == "absent" ? 2 : state == "present" ? 0 : 87);
+   if (state != "present") return IntPtr.Zero;
+   var handle = new IntPtr(41); probes.Add(handle); return handle;
+ }
+ private static bool CloseHandle(IntPtr handle) {
+   if (!probes.Remove(handle)) throw new Exception("INVALID_JOB_PROBE_HANDLE");
+   File.AppendAllText(Path.Combine(Environment.GetEnvironmentVariable("TEST_ROOT"),"job-probes"),"close:"+handle.ToInt64()+"\n");
+   return true;
+ }
  public Process StartOwned(string exe, string args) {
    var request = System.Text.RegularExpressions.Regex.Match(args, "-Request \"([^\"]+)\"");
    if (request.Success && File.ReadAllText(request.Groups[1].Value).Contains("\"op\":\"start\"")) {

@@ -180,3 +180,55 @@ produced **wrong verdicts**; the rest cost time.
       `setLayout` restores each context it changed, in reverse order, even after an abort. Whether
       one window's change reaches others on the same thread is still unmeasured: check the other
       window's `layout` before relying on it.
+25. **Parsed numeric budgets became strings again** (D342).
+    - Assigning a parsed number back into a `[string]` PowerShell parameter re-applies its type:
+      `"25" -gt 1000` is true, so the Mac's default poll interval rejected every native call.
+    - Keep raw integer budget parameters untyped until strict `Read-NativeInteger` validation
+      replaces them with numbers. Test the real Mac defaults against the real Windows validator,
+      including values whose numeric order disagrees with their string order.
+
+26. **A JSON array became one native step** (D343).
+    - Windows PowerShell 5.1 emits the whole decoded array as one pipeline object. Capturing
+      `@($raw | ConvertFrom-Json)` can therefore validate an `Object[]` as though it were a step
+      and reject every call with `UI_STEPS_INVALID`.
+    - Preserve the top-level array before iterating its elements, and reject array elements
+      explicitly so nested lists cannot pass through member enumeration. Test both parser shapes
+      against the real validator and the Mac caller's actual base64 output. On PowerShell 7,
+      `-NoEnumerate` alone adds a PSObject wrapper that can satisfy `-is [pscustomobject]`;
+      the local 5.1-shape reproduction must also verify the unwrapped array's actual type.
+
+27. **A precompiled EXE was rejected as an Add-Type source path** (D344).
+    - `Add-Type -Path native-job.exe` refuses the `.EXE` extension before step 1, even
+      though the binary is a valid managed assembly. Windows PowerShell 5.1 documents
+      source files and assembly DLLs for `-Path`; the local PowerShell 7 probe also refuses it.
+    - Load the precompiled assembly with `[System.Reflection.Assembly]::LoadFrom()` only
+      after the existing source/binary hash checks. The types then resolve in that same
+      session without executing the EXE or compiling during input. Repeated loads must
+      recheck both files; a real assembly-load error must retain its own diagnostic.
+    - Before a Windows smoke, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+      C:\Users\jack\mdpro-audit\native-setup-probe.ps1`. The read-only probe checks bootstrap
+      hashes/loading, type resolution and the fixed smoke JSON without input, tasks or jobs.
+
+28. **An elevated supervisor's default job DACL excluded the limited task** (D346).
+    - SSH and Interactive/Limited tokens have different logon SIDs; Administrators can be
+      deny-only in the task. Create shared jobs with an explicit current-user/SYSTEM/Administrators
+      DACL and default owner, and open the bootstrap with ASSIGN_PROCESS|QUERY. The separate
+      tester-only `native-cross-token-probe.ps1` checks a filtered (Administrators deny-only)
+      same-user open; not a restricted token. It requires an elevated creator and Boolean
+      `restricted:false`, `adminEnabled:false`, `opened:true`, with matching nonce/job/user.
+      `OK filtered-open` carries the same eight allowlisted reply fields as an invalid-reply
+      FAIL line. Launcher success alone proves nothing; I1 still proves the real task route.
+      Keep the setup probe read-only.
+    - A fresh terminal Scheduler result without worker commit is `NATIVE_TASK_EXITED code=<DWORD>`,
+      with retained `bootstrap.log` stages. Only a complete run-bound never-created-worker log
+      permits none/released without progress; missing progress alone never does. A raced identity
+      read needs a signaled handle for that same owned lifetime. Tag input/control members;
+      legacy unreadable records require exact task/job absence and OS-confirmed PID absence,
+      under the session lock. Never parse a localized exception or edit a manifest to clear it.
+
+29. **CreateProcess with an application name never searches PATH** (D346 I2).
+    - A non-null application name such as bare `runas.exe` is resolved without PATH search,
+      so the cross-token probe failed before child startup. Pass a rooted executable path:
+      `Join-Path $env:SystemRoot 'System32\runas.exe'`, checked with `Test-Path -PathType Leaf`.
+    - Keep the child body in a temporary script and use `-File` to stay under the filtered
+      launch's 1024-character program limit; remove it and the reply on every exit path.

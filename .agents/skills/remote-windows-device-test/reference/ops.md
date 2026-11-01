@@ -198,7 +198,8 @@ cleanup deadline is `NATIVE_OWNED_PROCESSES_REMAIN` (or `NATIVE_CONTROL_PROCESSE
 supervisor's own helpers).
 
 **Session lock and latch.** One native run at a time: a second gets `NATIVE_SESSION_BUSY`. A run
-whose cleanup failed, whose held input is uncertain, or whose worker left no result writes
+whose cleanup failed, whose held input is uncertain, or whose worker left no result without
+validated never-launched bootstrap evidence writes
 `native-session-blocked.json`; every later run refuses with `NATIVE_RECONCILIATION_REQUIRED`
 until the run is reconciled. The evidence stays in `runs/<runId>/`.
 
@@ -216,6 +217,34 @@ deletes: after its checks it writes `runs/<runId>/reconcile-checks.json` and mov
 | `NATIVE_RECONCILE_MANIFEST_MISSING` / `_INVALID` | The run's owned-process manifest is gone or unreadable. |
 | `NATIVE_RECONCILE_OWNED_ALIVE pid=` | A process the run owned is still alive (same birth and executable). |
 | `NATIVE_RECONCILE_INPUT_UNCONFIRMED` | Held input was not proved released. Look at the desktop, release any stuck key or button, then pass `-InputReleasedConfirmed`. |
+
+**D346 bootstrap diagnostics.** The four-argument Scheduler route passes the exact run directory
+and retains JSON-lines `bootstrap.log` bound to the run and job. Bootstrap exits 65 for open/assign,
+66 for launch, 67 for wait, and 68 for setup/logging failure; worker DWORDs pass through unchanged.
+The supervisor uses current-start `lastRunTime` and inactive state to report
+`NATIVE_TASK_EXITED code=<unsigned DWORD>` promptly, appending a validated bootstrap stage when
+available. Running/Queued, never-ran sentinels and stale timestamps wait. Missing/corrupt evidence
+cannot establish released input. Later launch/input evidence takes precedence.
+
+Each new owned-process record names `job: input|control`. An unreadable member remains unresolved;
+a same-lifetime pinned-handle exit may be omitted. Reconcile accepts strictly tagged
+`exited:true, proof:pinned-handle-signaled` records without inspecting any replacement PID.
+Legacy unreadable members require positive PID-not-found after exact task and input-job absence,
+under the session lock; live/reused/unreadable PIDs refuse. Job presence/unknown observation yields
+`NATIVE_RECONCILE_JOB_PRESENT` / `NATIVE_RECONCILE_JOB_UNKNOWN`; an ambiguous process lookup yields
+`NATIVE_RECONCILE_PROCESS_UNKNOWN`. Localized text never establishes absence. Operator input
+confirmation and evidence-before-latch movement still apply.
+
+The tester-only `native-cross-token-probe.ps1 [-PhaseMs 5000] [-PollMs 25]` creates one contained
+job and a bounded `runas /trustlevel:0x20000` child for a filtered (Administrators deny-only)
+same-user open; not a restricted token. It refuses a non-elevated creator before job creation,
+then validates matching nonce/job/user, Boolean `restricted:false`, `adminEnabled:false`,
+`opened:true`, and valid PID/birth. `OK filtered-open` and `FAIL filtered-open filtered-reply-invalid`
+carry compact JSON with exactly nonce, job, userSid, restricted, adminEnabled, opened, pid and birth.
+It drains the job and removes its temporary reply and child script on exit. It prints one
+OK/FAIL line per step and creates no Scheduler task or input. Run only under the tester's host
+lock after a supported-target `native-build.ps1` rebuild. Real access and startup need tester
+I2 and I1 evidence respectively; local boundary models do not establish them.
 
 ## File dialogs and receipts
 

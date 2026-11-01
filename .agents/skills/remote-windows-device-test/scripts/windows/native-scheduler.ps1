@@ -19,7 +19,13 @@ try {
     "poll" {
       $task = Get-ScheduledTask -TaskName $r.name -ErrorAction Stop
       $info = Get-ScheduledTaskInfo -TaskName $r.name -ErrorAction Stop
-      $value = @{ status = [string]$task.State; result = $info.LastTaskResult }
+      # State and Info are independent reads: an active second state defeats a stale Ready.
+      $after = Get-ScheduledTask -TaskName $r.name -ErrorAction Stop
+      $status = if ([string]$after.State -in @("Running", "Queued")) { [string]$after.State } else { [string]$task.State }
+      $when = $info.LastRunTime
+      if ($when -is [datetime]) { $when = $when.ToUniversalTime().ToString("o") }
+      elseif ($when -is [DateTimeOffset]) { $when = $when.ToString("o") }
+      $value = @{ status = $status; result = $info.LastTaskResult; lastRunTime = $when }
     }
     "exists" { $value = @{ exists = (Test-NativeTask $r.name) } }
     "cleanup" {

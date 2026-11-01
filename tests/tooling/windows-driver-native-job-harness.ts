@@ -2,10 +2,11 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { substituteJobSecurity } from "./windows-driver-d346-job-harness";
 
 const SOURCE = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows/native-job.cs");
 
-// Compile the real NativeJobScope. Only kernel entry points are substituted:
+// Compile the real NativeJobScope. Only kernel and Windows identity/descriptor boundaries are substituted:
 // assignment, resume ordering, membership validation, inspection and Stop stay production code.
 const bodies: Record<string, string> = {
   CreateJobObject: `Marshal.SetLastPInvokeError(0); var h=new IntPtr(++Next); Jobs[h]=new List<Process>(); Names[name]=h; return h;`,
@@ -83,7 +84,7 @@ export async function kernelSource() {
   if (replaced.length !== Object.keys(bodies).length) throw new Error("kernel fixture did not replace every API");
   const end = source.lastIndexOf("}");
   source = "using System.IO;\n" + source.slice(0, end) + kernelState + source.slice(end);
-  return source;
+  return substituteJobSecurity(source);
 }
 
 export async function runJob(body: string) {

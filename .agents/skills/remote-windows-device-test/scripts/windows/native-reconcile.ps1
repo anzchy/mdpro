@@ -1,6 +1,7 @@
 # Purpose: clear the native-session latch for one named run, only after proving that run is over.
-# Never deletes evidence and never replays input. Contract: ../../reference/ops.md (reconcile).
-param([string]$RunId = "", [switch]$InputReleasedConfirmed, [string]$PhaseMs = "5000", [string]$PollMs = "25")
+# Never replays input. Legacy/unresolved members need positive OS absence; pinned exited proofs describe ended lifetimes.
+# Untyped budget parameters retain Read-NativeInteger's numeric results for the shared supervisor.
+param([string]$RunId = "", [switch]$InputReleasedConfirmed, $PhaseMs = "5000", $PollMs = "25")
 $ErrorActionPreference = "Stop"
 $rc = 1; $checks = [ordered]@{}; $lock = $null; $controlJob = $null
 $blocked = Join-Path $PSScriptRoot "native-session-blocked.json"
@@ -26,18 +27,52 @@ try {
   $task = Invoke-SchedulerPhase "reconcile-task" @{ op = "exists"; name = "mdpro-audit-ui-" + $RunId } ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + $PhaseMs)
   if ($task.exists) { Refuse "NATIVE_RECONCILE_TASK_PRESENT" }
   $checks.task = "absent"
-  # Members are matched by pid, birth and exe (pid reuse is not the run's process). An identity
-  # that cannot be read is treated as alive: the driver cannot prove that process is gone.
+  # An existing empty job can still admit work; only exact object-not-found proves quiescence.
+  $flags = [Reflection.BindingFlags]"NonPublic,Static"
+  $open = [NativeJobScope].GetMethod("OpenJobObject", $flags)
+  $close = [NativeJobScope].GetMethod("CloseHandle", $flags)
+  $handle = [IntPtr]$open.Invoke($null, [object[]]@([uint32]4, $false, "Global\mdpro-driver-$RunId"))
+  $jobError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+  if ($handle -ne [IntPtr]::Zero) {
+    try { Refuse "NATIVE_RECONCILE_JOB_PRESENT" } finally { [void]$close.Invoke($null, [object[]]@($handle)) }
+  }
+  if ($jobError -ne 2) { Refuse "NATIVE_RECONCILE_JOB_UNKNOWN" }
+  $checks.job = "absent"
   $manifest = Join-Path $runDir "owned-processes.json"
   if (-not (Test-Path -LiteralPath $manifest)) { Refuse "NATIVE_RECONCILE_MANIFEST_MISSING" }
   try {
     $raw = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8
-    $members = if ([string]::IsNullOrWhiteSpace($raw)) { @() } else { @($raw | ConvertFrom-Json) }
-    foreach ($m in $members) { if ([string]$m.pid -notmatch '^[1-9][0-9]*$' -or -not $m.birth -or -not $m.exe) { throw "member" } }
+    $parsed = if ([string]::IsNullOrWhiteSpace($raw)) { @() } else { $raw | ConvertFrom-Json }
+    $members = @($parsed)
+    foreach ($m in $members) {
+      $pidValue = 0
+      if ($m -isnot [pscustomobject] -or [string]$m.pid -cnotmatch '^[1-9][0-9]*$' -or -not [int]::TryParse([string]$m.pid, [ref]$pidValue)) { throw "pid" }
+      $properties = @($m.PSObject.Properties.Name)
+      if ("job" -in $properties -and $m.job -cnotin @("input", "control")) { throw "job" }
+      if ("exited" -in $properties -and $m.exited -isnot [bool]) { throw "exited" }
+      if ("alive" -in $properties -and $m.alive -isnot [bool]) { throw "alive" }
+      if ($m.exited -eq $true) {
+        if ($m.job -cnotin @("input", "control") -or $m.proof -cne "pinned-handle-signaled" -or $m.alive -eq $true) { throw "proof" }
+      } else {
+        if ("birth" -notin $properties -or $m.birth -isnot [string] -or $m.exe -isnot [string] -or [string]::IsNullOrWhiteSpace($m.exe)) { throw "identity" }
+        if ($m.birth -ceq "") {
+          if (-not $m.exe.StartsWith("unreadable:")) { throw "unreadable" }
+          if (("alive" -in $properties -or "exited" -in $properties) -and ($m.alive -ne $true -or $m.job -cnotin @("input", "control"))) { throw "unresolved" }
+        } elseif ($m.birth -cnotmatch '^[0-9]+$') { throw "birth" }
+      }
+    }
   } catch { Refuse "NATIVE_RECONCILE_MANIFEST_INVALID" }
   foreach ($m in $members) {
-    $p = Get-Process -Id ([int]$m.pid) -ErrorAction SilentlyContinue
-    if (-not $p) { continue }
+    if ($m.exited -eq $true) { continue } # never query or touch a replacement PID
+    try {
+      $p = Get-Process -Id ([int]$m.pid) -ErrorAction Stop
+    } catch {
+      if ($_.CategoryInfo.Category -eq [Management.Automation.ErrorCategory]::ObjectNotFound -and
+          $_.FullyQualifiedErrorId -like "NoProcessFoundForGivenId*") { continue }
+      Refuse "NATIVE_RECONCILE_PROCESS_UNKNOWN pid=$($m.pid)"
+    }
+    if (-not $p) { Refuse "NATIVE_RECONCILE_PROCESS_UNKNOWN pid=$($m.pid)" }
+    if ($m.birth -ceq "") { Refuse "NATIVE_RECONCILE_OWNED_ALIVE pid=$($m.pid)" }
     try { $birth = $p.StartTime.ToUniversalTime().Ticks.ToString(); $exe = $p.Path } catch { $birth = $null }
     if (-not $birth -or -not $exe -or ($birth -ceq [string]$m.birth -and $exe -eq [string]$m.exe)) { Refuse "NATIVE_RECONCILE_OWNED_ALIVE pid=$($m.pid)" }
   }
