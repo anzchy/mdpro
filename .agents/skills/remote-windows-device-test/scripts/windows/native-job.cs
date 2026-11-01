@@ -1,6 +1,6 @@
 // Purpose: kernel job lifetime containment. Built by native-build.ps1 before transactions.
 // No child executes input before job assignment; only explicit app launches may break away.
-// Snapshot lists every member, an unreadable one with an empty birth, and never throws per member.
+// Snapshot pins owned lifetimes through identity reads; ambiguous members remain explicitly alive.
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,12 +12,30 @@ public sealed class NativeJobMember {
   public int pid;
   public string birth;
   public string exe;
+  public bool alive;
 }
 public sealed class NativeJobScope : IDisposable {
   IntPtr job;
   readonly List<IntPtr> unowned = new List<IntPtr>();
   public string Name;
   const uint ALL = 0x1F003F;
+  const uint BOOTSTRAP_ACCESS = 5; // ASSIGN_PROCESS | QUERY
+  [StructLayout(LayoutKind.Sequential)] struct SECURITY { public int length; public IntPtr descriptor; public int inherit; }
+  static IntPtr CreateUserJob(string name) {
+    using (var identity = System.Security.Principal.WindowsIdentity.GetCurrent()) {
+      var descriptor = new System.Security.AccessControl.RawSecurityDescriptor("D:(A;;GA;;;" + identity.User.Value + ")(A;;GA;;;SY)(A;;GA;;;BA)");
+      byte[] bytes = new byte[descriptor.BinaryLength]; descriptor.GetBinaryForm(bytes, 0);
+      IntPtr data = Marshal.AllocHGlobal(bytes.Length), attributes = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SECURITY)));
+      try {
+        Marshal.Copy(bytes, 0, data, bytes.Length);
+        Marshal.StructureToPtr(new SECURITY { length = Marshal.SizeOf(typeof(SECURITY)), descriptor = data }, attributes, false);
+        IntPtr result = CreateJobObject(attributes, name); int error = Marshal.GetLastWin32Error();
+        if (result == IntPtr.Zero) throw new Win32Exception(error);
+        if (error == 183) { CloseHandle(result); throw new Exception("NATIVE_JOB_ALREADY_EXISTS"); }
+        return result;
+      } finally { Marshal.FreeHGlobal(attributes); Marshal.FreeHGlobal(data); }
+    }
+  }
   [StructLayout(LayoutKind.Sequential)] struct BASIC {
     public long ProcessTime, JobTime; public uint Flags; public UIntPtr Min, Max;
     public uint Active; public UIntPtr Affinity; public uint Priority, Scheduling;
@@ -77,8 +95,7 @@ public sealed class NativeJobScope : IDisposable {
   public NativeJobScope(string name) : this(name, true) { }
   public NativeJobScope(string name, bool allowAppBreakaway) {
     ValidName(name); Name = name;
-    job = CreateJobObject(IntPtr.Zero, name); Check(job != IntPtr.Zero);
-    if (Marshal.GetLastWin32Error() == 183) { Dispose(); throw new Exception("NATIVE_JOB_ALREADY_EXISTS"); }
+    job = CreateUserJob(name);
     EXTENDED limits = new EXTENDED();
     // The trusted worker may explicitly launch the app; arbitrary helpers get a nested
     // non-breakaway job, so their detached or CREATE_BREAKAWAY descendants stay owned.
@@ -96,24 +113,22 @@ public sealed class NativeJobScope : IDisposable {
       List<NativeJobMember> members = new List<NativeJobMember>();
       for (int i = 0; i < count; i++) {
         int pid = IntPtr.Size == 8 ? checked((int)Marshal.ReadInt64(buffer, 8 + i * 8)) : Marshal.ReadInt32(buffer, 8 + i * 4);
+        Process p = null; IntPtr pinned = IntPtr.Zero; bool owned = false;
         try {
-          using (Process p = Process.GetProcessById(pid)) {
-            // A PID from the kernel list may have exited and been reused before opening it.
-            // Pin this lifetime and independently confirm job membership before reading identity.
-            bool member; Check(IsProcessInJob(p.Handle, job, out member));
-            if (!member || p.HasExited) continue;
-            NativeJobMember identity = new NativeJobMember {
-              pid = pid, birth = p.StartTime.ToUniversalTime().Ticks.ToString(), exe = p.MainModule.FileName
-            };
-            if (!p.HasExited) members.Add(identity);
-          }
-        } catch (ArgumentException) { /* Process exited after the kernel snapshot. */ }
-        catch (Exception e) {
-          // One member whose identity cannot be read (access denied, a handle or module read failing
-          // mid-termination) must not hide the others (opus M2). It stays listed, so cleanup still sees
-          // it remaining, with no birth: its manifest record fails reconcile closed instead of matching.
-          members.Add(new NativeJobMember { pid = pid, birth = "", exe = "unreadable: " + e.GetType().Name + ": " + e.Message });
-        }
+          p = Process.GetProcessById(pid); pinned = p.Handle;
+          bool member; Check(IsProcessInJob(pinned, job, out member));
+          if (!member) continue; // independently proved replacement lifetime
+          owned = true;
+          var identity = new NativeJobMember { pid = pid, birth = p.StartTime.ToUniversalTime().Ticks.ToString(), exe = p.MainModule.FileName };
+          members.Add(identity); // complete identity remains judgeable even if it exits next
+        } catch (ArgumentException e) {
+          // GetProcessById's not-found is positive absence; a later identity error is not.
+          if (p != null) members.Add(new NativeJobMember { pid = pid, birth = "", exe = "unreadable: " + e.Message, alive = true });
+        } catch (Exception e) {
+          // Only this same, independently owned lifetime's signaled handle proves exit.
+          if (owned && pinned != IntPtr.Zero && WaitForSingleObject(pinned, 0) == 0) continue;
+          members.Add(new NativeJobMember { pid = pid, birth = "", exe = "unreadable: " + e.GetType().Name + ": " + e.Message, alive = true });
+        } finally { if (p != null) p.Dispose(); }
       }
       return members.ToArray();
     } finally { Marshal.FreeHGlobal(buffer); }
@@ -210,34 +225,72 @@ public sealed class NativeJobScope : IDisposable {
       if (cleanupFailed) throw new Exception("NATIVE_APP_CLEANUP_FAILED");
     }
   }
+  static string Json(string text) {
+    var result = new StringBuilder("\"");
+    foreach (char c in text) {
+      if (c == '"' || c == '\\') result.Append('\\').Append(c);
+      else if (c < 32) result.Append("\\u").Append(((int)c).ToString("x4"));
+      else result.Append(c);
+    }
+    return result.Append('"').ToString();
+  }
+  static void BootstrapLog(string path, string name, string stage, bool created, bool resumed, uint? code, string error) {
+    if (path == null) return;
+    string record = "{\"runId\":" + Json(name.Substring(name.Length - 32)) + ",\"job\":" + Json(name) +
+      ",\"stage\":" + Json(stage) + ",\"childCreated\":" + (created ? "true" : "false") +
+      ",\"childResumed\":" + (resumed ? "true" : "false") + ",\"code\":" + (code.HasValue ? code.Value.ToString() : "null") +
+      ",\"error\":" + Json(error) + "}\n";
+    System.IO.File.AppendAllText(path, record, new UTF8Encoding(false));
+  }
   public static int Main(string[] args) {
-    // Scheduler starts only this trusted bootstrap. It creates no descendants until self-assigned.
-    if (args.Length != 3) return 2;
-    IntPtr h = IntPtr.Zero; PROCESS child = new PROCESS(); bool completed = false; int rc = 1;
+    // New calls are run-bound. Legacy inspection has no release proof and retains rc1 failures.
+    if (args.Length != 3 && args.Length != 4) return 2;
+    bool modern = args.Length == 4, completed = false, resumed = false;
+    IntPtr h = IntPtr.Zero; PROCESS child = new PROCESS(); int rc = 1;
+    string stage = "setup", log = null, failure = "";
     try {
       ValidName(args[0]);
-      h = OpenJobObject(ALL, false, args[0]); Check(h != IntPtr.Zero);
+      if (modern) {
+        string dir = System.IO.Path.GetFullPath(args[3]);
+        string run = args[0].Substring(args[0].Length - 32);
+        if (dir != args[3] || System.IO.Path.GetFileName(dir) != run ||
+            System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(dir)) != "runs" || !System.IO.Directory.Exists(dir))
+          throw new Exception("NATIVE_BOOTSTRAP_RUN_INVALID");
+        log = System.IO.Path.Combine(dir, "bootstrap.log");
+      }
+      stage = "open"; BootstrapLog(log, args[0], stage, false, false, null, "");
+      h = OpenJobObject(BOOTSTRAP_ACCESS, false, args[0]); Check(h != IntPtr.Zero);
+      stage = "assign";
       using (Process self = Process.GetCurrentProcess()) Check(AssignProcessToJobObject(h, self.Handle));
       Environment.SetEnvironmentVariable("MDPRO_NATIVE_JOB", args[0]);
+      stage = "launch";
       child = Launch(args[1], Encoding.UTF8.GetString(Convert.FromBase64String(args[2])), 0);
       bool member; Check(IsProcessInJob(child.process, h, out member));
       if (!member) Check(AssignProcessToJobObject(h, child.process));
       if (ResumeThread(child.thread) == 0xFFFFFFFF) throw new Win32Exception(Marshal.GetLastWin32Error());
-      CloseHandle(h); h = IntPtr.Zero; // the supervisor alone owns the kill-on-close handle
-      // A failed wait leaves the child live; its STILL_ACTIVE code (259) is not an exit status.
+      resumed = true; CloseHandle(h); h = IntPtr.Zero;
+      stage = "wait";
       if (WaitForSingleObject(child.process, 0xFFFFFFFF) != 0) throw new Exception("NATIVE_BOOTSTRAP_WAIT_FAILED");
       uint code; Check(GetExitCodeProcess(child.process, out code));
-      completed = true; rc = unchecked((int)code);
-    } catch (Exception error) { Console.Error.WriteLine("NATIVE_BOOTSTRAP_FAILED: " + error.Message); rc = 1; }
+      completed = true; rc = unchecked((int)code); stage = "exited";
+    } catch (Exception error) {
+      failure = error.Message;
+      rc = !modern ? 1 : stage == "open" || stage == "assign" ? 65 : stage == "launch" ? 66 : stage == "wait" ? 67 : 68;
+      Console.Error.WriteLine("NATIVE_BOOTSTRAP_FAILED stage=" + stage + ": " + failure);
+    }
     if (child.process != IntPtr.Zero) {
       bool drained = completed;
       if (!completed) { try { drained = DrainProcess(child.process, 1); } catch { drained = false; } }
-      // An unproved termination is reported beside the launch error, never hidden by it.
-      if (!drained) { Console.Error.WriteLine("NATIVE_BOOTSTRAP_CLEANUP_FAILED pid=" + child.pid); rc = 1; }
+      if (!drained) {
+        failure += "; NATIVE_BOOTSTRAP_CLEANUP_FAILED pid=" + child.pid;
+        Console.Error.WriteLine(failure); if (!modern) rc = 1;
+      }
       CloseHandle(child.process);
     }
     if (child.thread != IntPtr.Zero) CloseHandle(child.thread);
     if (h != IntPtr.Zero) CloseHandle(h);
+    try { BootstrapLog(log, args[0], stage, child.process != IntPtr.Zero, resumed, unchecked((uint)rc), failure); }
+    catch (Exception error) { Console.Error.WriteLine("NATIVE_BOOTSTRAP_FAILED stage=setup log=" + error.Message); rc = modern ? 68 : 1; }
     return rc;
   }
 }

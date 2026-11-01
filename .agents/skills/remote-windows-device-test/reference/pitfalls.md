@@ -208,3 +208,16 @@ produced **wrong verdicts**; the rest cost time.
     - Before a Windows smoke, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
       C:\Users\jack\mdpro-audit\native-setup-probe.ps1`. The read-only probe checks bootstrap
       hashes/loading, type resolution and the fixed smoke JSON without input, tasks or jobs.
+
+28. **An elevated supervisor's default job DACL excluded the limited task** (D346).
+    - SSH and Interactive/Limited tokens have different logon SIDs; Administrators can be
+      deny-only in the task. Create shared jobs with an explicit current-user/SYSTEM/Administrators
+      DACL and default owner, and open the bootstrap with ASSIGN_PROCESS|QUERY. The separate
+      tester-only `native-cross-token-probe.ps1` checks a real restricted same-user open;
+      launcher success alone proves nothing. Keep the setup probe read-only.
+    - A fresh terminal Scheduler result without worker commit is `NATIVE_TASK_EXITED code=<DWORD>`,
+      with retained `bootstrap.log` stages. Only a complete run-bound never-created-worker log
+      permits none/released without progress; missing progress alone never does. A raced identity
+      read needs a signaled handle for that same owned lifetime. Tag input/control members;
+      legacy unreadable records require exact task/job absence and OS-confirmed PID absence,
+      under the session lock. Never parse a localized exception or edit a manifest to clear it.

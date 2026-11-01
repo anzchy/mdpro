@@ -46,15 +46,18 @@ esac
 exec "${realNode}" "$@"
 `;
 
-const launcher = `
+const launcher = String.raw`
 [IO.File]::AppendAllText("$env:TEST_ROOT/members", "$PID" + [Environment]::NewLine)
 $runDir = "$env:TEST_ROOT/runs/$env:TEST_RUN_ID"
 $start = Get-ChildItem -LiteralPath $runDir -Filter "scheduler-*.json" | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json } | Where-Object { $_.op -eq "start" }
-$command = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($start.arguments -split " ")[-1]))
-if ($command -notmatch ' ([a-f0-9]{32}) ([0-9]+) ([0-9]+) ([0-9]+)"$') { throw "launcher: ui.cmd arguments changed" }
+$vector = [regex]::Match($start.arguments, '^(Global\\mdpro-driver-[a-f0-9]{32}) "([^"]+)" ([A-Za-z0-9+/]+={0,2}) "([^"]+)"$')
+if (-not $vector.Success -or $vector.Groups[1].Value -cne "Global\mdpro-driver-$env:TEST_RUN_ID" -or $vector.Groups[4].Value -cne $runDir) { throw "launcher: bootstrap arguments changed" }
+$command = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($vector.Groups[3].Value))
+if ($command -notmatch ' "([^"]+)" ([a-f0-9]{32}) ([0-9]+) ([0-9]+) ([0-9]+)"$') { throw "launcher: ui.cmd arguments changed" }
+if ($Matches[1] -cne $runDir -or $Matches[2] -cne $env:TEST_RUN_ID) { throw "launcher: run directory mismatch" }
 [IO.File]::WriteAllText("$env:TEST_ROOT/started", "ready")
 $global:LASTEXITCODE = 0
-& "$env:TEST_ROOT/ui-production.ps1" -Steps "$runDir/steps.json" -Out "$runDir/ui-out.json" -RunId $Matches[1] -DeadlineMs $Matches[2] -PhaseMs $Matches[3] -CleanupMs $Matches[4]
+& "$env:TEST_ROOT/ui-production.ps1" -Steps "$runDir/steps.json" -Out "$runDir/ui-out.json" -RunId $Matches[2] -DeadlineMs $Matches[3] -PhaseMs $Matches[4] -CleanupMs $Matches[5]
 $code = if ($LASTEXITCODE) { $LASTEXITCODE } else { 0 }
 [IO.File]::WriteAllText("$env:TEST_ROOT/task-exit", [string]$code)
 exit $code
@@ -97,6 +100,8 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
   // The first exec of a new script can take seconds on macOS; pay it here, outside every phase budget.
   await execFileAsync(path.join(bin, "node"), ["-e", "0"], { env: { ...process.env, TEST_ROOT: bin, MDPRO_TEST_STALL: "none" } });
   const env: Record<string, string> = {
+    // The launcher substitutes cmd.exe; retain a real quoted executable slot on non-Windows hosts.
+    ComSpec: process.env.ComSpec ?? "/bin/sh",
     PATH: bin + path.delimiter + (process.env.PATH ?? ""), MDPRO_TEST_STALL: stall,
     MDPRO_TEST_SCENARIO: JSON.stringify(options.scenario ?? {}), MDPRO_TEST_TRACE: trace,
   };

@@ -1,5 +1,5 @@
 # Purpose: one run-bound desktop transaction with a held session lock and retained evidence.
-# No shared steps/output, name-wide cleanup or replay. Failed cleanup/held input latches refusal.
+# No shared steps/output, name-wide cleanup or replay. Release without progress needs validated never-launched evidence.
 # The run's deadline is the earlier of -DeadlineMs and -TimeoutSec from its own start.
 # Integer budget parameters stay untyped: strict parsing below replaces CLI text with numeric values.
 param([string]$StepsB64, [string]$RunId = ([guid]::NewGuid().ToString("N")),
@@ -65,8 +65,8 @@ try {
     heldInput = $(if ($progress) { $progress.heldInput } else { "released" }); cleanup = $script:cleanupProof }
   if ($workerResult -and $workerResult.cleanup -ne "complete") { $outcome.cleanup = "failed"; $rc = 1 }
   if (-not $workerResult -and $progress -and $progress.inputOutcome -ne "none") { $outcome.inputOutcome = "unknown" }
-  if (-not $workerResult -and -not $progress -and $script:taskAttempted) { $outcome.inputOutcome = "unknown"; $outcome.heldInput = "uncertain" }
-  if ($outcome.cleanup -ne "complete" -or $outcome.heldInput -eq "uncertain" -or (-not $workerResult -and $script:taskAttempted)) {
+  if (-not $workerResult -and -not $progress -and $script:taskAttempted -and -not $script:bootstrapNeverLaunched) { $outcome.inputOutcome = "unknown"; $outcome.heldInput = "uncertain" }
+  if ($outcome.cleanup -ne "complete" -or $outcome.heldInput -eq "uncertain" -or (-not $workerResult -and $script:taskAttempted -and -not $script:bootstrapNeverLaunched)) {
     $outcome | ConvertTo-Json -Compress | Set-Content -LiteralPath $blocked -Encoding UTF8
   }
   [void]$lines.Add("OUTCOME " + ($outcome | ConvertTo-Json -Compress))
