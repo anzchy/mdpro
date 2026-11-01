@@ -4,7 +4,7 @@
  * Each stub appends one JSON line to `$T567_STUB_LOG`: the guard and the `bin/node` PATH shim record argv and env,
  * the entry records argv, its script's realpath and its cwd. No real receipt engine exists in the repository.
  */
-import { execFileSync, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,7 +14,9 @@ export const SKILL_REL = ".agents/skills/jack-tdd-workflow";
 export const WRAPPER_REL = `${SKILL_REL}/scripts/receipt.mjs`;
 export const CLAUDE_WRAPPER_REL = ".claude/skills/jack-tdd-workflow/scripts/receipt.mjs";
 const NODE = process.execPath;
-const GIT = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+/** The real git, found by a PATH scan: a synchronous child would block the vitest worker (D302's lint). */
+const GIT = (process.env.PATH ?? "").split(path.delimiter).map((d) => path.join(d, "git"))
+  .find((f) => { try { fs.accessSync(f, fs.constants.X_OK); return fs.statSync(f).isFile(); } catch { return false; } }) ?? "git";
 
 export type LogRecord = { who: string; argv?: string[]; env?: Record<string, string>; script?: string; cwd?: string; name?: string };
 
@@ -89,7 +91,11 @@ export function stubRepo(made: string[], opts: { slowGit?: boolean } = {}): Stub
   const top = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "t567-wrap-")));
   made.push(top);
   const env0 = cleanEnv();
-  execFileSync(GIT, ["init", "-q"], { cwd: top, env: env0 });
+  // git's minimal repository layout (gitrepository-layout: HEAD, objects/, refs/), written directly so building a stub
+  // spawns no synchronous `git init` (D302's lint); real git, as P4 uses it, accepts it as a fresh repository.
+  for (const d of ["objects", "refs/heads", "refs/tags"]) fs.mkdirSync(path.join(top, ".git", d), { recursive: true });
+  write(path.join(top, ".git/HEAD"), "ref: refs/heads/main\n");
+  write(path.join(top, ".git/config"), "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n");
   write(path.join(top, "scripts/heavy-lock.sh"), guard, 0o755);
   write(path.join(top, "scripts/tdd/red-receipt.mjs"), entry);
   const bin = path.join(top, "bin");

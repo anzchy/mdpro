@@ -5,11 +5,12 @@
  * without calling the entry, resolve the repository from its cwd, pass its environment on untouched and pass an
  * interrupt on to the receipt command. Matrix: opus-imple-1/T-01-fix-r5-test-matrix.md.
  */
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { afterAll, describe, expect, it } from "vitest";
 import { calls, CLAUDE_WRAPPER_REL, cleanEnv, ROOT, runWrapper, stubRepo, until, WRAPPER_REL } from "./t567-receipt-wrapper-harness";
 
@@ -215,11 +216,11 @@ describe("T567 r5 receipt wrapper: the repository is its cwd's git top level", (
 
   it("P4 from inside a linked worktree, it runs that worktree's entry in that worktree's top", async () => {
     const repo = stubRepo(made);
-    const git = (...a: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: repo.top, env: cleanEnv() });
-    git("add", "scripts", ".agents", ".claude");
-    git("commit", "-qm", "stubs");
+    const git = (...a: string[]) => promisify(execFile)("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: repo.top, env: cleanEnv() });
+    await git("add", "scripts", ".agents", ".claude");
+    await git("commit", "-qm", "stubs");
     const linked = path.join(repo.top, "linked");
-    git("worktree", "add", "-q", linked);
+    await git("worktree", "add", "-q", linked);
     fs.mkdirSync(path.join(linked, "sub"));
     await runWrapper(RECORD_W1, { cwd: path.join(linked, "sub"), env: repo.env() });
     const entry = repo.records().find((r) => r.who === "entry");
