@@ -22,6 +22,10 @@ on:
           - build-only
           - draft
           - rehearsal-draft
+      windows:
+        description: 'Build the Windows installer (false: release without Windows; ADR-0164)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read

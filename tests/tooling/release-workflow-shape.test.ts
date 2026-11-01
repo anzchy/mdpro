@@ -60,7 +60,7 @@ describe("trigger and inputs", () => {
 
   it("W2 ref and version are required with no default; mode is a build-only-default choice of exactly three", () => {
     const inputs = at(TEXT, ["on", "workflow_dispatch", "inputs"]);
-    expect(new Set(keys(inputs ?? ""))).toEqual(new Set(["ref", "version", "mode"]));
+    expect(new Set(keys(inputs ?? ""))).toEqual(new Set(["ref", "version", "mode", "windows"]));
     for (const k of ["ref", "version"]) {
       expect(scalar(at(inputs, [k]), "required")).toBe("true");
       expect(scalar(at(inputs, [k]), "default")).toBeNull();
@@ -198,8 +198,11 @@ describe("forbidden constructs", () => {
     for (const r of refs) expect(fs.existsSync(path.join(ROOT, r)), r).toBe(true);
   });
 
-  it("stays under 300 lines", () => {
-    expect(LINES.length).toBeLessThan(300);
+  // ADR0164-WI1 (ruling 1, G7): the windows input, its notice and the whole-copy exclude cannot fit under 300
+  // without deleting comments or merging steps, so the pin is the measured length, an exact bound.
+  it("stays at most 303 lines, and keeps its explanatory comments", () => {
+    expect(LINES.length).toBeLessThanOrEqual(303);
+    for (const c of ["scripts/release/assetNames.mjs", "D175", "ADR-0073"]) expect(TEXT, c).toContain(c);
   });
 });
 

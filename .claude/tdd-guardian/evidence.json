@@ -2030,6 +2030,57 @@
         "tests/tooling/adr0162-wi4-ac3-auditor.test.ts": "18719d4418ea6cf976011737ce20d25f8074694c"
       }
     },
+    "ADR0164-WI1-1": {
+      "id": "ADR0164-WI1-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T15:44:19.975Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-input.test.ts\",\"ADR0164-WI1 AC-1: the windows dispatch input\",\"I1 the inputs are exactly ref, version, mode and windows\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-input.test.ts",
+            "line": 56
+          },
+          "message": "AssertionError: expected Set{ 'ref', 'version', 'mode' } to deeply equal Set{ 'ref', 'version', 'mode', …(1) }"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-input.test.ts\",\"ADR0164-WI1 AC-1: the windows dispatch input\",\"I2 windows is a boolean defaulting to true, not required, described with ADR-0164\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-input.test.ts",
+            "line": 61
+          },
+          "message": "AssertionError: expected null not to be null"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-input.test.ts\",\"ADR0164-WI1 AC-1: the windows dispatch input\",\"I3′ the raw lines are the unquoted literals `type: boolean` and `default: true`\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-input.test.ts",
+            "line": 69
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0164-WI1-1/20261101T154419975Z/tests",
+        "tree": "b4577988b95cb5b1a148c39e8fae0282830b3881"
+      },
+      "spec_blobs": {
+        "tests/tooling/release-workflow-windows-input.test.ts": "cba2d98ac7f45ece014b0a51341b11cec44a3ca4"
+      },
+      "settled_blobs": {
+        "tests/tooling/release-workflow-windows-input.test.ts": "cba2d98ac7f45ece014b0a51341b11cec44a3ca4"
+      }
+    },
     "D336-FIX1-RACE-DIALOG": {
       "id": "D336-FIX1-RACE-DIALOG",
       "lane": "unit-red",
@@ -2319,6 +2370,138 @@
       },
       "settled_blobs": {
         "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
+      }
+    },
+    "D345-S1b": {
+      "id": "D345-S1b",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:22:57.291Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D1 carries the decoded log and the status when stderr is empty, as CI's scheduler-start timeout was\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 130
+          },
+          "message": "AssertionError: expected '' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S1b/20261101T042257291Z/tests",
+        "tree": "0c5ed54126afee8b405ba0bd404b8608b86aafbc"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
+      }
+    },
+    "D345-S2": {
+      "id": "D345-S2",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:23:43.870Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D2 keeps stderr when the run wrote one\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 136
+          },
+          "message": "AssertionError: expected 'status 1' to contain 'pwsh: boom'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S2/20261101T042343870Z/tests",
+        "tree": "85b6cb5c9ba01281235fe9c1e8046bf1a22e5a56"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
+      }
+    },
+    "D345-S3": {
+      "id": "D345-S3",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:24:31.174Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D3 says there was no output when a killed run printed nothing\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 143
+          },
+          "message": "AssertionError: expected 'status null' to contain 'no output'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S3/20261101T042431174Z/tests",
+        "tree": "bbc765f6d51bdb188cfd6c9e16d40a0364009379"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
+      }
+    },
+    "D345-S4": {
+      "id": "D345-S4",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:25:58.699Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"N1 — the PowerShell side reports failure\",\"P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 137
+          },
+          "message": "AssertionError: expected '1793507164502' to be '1793507179502' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S4/20261101T042558699Z/tests",
+        "tree": "aeb2aa062caf850c000cdf40419be128db546e3e"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
       }
     },
     "T566-1": {
@@ -2867,40 +3050,6 @@
       },
       "settled_blobs": {
         "tests/tooling/t566-fix2-ci-shape.test.ts": "c37b5d19b4ca28ae9313aeff5f5c187cd5318974"
-      }
-    },
-    "TDDG-FIX1-PROMPT": {
-      "id": "TDDG-FIX1-PROMPT",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T00:27:05.519Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "VITEST_MAX_WORKERS": "2",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/mdpro-delegator-listener.test.ts",
-            "line": 105
-          },
-          "message": "AssertionError: expected 'herdr-delegator: read /var/folders/yc…' to be 'herdr-delegator: read /var/folders/yc…' // Object.is equality"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/TDDG-FIX1-PROMPT/20261031T002705519Z/tests",
-        "tree": "99a6dd39d220edd79e8868db928c2f7c309d0055"
-      },
-      "spec_blobs": {
-        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
-      },
-      "settled_blobs": {
-        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
       }
     },
     "T567-S1": {
@@ -3926,336 +4075,6 @@
         "tests/tooling/t567-mattpocock-version.test.ts": "3c2a81510d3d7cd727bddc9a36dca7e011885771"
       }
     },
-    "T567-S4": {
-      "id": "T567-S4",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:42:38.764Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"points at rule 10 for the receipt CLI\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 53
-          },
-          "message": "AssertionError: expected [ …(2) ] to deeply equal []"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S4/20261031T144238764Z/tests",
-        "tree": "5e68a457e11f2e11f62d7983b8124bba68ce0cbf"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
-      }
-    },
-    "T567-S5": {
-      "id": "T567-S5",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:43:29.962Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names its matrix template, which exists as a file of the skill\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 81
-          },
-          "message": "AssertionError: expected { named: false, present: false } to deeply equal { named: true, present: true }"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S5/20261031T144329962Z/tests",
-        "tree": "3b947e074cdb48cf03bc6eecdfb723cd70047fec"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
-      }
-    },
-    "T567-S6": {
-      "id": "T567-S6",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:43:57.263Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"gives the template every case class, an assertion and a test file column, and an effect-not-boolean assertion\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 94
-          },
-          "message": "AssertionError: expected { classes: [ 'success', …(5) ], …(2) } to deeply equal { Object (classes, columns, ...) }"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S6/20261031T144357263Z/tests",
-        "tree": "b5fe6d7ed8e991e90d05b5877e7b1b91604f240b"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
-      }
-    },
-    "T567-S7": {
-      "id": "T567-S7",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:44:37.027Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"tells the implementor which case classes a matrix covers and what a case asserts\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 98
-          },
-          "message": "AssertionError: expected [ 'success', 'boundary', …(6) ] to deeply equal []"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S7/20261031T144437027Z/tests",
-        "tree": "c2794c0e63d53d05e69b741275aa2565a665376e"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
-      }
-    },
-    "T567-S8": {
-      "id": "T567-S8",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:45:07.685Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names the attack prompt at its current path, which exists\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 103
-          },
-          "message": "AssertionError: expected { named: false, present: true } to deeply equal { named: true, present: true }"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S8/20261031T144507685Z/tests",
-        "tree": "6d5d8adcba6be7ba24a54a5abd3cbe37d40c9e99"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
-      }
-    },
-    "T567-S9": {
-      "id": "T567-S9",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:45:41.991Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"says who attacks the matrix on each runtime and what the attacker is given\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 130
-          },
-          "message": "AssertionError: expected [ 'fresh', 'never a fork', …(5) ] to deeply equal []"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S9/20261031T144541991Z/tests",
-        "tree": "2f7d461debf7b987ac7f74beded891e9fb79edaa"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
-      }
-    },
-    "D345-S1b": {
-      "id": "D345-S1b",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:22:57.291Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D1 carries the decoded log and the status when stderr is empty, as CI's scheduler-start timeout was\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 130
-          },
-          "message": "AssertionError: expected '' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S1b/20261101T042257291Z/tests",
-        "tree": "0c5ed54126afee8b405ba0bd404b8608b86aafbc"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
-      }
-    },
-    "D345-S2": {
-      "id": "D345-S2",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:23:43.870Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D2 keeps stderr when the run wrote one\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 136
-          },
-          "message": "AssertionError: expected 'status 1' to contain 'pwsh: boom'"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S2/20261101T042343870Z/tests",
-        "tree": "85b6cb5c9ba01281235fe9c1e8046bf1a22e5a56"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
-      }
-    },
-    "D345-S3": {
-      "id": "D345-S3",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:24:31.174Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D3 says there was no output when a killed run printed nothing\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 143
-          },
-          "message": "AssertionError: expected 'status null' to contain 'no output'"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S3/20261101T042431174Z/tests",
-        "tree": "bbc765f6d51bdb188cfd6c9e16d40a0364009379"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
-      }
-    },
-    "D345-S4": {
-      "id": "D345-S4",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:25:58.699Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"N1 — the PowerShell side reports failure\",\"P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 137
-          },
-          "message": "AssertionError: expected '1793507164502' to be '1793507179502' // Object.is equality"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S4/20261101T042558699Z/tests",
-        "tree": "aeb2aa062caf850c000cdf40419be128db546e3e"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
-      }
-    },
     "T567-S38": {
       "id": "T567-S38",
       "lane": "unit-red",
@@ -4320,6 +4139,39 @@
       },
       "settled_blobs": {
         "tests/tooling/t567-receipt-wrapper.test.ts": "eb62c1a2c7ddc67a63347e86c8631ef85f80293e"
+      }
+    },
+    "T567-S4": {
+      "id": "T567-S4",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:42:38.764Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"points at rule 10 for the receipt CLI\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 53
+          },
+          "message": "AssertionError: expected [ …(2) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S4/20261031T144238764Z/tests",
+        "tree": "5e68a457e11f2e11f62d7983b8124bba68ce0cbf"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
       }
     },
     "T567-S40": {
@@ -4652,6 +4504,39 @@
         "tests/tooling/t567-receipt-wrapper.test.ts": "c820554556fecf4143af8ac9992f06a2e8cc7d9a"
       }
     },
+    "T567-S5": {
+      "id": "T567-S5",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:43:29.962Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names its matrix template, which exists as a file of the skill\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 81
+          },
+          "message": "AssertionError: expected { named: false, present: false } to deeply equal { named: true, present: true }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S5/20261031T144329962Z/tests",
+        "tree": "3b947e074cdb48cf03bc6eecdfb723cd70047fec"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
+      }
+    },
     "T567-S50": {
       "id": "T567-S50",
       "lane": "unit-red",
@@ -4848,6 +4733,172 @@
       },
       "settled_blobs": {
         "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
+      }
+    },
+    "T567-S6": {
+      "id": "T567-S6",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:43:57.263Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"gives the template every case class, an assertion and a test file column, and an effect-not-boolean assertion\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 94
+          },
+          "message": "AssertionError: expected { classes: [ 'success', …(5) ], …(2) } to deeply equal { Object (classes, columns, ...) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S6/20261031T144357263Z/tests",
+        "tree": "b5fe6d7ed8e991e90d05b5877e7b1b91604f240b"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
+      }
+    },
+    "T567-S7": {
+      "id": "T567-S7",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:44:37.027Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"tells the implementor which case classes a matrix covers and what a case asserts\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 98
+          },
+          "message": "AssertionError: expected [ 'success', 'boundary', …(6) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S7/20261031T144437027Z/tests",
+        "tree": "c2794c0e63d53d05e69b741275aa2565a665376e"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
+      }
+    },
+    "T567-S8": {
+      "id": "T567-S8",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:45:07.685Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names the attack prompt at its current path, which exists\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 103
+          },
+          "message": "AssertionError: expected { named: false, present: true } to deeply equal { named: true, present: true }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S8/20261031T144507685Z/tests",
+        "tree": "6d5d8adcba6be7ba24a54a5abd3cbe37d40c9e99"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
+      }
+    },
+    "T567-S9": {
+      "id": "T567-S9",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:45:41.991Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"says who attacks the matrix on each runtime and what the attacker is given\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 130
+          },
+          "message": "AssertionError: expected [ 'fresh', 'never a fork', …(5) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S9/20261031T144541991Z/tests",
+        "tree": "2f7d461debf7b987ac7f74beded891e9fb79edaa"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
+      }
+    },
+    "TDDG-FIX1-PROMPT": {
+      "id": "TDDG-FIX1-PROMPT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T00:27:05.519Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/mdpro-delegator-listener.test.ts",
+            "line": 105
+          },
+          "message": "AssertionError: expected 'herdr-delegator: read /var/folders/yc…' to be 'herdr-delegator: read /var/folders/yc…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/TDDG-FIX1-PROMPT/20261031T002705519Z/tests",
+        "tree": "99a6dd39d220edd79e8868db928c2f7c309d0055"
+      },
+      "spec_blobs": {
+        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
+      },
+      "settled_blobs": {
+        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
       }
     }
   }
