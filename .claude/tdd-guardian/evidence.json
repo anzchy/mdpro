@@ -2321,6 +2321,666 @@
         "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
       }
     },
+    "D344-1": {
+      "id": "D344-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:53:00.289Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"does not bypass changed manifest binary hash after a successful load\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 78
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"does not bypass changed manifest source hash after a successful load\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 78
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"loads the actual EXE silently and exposes its public type in a fresh session\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 12
+          },
+          "message": "AssertionError: expected 'Cannot add type. The \".EXE\" extension…' to be null"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"preserves a real assembly failure when the corrupt binary matches its manifest\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 44
+          },
+          "message": "AssertionError: expected 'Cannot add type. The \".EXE\" extension…' to match /LoadFrom/"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"revalidates actual binary bytes after repeated successful loads\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 60
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"revalidates actual source bytes after repeated successful loads\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
+            "line": 60
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D344-1/20261031T165300289Z/tests",
+        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d344-loader.test.ts": "2a3781b53a57d3ee35139f0054456a102765a1db"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d344-loader.test.ts": "2a3781b53a57d3ee35139f0054456a102765a1db"
+      }
+    },
+    "D344-2": {
+      "id": "D344-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:53:38.552Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-policy.test.ts\",\"D344 unsupported EXE Add-Type guard\",\"scans every Windows PowerShell script, including variable paths\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-policy.test.ts",
+            "line": 17
+          },
+          "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D344-2/20261031T165338552Z/tests",
+        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d344-policy.test.ts": "10e105ab1bcc3d3ed691e04c3f90d08423146a7a"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d344-policy.test.ts": "10e105ab1bcc3d3ed691e04c3f90d08423146a7a"
+      }
+    },
+    "D344-3": {
+      "id": "D344-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T16:53:53.766Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"allows only setup reads and metadata operations in the complete transitive probe source\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 49
+          },
+          "message": "AssertionError: expected '' not to be '' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"keeps a matching-hash assembly error distinct from hash and JSON refusal\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to match /^FAIL bootstrap-load .*LoadFrom/"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"loads, resolves and validates the fixed smoke steps without file changes on repeat\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 13
+          },
+          "message": "AssertionError: expected [ 'FAIL probe-missing' ] to deeply equal [ 'OK bootstrap-load', …(2) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports binary without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports missing-binary without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports missing-manifest without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports source without false dependent success or repair\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D344-3/20261031T165353766Z/tests",
+        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d344-probe.test.ts": "b55275699761ff0861fe5adf7c47f90116a5b7f1"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d344-probe.test.ts": "b55275699761ff0861fe5adf7c47f90116a5b7f1"
+      }
+    },
+    "D345-S1b": {
+      "id": "D345-S1b",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:22:57.291Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D1 carries the decoded log and the status when stderr is empty, as CI's scheduler-start timeout was\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 130
+          },
+          "message": "AssertionError: expected '' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S1b/20261101T042257291Z/tests",
+        "tree": "0c5ed54126afee8b405ba0bd404b8608b86aafbc"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
+      }
+    },
+    "D345-S2": {
+      "id": "D345-S2",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:23:43.870Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D2 keeps stderr when the run wrote one\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 136
+          },
+          "message": "AssertionError: expected 'status 1' to contain 'pwsh: boom'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S2/20261101T042343870Z/tests",
+        "tree": "85b6cb5c9ba01281235fe9c1e8046bf1a22e5a56"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
+      }
+    },
+    "D345-S3": {
+      "id": "D345-S3",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:24:31.174Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D3 says there was no output when a killed run printed nothing\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 143
+          },
+          "message": "AssertionError: expected 'status null' to contain 'no output'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S3/20261101T042431174Z/tests",
+        "tree": "bbc765f6d51bdb188cfd6c9e16d40a0364009379"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
+      }
+    },
+    "D345-S4": {
+      "id": "D345-S4",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:25:58.699Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"N1 — the PowerShell side reports failure\",\"P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+            "line": 137
+          },
+          "message": "AssertionError: expected '1793507164502' to be '1793507179502' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D345-S4/20261101T042558699Z/tests",
+        "tree": "aeb2aa062caf850c000cdf40419be128db546e3e"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
+      }
+    },
+    "D346-F14-1": {
+      "id": "D346-F14-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T10:31:31.371Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-1 launches rooted runas with spaces and names its absence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 68
+          },
+          "message": "AssertionError: OK job-created\nFAIL restricted-open The system cannot find the file specified\nOK cleanup\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after launch-failed\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after success\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after timeout\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after unrestricted\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-3 prints only allowlisted reply fields on invalid reply\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 101
+          },
+          "message": "AssertionError: expected [] to deeply equal [ Array(8) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"accepts only a restricted same-user exact-job open and cleans its resources\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 13
+          },
+          "message": "AssertionError: OK job-created\nFAIL restricted-open The system cannot find the file specified\nOK cleanup\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"keeps all active effects within the named job, child and temporary reply\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 51
+          },
+          "message": "AssertionError: expected 'OK job-created\\nFAIL restricted-open …' to match /^OK restricted-open\\b/m"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses admin-enabled without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses denied without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses invalid-pid without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses launcher-only without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses malformed without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses missing without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses missing-birth without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses timeout without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses truthy-opened without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses truthy-restricted without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses unrestricted without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses wrong-job without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses wrong-nonce without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses wrong-user without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [] to deeply equal [ false ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-F14-1/20261101T103131371Z/tests",
+        "tree": "9ab541754f0e2dfd3a6021489a7bb917c15d1acd"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "8cecbe24c86f27cc1734d742e97bde5a07af254e"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "8cecbe24c86f27cc1734d742e97bde5a07af254e"
+      }
+    },
+    "D346-F14-2": {
+      "id": "D346-F14-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T10:32:06.988Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after launch-failed\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '\"\\\"/opt/homebrew/Cellar/powershell/7.…' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after success\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '\"\\\"/opt/homebrew/Cellar/powershell/7.…' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after timeout\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '\"\\\"/opt/homebrew/Cellar/powershell/7.…' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-2 bounds File launch and removes the script after unrestricted\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 84
+          },
+          "message": "AssertionError: expected '\"\\\"/opt/homebrew/Cellar/powershell/7.…' to contain '-File '"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-3 prints only allowlisted reply fields on invalid reply\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 100
+          },
+          "message": "AssertionError: expected null to deeply equal { …(8) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-F14-2/20261101T103206988Z/tests",
+        "tree": "9ab541754f0e2dfd3a6021489a7bb917c15d1acd"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "8cecbe24c86f27cc1734d742e97bde5a07af254e"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "8cecbe24c86f27cc1734d742e97bde5a07af254e"
+      }
+    },
+    "D346-F14-3": {
+      "id": "D346-F14-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T10:32:50.927Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 ruling14 regressions (enumerate)\",\"F14-3 prints only allowlisted reply fields on invalid reply\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 100
+          },
+          "message": "AssertionError: expected null to deeply equal { …(8) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-F14-3/20261101T103250927Z/tests",
+        "tree": "9ab541754f0e2dfd3a6021489a7bb917c15d1acd"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "8cecbe24c86f27cc1734d742e97bde5a07af254e"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "8cecbe24c86f27cc1734d742e97bde5a07af254e"
+      }
+    },
     "T566-1": {
       "id": "T566-1",
       "lane": "unit-red",
@@ -2867,40 +3527,6 @@
       },
       "settled_blobs": {
         "tests/tooling/t566-fix2-ci-shape.test.ts": "c37b5d19b4ca28ae9313aeff5f5c187cd5318974"
-      }
-    },
-    "TDDG-FIX1-PROMPT": {
-      "id": "TDDG-FIX1-PROMPT",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T00:27:05.519Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "VITEST_MAX_WORKERS": "2",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/mdpro-delegator-listener.test.ts",
-            "line": 105
-          },
-          "message": "AssertionError: expected 'herdr-delegator: read /var/folders/yc…' to be 'herdr-delegator: read /var/folders/yc…' // Object.is equality"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/TDDG-FIX1-PROMPT/20261031T002705519Z/tests",
-        "tree": "99a6dd39d220edd79e8868db928c2f7c309d0055"
-      },
-      "spec_blobs": {
-        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
-      },
-      "settled_blobs": {
-        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
       }
     },
     "T567-S1": {
@@ -3926,336 +4552,6 @@
         "tests/tooling/t567-mattpocock-version.test.ts": "3c2a81510d3d7cd727bddc9a36dca7e011885771"
       }
     },
-    "T567-S4": {
-      "id": "T567-S4",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:42:38.764Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"points at rule 10 for the receipt CLI\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 53
-          },
-          "message": "AssertionError: expected [ …(2) ] to deeply equal []"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S4/20261031T144238764Z/tests",
-        "tree": "5e68a457e11f2e11f62d7983b8124bba68ce0cbf"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
-      }
-    },
-    "T567-S5": {
-      "id": "T567-S5",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:43:29.962Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names its matrix template, which exists as a file of the skill\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 81
-          },
-          "message": "AssertionError: expected { named: false, present: false } to deeply equal { named: true, present: true }"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S5/20261031T144329962Z/tests",
-        "tree": "3b947e074cdb48cf03bc6eecdfb723cd70047fec"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
-      }
-    },
-    "T567-S6": {
-      "id": "T567-S6",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:43:57.263Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"gives the template every case class, an assertion and a test file column, and an effect-not-boolean assertion\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 94
-          },
-          "message": "AssertionError: expected { classes: [ 'success', …(5) ], …(2) } to deeply equal { Object (classes, columns, ...) }"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S6/20261031T144357263Z/tests",
-        "tree": "b5fe6d7ed8e991e90d05b5877e7b1b91604f240b"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
-      }
-    },
-    "T567-S7": {
-      "id": "T567-S7",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:44:37.027Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"tells the implementor which case classes a matrix covers and what a case asserts\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 98
-          },
-          "message": "AssertionError: expected [ 'success', 'boundary', …(6) ] to deeply equal []"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S7/20261031T144437027Z/tests",
-        "tree": "c2794c0e63d53d05e69b741275aa2565a665376e"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
-      }
-    },
-    "T567-S8": {
-      "id": "T567-S8",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:45:07.685Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names the attack prompt at its current path, which exists\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 103
-          },
-          "message": "AssertionError: expected { named: false, present: true } to deeply equal { named: true, present: true }"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S8/20261031T144507685Z/tests",
-        "tree": "6d5d8adcba6be7ba24a54a5abd3cbe37d40c9e99"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
-      }
-    },
-    "T567-S9": {
-      "id": "T567-S9",
-      "lane": "unit-red",
-      "recorded_at": "2026-10-31T14:45:41.991Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"says who attacks the matrix on each runtime and what the attacker is given\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/t567-skill-contract.test.ts",
-            "line": 130
-          },
-          "message": "AssertionError: expected [ 'fresh', 'never a fork', …(5) ] to deeply equal []"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/T567-S9/20261031T144541991Z/tests",
-        "tree": "2f7d461debf7b987ac7f74beded891e9fb79edaa"
-      },
-      "spec_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
-      },
-      "settled_blobs": {
-        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
-      }
-    },
-    "D345-S1b": {
-      "id": "D345-S1b",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:22:57.291Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D1 carries the decoded log and the status when stderr is empty, as CI's scheduler-start timeout was\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 130
-          },
-          "message": "AssertionError: expected '' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S1b/20261101T042257291Z/tests",
-        "tree": "0c5ed54126afee8b405ba0bd404b8608b86aafbc"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
-      }
-    },
-    "D345-S2": {
-      "id": "D345-S2",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:23:43.870Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D2 keeps stderr when the run wrote one\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 136
-          },
-          "message": "AssertionError: expected 'status 1' to contain 'pwsh: boom'"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S2/20261101T042343870Z/tests",
-        "tree": "85b6cb5c9ba01281235fe9c1e8046bf1a22e5a56"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
-      }
-    },
-    "D345-S3": {
-      "id": "D345-S3",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:24:31.174Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D3 says there was no output when a killed run printed nothing\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 143
-          },
-          "message": "AssertionError: expected 'status null' to contain 'no output'"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S3/20261101T042431174Z/tests",
-        "tree": "bbc765f6d51bdb188cfd6c9e16d40a0364009379"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
-      }
-    },
-    "D345-S4": {
-      "id": "D345-S4",
-      "lane": "unit-red",
-      "recorded_at": "2026-11-01T04:25:58.699Z",
-      "plugin_version": "0.10.2",
-      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
-      "env": {
-        "LANG": "C.UTF-8",
-        "node": "v22.22.3",
-        "platform": "darwin"
-      },
-      "failures": [
-        {
-          "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"N1 — the PowerShell side reports failure\",\"P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-exit-codes.test.ts",
-            "line": 137
-          },
-          "message": "AssertionError: expected '1793507164502' to be '1793507179502' // Object.is equality"
-        }
-      ],
-      "tests_tree": {
-        "ref": "refs/receipts/D345-S4/20261101T042558699Z/tests",
-        "tree": "aeb2aa062caf850c000cdf40419be128db546e3e"
-      },
-      "spec_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
-      },
-      "settled_blobs": {
-        "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
-      }
-    },
     "T567-S38": {
       "id": "T567-S38",
       "lane": "unit-red",
@@ -4320,6 +4616,39 @@
       },
       "settled_blobs": {
         "tests/tooling/t567-receipt-wrapper.test.ts": "eb62c1a2c7ddc67a63347e86c8631ef85f80293e"
+      }
+    },
+    "T567-S4": {
+      "id": "T567-S4",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:42:38.764Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"points at rule 10 for the receipt CLI\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 53
+          },
+          "message": "AssertionError: expected [ …(2) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S4/20261031T144238764Z/tests",
+        "tree": "5e68a457e11f2e11f62d7983b8124bba68ce0cbf"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
       }
     },
     "T567-S40": {
@@ -4652,6 +4981,39 @@
         "tests/tooling/t567-receipt-wrapper.test.ts": "c820554556fecf4143af8ac9992f06a2e8cc7d9a"
       }
     },
+    "T567-S5": {
+      "id": "T567-S5",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:43:29.962Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names its matrix template, which exists as a file of the skill\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 81
+          },
+          "message": "AssertionError: expected { named: false, present: false } to deeply equal { named: true, present: true }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S5/20261031T144329962Z/tests",
+        "tree": "3b947e074cdb48cf03bc6eecdfb723cd70047fec"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
+      }
+    },
     "T567-S50": {
       "id": "T567-S50",
       "lane": "unit-red",
@@ -4850,123 +5212,142 @@
         "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
       }
     },
-    "D344-1": {
-      "id": "D344-1",
+    "T567-S6": {
+      "id": "T567-S6",
       "lane": "unit-red",
-      "recorded_at": "2026-10-31T16:53:00.289Z",
+      "recorded_at": "2026-10-31T14:43:57.263Z",
       "plugin_version": "0.10.2",
       "lane_command": "node scripts/tdd/unit-red-lane.mjs",
       "env": {
         "LANG": "C.UTF-8",
-        "VITEST_MAX_WORKERS": "2",
         "node": "v22.22.3",
         "platform": "darwin"
       },
       "failures": [
         {
-          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"does not bypass changed manifest binary hash after a successful load\"]",
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"gives the template every case class, an assertion and a test file column, and an effect-not-boolean assertion\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
-            "line": 78
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 94
           },
-          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
-        },
-        {
-          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"does not bypass changed manifest source hash after a successful load\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
-            "line": 78
-          },
-          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
-        },
-        {
-          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"loads the actual EXE silently and exposes its public type in a fresh session\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
-            "line": 12
-          },
-          "message": "AssertionError: expected 'Cannot add type. The \".EXE\" extension…' to be null"
-        },
-        {
-          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"preserves a real assembly failure when the corrupt binary matches its manifest\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
-            "line": 44
-          },
-          "message": "AssertionError: expected 'Cannot add type. The \".EXE\" extension…' to match /LoadFrom/"
-        },
-        {
-          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"revalidates actual binary bytes after repeated successful loads\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
-            "line": 60
-          },
-          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
-        },
-        {
-          "id": "[\"tests/tooling/windows-driver-d344-loader.test.ts\",\"D344 hash-bound precompiled assembly loader\",\"revalidates actual source bytes after repeated successful loads\"]",
-          "kind": "assertion",
-          "location": {
-            "file": "tests/tooling/windows-driver-d344-loader.test.ts",
-            "line": 60
-          },
-          "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(3) ]"
+          "message": "AssertionError: expected { classes: [ 'success', …(5) ], …(2) } to deeply equal { Object (classes, columns, ...) }"
         }
       ],
       "tests_tree": {
-        "ref": "refs/receipts/D344-1/20261031T165300289Z/tests",
-        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+        "ref": "refs/receipts/T567-S6/20261031T144357263Z/tests",
+        "tree": "b5fe6d7ed8e991e90d05b5877e7b1b91604f240b"
       },
       "spec_blobs": {
-        "tests/tooling/windows-driver-d344-loader.test.ts": "2a3781b53a57d3ee35139f0054456a102765a1db"
+        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
       },
       "settled_blobs": {
-        "tests/tooling/windows-driver-d344-loader.test.ts": "2a3781b53a57d3ee35139f0054456a102765a1db"
+        "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
       }
     },
-    "D344-2": {
-      "id": "D344-2",
+    "T567-S7": {
+      "id": "T567-S7",
       "lane": "unit-red",
-      "recorded_at": "2026-10-31T16:53:38.552Z",
+      "recorded_at": "2026-10-31T14:44:37.027Z",
       "plugin_version": "0.10.2",
       "lane_command": "node scripts/tdd/unit-red-lane.mjs",
       "env": {
         "LANG": "C.UTF-8",
-        "VITEST_MAX_WORKERS": "2",
         "node": "v22.22.3",
         "platform": "darwin"
       },
       "failures": [
         {
-          "id": "[\"tests/tooling/windows-driver-d344-policy.test.ts\",\"D344 unsupported EXE Add-Type guard\",\"scans every Windows PowerShell script, including variable paths\"]",
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"tells the implementor which case classes a matrix covers and what a case asserts\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-policy.test.ts",
-            "line": 17
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 98
           },
-          "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+          "message": "AssertionError: expected [ 'success', 'boundary', …(6) ] to deeply equal []"
         }
       ],
       "tests_tree": {
-        "ref": "refs/receipts/D344-2/20261031T165338552Z/tests",
-        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+        "ref": "refs/receipts/T567-S7/20261031T144437027Z/tests",
+        "tree": "c2794c0e63d53d05e69b741275aa2565a665376e"
       },
       "spec_blobs": {
-        "tests/tooling/windows-driver-d344-policy.test.ts": "10e105ab1bcc3d3ed691e04c3f90d08423146a7a"
+        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
       },
       "settled_blobs": {
-        "tests/tooling/windows-driver-d344-policy.test.ts": "10e105ab1bcc3d3ed691e04c3f90d08423146a7a"
+        "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
       }
     },
-    "D344-3": {
-      "id": "D344-3",
+    "T567-S8": {
+      "id": "T567-S8",
       "lane": "unit-red",
-      "recorded_at": "2026-10-31T16:53:53.766Z",
+      "recorded_at": "2026-10-31T14:45:07.685Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names the attack prompt at its current path, which exists\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 103
+          },
+          "message": "AssertionError: expected { named: false, present: true } to deeply equal { named: true, present: true }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S8/20261031T144507685Z/tests",
+        "tree": "6d5d8adcba6be7ba24a54a5abd3cbe37d40c9e99"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "df65a39f788b65ecb5ff06844e726e76a2ac5f3a"
+      }
+    },
+    "T567-S9": {
+      "id": "T567-S9",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T14:45:41.991Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"says who attacks the matrix on each runtime and what the attacker is given\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-skill-contract.test.ts",
+            "line": 130
+          },
+          "message": "AssertionError: expected [ 'fresh', 'never a fork', …(5) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S9/20261031T144541991Z/tests",
+        "tree": "2f7d461debf7b987ac7f74beded891e9fb79edaa"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
+      }
+    },
+    "TDDG-FIX1-PROMPT": {
+      "id": "TDDG-FIX1-PROMPT",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T00:27:05.519Z",
       "plugin_version": "0.10.2",
       "lane_command": "node scripts/tdd/unit-red-lane.mjs",
       "env": {
@@ -4977,78 +5358,1304 @@
       },
       "failures": [
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"allows only setup reads and metadata operations in the complete transitive probe source\"]",
+          "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
-            "line": 49
+            "file": "tests/tooling/mdpro-delegator-listener.test.ts",
+            "line": 105
           },
-          "message": "AssertionError: expected '' not to be '' // Object.is equality"
+          "message": "AssertionError: expected 'herdr-delegator: read /var/folders/yc…' to be 'herdr-delegator: read /var/folders/yc…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/TDDG-FIX1-PROMPT/20261031T002705519Z/tests",
+        "tree": "99a6dd39d220edd79e8868db928c2f7c309d0055"
+      },
+      "spec_blobs": {
+        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
+      },
+      "settled_blobs": {
+        "tests/tooling/mdpro-delegator-listener.test.ts": "6ca237b021a947d6efd63a0de08c569352ebe351"
+      }
+    },
+    "D342-1": {
+      "id": "D342-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:44:09.239Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"accepts the real direct default argument line past validation\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: real-defaults: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"op\":\"\",\"heldInput\":\"released\",\"elapsedMs\":10,\"inputOutcome\":\"none\",\"runId\":\"dddddddddddddddddddddddddddddddd\",\"status\":\"failed\",\"cleanup\":\"not-started\",\"completedSteps\":0,\"phase\":\"setup: UI_BUDGET_INVALID\",\"step\":0}: expected 2 to be 1 // Object.is equality"
         },
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"keeps a matching-hash assembly error distinct from hash and JSON refusal\"]",
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"caps deadlines numerically even when their digit count differs from this clock\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
-            "line": 39
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
           },
-          "message": "AssertionError: expected 'FAIL probe-missing' to match /^FAIL bootstrap-load .*LoadFrom/"
+          "message": "AssertionError: past 12-digit deadline: ERROR UI: NATIVE_RECONCILIATION_REQUIRED OUTCOME {\"step\":0,\"cleanup\":\"not-started\",\"runId\":\"dddddddddddddddddddddddddddddddd\",\"elapsedMs\":1,\"op\":\"\",\"status\":\"failed\",\"phase\":\"setup: NATIVE_RECONCILIATION_REQUIRED\",\"heldInput\":\"released\",\"inputOutcome\":\"none\",\"completedSteps\":0}: expected 1 to be 2 // Object.is equality"
         },
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"loads, resolves and validates the fixed smoke steps without file changes on repeat\"]",
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"completes the real supervisor path and carries default PollMs 25 into its worker\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 102
+          },
+          "message": "AssertionError: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"phase\":\"setup: UI_BUDGET_INVALID\",\"status\":\"failed\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"elapsedMs\":83,\"op\":\"\",\"step\":0,\"inputOutcome\":\"none\",\"cleanup\":\"not-started\",\"completedSteps\":0,\"heldInput\":\"released\"}: expected 2 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"isolates each numeric range, including values whose text order disagrees\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: PollMs=2: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"phase\":\"setup: UI_BUDGET_INVALID\",\"cleanup\":\"not-started\",\"status\":\"failed\",\"inputOutcome\":\"none\",\"elapsedMs\":0,\"runId\":\"dddddddddddddddddddddddddddddddd\",\"step\":0,\"op\":\"\",\"heldInput\":\"released\",\"completedSteps\":0}: expected 2 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-budget-types.test.ts\",\"D342 native integer budgets use numeric order\",\"preserves classification under legal zero-prefixed decimal representations\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-budget-types.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: PollMs=2: ERROR UI: UI_BUDGET_INVALID OUTCOME {\"runId\":\"dddddddddddddddddddddddddddddddd\",\"phase\":\"setup: UI_BUDGET_INVALID\",\"op\":\"\",\"status\":\"failed\",\"cleanup\":\"not-started\",\"step\":0,\"inputOutcome\":\"none\",\"completedSteps\":0,\"elapsedMs\":0,\"heldInput\":\"released\"}: expected 2 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D342-1/20261031T094409239Z/tests",
+        "tree": "ec652ba64df6479bfaa71109d907dee1689e5346"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d342-budget-types.test.ts": "77ad179822e267f98086489403ee0a93bf6320d9"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d342-budget-types.test.ts": "77ad179822e267f98086489403ee0a93bf6320d9"
+      }
+    },
+    "D342-2": {
+      "id": "D342-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:44:17.307Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts\",\"D342 reconcile preserves numeric budgets through the real supervisor boundary\",\"retains PhaseMs and PollMs 25 as numeric state while moving the exact latch bytes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts",
+            "line": 21
+          },
+          "message": "AssertionError: expected { phaseType: 'System.String', …(3) } to deeply equal { phase: 5000, poll: 25, …(2) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D342-2/20261031T094417307Z/tests",
+        "tree": "ec652ba64df6479bfaa71109d907dee1689e5346"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts": "5b41d1af08e964930101275f1a89d30e00a6d82a"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d342-reconcile-budget-types.test.ts": "5b41d1af08e964930101275f1a89d30e00a6d82a"
+      }
+    },
+    "D342-3": {
+      "id": "D342-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-10-31T09:44:27.846Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d342-default-budget-contract.test.ts\",\"D342 real Mac defaults agree with real Windows entry validation\",\"feeds the actual default argument line through the real ui-run latch guard\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d342-default-budget-contract.test.ts",
+            "line": 37
+          },
+          "message": "AssertionError: ERROR UI: UI_BUDGET_INVALID\nOUTCOME {\"elapsedMs\":76,\"completedSteps\":0,\"runId\":\"7abb7d4c12454552ad0ae868d50aff2c\",\"status\":\"failed\",\"heldInput\":\"released\",\"inputOutcome\":\"none\",\"cleanup\":\"not-started\",\"phase\":\"setup: UI_BUDGET_INVALID\",\"step\":0,\"op\":\"\"}\n: expected 2 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D342-3/20261031T094427846Z/tests",
+        "tree": "ec652ba64df6479bfaa71109d907dee1689e5346"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d342-default-budget-contract.test.ts": "0e79212c97f6015772335ab41118e3aea239227d"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d342-default-budget-contract.test.ts": "0e79212c97f6015772335ab41118e3aea239227d"
+      }
+    },
+    "D346-1": {
+      "id": "D346-1",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T03:31:07.513Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-bootstrap.test.ts\",\"D346 bootstrap observations and named pre-input setup failure\",\"accepts producer four-argument vectors and keeps three-argument inspection (enumerate A6, ruling2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-bootstrap.test.ts",
+            "line": 72
+          },
+          "message": "AssertionError: expected null to be 'C:\\Audit Space\\runs\\aaaaaaaaaaaaaaaaa…' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-bootstrap.test.ts\",\"D346 bootstrap observations and named pre-input setup failure\",\"conserves each actual assembly-loop identity through Check-Probe twice (enumerate, B1)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-bootstrap.test.ts",
+            "line": 30
+          },
+          "message": "AssertionError: expected [ 'assembly:UIAutomationClient', …(7) ] to deeply equal [ 'UIAutomationClient', …(7) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"accepts only a restricted same-user exact-job open and cleans its resources\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
             "line": 13
           },
-          "message": "AssertionError: expected [ 'FAIL probe-missing' ] to deeply equal [ 'OK bootstrap-load', …(2) ]"
+          "message": "AssertionError: expected '' to match /^OK restricted-open\\b/m"
         },
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports binary without false dependent success or repair\"]",
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"keeps all active effects within the named job, child and temporary reply\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
-            "line": 26
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 50
           },
-          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+          "message": "AssertionError: expected '' to match /^OK restricted-open\\b/m"
         },
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports missing-binary without false dependent success or repair\"]",
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"names cleanup-failed and retains cleanup truth\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
-            "line": 26
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 39
           },
-          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
         },
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports missing-manifest without false dependent success or repair\"]",
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"names create-failed and retains cleanup truth\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
-            "line": 26
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 39
           },
-          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
         },
         {
-          "id": "[\"tests/tooling/windows-driver-d344-probe.test.ts\",\"D344 read-only setup probe\",\"reports source without false dependent success or repair\"]",
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"names launch-failed and retains cleanup truth\"]",
           "kind": "assertion",
           "location": {
-            "file": "tests/tooling/windows-driver-d344-probe.test.ts",
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses admin-enabled without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
             "line": 26
           },
-          "message": "AssertionError: expected 'FAIL probe-missing' to be 'FAIL bootstrap-load NATIVE_BOOTSTRAP_…' // Object.is equality"
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses denied without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses invalid-pid without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses launcher-only without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses malformed without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses missing without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses missing-birth without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses timeout without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses truthy-opened without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses truthy-restricted without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses unrestricted without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses wrong-job without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses wrong-nonce without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-cross-token.test.ts\",\"D346 separate filtered-token probe (enumerate A5, added by ruling2)\",\"refuses wrong-user without accepting launcher success as proof\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-cross-token.test.ts",
+            "line": 26
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A1 enumerate: same user keeps child containment when admin enabled=false\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 25
+          },
+          "message": "AssertionError: expected 2 to be 3 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A1 enumerate: same user keeps child containment when admin enabled=true\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 25
+          },
+          "message": "AssertionError: expected 2 to be 3 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A1 named: unrelated filtered user is denied before creating a descendant\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 38
+          },
+          "message": "AssertionError: expected { Object (rc, descriptor, ...) } to match object { rc: 65, pid: +0 }\n(3 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailAssign' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 65 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailExitCode' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 67 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailLaunch' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 66 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailMembership' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 66 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailOpen' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 65 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailResume' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 66 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: 'FailWait' preserves stage/launch truth and drains the exact child\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 54
+          },
+          "message": "AssertionError: expected 2 to be 67 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 0 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 2147483648 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 2147483648 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 3 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 3 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 3221225477 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 3221225477 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 3221225794 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 3221225794 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 4294967295 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 4294967295 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 65 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 65 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 66 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 66 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A2 enumerate: worker exit DWORD 67 passes through with launched evidence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 64
+          },
+          "message": "AssertionError: expected 2 to be 67 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A3 enumerate: log-unwritable fails specifically before launching\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 87
+          },
+          "message": "AssertionError: expected { Object (pid, rc, ...) } to match object { rc: 68, pid: +0 }\n(3 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A3 enumerate: other-run fails specifically before launching\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 87
+          },
+          "message": "AssertionError: expected { pid: +0, descriptor: '', …(3) } to match object { rc: 68, pid: +0 }\n(3 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A3 enumerate: traversal fails specifically before launching\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 87
+          },
+          "message": "AssertionError: expected { alive: false, pid: +0, …(3) } to match object { rc: 68, pid: +0 }\n(3 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 explicit user security and bootstrap evidence\",\"A3 named: spaces/CJK in the run root preserve log identity\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 75
+          },
+          "message": "AssertionError: expected 2 to be 3 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 pinned member exit observation\",\"C1/C2 enumerate: identity race exit=false wait=258 retains unresolved lifetimes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 132
+          },
+          "message": "AssertionError: expected { pid: 54724, birth: '', …(1) } to match object { birth: '', alive: true }\n(2 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 pinned member exit observation\",\"C1/C2 enumerate: identity race exit=false wait=4294967295 retains unresolved lifetimes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 132
+          },
+          "message": "AssertionError: expected { pid: 54905, birth: '', …(1) } to match object { birth: '', alive: true }\n(2 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 pinned member exit observation\",\"C1/C2 enumerate: identity race exit=true wait=+0 retains unresolved lifetimes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 128
+          },
+          "message": "AssertionError: expected { pid: 54504, birth: '', …(1) } to match object { exited: true, …(1) }\n(3 matching properties omitted from actual)"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-job.test.ts\",\"D346 pinned member exit observation\",\"C2 named: membership-query failure remains explicit instead of hiding a live member\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-job.test.ts",
+            "line": 146
+          },
+          "message": "AssertionError: expected [ { pid: 55136, birth: '', …(1) } ] to deeply equal [ ObjectContaining{…} ]"
         }
       ],
       "tests_tree": {
-        "ref": "refs/receipts/D344-3/20261031T165353766Z/tests",
-        "tree": "34d5ba9556c62412ba1f630e3583cc27fa162884"
+        "ref": "refs/receipts/D346-1/20261101T033107513Z/tests",
+        "tree": "d46ab82dd2c3562de64a3b4654afb24e5a192e6a"
       },
       "spec_blobs": {
-        "tests/tooling/windows-driver-d344-probe.test.ts": "b55275699761ff0861fe5adf7c47f90116a5b7f1"
+        "tests/tooling/windows-driver-d346-bootstrap.test.ts": "72a5980f7f7fee47438ac05a385317cd80658d2e",
+        "tests/tooling/windows-driver-d346-job.test.ts": "06c932d18283b6cd38e30418b31802165ae54ebe",
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "34a471ec143ac389dbdbd193315a5226f3cddc5a"
       },
       "settled_blobs": {
-        "tests/tooling/windows-driver-d344-probe.test.ts": "b55275699761ff0861fe5adf7c47f90116a5b7f1"
+        "tests/tooling/windows-driver-d346-bootstrap.test.ts": "938f5f3fe10cf0e85b296e491a4f3bb27bcc55b8",
+        "tests/tooling/windows-driver-d346-job.test.ts": "06c932d18283b6cd38e30418b31802165ae54ebe",
+        "tests/tooling/windows-driver-d346-cross-token.test.ts": "34a471ec143ac389dbdbd193315a5226f3cddc5a"
+      },
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/D346-1.json",
+        "digest": "17014e5e8767edc7184d07ad885fedb0b4ff682b85e26857eebcac5aca4a9e54",
+        "result": "failed",
+        "base": "fc61e93c768aa6d01936c08e07afd6a1e0f4945c",
+        "head": "35b015c7d682744fe5372237a8cb21af1b692e68"
+      }
+    },
+    "D346-2a": {
+      "id": "D346-2a",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T03:48:26.218Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 1 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"status\":\"completed\",\"elapsedMs\":1604,\"completedSteps\":0,\"heldInput\":\"released\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"cleanup\":\"complete\",\"inputOutcome\":\"none\",\"op\":\"\",\"step\":0,\"phase\":\"worker-complete\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 125 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"completed\",\"elapsedMs\":1564,\"op\":\"\",\"step\":0,\"phase\":\"worker-complete\",\"heldInput\":\"released\",\"cleanup\":\"complete\",\"inputOutcome\":\"none\",\"completedSteps\":0}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 2147483647 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"op\":\"\",\"step\":0,\"cleanup\":\"complete\",\"heldInput\":\"released\",\"phase\":\"worker-complete\",\"elapsedMs\":1545,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"completedSteps\":0,\"inputOutcome\":\"none\",\"status\":\"completed\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 2147483648 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"heldInput\":\"released\",\"cleanup\":\"complete\",\"phase\":\"worker-complete\",\"completedSteps\":0,\"op\":\"\",\"inputOutcome\":\"none\",\"elapsedMs\":1506,\"step\":0,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"completed\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 255 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"inputOutcome\":\"none\",\"cleanup\":\"complete\",\"step\":0,\"phase\":\"worker-complete\",\"elapsedMs\":1558,\"op\":\"\",\"heldInput\":\"released\",\"status\":\"completed\",\"completedSteps\":0,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 3221225477 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"status\":\"completed\",\"inputOutcome\":\"none\",\"step\":0,\"phase\":\"worker-complete\",\"elapsedMs\":1582,\"heldInput\":\"released\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"op\":\"\",\"cleanup\":\"complete\",\"completedSteps\":0}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 3221225794 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"elapsedMs\":1497,\"status\":\"completed\",\"phase\":\"worker-complete\",\"step\":0,\"op\":\"\",\"completedSteps\":0,\"cleanup\":\"complete\",\"heldInput\":\"released\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"inputOutcome\":\"none\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 4294967295 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"inputOutcome\":\"none\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"elapsedMs\":1542,\"status\":\"completed\",\"heldInput\":\"released\",\"op\":\"\",\"step\":0,\"completedSteps\":0,\"cleanup\":\"complete\",\"phase\":\"worker-complete\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 65 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"op\":\"\",\"completedSteps\":0,\"step\":0,\"status\":\"completed\",\"inputOutcome\":\"none\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"cleanup\":\"complete\",\"phase\":\"worker-complete\",\"elapsedMs\":1576,\"heldInput\":\"released\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 66 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"cleanup\":\"complete\",\"op\":\"\",\"heldInput\":\"released\",\"completedSteps\":0,\"step\":0,\"status\":\"completed\",\"phase\":\"worker-complete\",\"inputOutcome\":\"none\",\"elapsedMs\":1531,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 67 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"phase\":\"worker-complete\",\"step\":0,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"completed\",\"completedSteps\":0,\"inputOutcome\":\"none\",\"cleanup\":\"complete\",\"op\":\"\",\"elapsedMs\":1559,\"heldInput\":\"released\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-poll.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"fails fresh terminal DWORD 7 within one subsequent poll (enumerate, S1/S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-poll.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: OUTCOME {\"elapsedMs\":1542,\"completedSteps\":0,\"cleanup\":\"complete\",\"step\":0,\"inputOutcome\":\"none\",\"op\":\"\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"completed\",\"heldInput\":\"released\",\"phase\":\"worker-complete\"}: expected +0 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-2a/20261101T034826218Z/tests",
+        "tree": "46c1904f41854d21b5605d8a52d68ea72a121f6c"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-supervisor-poll.test.ts": "b3aa96982405dad1f49a64e3862e15a400455fc7"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-supervisor-poll.test.ts": "b3aa96982405dad1f49a64e3862e15a400455fc7"
+      }
+    },
+    "D346-2b": {
+      "id": "D346-2b",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T03:49:13.592Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"handles independently changing State/Info sequence {\\\"status\\\":\\\"Ready\\\",\\\"result\\\":7,\\\"lastRunTime\\\":\\\"stale\\\"} (enumerate, S3)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 44
+          },
+          "message": "AssertionError: OUTCOME {\"cleanup\":\"complete\",\"phase\":\"worker-complete\",\"op\":\"\",\"completedSteps\":0,\"inputOutcome\":\"none\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"completed\",\"step\":0,\"elapsedMs\":2246,\"heldInput\":\"released\"}: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"includes exact start timestamp represented as equal (enumerate, S2/S3)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 16
+          },
+          "message": "AssertionError: expected 'NATIVE_SCHEDULER_FAILED phase=schedul…' to contain 'NATIVE_TASK_EXITED code=7'"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"includes exact start timestamp represented as offset (enumerate, S2/S3)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 16
+          },
+          "message": "AssertionError: expected 'NATIVE_SCHEDULER_FAILED phase=schedul…' to contain 'NATIVE_TASK_EXITED code=7'"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"preserves actual Main log/launch truth into OUTCOME, worker launched=false (enumerate, A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 88
+          },
+          "message": "AssertionError: expected 2 to be 65 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"preserves actual Main log/launch truth into OUTCOME, worker launched=true (enumerate, A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 88
+          },
+          "message": "AssertionError: expected 2 to be 65 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"refuses malformed DWORD -1 (enumerate, S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"refuses malformed DWORD 1.5 (enumerate, S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"refuses malformed DWORD 4294967296 (enumerate, S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"refuses malformed DWORD \\\"bogus\\\" (enumerate, S2)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"uses launch truth rather than numerical code 65/{ stage: 'exited', …(2) } (enumerate, S4/A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 71
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"uses launch truth rather than numerical code 65/{ stage: 'open' } (enumerate, S4/A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 71
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"uses launch truth rather than numerical code 66/{ stage: 'launch' } (enumerate, S4/A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 71
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"uses launch truth rather than numerical code 66/{ stage: 'launch', childCreated: true } (enumerate, S4/A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 71
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-transitions.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"uses launch truth rather than numerical code 67/{ stage: 'wait', …(2) } (enumerate, S4/A4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts",
+            "line": 71
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-2b/20261101T034913592Z/tests",
+        "tree": "46c1904f41854d21b5605d8a52d68ea72a121f6c"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts": "7df27b126b084a52349f35fa28462ef65b8ae78f"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-supervisor-transitions.test.ts": "7df27b126b084a52349f35fa28462ef65b8ae78f"
+      }
+    },
+    "D346-2c": {
+      "id": "D346-2c",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T03:49:58.073Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"conserves input/control provenance for exited members (enumerate, C3)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 81
+          },
+          "message": "AssertionError: expected [ { pid: 94333, job: null }, …(1) ] to deeply equal [ { pid: 94333, job: 'input' }, …(1) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"conserves input/control provenance for identified members (enumerate, C3)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 81
+          },
+          "message": "AssertionError: expected [ { pid: 94161, job: null }, …(1) ] to deeply equal [ { pid: 94161, job: 'input' }, …(1) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"conserves input/control provenance for unreadable members (enumerate, C3)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 81
+          },
+          "message": "AssertionError: expected [ { pid: 94251, job: null }, …(1) ] to deeply equal [ { pid: 94251, job: 'input' }, …(1) ]"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"keeps latest partial input after progress removal and old no-launch evidence (named, S7)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 55
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'bad-boolean' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'duplicate-final' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'invalid-stage' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'missing' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'no-genesis' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'post-launch' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'truncated' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'wrong-job' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"never invents release from 'wrong-run' bootstrap evidence (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 23
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"preserves uncertainty with corrupt/wrong-run progress \\\"{\\\" (enumerate, S5)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 43
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"retains affirmative progress 'none'/'released' (enumerate, S4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 36
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"retains affirmative progress 'partial'/'uncertain' (enumerate, S4)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 36
+          },
+          "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-supervisor-evidence.test.ts\",\"D346 terminal task detection through real ui-run and supervisor\",\"retains primary high-bit failure and diagnostic beside failed cleanup (named, S6)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts",
+            "line": 65
+          },
+          "message": "AssertionError: expected '; cleanup: NATIVE_SCHEDULER_FAILED ph…' to contain 'NATIVE_TASK_EXITED code=3221225477'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-2c/20261101T034958073Z/tests",
+        "tree": "46c1904f41854d21b5605d8a52d68ea72a121f6c"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts": "e6cc24247585f135f0ca4a4ba4c8cf1365583f42"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-supervisor-evidence.test.ts": "e6cc24247585f135f0ca4a4ba4c8cf1365583f42"
+      }
+    },
+    "D346-3": {
+      "id": "D346-3",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T03:52:24.693Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "VITEST_MAX_WORKERS": "2",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R1 named: reconciles the exact b2985c57 singleton with positive absence and confirmation\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R3 enumerate: error category decides absence despite message \\\"Zugriff verweigert / access denied\\\"\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R3 enumerate: error category decides absence despite message \\\"不存在 / not found\\\"\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R4 enumerate: task=absent job=present cannot establish quiescence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 66
+          },
+          "message": "AssertionError: expected '' to contain 'close:41'"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R5 enumerate: malformed member null-member fails closed\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 15
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"reconciled\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\",\"owned\":\"none-alive\",\"members\":0,\"heldInput\":\"operator-confirmed\"}}\n: expected +0 to be 1 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R5 enumerate: valid manifest english-unreadable is judged using positive absence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R5 enumerate: valid manifest legacy-array is judged using positive absence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R5 enumerate: valid manifest mixed is judged using positive absence\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R7 enumerate: held=released confirmation=false gates an otherwise absent run\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R7 enumerate: held=released confirmation=true gates an otherwise absent run\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R7 enumerate: held=uncertain confirmation=false gates an otherwise absent run\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 18
+          },
+          "message": "AssertionError: expected 'NATIVE_RECONCILE_MANIFEST_INVALID' to be 'NATIVE_RECONCILE_INPUT_UNCONFIRMED' // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R7 enumerate: held=uncertain confirmation=true gates an otherwise absent run\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R8 named: wrong-run, repeated and old-run retries preserve the current latch\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: control pinned exit proof cannot target a reused PID\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: input pinned exit proof cannot target a reused PID\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: mixed proof order 0 preserves all-member conjunction\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: mixed proof order 1 preserves all-member conjunction\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: mixed proof order 2 preserves all-member conjunction\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: mixed proof order 3 preserves all-member conjunction\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: tagged unresolved 'control'/'absent' never gains an absence proof from its tag\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/windows-driver-d346-reconcile.test.ts\",\"D346 reconcile unreadable member proofs\",\"R9 enumerate: tagged unresolved 'input'/'absent' never gains an absence proof from its tag\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/windows-driver-d346-reconcile.test.ts",
+            "line": 22
+          },
+          "message": "AssertionError: {\"runId\":\"b2985c578fd74fe68cbeea4b6ba36a46\",\"status\":\"refused\",\"reason\":\"NATIVE_RECONCILE_MANIFEST_INVALID\",\"checks\":{\"lock\":\"held\",\"runId\":\"match\",\"task\":\"absent\"}}\n: expected 1 to be +0 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/D346-3/20261101T035224693Z/tests",
+        "tree": "46c1904f41854d21b5605d8a52d68ea72a121f6c"
+      },
+      "spec_blobs": {
+        "tests/tooling/windows-driver-d346-reconcile.test.ts": "106873526f44ec168ebc6e9852f23c9b2a737ed6"
+      },
+      "settled_blobs": {
+        "tests/tooling/windows-driver-d346-reconcile.test.ts": "106873526f44ec168ebc6e9852f23c9b2a737ed6"
       }
     }
   }
