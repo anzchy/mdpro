@@ -508,7 +508,7 @@ pnpm ledger:build     # 渲染 docs/feature-ledger.html
 | 退出卡住时的逃生口：mdpro 菜单 → Stop Waiting and Quit…（`menu.app.stop_waiting_quit`） | Unknown | Windows 审计仅部分验证（ead8c30），菜单项在但未点；Exit 已走退出守卫（D190 WI-4，Windows 真机已验） |
 | 协作编辑 | Unknown | Windows 审计未验证（ead8c30） |
 | 移动端 | N/A | 移动端与桌面平台无关 |
-| Windows 构建 | Partial | 0.3.1 安装包由 `.github/workflows/release.yml` 的 windows-latest 矩阵产出，能装能跑；`scripts/build-windows.sh` 本地构建从未验证；Windows 专属缺陷见 D190（审计 ead8c30 第 180 行） |
+| Windows 构建 | Partial | 0.3.1 安装包由 `.github/workflows/release.yml` 的 windows-latest 矩阵产出，能装能跑；以 `windows=false` 派发时整行跳过、不产出 Windows 安装包（[ADR-0164](adr/0164-0-3-6-ships-macos-and-linux-only-and-windows-waits-for-its-device-batch.md)，PR #583，0.3.6 即如此发版）；`scripts/build-windows.sh` 本地构建从未验证；Windows 专属缺陷见 D190（审计 ead8c30 第 180 行） |
 
 > **关于「45 个定义、44 个注册」**：核对下来不成立。`src-tauri/src/commands/mod.rs::handlers()` 里注册了 46 个（D16 WI-3 加入 `quit_guard_reply` 之前是 45 个；D27 加入 `discard_recovery_draft` 后是 47 个），仓库里带 `#[tauri::command]` 的定义与之同数，逐名对齐没有漏网的。当年数出 44 多半是按逗号数的——列表最后一项后面没有逗号（那时是 `updater::get_app_version`，现在是 `quit_guard::quit_guard_reply`）；而直接 grep `tauri::command` 会数出 49，多出的三处在 `src-tauri/src/commands/logging.rs`（两处）与 `src-tauri/src/services/markdown.rs`（一处）的文档注释里。真正该记的不是漏注册，是注册了却没人调用的那四条：`get_draft`、`mcp_get_server_info`、`preview_html`、`export_html`，上面每条都有自己的一行。
 
