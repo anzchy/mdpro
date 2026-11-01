@@ -59,6 +59,18 @@ under `scripts/heavy-lock.sh`; the `rust` and `rust-verify-run` lanes if `src-ta
 before any other step and stops if either is missing (ADR-0162 decision 4).
 Commit on the branch; no push.
 
+**Receipt habits** (user, 2026-11-01: 「两条都采纳（带条件）(Recommended)」; brief practice only, the receipt contract is
+unchanged until D347):
+- **A wrong RED is discarded before it is edited.** Only an unsettled, branch-owned receipt, and only while no production
+  path has changed since the last commit (committed, staged, unstaged or untracked). Order: `discard`, then fix the test,
+  then `record` under a **new** id (`<ID>b`). The handoff names old and new ids, why the old oracle was wrong, and
+  `git diff-tree -p <old pin> <new pin>`. Production already changed, or `discard` refuses: keep the receipt and go to replay.
+- **One commit per cycle**: record RED → minimal change → `verify` → focused tests → commit; the next cycle starts clean.
+  Never squash or fix up cycle commits. The handoff maps each receipt to its cycle commit and shows `head_sha` equals
+  that commit's parent. The full coverage lane, typecheck and build run once per handoff, not per cycle commit.
+- After a rebase, map old→new cycle SHAs and refresh every replay digest. `check-pending` drift on a shared spec file is
+  reported, not worked around (D347).
+
 ## 6. Self-acceptance
 `<ID>-handoff.md` in your folder: the AC | evidence | verdict table, receipts, lanes, tree SHAs, paths changed, the
 approaches you rejected and why, and the device recheck steps with the log line that proves each path. Then stop.
