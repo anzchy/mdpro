@@ -190,11 +190,13 @@ export async function supervisorFixture(scenario: string, options: {
     writeFile(path.join(dir, "worker.ps1"), worker), writeFile(path.join(dir, "descendant.ps1"), descendant),
   ]);
   const runId = "a".repeat(32);
-  function start(id = runId, env: Record<string, string> = {}): { child: ChildProcess; result: Promise<{ status: number | null; lines: string[]; stderr: string }> } {
+  // `entry` (D345) is merged last, so a caller can set a budget at the moment it starts the run rather than when the
+  // fixture was built; two-argument callers are unchanged.
+  function start(id = runId, env: Record<string, string> = {}, entryOverride: Record<string, string> = {}): { child: ChildProcess; result: Promise<{ status: number | null; lines: string[]; stderr: string }> } {
     // PhaseMs bounds each Scheduler control pwsh. At 1500 it sat below that process's boot plus script on a loaded
     // Linux runner (about 1.4 s on CI). 3000 is inside production's 5000 cap, and PhaseMs + CleanupMs fits the deadline.
     const entry = { StepsB64: Buffer.from(options.rawSteps ?? JSON.stringify(options.steps ?? [])).toString("base64"), RunId: id,
-      DeadlineMs: String(Date.now() + 10000), PhaseMs: "3000", CleanupMs: "4000", PollMs: "10", ...options.entry };
+      DeadlineMs: String(Date.now() + 10000), PhaseMs: "3000", CleanupMs: "4000", PollMs: "10", ...options.entry, ...entryOverride };
     const child = spawn("pwsh", ["-NoProfile", "-File", path.join(dir, "ui-run.ps1"),
       ...Object.entries(entry).flatMap(([name, value]) => ["-" + name, value])], {
       env: { ...process.env, TEST_ROOT: dir, TEST_RUN_ID: id, TEST_SCENARIO: scenario, ...options.env, ...env },

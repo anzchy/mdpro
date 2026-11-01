@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { makeFakeSsh, type FakeSsh, type SshReply } from "../support/fakeSsh";
 import { runNative } from "./windows-driver-native-harness";
 import { supervisorFixture } from "./windows-driver-native-supervisor-harness";
+import { runDetail } from "./windows-driver-run-detail";
 
 const SKILL = path.resolve(__dirname, "../../.claude/skills/remote-windows-device-test/scripts");
 const MAC = path.join(SKILL, "mac");
@@ -90,6 +91,21 @@ describe("N1 — the Mac wrappers pass a Windows failure on", () => {
 
 const read = (f: string) => fs.readFileSync(path.join(WIN, f), "utf8");
 
+const SUCCESS_BUDGET_MS = 25000;
+const DISCOVERY_BUDGET_MS = 15000;
+const P3_PHASE_MS = "5000";
+/** The budget ui-run handed the Scheduler: the last three tokens of the decoded `op:"start"` request's command line. */
+function startBudget(dir: string, runId: string): string[] {
+  const runDir = path.join(dir, "runs", runId);
+  const requests = fs.readdirSync(runDir).filter((f) => /^scheduler-[a-f0-9]+\.json$/.test(f))
+    .map((f) => JSON.parse(fs.readFileSync(path.join(runDir, f), "utf8").replace(/^\uFEFF/, "")) as { op: string; arguments?: string })
+    .filter((r) => r.op === "start");
+  expect(requests).toHaveLength(1);
+  const encoded = requests[0].arguments!.trim().split(/\s+/).pop()!;
+  const command = Buffer.from(encoded, "base64").toString("utf8");
+  return command.replace(/"$/, "").trim().split(/\s+/).slice(-3);
+}
+
 describe("N1 — the PowerShell side reports failure", () => {
   it("P1 ui.ps1 stops at the first failed step unless the step opts in, and exits 1 when it stopped", async () => {
     const next = { op: "chord", keys: ["ctrl+a"], nofocus: true };
@@ -110,17 +126,62 @@ describe("N1 — the PowerShell side reports failure", () => {
     expect(ps.trimEnd()).toMatch(/exit \$code$/);
   });
 
+  // D345: CI-sized budgets, computed just before each start() (the fixture's copy and compile can take seconds on a
+  // loaded runner). PhaseMs 5000 is production's cap; the two deadlines total 40 s, under the 45 s test timeout.
   it("P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status", async () => {
-    const completed = await (await supervisorFixture("success")).start().result;
-    expect(completed.status, completed.stderr).toBe(0);
+    const success = await supervisorFixture("success");
+    const readyS = Date.now();
+    const successDeadline = String(Date.now() + SUCCESS_BUDGET_MS);
+    const completed = await success.start(success.runId, {}, { DeadlineMs: successDeadline, PhaseMs: P3_PHASE_MS }).result;
+    expect(completed.status, runDetail(completed)).toBe(0);
+    expect(fs.readFileSync(path.join(success.dir, "worker-deadline"), "utf8")).toBe(successDeadline);
+    expect(startBudget(success.dir, success.runId)).toEqual([successDeadline, P3_PHASE_MS, "4000"]);
+    expect(Number(successDeadline)).toBeGreaterThanOrEqual(readyS + SUCCESS_BUDGET_MS);
     expect(completed.lines.join(" ")).toContain("phase:start success");
     expect(completed.lines.join(" ")).toContain('"status":"completed"');
-    const failed = await (await supervisorFixture("discovery")).start().result;
-    expect(failed.status, failed.stderr).not.toBe(0);
+    const discovery = await supervisorFixture("discovery");
+    const readyD = Date.now();
+    const discoveryDeadline = String(Date.now() + DISCOVERY_BUDGET_MS);
+    const failed = await discovery.start(discovery.runId, {}, { DeadlineMs: discoveryDeadline, PhaseMs: P3_PHASE_MS }).result;
+    expect(failed.status, runDetail(failed)).not.toBe(0);
+    expect(fs.readFileSync(path.join(discovery.dir, "worker-deadline"), "utf8")).toBe(discoveryDeadline);
+    expect(startBudget(discovery.dir, discovery.runId)).toEqual([discoveryDeadline, P3_PHASE_MS, "4000"]);
+    expect(Number(discoveryDeadline)).toBeGreaterThanOrEqual(readyD + DISCOVERY_BUDGET_MS);
+    expect(SUCCESS_BUDGET_MS + DISCOVERY_BUDGET_MS).toBeLessThanOrEqual(40000);
+    const timeout = failed.lines.join(" ").match(/NATIVE_(PHASE|TRANSACTION)_TIMEOUT phase=discovery\b[^"]*/);
+    expect(timeout, runDetail(failed)).not.toBeNull();
+    expect(runDetail(failed)).toContain(timeout![0]);
+    expect(runDetail(failed)).toContain(`status ${failed.status}`);
+    expect(failed.stderr).toBe("");
     expect(failed.lines.join(" ")).toContain("phase:start discovery");
     expect(failed.lines.join(" ")).toContain('"status":"failed"');
     expect(read("ui.cmd")).toMatch(/exit \/b %errorlevel%/i);
-  }, 15000);
+  }, 45000);
+});
+
+describe("D345 — P3's failure message names the run's phase", () => {
+  it("D1 carries the decoded log and the status when stderr is empty, as CI's scheduler-start timeout was", () => {
+    const detail = runDetail({ status: 1, lines: ["phase:start success", "NATIVE_PHASE_TIMEOUT phase=scheduler-start"], stderr: "" });
+    expect(detail).toContain("NATIVE_PHASE_TIMEOUT phase=scheduler-start");
+    expect(detail).toContain("status 1");
+  });
+
+  it("D2 keeps stderr when the run wrote one", () => {
+    const detail = runDetail({ status: 1, lines: [], stderr: "pwsh: boom" });
+    expect(detail).toContain("pwsh: boom");
+    expect(detail).toContain("status 1");
+  });
+
+  it("D3 says there was no output when a killed run printed nothing", () => {
+    const detail = runDetail({ status: null, lines: [], stderr: "" });
+    expect(detail).toContain("status null");
+    expect(detail).toContain("no output");
+  });
+
+  it("D4 keeps a CJK log line unchanged", () => {
+    const detail = runDetail({ status: 1, lines: ["阶段 phase=scheduler-poll"], stderr: "" });
+    expect(detail).toContain("阶段 phase=scheduler-poll");
+  });
 });
 
 describe("N1 (audit b151 Medium) — a failed read is a failure, never an empty answer", () => {
