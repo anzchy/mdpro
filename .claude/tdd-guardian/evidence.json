@@ -4255,6 +4255,600 @@
       "settled_blobs": {
         "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
       }
+    },
+    "T567-S38": {
+      "id": "T567-S38",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:43:25.037Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: each mode runs its command\",\"W1 frontend-record reaches the entry through the guard\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 21
+          },
+          "message": "AssertionError: expected [] to deeply equal [ …(3) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S38/20261101T044325037Z/tests",
+        "tree": "01aa7e49f0cb0608b42c3ca0a23e7ed36c8b22c4"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "472307624a4e55a0bd88749d507e745a923868ab"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "472307624a4e55a0bd88749d507e745a923868ab"
+      }
+    },
+    "T567-S39": {
+      "id": "T567-S39",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:43:51.302Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: each mode runs its command\",\"W2 frontend-verify reaches the entry through the guard with the id only\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ …(3) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S39/20261101T044351302Z/tests",
+        "tree": "2b94e359ec1540d9fee8c77588945d86e6f9aba7"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "eb62c1a2c7ddc67a63347e86c8631ef85f80293e"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "eb62c1a2c7ddc67a63347e86c8631ef85f80293e"
+      }
+    },
+    "T567-S40": {
+      "id": "T567-S40",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:44:14.543Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: each mode runs its command\",\"W3 rust-record reaches the entry directly, with the rust lane, never through the guard\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ …(2) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S40/20261101T044414543Z/tests",
+        "tree": "4f2e6fc9d5a342e56e534be34f8885ffc30abed8"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "c740e77c2870bd93b7aad04b24fab83ce9512196"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "c740e77c2870bd93b7aad04b24fab83ce9512196"
+      }
+    },
+    "T567-S41": {
+      "id": "T567-S41",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:44:38.370Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: each mode runs its command\",\"W4 rust-verify reaches the entry directly with the id only\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 48
+          },
+          "message": "AssertionError: expected [] to deeply equal [ …(2) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S41/20261101T044438370Z/tests",
+        "tree": "85a91dc8352211a6530dae83ff2facae8b4c11e3"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "48f0d970d99d4f6ab036c89dcec9dac508ff536e"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "48f0d970d99d4f6ab036c89dcec9dac508ff536e"
+      }
+    },
+    "T567-S42": {
+      "id": "T567-S42",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:45:58.111Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: each mode runs its command\",\"W11 takes --test before --id the same way\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 106
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ …(3) ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S42/20261101T044558111Z/tests",
+        "tree": "5c7b0488d8525b903b3902f0cc57078770aa5c0b"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "7ff546d12f1c98f1f7b68c1c149e0ca67348b621"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "7ff546d12f1c98f1f7b68c1c149e0ca67348b621"
+      }
+    },
+    "T567-S43": {
+      "id": "T567-S43",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:46:46.959Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R1 refuses an unknown or missing mode with exit 2 and names the four modes\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 146
+          },
+          "message": "AssertionError: expected { …(3) } to deeply equal { …(3) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S43/20261101T044646959Z/tests",
+        "tree": "6826d97a7178e27b3226dc89891eec4f1ac13420"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "caea7622cfbb1532be9a4e3137c651dc93f45ba0"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "caea7622cfbb1532be9a4e3137c651dc93f45ba0"
+      }
+    },
+    "T567-S44": {
+      "id": "T567-S44",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:47:38.638Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R2 refuses a missing, valueless or empty id in every mode\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 156
+          },
+          "message": "AssertionError: expected { …(4) } to deeply equal { …(4) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S44/20261101T044738638Z/tests",
+        "tree": "2754be3745eaa79df280989a07d42dd260be7b90"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "b6be26691581fb49d58fd012397d11e8bd804f9b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "b6be26691581fb49d58fd012397d11e8bd804f9b"
+      }
+    },
+    "T567-S45": {
+      "id": "T567-S45",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:48:27.956Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R3 refuses a record mode with no test path, a valueless one or an empty one\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 162
+          },
+          "message": "AssertionError: expected { …(4) } to deeply equal { …(4) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S45/20261101T044827956Z/tests",
+        "tree": "3b2301d202b5e9cf8e0c434391945934266b973c"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "343aca35a9e7926773b08503e047f8c5ac1c54f8"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "343aca35a9e7926773b08503e047f8c5ac1c54f8"
+      }
+    },
+    "T567-S46": {
+      "id": "T567-S46",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:49:13.788Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R4 refuses a test path on a verify mode\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 169
+          },
+          "message": "AssertionError: expected { …(4) } to deeply equal { …(4) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S46/20261101T044913788Z/tests",
+        "tree": "338b50ae40ebc06f885f009db81da3fac5c624d5"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "60a0b858af8f394b43c7d2f4c458c2da444d9669"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "60a0b858af8f394b43c7d2f4c458c2da444d9669"
+      }
+    },
+    "T567-S47": {
+      "id": "T567-S47",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:50:04.166Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R5 refuses anything it would have to pass on or invent: an extra option, a repeated id, a stray word, --id=X\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 179
+          },
+          "message": "AssertionError: expected { args: [ 'rust-record', …(6) ], …(3) } to deeply equal { args: [ 'rust-record', …(6) ], …(3) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S47/20261101T045004166Z/tests",
+        "tree": "5c0c6d4447f11833e4d412f8af20ae0914e6e91a"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "0a7121f56e0b6752813f00a26fe01c1ea083f9ba"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "0a7121f56e0b6752813f00a26fe01c1ea083f9ba"
+      }
+    },
+    "T567-S48": {
+      "id": "T567-S48",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:51:04.033Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: the repository is its cwd's git top level\",\"P3 run from a subdirectory, it still runs the top's entry in the top\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 197
+          },
+          "message": "AssertionError: expected { calls: [], script: undefined, …(1) } to deeply equal { calls: [ …(3) ], …(2) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S48/20261101T045104033Z/tests",
+        "tree": "ac0f7ef15b33debf98a3bccd8385f50ae5021efe"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "554b125d278003a18ca8e4e15246c4e8e906954a"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "554b125d278003a18ca8e4e15246c4e8e906954a"
+      }
+    },
+    "T567-S49": {
+      "id": "T567-S49",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:53:30.014Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: an interrupt is passed on to the receipt command\",\"W15 on SIGTERM the receipt command drains before the wrapper exits, and nothing runs late\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 299
+          },
+          "message": "AssertionError: expected { status: null, …(2) } to deeply equal { Object (status, atClose, ...) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S49/20261101T045330014Z/tests",
+        "tree": "b09ade5843e9f4bf3c5583da967c0b02068d212b"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "c820554556fecf4143af8ac9992f06a2e8cc7d9a"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "c820554556fecf4143af8ac9992f06a2e8cc7d9a"
+      }
+    },
+    "T567-S50": {
+      "id": "T567-S50",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:55:18.136Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: an interrupt is passed on to the receipt command\",\"W16 SIGINT is passed on as itself, through the guard and directly\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 308
+          },
+          "message": "AssertionError: expected { status: null, …(2) } to deeply equal { Object (status, atClose, ...) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S50/20261101T045518136Z/tests",
+        "tree": "9fd4236f1eba2b87f5534724fca5257a027fcf0a"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "602c52e4ca6114a3ce238ec7cc215c6d468c5c9b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "602c52e4ca6114a3ce238ec7cc215c6d468c5c9b"
+      }
+    },
+    "T567-S51": {
+      "id": "T567-S51",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T04:57:21.321Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: an interrupt is passed on to the receipt command\",\"W18 SIGHUP is passed on as SIGTERM, the one the guard traps, so the guard still drains its job\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 317
+          },
+          "message": "AssertionError: expected { status: null, …(2) } to deeply equal { Object (status, atClose, ...) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S51/20261101T045721321Z/tests",
+        "tree": "c7ceebc09f639de6a90c25bc8da17495d0c17131"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "c1ad3d12b8616047ac8835fcfb3d994bf34e26a1"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "c1ad3d12b8616047ac8835fcfb3d994bf34e26a1"
+      }
+    },
+    "T567-S52": {
+      "id": "T567-S52",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T05:04:58.169Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 SKILL.md routes receipts through the wrapper\",\"K1 names the wrapper by its repository path, and the wrapper is a file of the skill\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 391
+          },
+          "message": "AssertionError: expected '---\\nname: jack-tdd-workflow\\ndescrip…' to contain '.agents/skills/jack-tdd-workflow/scri…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S52/20261101T050458169Z/tests",
+        "tree": "03d84b31dd58a53f8c353c045bed284099c3626f"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "e088eff73bedaa2f7103efbfc9b273e7542c1a38"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "e088eff73bedaa2f7103efbfc9b273e7542c1a38"
+      }
+    },
+    "T567-S53": {
+      "id": "T567-S53",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T05:07:52.103Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 SKILL.md routes receipts through the wrapper\",\"K2 gives a wrapper call for each mode\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 397
+          },
+          "message": "AssertionError: expected [ …(4) ] to deeply equal []"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S53/20261101T050752103Z/tests",
+        "tree": "73752f689fa45855c83c568993764ba2d58cea08"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "092c37f714077eed375d7da5829072e4a764217b"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "092c37f714077eed375d7da5829072e4a764217b"
+      }
+    },
+    "T567-S54": {
+      "id": "T567-S54",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T05:10:46.085Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 SKILL.md routes receipts through the wrapper\",\"K3 keeps the cargo fmt step: before a Rust record, never between record and verify, and the wrapper never runs it\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 406
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S54/20261101T051046085Z/tests",
+        "tree": "3e8a71c24417bc0556b85b73e74e01ebb6e0aeea"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "2631d8819478735e30ac4601b09278f5671a7c7c"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "2631d8819478735e30ac4601b09278f5671a7c7c"
+      }
+    },
+    "T567-S55": {
+      "id": "T567-S55",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T05:17:20.514Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 SKILL.md routes receipts through the wrapper\",\"R6b outside a git repository it says so in one line and exits 1, with no stack trace\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+            "line": 435
+          },
+          "message": "AssertionError: expected { status: 1, …(2) } to deeply equal { status: 1, …(2) }"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/T567-S55/20261101T051720514Z/tests",
+        "tree": "7ac59541c926f39343e125f7ac01f8b8264f17f2"
+      },
+      "spec_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
+      },
+      "settled_blobs": {
+        "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
+      }
     }
   }
 }

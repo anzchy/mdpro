@@ -11,9 +11,20 @@ This is one method for both runtimes: a Claude implementor and a Codex implement
 
 ## RED receipts
 
-Every RED and every `verify` goes through the receipt CLI, `node scripts/tdd/red-receipt.mjs`. The exact commands
-(frontend and Rust, the heavy-lock guard, the `cargo fmt` precondition) live in `.claude/rules/10-tdd.md` and only there:
-read them from rule 10 each time, never from a copy.
+Every RED and every `verify` goes through the receipt CLI, `node scripts/tdd/red-receipt.mjs`, by way of this skill's
+thin wrapper, `.agents/skills/jack-tdd-workflow/scripts/receipt.mjs`. Run it from inside the repository: it takes the
+repository as the git top level of the directory you run it from, runs exactly the command `.claude/rules/10-tdd.md`
+states for its mode (the frontend modes through the heavy-lock guard), adds no argument or variable of its own, and
+passes an interrupt on to the receipt command. Rule 10 stays the source of truth for those commands.
+
+- A frontend RED: `node .agents/skills/jack-tdd-workflow/scripts/receipt.mjs frontend-record --id <ID> --test <file>`
+- Its verify: `node .agents/skills/jack-tdd-workflow/scripts/receipt.mjs frontend-verify --id <ID>`
+- A Rust RED: `node .agents/skills/jack-tdd-workflow/scripts/receipt.mjs rust-record --id <ID> --test <file>`
+- Its verify: `node .agents/skills/jack-tdd-workflow/scripts/receipt.mjs rust-verify --id <ID>`
+
+Run `cargo fmt` (it formats the whole crate) yourself before a Rust record, and never between record and verify: the
+receipt fingerprints the file's bytes, a later reformat breaks it for good, and the entry refuses an unformatted
+record. The wrapper never runs it.
 
 ## 1. Design the test matrix
 
