@@ -2081,6 +2081,129 @@
         "tests/tooling/release-workflow-windows-input.test.ts": "cba2d98ac7f45ece014b0a51341b11cec44a3ca4"
       }
     },
+    "ADR0164-WI1-2": {
+      "id": "ADR0164-WI1-2",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-01T15:46:12.872Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X1 windows=false leaves exactly the other three rows (exact match)\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 62
+          },
+          "message": "Error: exclude platform is not the accepted form: undefined"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X1 windows=false leaves exactly the other three rows (subset match)\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 62
+          },
+          "message": "Error: exclude platform is not the accepted form: undefined"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X10′ preflight carries one notice step, guarded by a quoted or expression negation of inputs.windows\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 170
+          },
+          "message": "AssertionError: expected [] to have a length of 1 but got +0"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X2 windows=true keeps all four rows (exact match)\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 62
+          },
+          "message": "Error: exclude platform is not the accepted form: undefined"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X2 windows=true keeps all four rows (subset match)\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 62
+          },
+          "message": "Error: exclude platform is not the accepted form: undefined"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X3 windows absent takes the declared default and keeps all four rows (exact match)\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 62
+          },
+          "message": "Error: exclude platform is not the accepted form: undefined"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X3 windows absent takes the declared default and keeps all four rows (subset match)\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 62
+          },
+          "message": "Error: exclude platform is not the accepted form: undefined"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X4 the matrix is the target vector plus one exclude entry keyed only by target (no include)\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 100
+          },
+          "message": "AssertionError: expected [ 'include' ] to deeply equal [ 'target', 'exclude' ]"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X5 the exclude object is a whole copy of the Windows row, and its true branch matches no platform\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 124
+          },
+          "message": "AssertionError: expected null not to be null"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X8′ inputs.windows is used exactly twice (exclude and notice) and github.event.inputs never\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 139
+          },
+          "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/release-workflow-windows-optional.test.ts\",\"ADR0164-WI1 AC-2: the exclude\",\"X9′ every build-job matrix reference is at its base site, under matrix.target\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/release-workflow-windows-optional.test.ts",
+            "line": 164
+          },
+          "message": "AssertionError: expected false to be true // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/ADR0164-WI1-2/20261101T154612872Z/tests",
+        "tree": "aff46e12a64207f58fcca6b537d4942289351bfe"
+      },
+      "spec_blobs": {
+        "tests/tooling/release-workflow-windows-optional.test.ts": "4748e713ef3234c22edc2645607cfb2a53d188ce"
+      },
+      "settled_blobs": {
+        "tests/tooling/release-workflow-windows-optional.test.ts": "4748e713ef3234c22edc2645607cfb2a53d188ce"
+      }
+    },
     "D336-FIX1-RACE-DIALOG": {
       "id": "D336-FIX1-RACE-DIALOG",
       "lane": "unit-red",

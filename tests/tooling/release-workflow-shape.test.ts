@@ -200,14 +200,14 @@ describe("forbidden constructs", () => {
 
   // ADR0164-WI1 (ruling 1, G7): the windows input, its notice and the whole-copy exclude cannot fit under 300
   // without deleting comments or merging steps, so the pin is the measured length, an exact bound.
-  it("stays at most 303 lines, and keeps its explanatory comments", () => {
-    expect(LINES.length).toBeLessThanOrEqual(303);
+  it("stays at most 314 lines, and keeps its explanatory comments", () => {
+    expect(LINES.length).toBeLessThanOrEqual(314);
     for (const c of ["scripts/release/assetNames.mjs", "D175", "ADR-0073"]) expect(TEXT, c).toContain(c);
   });
 });
 
 describe("build job", () => {
-  const matrix = () => items(at(jobText("build"), ["strategy", "matrix", "include"]) ?? "");
+  const matrix = () => items(at(jobText("build"), ["strategy", "matrix", "target"]) ?? "");
 
   it("W12 an explicit empty-signing-key guard precedes tauri build", () => {
     const guard = jobSteps("build").findIndex(
@@ -249,8 +249,8 @@ describe("build job", () => {
       for (const b of bundles.split(",")) expect(specDirs.has(dirOf[b]), `${p} ${b}`).toBe(true);
     }
     const build = runs("build")[stepIndex("build", /pnpm tauri build/)];
-    expect(build).toContain("--target ${{ matrix.rust_target }}");
-    expect(build).toContain("--bundles ${{ matrix.bundles }}");
+    expect(build).toContain("--target ${{ matrix.target.rust_target }}");
+    expect(build).toContain("--bundles ${{ matrix.target.bundles }}");
   });
 
   it("collects with collect-assets.mjs before uploading the platform's artifact", () => {
