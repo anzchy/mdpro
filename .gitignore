@@ -87,3 +87,10 @@ docs/pending/
 
 # Stitch API key for /stitch-design:upload-to-stitch. A secret: never commit it.
 .stitch-api-key
+
+# Local tool state (ui-tokenize, claude-mem, herdr pane start marker). Untracked clutter here made every
+# receipt's dirty_source report implementation-already-present (user, 2026-11-01: 「做 (Recommended)」).
+.tokenize/
+.claude/mind.mv2
+.claude/mind.mv2.lock
+.codex/rules/.started-at
