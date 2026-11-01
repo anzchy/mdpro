@@ -40,6 +40,7 @@ the copy of the file on the ref you dispatch from, so this version applies only 
 | `ref` | A 40-hex SHA, or exactly `vX.Y.Z` | preflight: checkout HEAD = ref's commit |
 | `version` | `X.Y.Z`, no `v` | preflight: equals all three files at `ref`; in `draft` mode it must be a later patch than the latest published release |
 | `mode` | `build-only` (default), `draft` or `rehearsal-draft` | see below |
+| `windows` | `true` (default) or `false` | `false` drops the `windows-x86_64` build row ([ADR-0164](../adr/0164-0-3-6-ships-macos-and-linux-only-and-windows-waits-for-its-device-batch.md)), and preflight prints a `::notice::`. Allowed in every mode. verify-assets and verify-release accept a set with no Windows files and still refuse a partial one; the shape is pinned by `tests/tooling/release-workflow-windows-*.test.ts` |
 
 ```bash
 gh workflow run release.yml --ref master -f ref=<sha> -f version=0.3.1 -f mode=build-only
@@ -115,7 +116,7 @@ moving, so a fix for a shipped version cannot always be released from `master`.
 
 ## Reading a run
 
-Jobs run in order: `preflight → build (4 rows) → verify → draft → publish`. Each failing script
+Jobs run in order: `preflight → build (4 rows; 3 with windows=false, ADR-0164) → verify → draft → publish`. Each failing script
 prints `::error::` lines, and these show as annotations on the run summary. A job that never
 started (no runner, 0 steps) is an account problem, not a YAML one. Check
 `gh api repos/anzchy/mdpro/check-runs/<job-id>/annotations`; v0.3.0 died of a billing lock.
@@ -125,7 +126,7 @@ started (no runner, 0 steps) is an account problem, not a YAML one. Check
 | Failed in | Left behind | Action |
 |---|---|---|
 | preflight | Nothing | Fix the inputs, the versions or the tag, then re-dispatch |
-| build (any row, Windows/Linux included) | Artifacts from finished rows (expire in 3 days); no release | Fix and re-dispatch. Every row is required (fail-closed) |
+| build (any row, Windows/Linux included) | Artifacts from finished rows (expire in 3 days); no release | Fix and re-dispatch. Every row that runs is required (fail-closed); windows=false leaves out the Windows row (ADR-0164) |
 | verify | `build-*` artifacts; no release | Read the asset or signature errors |
 | draft: decide | Nothing. A release for the tag already exists (draft or published) | Inspect it. Delete a stale draft only with confirmation |
 | draft: create or post-upload | A **draft** release, possibly partial. GitHub creates the git tag only when a draft is published | Delete the draft with confirmation, then re-dispatch |
