@@ -213,8 +213,12 @@ produced **wrong verdicts**; the rest cost time.
     - SSH and Interactive/Limited tokens have different logon SIDs; Administrators can be
       deny-only in the task. Create shared jobs with an explicit current-user/SYSTEM/Administrators
       DACL and default owner, and open the bootstrap with ASSIGN_PROCESS|QUERY. The separate
-      tester-only `native-cross-token-probe.ps1` checks a real restricted same-user open;
-      launcher success alone proves nothing. Keep the setup probe read-only.
+      tester-only `native-cross-token-probe.ps1` checks a filtered (Administrators deny-only)
+      same-user open; not a restricted token. It requires an elevated creator and Boolean
+      `restricted:false`, `adminEnabled:false`, `opened:true`, with matching nonce/job/user.
+      `OK filtered-open` carries the same eight allowlisted reply fields as an invalid-reply
+      FAIL line. Launcher success alone proves nothing; I1 still proves the real task route.
+      Keep the setup probe read-only.
     - A fresh terminal Scheduler result without worker commit is `NATIVE_TASK_EXITED code=<DWORD>`,
       with retained `bootstrap.log` stages. Only a complete run-bound never-created-worker log
       permits none/released without progress; missing progress alone never does. A raced identity
@@ -226,5 +230,5 @@ produced **wrong verdicts**; the rest cost time.
     - A non-null application name such as bare `runas.exe` is resolved without PATH search,
       so the cross-token probe failed before child startup. Pass a rooted executable path:
       `Join-Path $env:SystemRoot 'System32\runas.exe'`, checked with `Test-Path -PathType Leaf`.
-    - Keep the child body in a temporary script and use `-File` to stay under the restricted
+    - Keep the child body in a temporary script and use `-File` to stay under the filtered
       launch's 1024-character program limit; remove it and the reply on every exit path.

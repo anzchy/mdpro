@@ -1,6 +1,6 @@
-# Purpose: bounded cross-token access diagnostic using one contained runas child and a temporary reply and child script.
-# Rooted runas avoids PATH resolution; File keeps the restricted program below the 1024-character limit.
-# Tester only: no Scheduler or desktop input. Launcher exit alone never proves restricted-token access.
+# Purpose: bounded filtered (Administrators deny-only) same-user open diagnostic; not a restricted token.
+# Require an elevated creator; rooted runas and File bound the program below 1024 characters.
+# Tester only: no Scheduler or desktop input. Validate the eight-field reply, then clean owned resources.
 param($PhaseMs = "5000", $PollMs = "25")
 $ErrorActionPreference = "Stop"
 $rc = 1; $scope = $null; $child = $null; $replyPath = $null; $scriptPath = $null
@@ -8,6 +8,8 @@ try {
   . "$PSScriptRoot\native-validation.ps1"
   $PhaseMs = Read-NativeInteger $PhaseMs 10 5000; $PollMs = Read-NativeInteger $PollMs 1 1000
   . "$PSScriptRoot\native-job.ps1"
+  $creatorElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  if (-not $creatorElevated) { throw "creator-not-elevated" }
   $nonce = [guid]::NewGuid().ToString("N")
   $jobName = "Global\mdpro-driver-$nonce"
   $userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -56,16 +58,16 @@ try {
     [Threading.Thread]::Sleep($PollMs)
   }
   $reply = Get-Content -LiteralPath $replyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $diagnostic = $reply | Select-Object nonce, job, userSid, restricted, adminEnabled, opened, pid, birth | ConvertTo-Json -Compress
   $pidValue = 0
   if ($reply.nonce -cne $nonce -or $reply.job -cne $jobName -or $reply.userSid -cne $userSid -or
-      $reply.restricted -isnot [bool] -or -not $reply.restricted -or $reply.adminEnabled -isnot [bool] -or $reply.adminEnabled -or
+      $reply.restricted -isnot [bool] -or $reply.restricted -or $reply.adminEnabled -isnot [bool] -or $reply.adminEnabled -or
       $reply.opened -isnot [bool] -or -not $reply.opened -or [string]$reply.pid -cnotmatch '^[1-9][0-9]*$' -or
       -not [int]::TryParse([string]$reply.pid, [ref]$pidValue) -or [string]$reply.birth -cnotmatch '^[1-9][0-9]*$') {
-    $diagnostic = $reply | Select-Object nonce, job, userSid, restricted, adminEnabled, opened, pid, birth | ConvertTo-Json -Compress
-    throw "restricted-reply-invalid $diagnostic"
+    throw "filtered-reply-invalid $diagnostic"
   }
-  "OK restricted-open"; $rc = 0
-} catch { "FAIL restricted-open $($_.Exception.GetBaseException().Message)"; $rc = 1 }
+  "OK filtered-open $diagnostic"; $rc = 0
+} catch { "FAIL filtered-open $($_.Exception.GetBaseException().Message)"; $rc = 1 }
 finally {
   try {
     if ($scope) {

@@ -236,8 +236,12 @@ under the session lock; live/reused/unreadable PIDs refuse. Job presence/unknown
 confirmation and evidence-before-latch movement still apply.
 
 The tester-only `native-cross-token-probe.ps1 [-PhaseMs 5000] [-PollMs 25]` creates one contained
-job and a bounded `runas /trustlevel:0x20000` child, validates its nonce/job/user/restricted token
-and actual open reply, then drains the job and removes its temporary reply. It prints one
+job and a bounded `runas /trustlevel:0x20000` child for a filtered (Administrators deny-only)
+same-user open; not a restricted token. It refuses a non-elevated creator before job creation,
+then validates matching nonce/job/user, Boolean `restricted:false`, `adminEnabled:false`,
+`opened:true`, and valid PID/birth. `OK filtered-open` and `FAIL filtered-open filtered-reply-invalid`
+carry compact JSON with exactly nonce, job, userSid, restricted, adminEnabled, opened, pid and birth.
+It drains the job and removes its temporary reply and child script on exit. It prints one
 OK/FAIL line per step and creates no Scheduler task or input. Run only under the tester's host
 lock after a supported-target `native-build.ps1` rebuild. Real access and startup need tester
 I2 and I1 evidence respectively; local boundary models do not establish them.

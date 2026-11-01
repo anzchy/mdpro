@@ -46,7 +46,7 @@ public sealed class NativeJobScope : IDisposable {
     if(Mode!="missing" && Mode!="timeout" && Mode!="launcher-only") {
       if(Mode=="malformed") File.WriteAllText(reply,"{");
       else {
-        string restricted=Mode=="unrestricted"?"false":Mode=="truthy-restricted"?"\"true\"":"true";
+        string restricted=Mode=="restricted-token"?"true":Mode=="truthy-restricted"?"\"true\"":"false";
         string opened=Mode=="denied"?"false":Mode=="truthy-opened"?"\"true\"":"true";
         if(Mode=="wrong-job") job="Global\\mdpro-driver-"+new string('b',32);
         if(Mode=="wrong-nonce") nonce="wrong-nonce";
@@ -74,7 +74,7 @@ public sealed class NativeJobScope : IDisposable {
   public void Dispose() { Trace("dispose:"+Name); if(child!=null) child.Dispose(); }
 }`;
 
-export type ProbeMode = "success" | "unrestricted" | "admin-enabled" | "wrong-job" | "wrong-nonce" | "wrong-user"
+export type ProbeMode = "success" | "device-run2" | "restricted-token" | "creator-not-elevated" | "admin-enabled" | "wrong-job" | "wrong-nonce" | "wrong-user"
   | "denied" | "malformed" | "missing" | "launcher-only" | "timeout" | "create-failed" | "launch-failed"
   | "truthy-restricted" | "truthy-opened" | "invalid-pid" | "missing-birth" | "cleanup-failed" | "runas-absent";
 
@@ -96,7 +96,10 @@ export async function crossTokenProbe(mode: ProbeMode) {
     throw error;
   });
   const identity = /\[(?:System\.)?Security\.Principal\.WindowsIdentity\]::GetCurrent\(\)\.User\.Value/g;
-  await writeFile(script, source.replace(identity, quote(SID)));
+  // Only the parent role query is replaced; the already device-proven child body
+  // remains intact. All modes except the creator guard model an elevated parent.
+  const creatorRole = /\(\[Security\.Principal\.WindowsPrincipal\]\[Security\.Principal\.WindowsIdentity\]::GetCurrent\(\)\)\.IsInRole\(\[Security\.Principal\.WindowsBuiltInRole\]::Administrator\)/g;
+  await writeFile(script, source.replace(identity, quote(SID)).replace(creatorRole, mode === "creator-not-elevated" ? "$false" : "$true"));
   await writeFile(path.join(dir, "kernel.cs"), kernel);
   await writeFile(path.join(dir, "native-job.ps1"), `Add-Type -Path ${quote(path.join(dir, "kernel.cs"))}\n`);
   const protectedFiles = ["native-session-blocked.json", "owned-processes.json"];
