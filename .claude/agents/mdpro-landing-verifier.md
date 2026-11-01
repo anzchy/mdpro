@@ -70,8 +70,10 @@ your worktree is a replay's own: its evidence file inside your checkout, and its
    report `digest mismatch` as an ISSUE: the base or the head moved since the auditors read it.
 
    A replay never settles a receipt. Every receipt check-pending names stays an issue for the
-   delegator's ruling. Until the entry's clearing applies, the delegator asks the user one batched
-   question per landing, fed from these lines (ADR-0149 d6).
+   delegator's ruling. The entry shipped in #551 (2026-10-30; transition recorded 2026-11-01), so ADR-0145 d4
+   applies: both auditors' non-weakening rulings on a passed replay, citing its digest, clear the receipt. The
+   delegator asks the user one batched question per landing, fed from these lines, only for a weakening, an
+   auditor disagreement, or a replay that failed or could not run (ADR-0149 d6).
 4b. Device evidence (ADR-0144 decision 5), for each `device` AC:
    - the report shows PASS for every card the AC cites;
    - its `releaseId` SHA is the evidence SHA;

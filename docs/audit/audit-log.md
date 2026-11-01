@@ -77,6 +77,12 @@ Decision 8). The delegator records each one when it is granted, whatever the rou
 - **Closed**: set when a this-landing-only exception lands, or when an until-condition first holds.
 - An open `until` row is listed at every release checkpoint.
 
+**Receipt clearing switched on, 2026-11-01** (user: 「Switch on now (Recommended)」). The receipt entry shipped in #551
+(2026-10-30), so ADR-0149 decision 6's second half applies (ADR-0145 decision 4): a receipt whose `replay` passed and
+that both auditors rule not weakened, citing the same digest, is cleared by those rulings and still gets a row here,
+with no user question. The user is asked only about a weakening, an auditor disagreement, or a replay that failed or
+could not run. Rows before this date record the earlier user-per-landing path.
+
 | Id | PR | Gate waived | Scope | Owner | Ruling | Closed |
 |---|---|---|---|---|---|---|
 | G518-1 | #518 | verifier full frontend lane: exit 1 solely on `[vitest-worker]: Timeout calling "onTaskUpdate"`, every test passing, with `ci-gate` green on the same head | until D302 is fixed | gpt-imple-1 (D302 folded into the ADR-0128 rollout) | 「只因 D302 失败则算通过 (Recommended)」 | closed at landing `e5ac9f12` (D302 fixed) |

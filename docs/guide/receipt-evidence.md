@@ -210,10 +210,13 @@ causes never share one either.
 
 `mdpro-landing-verifier` step 4 runs `check-pending`, and runs `replay --base <parent>` for every
 receipt that `check-pending` names. It reports each digest.
-- **Until the entry's clearing applies**, the delegator asks the user one batched question per
-  landing (ADR-0149 d6).
-- **After that**, both auditors' non-weakening rulings on a passed replay, citing the same digest,
-  clear the receipt (ADR-0145 d4).
+- **Since the entry shipped** (#551, 2026-10-30; the transition was recorded on 2026-11-01, user:
+  「Switch on now (Recommended)」), both auditors' non-weakening rulings on a passed replay, citing the
+  same digest, clear the receipt (ADR-0145 d4). The audit log still gets a gate-exception row citing
+  the digest and both rulings.
+- **The user is asked** one batched question per landing (ADR-0149 d6) only for a weakening, an
+  auditor disagreement, or a replay that failed or could not run.
+- Before 2026-11-01 every BROKEN receipt went to the user in that batched question.
 
 ## Deleting pins
 
