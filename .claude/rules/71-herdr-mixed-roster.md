@@ -96,6 +96,37 @@ item. The roster is still five working agents plus the idle `gpt-imple-2`.
 
 **All macOS device tests go to `gpt-auditor`** (user decision, 2026-10-25: 「from now on, all mac os device test goes to gpt-auditor, redelegate and pause opus device test task」). The delegator resets `gpt-auditor` into a fresh pane, gives it the device brief through herdr, and reads its report under `~/.mdpro-redesign/device/`. The tester role, desktop lock, launch-by-path and device rules apply. This supersedes the 2026-10-25 interim routing of GUI batches to `opus-auditor`, and `gpt-imple-3`'s macOS device checks; opus-auditor runs no device test. **A device pane runs with `-s danger-full-access`** (user decision, 2026-10-25: 「Full access for device panes (Recommended)」), a narrow exception to ADR-0134 decision 4: the sandboxed gpt-auditor could not create the desktop GUI lock under `~/.cache` or restore `~/.mdpro/config.json`. A pane reset for an audit, confirm, challenge or review request stays sandboxed.
 
+**`win-desktop` has one operator at a time** (user decision, 2026-11-01: 「加 win-desktop 锁，写进 rule 71」, after asking
+「gpt-imple-1 和opus-auditor 最好是不是不要一起操作Windows desktop」). Two agents on the host at once can restart mdpro twice on
+one clearance, interleave real SendInput with another run's reads, and race on the same `mdpro-audit` folder, latch, scheduled
+tasks and manifests.
+- **Every command on `win-desktop` runs under the win-desktop lock**, held for the whole brief, from the first SSH to the
+  readback: SSH itself, `deploy.sh`, `push.sh`, `mdpro.sh`, `ui.sh`, `cdp.sh`, `log.sh`, and any probe, read-only ones included.
+- **It is not the Mac's `desktop-gui.lock`.** That lock guards the Mac mini's own desktop and is shared with picsee. A Windows run
+  does not take it, and a macOS GUI batch does not take this one.
+- **Who may hold it:** only the agent a delegator brief or request names for that Windows work, normally `gpt-auditor` in device
+  mode. An implementor never holds it: it writes the probe and asks the delegator for the run. An auditor holds it only under a
+  request that names the Windows steps it may run.
+- **Until the lock script lands, the delegator is the lock.** It records `heartbeat.py set win-desktop holder=<agent>
+  brief=<file> start=<ISO>` before the prompt, sends no second Windows brief or request while one is held, and clears the entry
+  (`holder=none`) once it has read the report. After the script lands, every Windows brief and request names its acquire and
+  release, and the skill's Mac scripts refuse to reach the host without a held lock.
+- **A stale holder** (idle, no report) is released by the delegator only after it has read the holder's pane and checked on the
+  host that no `mdpro-audit-*` task and no driver process of that run remains.
+
+**A Windows device test that fails goes to both auditors before any fix** (user decision, 2026-11-01:
+「接下来如果Windows device test 无法通过，把问题同时交给gpt-auditor和opus-auditor 同时审议，再决定下一步如何修复，而不是一直原地让implementor转圈」).
+- **Who reviews.** On a FAIL, NOT EXERCISED or a stop of a Windows smoke or device AC, the delegator sends the report, the run
+  evidence and the brief to `gpt-auditor` and `opus-auditor` at the same time, each in a fresh context and blind to the other.
+  Each returns a root-cause ranking with the evidence that confirms or refutes each cause, and a proposed fix with the test that
+  proves it.
+- **The host.** A reviewer that needs read-only host checks gets them under the win-desktop lock above, one at a time; the other
+  works from the evidence until the lock is free.
+- **Then the delegator decides.** It compares the two reviews (agreements, disagreements, and which is better supported), writes
+  the decision as a ruling, and only then sends the implementor a fix brief. If the reviews disagree on the cause and the evidence
+  cannot settle it, the delegator asks the user.
+- **The implementor does not iterate on a failed Windows run by itself.** Its next round starts from that ruling.
+
 **GUI tests formerly assigned to `mac-test`/`dtrack` now go to `gpt-auditor`** (user decision, 2026-10-24: 「之后dtrack的 GUI test工作都交给gpt-auditor」). For such a batch, the delegator resets `gpt-auditor` into a fresh pane, gives it the device brief through herdr, and waits for its report under `~/.mdpro-redesign/device/`. The tester role and device rules in rule 70 apply to that batch; no brief is sent to `dtrack`. This assignment does not change `gpt-imple-3`'s other device work or `gpt-auditor`'s separate audit duties.
 
 **A Claude delegator may message `picsee-delegator` directly about the shared heavy lock** (user decision, 2026-10-23: 「picsee delegator 可以直接 message @picsee-delegator ，你们直接沟通协商处理好heavy lock的事情」), by `SendMessage`, for heavy-lock coordination only (ADR-0135, D312). A Codex delegator uses the shared lock and asks the user when coordination needs a message. Nothing is sent to picsee's other sessions.
