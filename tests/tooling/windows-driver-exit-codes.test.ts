@@ -94,15 +94,19 @@ const read = (f: string) => fs.readFileSync(path.join(WIN, f), "utf8");
 const SUCCESS_BUDGET_MS = 25000;
 const DISCOVERY_BUDGET_MS = 15000;
 const P3_PHASE_MS = "5000";
-/** The budget ui-run handed the Scheduler: the last three tokens of the decoded `op:"start"` request's command line. */
+/** The budget ui-run handed the Scheduler: the last three tokens of its unique Base64 command decoding to `/c `. */
 function startBudget(dir: string, runId: string): string[] {
   const runDir = path.join(dir, "runs", runId);
   const requests = fs.readdirSync(runDir).filter((f) => /^scheduler-[a-f0-9]+\.json$/.test(f))
     .map((f) => JSON.parse(fs.readFileSync(path.join(runDir, f), "utf8").replace(/^\uFEFF/, "")) as { op: string; arguments?: string })
     .filter((r) => r.op === "start");
   expect(requests).toHaveLength(1);
-  const encoded = requests[0].arguments!.trim().split(/\s+/).pop()!;
-  const command = Buffer.from(encoded, "base64").toString("utf8");
+  const commands = requests[0].arguments!.trim().split(/\s+/)
+    .filter((token) => /^[A-Za-z0-9+/]+={0,2}$/.test(token))
+    .map((token) => Buffer.from(token, "base64").toString("utf8"))
+    .filter((command) => command.startsWith("/c "));
+  expect(commands).toHaveLength(1);
+  const command = commands[0];
   return command.replace(/"$/, "").trim().split(/\s+/).slice(-3);
 }
 

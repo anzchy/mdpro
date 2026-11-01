@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { access, cp, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -33,13 +33,16 @@ public sealed class NativeJobScope : IDisposable {
     throw new Exception("D346_FIXTURE_ARGUMENT_INVALID");
   }
   public Process StartOwned(string exe,string arguments) {
+    if(!Path.IsPathRooted(exe)) throw new FileNotFoundException("The system cannot find the file specified",exe);
     Trace("launch:"+exe); Trace("arguments:"+arguments);
-    if(Mode=="launch-failed") throw new Exception("D346_RUNAS_DENIED");
     var text=arguments.Replace("\\\"","\"");
     var encoded=Regex.Match(text,@"-EncodedCommand\s+([A-Za-z0-9+/=]+)",RegexOptions.IgnoreCase);
     if(encoded.Success) text=Encoding.Unicode.GetString(Convert.FromBase64String(encoded.Groups[1].Value));
+    var file=Regex.Match(text,@"-File\s+""([^""]+)""",RegexOptions.IgnoreCase);
+    if(file.Success) { Trace("script:"+file.Groups[1].Value); Trace("body:"+File.ReadAllText(file.Groups[1].Value).Length); }
     string reply=Argument(text,"ReplyPath"), nonce=Argument(text,"Nonce"), job=Argument(text,"JobName"), user=Argument(text,"ExpectedUserSid");
     Trace("reply:"+reply);
+    if(Mode=="launch-failed") throw new Exception("D346_RUNAS_DENIED");
     if(Mode!="missing" && Mode!="timeout" && Mode!="launcher-only") {
       if(Mode=="malformed") File.WriteAllText(reply,"{");
       else {
@@ -52,7 +55,8 @@ public sealed class NativeJobScope : IDisposable {
         string pid=Mode=="invalid-pid"?"0":"1234";
         string birth=Mode=="missing-birth"?"":"637134336000000000";
         string result="{\"job\":\""+job.Replace("\\","\\\\")+"\",\"nonce\":\""+nonce+"\",\"userSid\":\""+user+"\",\"restricted\":"+restricted+",\"adminEnabled\":"+admin+",\"opened\":"+opened+",\"pid\":"+pid+",\"birth\":\""+birth+"\"}";
-        File.WriteAllText(reply,result);
+        Trace("reply-json:"+result);
+        File.WriteAllText(reply,result.Substring(0,result.Length-1)+",\"secret\":\"DO_NOT_PRINT\"}");
       }
     }
     // A launcher can report success before its child emits a reply; it is never
@@ -72,7 +76,7 @@ public sealed class NativeJobScope : IDisposable {
 
 export type ProbeMode = "success" | "unrestricted" | "admin-enabled" | "wrong-job" | "wrong-nonce" | "wrong-user"
   | "denied" | "malformed" | "missing" | "launcher-only" | "timeout" | "create-failed" | "launch-failed"
-  | "truthy-restricted" | "truthy-opened" | "invalid-pid" | "missing-birth" | "cleanup-failed";
+  | "truthy-restricted" | "truthy-opened" | "invalid-pid" | "missing-birth" | "cleanup-failed" | "runas-absent";
 
 const exists = (file: string) => access(file).then(() => true, () => false);
 const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -80,6 +84,9 @@ const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catc
 export async function crossTokenProbe(mode: ProbeMode) {
   const root = await mkdtemp(path.join(os.tmpdir(), "d346-cross-token-"));
   const dir = path.join(root, "probe 中文 space");
+  const systemRoot = path.join(root, "Windows System Root");
+  await mkdir(path.join(systemRoot, "System32"), { recursive: true });
+  if (mode !== "runas-absent") await writeFile(path.join(systemRoot, "System32", "runas.exe"), "");
   await cp(windows, dir, { recursive: true });
   const script = path.join(dir, "native-cross-token-probe.ps1");
   // An absent new entry is observable missing behavior, not a missing-module
@@ -98,7 +105,7 @@ export async function crossTokenProbe(mode: ProbeMode) {
   const before = Date.now();
   const result = await new Promise<{ status: number | null; stdout: string; stderr: string }>((resolve, reject) => {
     const child = spawn("pwsh", ["-NoProfile", "-File", script, "-PhaseMs", "150", "-PollMs", "10"], {
-      env: { ...process.env, D346_PROBE_ROOT: root, D346_PROBE_MODE: mode },
+      env: { ...process.env, SystemRoot: systemRoot, D346_PROBE_ROOT: root, D346_PROBE_MODE: mode },
     });
     let stdout = "", stderr = "";
     child.stdout.on("data", (bytes) => { stdout += String(bytes); });
@@ -112,7 +119,9 @@ export async function crossTokenProbe(mode: ProbeMode) {
   // Measure before fixture reaping so an unsafe parent cannot earn cleanup PASS.
   for (const pid of survivors) process.kill(pid, "SIGKILL");
   const replies = trace.filter((line) => line.startsWith("reply:")).map((line) => line.slice(6));
+  const scripts = replies.map((reply) => reply.replace(/\.json$/, ".ps1"));
+  const retainedScripts = await Promise.all(scripts.map(exists));
   const retainedReplies = await Promise.all(replies.map(exists));
   const preserved = await Promise.all(protectedFiles.map((name) => readFile(path.join(dir, name), "utf8")));
-  return { ...result, source, trace, survivors, retainedReplies, preserved, elapsedMs: Date.now() - before };
+  return { ...result, systemRoot, retainedScripts, source, trace, survivors, retainedReplies, preserved, elapsedMs: Date.now() - before };
 }

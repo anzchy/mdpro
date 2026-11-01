@@ -221,3 +221,10 @@ produced **wrong verdicts**; the rest cost time.
       read needs a signaled handle for that same owned lifetime. Tag input/control members;
       legacy unreadable records require exact task/job absence and OS-confirmed PID absence,
       under the session lock. Never parse a localized exception or edit a manifest to clear it.
+
+29. **CreateProcess with an application name never searches PATH** (D346 I2).
+    - A non-null application name such as bare `runas.exe` is resolved without PATH search,
+      so the cross-token probe failed before child startup. Pass a rooted executable path:
+      `Join-Path $env:SystemRoot 'System32\runas.exe'`, checked with `Test-Path -PathType Leaf`.
+    - Keep the child body in a temporary script and use `-File` to stay under the restricted
+      launch's 1024-character program limit; remove it and the reply on every exit path.
