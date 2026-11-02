@@ -4,7 +4,7 @@
 - [docs/agents/implementor.md](../../../../../docs/agents/implementor.md)
 <!-- read-every-session:end -->
 
-**Tier <T>, difficulty <D>.** Fresh session (rule 71 § Fresh context: fix 2+, or fix 1 when the session is over 12 %).
+**Tier <T>, difficulty <D>.** Fresh session ([implementor.md § Fix sessions](../../../../../docs/agents/implementor.md#fix-sessions): fix 2+, or fix 1 when the session is over 12 %).
 Read, in order: `<ID>-brief.md` (grants still bind), `<ID>-handoff.md`, the merged verdict
 `~/.mdpro-redesign/herdr-spike/delegator/<ID>-r<k>-merged.md`, then each open finding in full:
 <report path § finding>, … (include every counter-proof the fix must answer).
@@ -12,6 +12,9 @@ Read, in order: `<ID>-brief.md` (grants still bind), `<ID>-handoff.md`, the merg
 ## Scope
 Branch `<branch>` at `<sha>`; rebase onto `origin/master` first if it moved. Same paths as the grant, and the same
 fixture allowance (brief § 2).
+
+**Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
+named for that path in AGENTS.md. #592 checks it.
 
 ## Open questions, with defaults
 - **Q1.** <question>. Default: <answer>. (Follow each default without stopping; record which you used.)

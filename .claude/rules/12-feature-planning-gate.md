@@ -8,7 +8,7 @@
 5. both auditors' plan review of the spec and tickets, and of any ADR draft that meets
    [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr)'s review trigger.
 
-**If any is missing, stop and ask the user. A vague plan is never enough.** Reasons, options and supersessions:
+**If any is missing, stop and ask the user (an implementor, through the delegator). A vague plan is never enough.** Reasons, options and supersessions:
 [ADR-0148](../../docs/adr/0148-new-features-pass-grill-spec-and-tickets-before-implementation.md) (user, 2026-10-28:
 「新功能在实施前一定要先经过 /grill-with-docs ，其次 /to-spec 最后 /to-tickets ，才能进入实施状态，如果没有的话，用askuserquestion tool
 提示用户，不能只有模糊的plan就开始实施」).
@@ -37,6 +37,6 @@ and both auditors' plan review of its diff. Governing text: `.agents/skills/mdpr
 ## From tickets to landing
 - **One approved ticket is one brief and one PR**, granted only when every ticket that blocks it has landed.
 - **Precedence:** spec snapshot, then ticket, then brief, then card.
-- **Implementation** follows `jack-tdd-workflow`: matrix and attack first, then one cycle per RED receipt, then
+- **Implementation** follows `jack-tdd-workflow` (Codex: tdd-guardian until go-live): matrix and attack first, then one cycle per RED receipt, then
   `code-review` on the committed candidate (`docs/agents/implementor.md#gated-items`).
 - **Never:** `/implement`, `/implement-spec`, or an integration branch.

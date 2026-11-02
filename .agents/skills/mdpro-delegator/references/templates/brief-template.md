@@ -6,8 +6,10 @@
 
 **Tier: <High|Medium|Low>** (ADR-0121: why). **Difficulty: <routine|standard|hard>** (ADR-0138: why; it sets your
 effort and the adversary). Fresh session. On Codex, run `$tdd-guardian:tdd-guardian-workflow` for the whole item, including the
-matrix attack. On Claude (the plugin is off there), follow rule 71 § Briefs for Claude: design the matrix yourself, have a fresh
-subagent attack it with `references/templates/matrix-attack-prompt.md`, and record REDs with `node scripts/tdd/red-receipt.mjs`.
+matrix attack. On Claude, follow `docs/agents/implementor.md#matrix-and-attack`.
+
+**Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
+named for that path in AGENTS.md. #592 checks it.
 
 ## 1. Background
 - **The issue.** `anzchy/mdpro#<n>` (or, for an existing D item, `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>`), and the plan row, if any.

@@ -19,9 +19,10 @@ A UI question goes to the delegator with each option's measurements, for a proto
 ## Matrix and attack
 
 A test matrix is attacked before any RED is recorded (user decision, 2026-10-20: 「加上，gpt-imple-1, gpt-imple-2都适用」).
-The method, on both runtimes, is the `jack-tdd-workflow` skill ([ADR-0161](../adr/0161-implementors-follow-one-project-skill-jack-tdd-workflow-and-codex-retires-tdd-guardian.md#decision)):
-design the matrix, have a fresh attacker attack it (`ATTACK-NOT-RUN` and stop if it cannot run), amend it, then build in
-cycles, one RED receipt per cycle. The brief and the delegator's rulings win over the skill where they differ.
+Until T-02's go-live (#570), Codex runs `$tdd-guardian:tdd-guardian-workflow`. Claude runs
+`jack-tdd-workflow` now: [1](../../.agents/skills/jack-tdd-workflow/SKILL.md#1-design-the-test-matrix), [2](../../.agents/skills/jack-tdd-workflow/SKILL.md#2-have-the-matrix-attacked) with a fresh subagent
+(`ATTACK-NOT-RUN` and stop), [3](../../.agents/skills/jack-tdd-workflow/SKILL.md#3-amend-the-matrix), [5](../../.agents/skills/jack-tdd-workflow/SKILL.md#5-cycles). From go-live, `jack-tdd-workflow` binds
+both (ADR-0161). The brief and the delegator's rulings win over the skill where they differ.
 
 ## Receipts
 
@@ -61,7 +62,7 @@ cycles, one RED receipt per cycle. The brief and the delegator's rulings win ove
 ## Fix sessions
 
 <!-- moved-from: rule 71 § Fresh context (ADR-0147) -->
-- **Implementor fixes** are numbered by the ADR-0120 round they answer. Fix 1, which answers the
+- **Implementor fixes** are numbered by the ADR-0143 round they answer. Fix 1, which answers the
   blind audit, stays in the item's session only when both of these hold:
   - the fix brief names one or two findings, each with its regression test;
   - the Codex status line shows at most 12 % used (half the 250k cap on the 1M window; ADR-0133
@@ -70,7 +71,7 @@ cycles, one RED receipt per cycle. The brief and the delegator's rulings win ove
   Every other fix (fix 2, and any post-cap fix under ADR-0129) gets a new session, seeded only with
   the brief, the last handoff, the merged verdict and the fix brief.
 - **At any stop or handoff, a session showing 20 % or more used, or one that has compacted,**
-  writes a progress note and restarts by § Restart from the brief and that note (ADR-0133
+  writes a progress note and restarts by [§ Restart](../../.agents/skills/mdpro-delegator/references/codex-panes.md#restart) from the brief and that note (ADR-0133
   decision 5). A session counts as compacted when its pane shows Codex's compaction notice, or when
   its used percentage has fallen since the previous wake. The delegator reads the status line with
   `herdr agent read <name> --source recent-unwrapped` at each wake.
@@ -91,7 +92,7 @@ iterate by yourself: your next round starts from the delegator's ruling
 
 ## Gated items
 
-A rule-12 (gated) item follows rule 12 and its spec snapshot; its cycles are `jack-tdd-workflow`'s. The snapshot wins over
+A rule-12 (gated) item follows rule 12 and its spec snapshot; its cycles are `jack-tdd-workflow`'s (Codex: tdd-guardian's until go-live). The snapshot wins over
 the ticket, the brief and the card ([landing-and-audit.md](../../.agents/skills/mdpro-delegator/references/landing-and-audit.md#gated-items)).
 
 ## Commit splitting
