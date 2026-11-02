@@ -22,7 +22,7 @@ describe("ADR-0146 reviewed audit dimensions", () => {
       // ADR-0146 fix 2 authorizes the single challenge-shape line deviation; ADR0165-WI1 rewords F9
       // (decision-log and feature-local decisions); GH586 moves the policy set (cc-suite NL) into
       // docs/agents/audit-policy-set.md, pinned below, pending both auditors' plan review of both blobs.
-      "7bbce83c79e79f81217e9523cb3db0be4050be184d12b78f2f5aa1612b80dcbd",
+      "5648be3ff6890838ed07b0bfb8432a1eadcd3ff2ad25edc80a9e0c7aefe8860f",
     );
   });
 
@@ -34,6 +34,13 @@ describe("ADR-0146 reviewed audit dimensions", () => {
       // verbatim except for pointers, pending both auditors' plan review of this blob.
       "f045a7efd9cd6d0457ed33c964781e92153a646d2071a08bc6a1c4a057a52a6d",
     );
+  });
+
+  it("GH586: the routing paragraph also names <P> for a gate-sensitive entry's plan review", () => {
+    const which = section(text(), "Which set").replace(/\s+/g, " ");
+    const routing = which.slice(which.indexOf("**Policy routing.**"), which.indexOf("Any other request names no `<P>`"));
+    expect(routing).toContain("as does a gate-sensitive entry's plan review");
+    expect(routing).toContain("The request names `<P>`");
   });
 
   it("publishes every set, evidence rule, and report line", () => {

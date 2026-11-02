@@ -22,7 +22,7 @@ function allowedDocsPath(name) {
     /^\.claude\/(?:rules|agents)\/[^/]+\.md$/.test(name);
 }
 const PROTECTED_AUDIT_FILES = new Set(["docs/agents/audit-dimensions.md", "docs/agents/audit-policy-set.md"]);
-function protectedDimensionsPath(name) {
+function protectedAuditPath(name) {
   return PROTECTED_AUDIT_FILES.has(path.posix.normalize(name.replace(/^(\.\/)+/, "")).toLowerCase());
 }
 function openPrs() {
@@ -55,7 +55,7 @@ export function land(argv = process.argv.slice(2)) {
     const diff = run("git", ["diff-tree", "--no-commit-id", "--no-renames", "--name-only", "-z", "-r", `${remote}..${oid}`]);
     if (diff.status !== 0) fail("cannot read docs-only changed paths");
     const changed = diff.stdout.split("\0").filter(Boolean);
-    if (changed.some(name => protectedDimensionsPath(name) || /^120000 blob /.test(git("ls-tree", oid, "--", name)))) {
+    if (changed.some(name => protectedAuditPath(name) || /^120000 blob /.test(git("ls-tree", oid, "--", name)))) {
       fail("ADR-0146 decision 1: audit dimensions and policy set changes require a High-tier PR under the old pin and both-auditor plan review; docs-only landing also refuses changed symlinks");
     }
     if (!changed.length || changed.some(name => !allowedDocsPath(name))) fail("docs-only range contains a disallowed path");

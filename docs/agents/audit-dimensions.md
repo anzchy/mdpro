@@ -7,11 +7,11 @@ own procedure; this file does not repeat them.
 
 ## How this file is read
 
-- Every request names a `master` SHA `<M>` and this file's blob id `<B>`; a policy-routed one (§ Which set) also
-  names `<P>`, the blob of `docs/agents/audit-policy-set.md` at `<M>`. Read each with `git cat-file -p`, never from a
-  worktree or the range under audit.
-- Echo `<B>`, and `<P>` when used, on the report's first line. A report naming a blob other than `<B>` or `<P>`, or
-  a policy-routed request or report without `<P>`, is re-asked.
+- Every request names a `master` SHA `<M>` and this file's blob id `<B>`; a policy-routed one also names `<P>`, the
+  blob of `docs/agents/audit-policy-set.md` at `<M>`. Read each with `git cat-file -p`, never from a worktree or the
+  range under audit.
+- Echo `<B>`, and any `<P>`, on the report's first line. A report naming another blob, or a policy-routed
+  request or report without `<P>`, is re-asked.
 - One pin covers a whole review: round one, its challenges, the confirm and the confirm's challenges all use round
   one's `<B>` and `<P>`. A confirm whose fix adds a policy-routed path takes `<P>` at round one's `<M>`. A review
   pinned to a `<B>` that still holds § policy names no `<P>`.
@@ -30,9 +30,9 @@ own procedure; this file does not repeat them.
 **Policy routing.** A PR range changing any rule, doc, skill, agent, command or prompt text (`.claude/rules/`,
 `CLAUDE.md`, `AGENTS.md`, `docs/**`, `.agents/skills/**/*.md`, `.claude/skills/**/*.md`, `.claude/agents/*.md`,
 `.claude/commands/**`, `.codex/skills/**`, `.codex/prompts/**`, `GLOSSARY.md`) routes to the **policy** set, with
-any pin-only test edit of such a file. The request names `<P>`; its file, `docs/agents/audit-policy-set.md`, says if
-that set replaces the tier's row (policy-only) or adds to it (mixed). Any other request names no `<P>` and loads no
-policy file.
+any pin-only test edit of such a file, as does a gate-sensitive entry's plan review. The request names `<P>`; its
+file, `docs/agents/audit-policy-set.md`, says if that set replaces the tier's row (policy-only) or adds to it
+(mixed). Any other request names no `<P>` and loads no policy file.
 
 Every dimension in the set gets a `COVERAGE` entry. A dimension the change cannot touch is `n/a` with a reason in a
 few words (`L n/a: CSS only`). Dropping a dimension to save time is a skipped dimension, and the report is re-asked.

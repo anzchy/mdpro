@@ -178,6 +178,8 @@ describe("GH586-ACC audit-policy-set", () => {
         (p.startsWith(".agents/skills/") && p.endsWith(".md")) || /^\*-.*\.md$|^merged-verdict-template\.md$/.test(p);
       expect(inGroup, p).toBe(true);
     }
+    const listed = [...gateTooling.matchAll(/`([^`]+\.md)`/g)].map(([, p]) => p);
+    expect(listed).toEqual(expect.arrayContaining(["docs/agents/audit-dimensions.md", "docs/agents/audit-policy-set.md"]));
   });
 
   it("carries § policy with its source pin, severity rule and D355 link", () => {
