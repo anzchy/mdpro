@@ -71,7 +71,7 @@ On acceptance, this ADR partially supersedes or amends:
 ADR-0131 is unchanged: a kept directory never means a kept conversation. ADR-0124 decision 1 and ADR-0133 decision 2's
 slot count are unchanged too (decision 7).
 
-**Current text: `docs/agents/device-tester.md#mac-mini`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+**Current text: `docs/agents/device-tester.md#mac-mini`; `.agents/skills/mdpro-delegator/references/roster-and-routing.md#roster`; `.agents/skills/mdpro-delegator/references/codex-panes.md#restart`; `.agents/skills/mdpro-delegator/references/device-batches.md#device-routing`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
 
 ## Context
 

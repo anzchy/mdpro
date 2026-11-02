@@ -97,30 +97,24 @@ worktree half of the confirmation above; branches still need it.
    2026-10-16: 「后续每次降级都附上复现或者反证」). The
    auditor reports to the delegator, not to the implementor.
 
-   **Every audit runs twice, on the same dimensions** (the second auditor is `opus-auditor` on Opus since
-   [ADR-0137](../../../../docs/adr/0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md), 2026-10-23; "Fable" below names that
-   half as it was first set up)
-   ([ADR-0115](../../../../docs/adr/0115-every-pre-landing-audit-runs-twice-codex-and-fable-on-the-same-dimensions.md);
-   user decision, 2026-10-16: 「除了让 codex-audit 来启用 codex Audit 之外，
-   还应当由 subagent 启动 fable 进行 Audit，维度参考 Codex audit 的维度，
-   保持维度相同，才能互相 challenge」):
-   - In the message that sends the Codex request, the delegator dispatches
-     `mdpro-fable-auditor` in `audit` mode, with the same range and the same
-     dimension set from the pinned file (the set its § Which set names for the range).
+   **Every audit runs on both auditors, `gpt-auditor` and `opus-auditor`, on the same dimensions**
+   ([ADR-0143](../../../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md)
+   decision 1; ADR-0115 and [ADR-0137](../../../../docs/adr/0137-the-second-auditor-runs-on-opus-as-the-opus-auditor-pane.md)
+   before it; user decision, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」):
+   - The delegator sends each auditor its own request file, in a fresh pane, with the same range and the same
+     dimension set from the pinned file (the set its § Which set names for the range). When the opus-auditor pane cannot start, the
+     `mdpro-fable-auditor` subagent runs that request.
    - **Round one is blind** (「不能，先各自单独审」). Neither auditor sees the
      other's verdict, and the delegator forwards nothing between them until
      both are in.
-   - **Fable's round-one report gets its own PR comment**, the way the
-     Codex auditor posts its own. The delegator posts it as written, once
-     both round-one verdicts are in, so the PR never shows it to Codex
-     while Codex is still auditing (user decision, 2026-10-17:
+   - **The delegator posts both round-one reports** as separate PR comments, as written, once both verdicts are in,
+     so the PR never shows one report to an auditor still at work (user decision, 2026-10-17:
      「第一轮fable的audit report，也单独写到对应pr作为comment，其他的不变」).
    - **The delegator merges** the Critical and High findings, one by one:
      - A finding both raise stands.
-     - A finding only one raises is challenged. The other auditor gets that
-       one finding (Fable in `challenge` mode, Codex by `/cc-suite:continue`
-       on its thread) and returns CONFIRMED or REFUTED. A refutation needs a
-       reproduction or a counter-proof. Without one, the finding stands.
+     - A finding only one raises is challenged: the other auditor gets that one finding in a challenge request file,
+       in a fresh pane, and returns CONFIRMED or REFUTED. A refutation needs a reproduction or a counter-proof.
+       Without one, the finding stands. A challenge is not a round.
      - A disagreement that survives the challenge stands too: the gate fails
        closed.
    - The delegator posts the merged verdict on the PR: both count lines, each
@@ -130,29 +124,22 @@ worktree half of the confirmation above; branches still need it.
      review trigger before the user is asked to accept it (doubt means review), and a
      [gate-sensitive decision-log entry](../../../../docs/agents/decisions/README.md#gate-sensitive-entries) before it lands
      ([ADR-0165](../../../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
-     decisions 2 and 4; [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)), get Codex `/cc-suite:review-plan`
-     and an **Opus** reviewer: the `mdpro-fable-auditor` definition in `plan`
-     mode, dispatched with `model: "opus"`. Each runs, by request file (rule 71), the set
+     decisions 2 and 4; [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)), go to
+     `gpt-auditor` and `opus-auditor`, each by request file in a fresh pane (rule 71), on the set
      the pinned file's § Which set names for that case: plan; plan + policy at Full for a
      gate-sensitive entry ([policy set](../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)). Blind and merged the same way.
-     Fable itself reviews PRs only
-     ([ADR-0118](../../../../docs/adr/0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md);
-     user decision, 2026-10-17: 「Fable只参与审计pr，不参与adr等其他的」).
 
    **Zero Critical and zero High in the merged verdict is the landing
    condition.** A Critical or High goes to the owner on the same branch: the
    owner fixes it there (new SHA, rebased if `master` moved, decisive tests
-   re-run). **Both** auditors then confirm the fix on the new SHA (Fable in
-   `confirm` mode), each scoped to every open finding from either side, not
+   re-run). **Both** auditors then confirm the fix on the new SHA, each by a confirm request file in a fresh pane,
+   scoped to every open finding from either side, not
    a fresh full audit (「Both, scoped (Recommended)」). One auditor's OPEN or
    PARTIAL is challenged like a one-sided finding. Then the verifier
-   re-checks by tree identity, and the delegator lands. **At most three
-   rounds**: the first audit and two confirms
-   ([ADR-0120](../../../../docs/adr/0120-a-pre-landing-audit-runs-at-most-three-rounds-then-the-user-rules.md);
-   user decision, 2026-10-17: 「规定以后codex audit最多2个round」, settled as
-   「Audit + 2 confirms」 for both auditors). A Critical or High still open after
-   round three gets no fourth round. The delegator brings it to the user, who
-   rules, and the ruling is quoted in the row.
+   re-checks by tree identity, and the delegator lands. **There are at most two rounds: the blind audit and one scoped
+   confirm** (ADR-0143 decision 2; a round is the pair). A Critical or High still open after round two goes to the user
+   with both auditors' evidence, and the user rules under ADR-0143 decision 3 and ADR-0129: one more round once per
+   review, a fix without a further round, landing it open, or stopping the item. The ruling is quoted in the row.
 
 ## After the cap
 
@@ -197,8 +184,8 @@ worktree half of the confirmation above; branches still need it.
        file's § Which set names `<P>`.
      - **Medium** (other `src/`): both auditors, on the set § Which set names, as above.
      - **Low** (CSS, docs except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md`, presentation-only tests):
-       Codex alone, on the set § Which set names, with Fable challenging each Critical or High it raises. A change to the
-       excluded file is High tier.
+       `gpt-auditor` alone, on the set § Which set names, with `opus-auditor` (ADR-0137) challenging each Critical or High
+       it raises, as ADR-0121 set the tiers and ADR-0143 left them unchanged. A change to the excluded file is High tier.
    - **Base.** The base is the PR's fork point on `master` (`git merge-base`). It moves with each
      rebase.
    - **Pre-existing.** A *Pre-existing* High needs three things before it stops blocking:
@@ -227,21 +214,18 @@ worktree half of the confirmation above; branches still need it.
 - **Dimensions.** Both auditors use `docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`
   named in the request, and `docs/agents/audit-policy-set.md` blob `<P>` when the pinned file's § Which set names `<P>`,
   with one pin for the full review (ADR-0146).
-- **PRs.** The delegator sends one fresh-pane request to `gpt-auditor` on the exact range.
-  On High tier, unless policy-only (§ Which set; [policy set](../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)), the request also requires an explicit security review section and count.
-  Optional `opus-auditor` follows § Delegator runtime route; it never replaces
-  this required request.
-- **Round one is blind to PR comments and delegator conclusions.** `gpt-auditor` writes its report;
-  the delegator checks the evidence and posts the report when a PR exists. It records a
-  single-auditor verdict unless the optional Opus audit ran; then it merges both reports.
-  Any blocking Critical or High stays open until a scoped gpt-auditor confirm closes it.
+- **PRs.** The delegator sends one fresh-pane request each to `gpt-auditor` and `opus-auditor` on the exact range (ADR-0143).
+  On High tier, unless policy-only (§ Which set; [policy set](../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)), both requests also require an explicit security review section and count.
+- **Round one is blind to PR comments and delegator conclusions.** Each auditor writes its report;
+  the delegator checks the evidence, posts both reports when a PR exists, and merges them (§ Audit merge).
+  Any blocking Critical or High stays open until both auditors' scoped confirm closes it.
 - **ADRs and plans.** Reviewed only as rule 70 item 4 "ADRs and plans" says
   ([ADR-0165](../../../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md);
   [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)): a plan; an ADR that
   meets [CLAUDE.md § ADR](../../../../CLAUDE.md#architecture-decision-records-adr)'s review trigger; a
   [gate-sensitive decision-log entry](../../../../docs/agents/decisions/README.md#gate-sensitive-entries) before it lands.
   Doubt means review. Another ADR lands with the user's quoted acceptance, and another log entry is a docs-only commit.
-  `gpt-auditor` reviews consistency, completeness, feasibility, ambiguity and
+  `gpt-auditor` and `opus-auditor` each review consistency, completeness, feasibility, ambiguity and
   risk in a fresh pane. The delegator records the applicable verdict and asks the user about
   unresolved decisions.
 
@@ -251,9 +235,9 @@ worktree half of the confirmation above; branches still need it.
 **Every audit request and every fix round after the first starts from a fresh context** ([ADR-0131](../../../../docs/adr/0131-every-audit-request-and-every-fix-round-starts-from-a-fresh-context.md);
 user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context replaces the thread.
 
-- **Reset a Codex pane** before every gpt-auditor request (first audit, confirm, challenge, ADR or
-  plan review) and every implementor fix that needs a new session, by § Restart: a new pane with
-  the full launch line. The in-pane `/new` reset and its session-id check are superseded (ADR-0133
+- **Reset a pane** before every `gpt-auditor` and `opus-auditor` request (first audit, confirm, challenge, ADR or
+  plan review) and every implementor fix that needs a new session
+  ([codex-panes.md § Restart](codex-panes.md#restart)): each auditor gets a new pane with the full launch line. The in-pane `/new` reset and its session-id check are superseded (ADR-0133
   decision 4): `/new` drops the launch flags, and herdr can report another project's session id.
 - **A request file is self-contained.** A confirm or challenge names:
   - the fix range;
@@ -264,9 +248,8 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
   Its scope is ADR-0121 decision 4 as written: the fix diff, every open finding and unfixed
   instance of its class, and any Critical or High a commit in `base..sha` introduced, exposed or
   worsened. Before sending a confirm, check the request against the merged verdict's open list.
-- **Opus is never required.** On Codex do not reset, prompt or wait for `opus-auditor`.
-  On Claude, dispatch it only under the two conditions in § Delegator runtime route.
-  Earlier Opus reports remain evidence for the rounds in which they were completed.
+- **When a model is unavailable**, the delegator tells the user and the audit waits (ADR-0143 decision 4).
+  A single-auditor round needs the user's word, which the record names.
 - **The delegator** asks the user to type `/compact` at a quiet point: no landing in flight, every
   wait recorded in `heartbeat.json`. The compaction instructions keep the open findings, SHAs,
   number reservations and armed waits.
@@ -304,16 +287,14 @@ six sections:
 ## Confirm handoff
 
 <!-- moved-from: rule 71 § Briefs and self-acceptance (ADR-0147) -->
-The delegator checks the attack file and the matrix when it confirms the handoff. The plugin runs
-plan, per-WI RED receipts, coverage, optional mutation, review, and its commit gate. The mdpro brief
-adds exact lanes and a self-acceptance handoff. The plugin does not commit; after its gates complete,
-the implementor makes the branch commit required by the brief outside the workflow. On Claude, the
-brief's lanes and the rule 10 receipt CLI (`node scripts/tdd/red-receipt.mjs`) do that work.
+The delegator checks the attack file and the matrix when it confirms the handoff. The method is
+[implementor.md § Matrix and attack](../../../../docs/agents/implementor.md#matrix-and-attack); the brief adds exact lanes
+and the self-acceptance table, and the implementor makes the branch commit the brief requires. The matrix-attack step exists
+because on 2026-10-20 all three blocking Highs were untested cases: M3b H1 (a submit that fails inside a table), D290 H1 (a
+close while a save awaited) and D290 H2 (a deletion ignored mid-batch).
 
-The step applies to every grant. On a fix round it applies when the finding is a missed case,
-which covers all three Highs above. A fix the brief fully specifies with its regression test can
-skip it, and the fix brief says so. A grant already past its first RED when this rule took effect
-writes its matrix for the ACs not yet RED, and has that matrix attacked.
+The matrix-attack step applies to every grant. On a fix round it applies when the finding is a missed case, as those
+three were. A fix the brief fully specifies with its regression test can skip it, and the fix brief says so.
 
 An implementor does not hand off with an AC unproved unless it names that AC, says why, and says
 what it needs. An AC that conflicts with another is recorded, resolved toward the plan and the
@@ -337,7 +318,7 @@ unproved in the handoff alone does not accept it.
   evidence and the brief to `gpt-auditor` and `opus-auditor` at the same time, each in a fresh context and blind to the other.
   Each returns a root-cause ranking with the evidence that confirms or refutes each cause, and a proposed fix with the test that
   proves it.
-- **The host.** A reviewer that needs read-only host checks gets them under the win-desktop lock above, one at a time; the other
+- **The host.** A reviewer that needs read-only host checks gets them under the [win-desktop lock](device-batches.md#win-desktop-lock), one at a time; the other
   works from the evidence until the lock is free.
 - **Then the delegator decides.** It compares the two reviews (agreements, disagreements, and which is better supported), writes
   the decision as a ruling, and only then sends the implementor a fix brief. If the reviews disagree on the cause and the evidence
