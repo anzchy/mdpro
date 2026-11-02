@@ -44,6 +44,8 @@ On acceptance, this ADR partially supersedes:
 
   All of these are replaced by decisions 4 and 5 below.
 
+**Current text: `.agents/skills/mdpro-delegator/references/codex-panes.md#restart`; `docs/agents/implementor.md#fix-sessions`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 **The Codex weekly quota is running out mid-week.** It went from 22% left to 15% left in about an

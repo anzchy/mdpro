@@ -24,6 +24,8 @@ It partially supersedes:
 Every other clause stays. That includes the three-round cap, the user's authority to rule, the
 pre-existing proof and confirmation, and the blocking count.
 
+**Current text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#after-the-cap`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 The user asked (2026-10-21): 「三轮之后还有high没关，用subagent 搜索一下Claude、codex等相关最佳实践是怎样的，high默认存在，然后safe to merge吗」.

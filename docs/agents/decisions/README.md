@@ -49,6 +49,8 @@ High tier there.
   its own pinned file `<P>`, read only on policy-routed requests; the dimension allowance is 13,000 B.
 - [20261102-new-items-are-github-issues.md](20261102-new-items-are-github-issues.md): a new item is a GitHub issue;
   its id is the issue number, its status the issue's state, and the sequencing doc keeps order only.
+- [20261102-d355-rules-70-71-fold-in.md](20261102-d355-rules-70-71-fold-in.md): rules 70 and 71, CLAUDE.md, AGENTS.md
+  and rule 12 become a routing map, process-ADR clauses fold into references and role files, and ADR-0147's caps change.
 - [20261102-changing-an-unfolded-process-adr-clause.md](20261102-changing-an-unfolded-process-adr-clause.md): a
   clause of a process ADR (up to 0164) that is not yet folded in is changed by folding it in, with a log entry; no new
   ADR.

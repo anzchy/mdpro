@@ -32,6 +32,8 @@ The gate binds from 2026-10-28 through rule 12, on the user's direct instruction
 - rule 70 § Sessions: a `planner` row;
 - rule 70 § Reserving numbers: ADR drafts are unnumbered until the delegator commits them.
 
+**Current text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#gated-items`; `docs/agents/implementor.md#gated-items`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **Rework came from intent nobody pinned down.**

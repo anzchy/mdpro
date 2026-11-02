@@ -13,6 +13,8 @@ which was still open: CI is blocking, not just reported. Adds one landing
 condition to [ADR-0085](0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md)'s
 gate and leaves its other conditions unchanged. Adds one standing exception to rule 25.
 
+**Current text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#landing`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **PR CI was advisory.** `ci.yml` ran on every PR, but `master` required no

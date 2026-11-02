@@ -15,6 +15,8 @@ It partially supersedes:
 - [ADR-0131](0131-every-audit-request-and-every-fix-round-starts-from-a-fresh-context.md), the clause that makes the
   second half a fresh subagent per request. It becomes a fresh pane per request.
 
+**Current text: `.agents/skills/mdpro-delegator/references/roster-and-routing.md#roster`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **How it worked before.** Under rule 71 the second auditor was a fresh `mdpro-fable-auditor` subagent of the

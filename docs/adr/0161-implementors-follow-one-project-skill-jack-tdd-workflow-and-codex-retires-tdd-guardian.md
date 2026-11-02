@@ -25,6 +25,8 @@ superseded. For both runtimes this also supersedes:
 [ADR-0133](0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md)'s
 fresh-context guarantee for the adversary is kept: the attacker is still a fresh agent.
 
+**Current text: `docs/agents/implementor.md#matrix-and-attack`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 - **#564 turned tdd-guardian off for Claude.** Its two parts that mattered, the independent matrix attack (added 2026-10-20
   after three missed-case Highs) and RED receipts, are now mdpro's own. The method is spread across rule 10, rule 12,

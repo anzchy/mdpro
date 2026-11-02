@@ -20,6 +20,8 @@ loop, `gpt-6.1-sol` at effort `high`, Critical and High only) stands.
 2026-10-28 partially superseded: decision 4's direct docs-only audit exception no longer covers
 `docs/agents/audit-dimensions.md`; its changes require an audited PR, by [ADR-0146](0146-audits-use-project-dimensions-kept-in-the-repo.md).
 
+**Current text: `docs/agents/auditor.md#downgrades`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 Since 2026-10-10 every landed work item has gone to `mdpro-codex-audit` for a

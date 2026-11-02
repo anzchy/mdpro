@@ -69,6 +69,8 @@ would let a regression the PR introduced land, so this draft drops it (Decision 
 - ADR-0118 Decision 2: PR tiers do not govern ADR and plan reviews.
 - ADR-0085 Decision 3's non-registration: Medium and Low findings are never D items.
 
+**Current text: `docs/agents/auditor.md#tiers`; `docs/agents/auditor.md#pre-existing`; `docs/agents/auditor.md#confirms`; `docs/agents/auditor.md#count-line`; `.agents/skills/mdpro-delegator/references/landing-and-audit.md#tiers`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 Since ADR-0115, every work item has been audited the same way: two blind auditors (Codex and Fable),

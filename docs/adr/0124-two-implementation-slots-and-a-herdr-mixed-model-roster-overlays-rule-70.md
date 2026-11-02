@@ -31,6 +31,8 @@ On acceptance, this ADR partially supersedes:
 
 Each of those gets a forward link in its Status line. Everything else in them stands.
 
+**Current text: `.claude/rules/71-herdr-mixed-roster.md#71---herdr-mixed-model-roster`; `.agents/skills/mdpro-delegator/references/roster-and-routing.md#overlay`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 On 2026-10-18 the user moved the delegator role into a herdr pane (herdr-delegator) and added two

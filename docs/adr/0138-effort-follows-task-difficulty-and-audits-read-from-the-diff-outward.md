@@ -42,6 +42,8 @@ On acceptance it partially supersedes:
 - for gpt-auditor, the effort half of the user's same-day 「update gpt-auditor's model to `GPT-6-Sol medium`, from now
   on」: the model stays `gpt-6-sol`, the effort follows decision 2, per the later 「effort 要根据任务难度来route」.
 
+**Current text: `.agents/skills/mdpro-delegator/references/roster-and-routing.md#effort`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **What tokens buy.** One Codex audit request reads 0.67–1.54 M input tokens, 86–92 % cached, and writes 3–6 k

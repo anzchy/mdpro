@@ -66,6 +66,8 @@ commit):
   ([ADR-0143](0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md));
 - device proof of `device` ACs ([ADR-0144](0144-behaviour-acs-are-proved-in-the-real-app-before-landing.md)).
 
+**Current text: `docs/agents/auditor.md#dimensions`; `.agents/skills/mdpro-delegator/references/landing-and-audit.md#confirm-handoff`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 Measured on 2026-10-27.

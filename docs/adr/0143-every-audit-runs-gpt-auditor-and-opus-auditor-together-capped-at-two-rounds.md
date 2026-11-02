@@ -17,6 +17,8 @@ Supersedes, for audits requested from now on:
 fix) and [ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md) (tiers,
 pre-existing findings) are unchanged.
 
+**Current text: `.claude/rules/71-herdr-mixed-roster.md#71---herdr-mixed-model-roster`; `.agents/skills/mdpro-delegator/references/landing-and-audit.md#audit-merge`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - On 2026-10-24 the user retired opus-auditor on the Codex route and made gpt-auditor the sole required auditor. On

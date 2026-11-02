@@ -8,6 +8,8 @@ The user chose 「Let Codex weigh in」. After the Codex review the user chose �
 
 Partially superseded, 2026-10-17: the Cap's "two machine-wide", now three, by [ADR-0118](0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md).
 
+**Current text: `.agents/skills/mdpro-delegator/references/session-ops.md#queues`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 Implementors (`mdpro-a3`, `mdpro-a6`) and the device harness (`adr047-verify`) waited for an

@@ -15,6 +15,8 @@ On acceptance it partially supersedes:
   exception there;
 - rule 71 § Roster, the delegator row ("Claude Opus, herdr pane of that name"), which becomes "Claude Opus or Codex".
 
+**Current text: `.agents/skills/mdpro-delegator/references/roster-and-routing.md#runtime-route`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **Who delegates today.** Since ADR-0124 the delegator has been herdr-delegator, a Claude Opus session in herdr

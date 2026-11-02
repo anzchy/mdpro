@@ -25,6 +25,8 @@ On acceptance it partially supersedes:
 
 On acceptance rule 71's Models sentence and its difficulty table both change to match, and ADR-0133 gets a forward link.
 
+**Current text: `.agents/skills/mdpro-delegator/references/roster-and-routing.md#effort`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **ADR-0138** (accepted the same day) routes Codex effort by difficulty. A `routine` item is mechanical and fully

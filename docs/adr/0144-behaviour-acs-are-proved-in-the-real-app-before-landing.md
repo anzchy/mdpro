@@ -28,6 +28,8 @@ decision 6 (the desktop lock, and the user's per-run word that picsee runs no GU
 audit ([ADR-0121](0121-audit-effort-follows-risk-pre-existing-findings-do-not-block-and-auditors-are-measured.md),
 [ADR-0143](0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md)).
 
+**Current text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#landing`; `docs/agents/device-tester.md#cards`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 The forces, as measured on 2026-10-27 ([assessment](../knowledge/20261027-acceptance-mechanism-vs-pstack.md)):

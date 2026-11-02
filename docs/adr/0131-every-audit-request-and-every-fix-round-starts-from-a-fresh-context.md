@@ -38,6 +38,8 @@ On acceptance, this ADR changes three earlier ADRs:
 
 Each of these ADRs gets a forward link in its Status line.
 
+**Current text: `docs/agents/auditor.md#read-barrier`; `.agents/skills/mdpro-delegator/references/landing-and-audit.md#requests`; `docs/agents/implementor.md#fix-sessions`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 Under rule 71, every role except the device tester is a long-lived conversation:

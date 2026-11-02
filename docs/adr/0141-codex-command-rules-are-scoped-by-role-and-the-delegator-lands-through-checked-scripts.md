@@ -40,6 +40,8 @@ landing "binds unchanged" but gives a Codex delegator no way to run it. On accep
 [ADR-0124](0124-two-implementation-slots-and-a-herdr-mixed-model-roster-overlays-rule-70.md) and rule 71 § Codex
 agents, "The guard": `.codex/rules/mdpro.rules` stops being one file that binds every Codex pane alike.
 
+**Current text: `AGENTS.md#every-session-codex`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - **What happened.** Codex took the delegator role at about 12:15 on 2026-10-24. The last product commit was

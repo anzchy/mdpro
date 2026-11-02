@@ -30,6 +30,8 @@ fix is confirmed by the finding's raiser(s), with no merge challenge.
 2026-10-28 partially superseded: decisions 1 and 3's dimension set now comes from the pinned
 repo file, and Medium findings are listed rather than count-only, by [ADR-0146](0146-audits-use-project-dimensions-kept-in-the-repo.md).
 
+**Current text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#audit-merge`; folded by ADR-0165**, 2026-11-02 (D355, ADR-0147 WI-1; [entry](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)).
+
 ## Context
 
 - Since ADR-0085 (2026-10-12) one Codex audit (`/cc-suite:audit --mini`,
