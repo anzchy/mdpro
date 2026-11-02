@@ -3340,6 +3340,182 @@
         "tests/tooling/codex-land-guard-docs.test.ts": "c576db8ab1ab2bc246c10ac218c886ba25bc7be2"
       }
     },
+    "RC5-S1": {
+      "id": "RC5-S1",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T09:29:52.991Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 case-variant lookups\",\"B5, S11 (store half): a worktree file differing only in case is a collision, and its one-id read is refused\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 141
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 case-variant lookups\",\"B6, X1: a master file differing only in case is a collision though the worktree has none\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 150
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 case-variant lookups\",\"masterIds reads a legacy master's receipts.json during the transition\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 157
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 engine view\",\"S5: the view lists every receipt in code-point order, in the engine's own bytes\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 164
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 ids\",\"B4: refuses `..`, a leading dot and 65 characters; admits 64\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 39
+          },
+          "message": "AssertionError: ..: expected undefined to be 64 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 ids\",\"B7, B9: refuses Windows device names by the stem before the first dot, in any case\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 44
+          },
+          "message": "AssertionError: CON: expected { code: undefined, …(1) } to match object { code: 64, …(1) }"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 item files\",\"B1, AC-1: a 64-character id is written as <ID>.json in canonical bytes and read back\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 53
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 item files\",\"B8: a CJK test path with a space round-trips as UTF-8, not \\\\u escapes\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 62
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 item files\",\"temps never land in the item directories, and removeItem deletes the one file\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 69
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"C1, C3: truncated JSON, a missing red or test_files, an array, and minified bytes are refused naming the file\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 105
+          },
+          "message": "AssertionError: is not valid JSON: expected { code: undefined, …(1) } to match object { code: 64, …(1) }"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"C2: a file whose id differs from its name is refused naming the file, by the full load and by its own read\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 91
+          },
+          "message": "AssertionError: expected { code: undefined, …(1) } to match object { code: 64, …(1) }"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"C2′, C5′ (R-e): a one-id read succeeds beside a corrupt or stray neighbour\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 120
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"C5: a stray file or a subdirectory is refused, not ignored\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 111
+          },
+          "message": "AssertionError: expected 'receipt-store.mjs: not implemented' to contain 'unexpected file in receipts/: notes.t…'"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"X1: two files equal ignoring case are refused by the full load, whatever the filesystem does\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 131
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"evidence with no receipt is refused by the full load\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 125
+          },
+          "message": "AssertionError: expected 'receipt-store.mjs: not implemented' to contain 'orphan evidence: Z-9'"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-receipt-store.test.ts\",\"RC5 strict load\",\"loads every receipt and evidence entry keyed by id\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-receipt-store.test.ts",
+            "line": 84
+          },
+          "message": "Error: receipt-store.mjs: not implemented"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/RC5-S1/20261102T092952991Z/tests",
+        "tree": "099fab3b728513b78de1ac328586d0148f2004eb"
+      },
+      "spec_blobs": {
+        "tests/tooling/rc5-receipt-store.test.ts": "c070adb91d05ef8518ebb695b7e6ca06c38c92a5"
+      },
+      "settled_blobs": {
+        "tests/tooling/rc5-receipt-store.test.ts": "60635e658db7f88a58000cbb7ef1dceb81b25031"
+      },
+      "evidence_required": true,
+      "replay": {
+        "path": ".claude/tdd-guardian/evidence/RC5-S1.json",
+        "digest": "ed39045b5a6b75bef69ce3efb238d2f48f93194f71a54da6cf3f4c5128ca7dd2",
+        "result": "failed",
+        "base": "22ffe5eadf6abd9de0d234da2e80d8d501a93403",
+        "head": "bbf0c2255272b4ac39c3e396dfc307298e25495b"
+      }
+    },
     "T566-1": {
       "id": "T566-1",
       "lane": "unit-red",
