@@ -38,6 +38,8 @@ the first process ADR after it.
 Enforced by: nothing yet. Until the references lint (follow-up 2) lands, rule 70's number reservation and the review of
 the follow-up PR hold it.
 
+**Current text: `CLAUDE.md#architecture-decision-records-adr`; folded and changed by [`docs/agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md`](../agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md)**, 2026-11-02 (user: 「Change = fold it in (Recommended)」), for decision 4's "Reversing or replacing a decision still takes a new ADR" and decision 5's move-only reading of a fold-in, process ADRs ADR-0001…ADR-0164 only. Landed with PR #585 (`1d6a9854`).
+
 ## Context
 
 - 161 ADRs exist: 44 written in September and 115 in October. Numbers 0120 to 0164 hold 43 records, since 0123 and
