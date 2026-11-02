@@ -2,7 +2,7 @@
 // D355 fix 1, shoulds: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  root, read, exists, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutCurrentText, currentText,
+  read, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutCurrentText, currentText,
 } from "./d355-fix1-lib";
 describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   it("D1: codex-panes.md links AGENTS.md's renamed section", () => {
