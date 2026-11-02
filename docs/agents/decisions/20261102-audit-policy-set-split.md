@@ -15,9 +15,14 @@
   `.agents/skills/mdpro-delegator/references/templates/challenge-request-template.md`,
   `.agents/skills/mdpro-delegator/references/templates/plan-review-request-template.md`,
   `.agents/skills/mdpro-delegator/references/templates/landing-docs-checklist.md`,
+  `.agents/skills/mdpro-delegator/references/templates/merged-verdict-template.md`,
   `.claude/agents/mdpro-fable-auditor.md`, `scripts/codex-rules/land-guard.mjs`,
+  `.claude/rules/70-multi-session-coordination.md` (item 4's pin and docs-only exception, the High and Low tier
+  bullets), `.claude/rules/71-herdr-mixed-roster.md` (§ Audits under herdr › Dimensions),
+  `docs/adr/0147-always-on-instructions-become-a-routing-map.md` (its Status line only),
   `tests/tooling/adr0146-audit-dimensions.test.ts`, `tests/tooling/codex-land-guard-docs.test.ts`,
   `tests/tooling/gh586-audit-policy-split.test.ts` (new).
-- **supersedes:** none.
+- **supersedes:** ADR-0147 decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap, folded
+  and changed here; ADR-0147's Status line links this entry.
 - **gate-sensitive:** yes: it changes what an auditor loads for a PR to land and adds a landing-guard protected file
   (herdr-delegator, 2026-11-02, brief #586).

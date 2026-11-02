@@ -222,13 +222,13 @@ handoff. Each item is tagged `prep` or `impl`.
    ancestry and scope check, the delegator sends the auditor the branch SHA,
    its parent, the WI or D id and the owner. The auditor audits
    `<parent>..<sha>` under the set that § Which set of
-   `docs/agents/audit-dimensions.md` names for the range, pinned at master `<M>` by blob `<B>`,
-   with preflight bypassed, model `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
+   `docs/agents/audit-dimensions.md` names for the range, pinned at master `<M>` by blob `<B>`, and
+   `docs/agents/audit-policy-set.md` blob `<P>` when the pinned file's § Which set names `<P>`, with preflight bypassed, model `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
    asks the user first: the user approved this standing order on 2026-10-10
    so that no human sits in the loop. The approval covers the audit run
    only; rule 25 commands still need their own confirmation. A docs-only or
    device-record commit is not audited, except that a change to
-   `docs/agents/audit-dimensions.md` goes through a PR, audited at High tier
+   `docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md` goes through a PR, audited at High tier
    under the old pinned blob, with plan review of the proposed blob by both
    auditors before it lands; never a direct docs-only commit. A
    [gate-sensitive decision-log entry](../../docs/agents/decisions/README.md#gate-sensitive-entries) is the other exception:
@@ -334,9 +334,10 @@ handoff. Each item is tagged `prep` or `impl`.
      - **High** (document save, close, draft or sync behaviour, MCP approval, preference writes,
        `src-tauri`, `src/services`, CI, release, gate tooling, dependencies, any unlisted path):
        both auditors, on the set the pinned file's § Which set names for the range, in the pinned
-       `docs/agents/audit-dimensions.md` blob `<B>`.
+       `docs/agents/audit-dimensions.md` blob `<B>`, and `docs/agents/audit-policy-set.md` blob `<P>` when the pinned
+       file's § Which set names `<P>`.
      - **Medium** (other `src/`): both auditors, on the set § Which set names, as above.
-     - **Low** (CSS, docs except `docs/agents/audit-dimensions.md`, presentation-only tests):
+     - **Low** (CSS, docs except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md`, presentation-only tests):
        Codex alone, on the set § Which set names, with Fable challenging each Critical or High it raises. A change to the
        excluded file is High tier.
    - **Base.** The base is the PR's fork point on `master` (`git merge-base`). It moves with each

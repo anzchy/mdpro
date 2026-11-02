@@ -422,7 +422,8 @@ unproved in the handoff alone does not accept it.
   smoke effect goes back to the implementor and is not an audit round. A fix or rebased head repeats both before its confirm.
   This partially supersedes rule 70 § Commits item 2's dispatch order.
 - **Dimensions.** Both auditors use `docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`
-  named in the request, with one pin for the full review (ADR-0146).
+  named in the request, and `docs/agents/audit-policy-set.md` blob `<P>` when the pinned file's § Which set names `<P>`,
+  with one pin for the full review (ADR-0146).
 - **PRs.** The delegator sends one fresh-pane request to `gpt-auditor` on the exact range.
   On High tier, unless policy-only (§ Which set; [policy set](../../docs/agents/decisions/20261102-cc-suite-policy-set.md)), the request also requires an explicit security review section and count.
   Optional `opus-auditor` follows § Delegator runtime route; it never replaces

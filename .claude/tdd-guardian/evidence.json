@@ -2848,6 +2848,141 @@
         "tests/tooling/adr0146-audit-dimensions.test.ts": "c4e138305debf4d45eae2a7dc995d42cd84a0144"
       }
     },
+    "GH586-S11": {
+      "id": "GH586-S11",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:45:54.200Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 fix 1: the rules name the policy set file beside the dimensions file\",\"rule 70 item 4 pins <P> beside <B> and keeps the policy file out of the docs-only exception\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 423
+          },
+          "message": "AssertionError: expected 'The auditor audits `<parent>..<sha>` …' to contain '`docs/agents/audit-policy-set.md` blo…'"
+        },
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 fix 1: the rules name the policy set file beside the dimensions file\",\"rule 70's High and Low tier bullets name the policy set file\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 432
+          },
+          "message": "AssertionError: expected '- **High** (document save, close, dra…' to contain '`docs/agents/audit-policy-set.md` blo…'"
+        },
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 fix 1: the rules name the policy set file beside the dimensions file\",\"rule 71 § Audits under herdr › Dimensions names <P> under the pinned file's routing\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 441
+          },
+          "message": "AssertionError: expected '- **Dimensions.** Both auditors use `…' to contain '`docs/agents/audit-policy-set.md` blo…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S11/20261102T064554200Z/tests",
+        "tree": "10d801655f918492222006db26bf2562407150df"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "be10bea2f58858fffa422dd8f0ff9a1ad76b7c8b"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "be10bea2f58858fffa422dd8f0ff9a1ad76b7c8b"
+      }
+    },
+    "GH586-S13": {
+      "id": "GH586-S13",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:47:07.577Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it\",\"adds one dated Status line to ADR-0147 and leaves the rest of the record byte-identical\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 233
+          },
+          "message": "AssertionError: expected [] to have a length of 1 but got +0"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it\",\"lists the rule, ADR and template files fix 1 edits under changes:\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 223
+          },
+          "message": "AssertionError: .claude/rules/70-multi-session-coordination.md: expected '`docs/agents/audit-dimensions.md`, `d…' to contain '`.claude/rules/70-multi-session-coord…'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it\",\"names ADR-0147 decision 5's allowance and single auditor cap under supersedes:\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 210
+          },
+          "message": "AssertionError: expected '# 2026-11-02: The policy set moves in…' to match /\\n- \\*\\*supersedes:\\*\\* (?!none)/"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S13/20261102T064707577Z/tests",
+        "tree": "ee9a12ee108d62f00701f476d914c1f1e0576977"
+      },
+      "spec_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "61dd57d4d16df93b799e881baea127815bd3f72b"
+      },
+      "settled_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "61dd57d4d16df93b799e881baea127815bd3f72b"
+      }
+    },
+    "GH586-S14": {
+      "id": "GH586-S14",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:47:42.297Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 fix 1: the merged verdict records <P>\",\"records the policy blob on the Protocol line, and both auditors' echo of <B> and <P>\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 452
+          },
+          "message": "AssertionError: expected '- Protocol: master `<M>`, dimensions …' to contain 'policy blob `<P>` when the pinned fil…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S14/20261102T064742297Z/tests",
+        "tree": "c932ffba5b56691798cf1c0c66e5a817db4483dc"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "d04363ffaf702e1560412a79c1e8db217021946a"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "d04363ffaf702e1560412a79c1e8db217021946a"
+      }
+    },
     "GH586-S2": {
       "id": "GH586-S2",
       "lane": "unit-red",

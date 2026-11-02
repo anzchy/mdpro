@@ -2,7 +2,7 @@
 
 Range `<base>..<sha>` (PR #<n>). Tier <T>, difficulty <D>.
 both auditors on every audit, at most two rounds (ADR-0143).
-- Protocol: master `<M>`, dimensions blob `<B>`; both auditors echoed the same pinned blob.
+- Protocol: master `<M>`, dimensions blob `<B>`, policy blob `<P>` when the pinned file's § Which set names `<P>` (otherwise none); both auditors echoed the same `<B>` and `<P>`.
 - Codex (<model effort>): C<n> H<n> M<n> L<n> · BLOCKING C<n> H<n> (security C<n> H<n>).
 - Security section in gpt-auditor's report (High tier, unless policy-only (§ Which set; [policy set](../../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md))): C<n> H<n> M<n> L<n>.
 - Opus report: C<n> H<n> M<n> L<n>.

@@ -404,3 +404,54 @@ describe("ADR-0146 accepted-ADR forward links", () => {
     }
   });
 });
+
+describe("GH586 fix 1: the rules name the policy set file beside the dimensions file", () => {
+  const rule = (name: string) => fs.readFileSync(path.join(root, `.claude/rules/${name}.md`), "utf8").replace(/\s+/g, " ");
+  const between = (source: string, from: string, to: string) => {
+    const start = source.indexOf(from);
+    const end = source.indexOf(to, start + from.length);
+    expect(start, from).toBeGreaterThanOrEqual(0);
+    expect(end, to).toBeGreaterThan(start);
+    return source.slice(start, end);
+  };
+  const routed = "`docs/agents/audit-policy-set.md` blob `<P>` when the pinned file's § Which set names `<P>`";
+
+  it("rule 70 item 4 pins <P> beside <B> and keeps the policy file out of the docs-only exception", () => {
+    const source = rule("70-multi-session-coordination");
+    const pin = between(source, "The auditor audits", "unless the delegator names others");
+    expect(pin).toContain("pinned at master `<M>` by blob `<B>`");
+    expect(pin).toContain(routed);
+    const docsOnly = between(source, "A docs-only or device-record commit is not audited", "never a direct docs-only commit");
+    expect(docsOnly).toContain("`docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md` goes through a PR");
+  });
+
+  it("rule 70's High and Low tier bullets name the policy set file", () => {
+    const source = rule("70-multi-session-coordination");
+    const high = between(source, "- **High** (document save", "- **Medium**");
+    expect(high).toContain("`docs/agents/audit-dimensions.md` blob `<B>`");
+    expect(high).toContain(routed);
+    const low = between(source, "- **Low** (CSS, docs", "- **Base.**");
+    expect(low).toContain("docs except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md`, presentation-only");
+    expect(low).toContain("excluded file is High tier");
+  });
+
+  it("rule 71 § Audits under herdr › Dimensions names <P> under the pinned file's routing", () => {
+    const dimensions = between(rule("71-herdr-mixed-roster"), "- **Dimensions.**", "- **PRs.**");
+    expect(dimensions).toContain("`docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`");
+    expect(dimensions).toContain(routed);
+    expect(dimensions).toContain("with one pin for the full review (ADR-0146)");
+  });
+});
+
+describe("GH586 fix 1: the merged verdict records <P>", () => {
+  it("records the policy blob on the Protocol line, and both auditors' echo of <B> and <P>", () => {
+    const template = fs.readFileSync(
+      path.join(root, ".agents/skills/mdpro-delegator/references/templates/merged-verdict-template.md"), "utf8");
+    const protocol = template.split("\n").find(line => line.startsWith("- Protocol:")) ?? "";
+    expect(protocol).toContain("dimensions blob `<B>`");
+    expect(protocol).toContain("policy blob `<P>` when the pinned file's § Which set names `<P>`");
+    expect(protocol).toContain("otherwise none");
+    expect(protocol).toMatch(/echoed the same `<B>` and `<P>`/);
+    expect(protocol).not.toMatch(/echoed the same pinned blob\b(?!s)/);
+  });
+});

@@ -49,6 +49,8 @@ the delegator creates for the gardener (decision 6).
 **Relation to [ADR-0146](0146-audits-use-project-dimensions-kept-in-the-repo.md)** (Accepted 2026-10-27, `fd893163`):
 ADR-0146 supersedes clauses of rule 70 item 4 and rule 71 by name. Decision 8 says how those clauses move.
 
+**Current text: `docs/agents/decisions/20261102-audit-policy-set-split.md`; folded and changed by [`docs/agents/decisions/20261102-audit-policy-set-split.md`](../agents/decisions/20261102-audit-policy-set-split.md)**, 2026-11-02 (user: 「Pure move, allowance 13,000 (Recommended)」, then 「Separate cap 56,000 (Recommended)」), for decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap.
+
 ## Context
 
 **What every session reads before it starts work** (measured 2026-10-27 on `aee336b6`, re-checked by opus-auditor on

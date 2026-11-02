@@ -199,3 +199,41 @@ describe("GH586-ACC audit-policy-set", () => {
     ]) expect(set, moved).toContain(moved);
   });
 });
+
+describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it", () => {
+  const entryPath = "docs/agents/decisions/20261102-audit-policy-set-split.md";
+  const adrPath = "docs/adr/0147-always-on-instructions-become-a-routing-map.md";
+  const entry = () => read(entryPath);
+  const field = (name: string) => flat(entry().split(`\n- **${name}:**`)[1]?.split("\n- **")[0] ?? "");
+
+  it("names ADR-0147 decision 5's allowance and single auditor cap under supersedes:", () => {
+    expect(entry()).toMatch(/\n- \*\*supersedes:\*\* (?!none)/);
+    const supersedes = field("supersedes");
+    for (const phrase of ["ADR-0147 decision 5", "11,500 B dimension allowance", "single 50,000 B auditor cap"]) {
+      expect(supersedes, phrase).toContain(phrase);
+    }
+    for (const forbidden of ["none", "unchanged", "in place"]) expect(supersedes, forbidden).not.toContain(forbidden);
+  });
+
+  it("lists the rule, ADR and template files fix 1 edits under changes:", () => {
+    const changes = field("changes");
+    for (const file of [".claude/rules/70-multi-session-coordination.md", ".claude/rules/71-herdr-mixed-roster.md", adrPath,
+      ".agents/skills/mdpro-delegator/references/templates/merged-verdict-template.md", "docs/agents/audit-dimensions.md",
+      "docs/agents/audit-policy-set.md", "scripts/codex-rules/land-guard.mjs"]) {
+      expect(changes, file).toContain(`\`${file}\``);
+    }
+  });
+
+  it("adds one dated Status line to ADR-0147 and leaves the rest of the record byte-identical", () => {
+    const adr = read(adrPath);
+    const cut = adr.indexOf("\n## Context");
+    expect(sha(adr.slice(cut))).toBe("7603795507f7b665bedd9d457a9439d5215a9c392d2334fd9a77ced7cc1bf3eb");
+    const status = adr.slice(0, cut);
+    const lines = status.split("\n").filter(line => line.includes("folded and changed by"));
+    expect(lines).toHaveLength(1);
+    const line = lines[0];
+    expect(line).toMatch(/^\*\*Current text: `[^`]+`; folded and changed by \[`docs\/agents\/decisions\/20261102-audit-policy-set-split\.md`\]\(\.\.\/agents\/decisions\/20261102-audit-policy-set-split\.md\)\*\*, 2026-11-02/);
+    expect(line).toContain("decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap");
+    expect(sha(status.replace(`\n\n${line}`, ""))).toBe("b4474f9576af0672dacb2a03b4503e3227469d36bd29ca1d07a41e1b6a0b72db");
+  });
+});
