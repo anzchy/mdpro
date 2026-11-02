@@ -1,7 +1,8 @@
 ---
 name: mdpro-number-registrar
 description: >-
-  Read-only lookup of the next free ADR number and D number for mdpro-delegator (rule 70). It
+  Read-only lookup of the next free repository-wide ADR number and D number for mdpro-delegator
+  (rule 70). Decision-log files and feature-local ids take no number (ADR-0165). It
   scans every branch, every worktree and the Mac mini remote, and returns the highest number seen
   and the next free one, with where each high-water mark was found. Use it before the delegator
   reserves a number. Not for reserving or announcing: the delegator does both.
@@ -24,7 +25,9 @@ The repo is `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro`; run git from t
 
 ## Procedure
 1. `git fetch mac-mini`. If it fails, continue and report `mac-mini: fetch failed <reason>`.
-2. ADR numbers. Collect every 4-digit prefix of a `docs/adr/NNNN-*.md` name from:
+2. ADR numbers, for repository-wide ADRs only (ADR-0165;
+   [decision log](../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). Collect every 4-digit prefix of a
+   `docs/adr/NNNN-*.md` name (never a `docs/agents/decisions/` file or a `<prefix>-r<N>-D<n>` id) from:
    - `git log --all --name-only --format= -- docs/adr/` (every branch, including mac-mini refs)
    - `ls docs/adr` inside every path printed by `git worktree list --porcelain` (lines starting
      `worktree `). That covers the main checkout, `../mdpro-wt/*`, `.claude/worktrees/agent-*`

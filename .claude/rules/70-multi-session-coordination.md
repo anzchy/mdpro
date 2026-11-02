@@ -221,8 +221,8 @@ handoff. Each item is tagged `prep` or `impl`.
    high severity findings之后，才允许ff 到master」). When a handoff passes the
    ancestry and scope check, the delegator sends the auditor the branch SHA,
    its parent, the WI or D id and the owner. The auditor audits
-   `<parent>..<sha>` under the mini or full set in
-   `docs/agents/audit-dimensions.md`, pinned at master `<M>` by blob `<B>`,
+   `<parent>..<sha>` under the set that § Which set of
+   `docs/agents/audit-dimensions.md` names for the range, pinned at master `<M>` by blob `<B>`,
    with preflight bypassed, model `gpt-6.1-sol` and effort `high`, unless the delegator names others. Nobody
    asks the user first: the user approved this standing order on 2026-10-10
    so that no human sits in the loop. The approval covers the audit run
@@ -230,7 +230,9 @@ handoff. Each item is tagged `prep` or `impl`.
    device-record commit is not audited, except that a change to
    `docs/agents/audit-dimensions.md` goes through a PR, audited at High tier
    under the old pinned blob, with plan review of the proposed blob by both
-   auditors before it lands; never a direct docs-only commit. **Mediums are listed, Lows counted**;
+   auditors before it lands; never a direct docs-only commit. A
+   [gate-sensitive decision-log entry](../../docs/agents/decisions/README.md#gate-sensitive-entries) is the other exception:
+   both auditors plan-review it before it lands. **Mediums are listed, Lows counted**;
    the verdict ends with one line counting Critical, High, Medium and
    Low, and the delegator reads the gate off that line. Nobody registers
    Medium or Low findings as D items (user decision, 2026-10-10). **A
@@ -251,7 +253,7 @@ handoff. Each item is tagged `prep` or `impl`.
    保持维度相同，才能互相 challenge」):
    - In the message that sends the Codex request, the delegator dispatches
      `mdpro-fable-auditor` in `audit` mode, with the same range and the same
-     dimension set from the pinned file (mini or full, including L and A).
+     dimension set from the pinned file (the set its § Which set names for the range).
    - **Round one is blind** (「不能，先各自单独审」). Neither auditor sees the
      other's verdict, and the delegator forwards nothing between them until
      both are in.
@@ -270,10 +272,16 @@ handoff. Each item is tagged `prep` or `impl`.
        closed.
    - The delegator posts the merged verdict on the PR: both count lines, each
      challenge and its outcome, and the merged count.
-   - **ADRs and plans**: an ADR before the user is asked to accept it, and a
-     plan before its first `impl` grant, get Codex `/cc-suite:review-plan`
+   - **ADRs and plans**: a plan before its first `impl` grant, an ADR that
+     meets [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr)'s
+     review trigger before the user is asked to accept it (doubt means review), and a
+     [gate-sensitive decision-log entry](../../docs/agents/decisions/README.md#gate-sensitive-entries) before it lands
+     ([ADR-0165](../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
+     decisions 2 and 4; [decision log](../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)), get Codex `/cc-suite:review-plan`
      and an **Opus** reviewer: the `mdpro-fable-auditor` definition in `plan`
-     mode, dispatched with `model: "opus"`. Blind and merged the same way.
+     mode, dispatched with `model: "opus"`. Each runs, by request file (rule 71), the set
+     the pinned file's § Which set names for that case: plan; plan + policy at Full for a
+     gate-sensitive entry ([policy set](../../docs/agents/decisions/20261102-cc-suite-policy-set.md)). Blind and merged the same way.
      Fable itself reviews PRs only
      ([ADR-0118](../../docs/adr/0118-three-implementation-slots-and-opus-reviews-adrs-and-plans.md);
      user decision, 2026-10-17: 「Fable只参与审计pr，不参与adr等其他的」).
@@ -325,11 +333,11 @@ handoff. Each item is tagged `prep` or `impl`.
      may raise it:
      - **High** (document save, close, draft or sync behaviour, MCP approval, preference writes,
        `src-tauri`, `src/services`, CI, release, gate tooling, dependencies, any unlisted path):
-       both auditors on the full set, L, A and the High-tier security section in the pinned
+       both auditors, on the set the pinned file's § Which set names for the range, in the pinned
        `docs/agents/audit-dimensions.md` blob `<B>`.
-     - **Medium** (other `src/`): both auditors on mini, as above.
+     - **Medium** (other `src/`): both auditors, on the set § Which set names, as above.
      - **Low** (CSS, docs except `docs/agents/audit-dimensions.md`, presentation-only tests):
-       Codex mini alone, with Fable challenging each Critical or High it raises. A change to the
+       Codex alone, on the set § Which set names, with Fable challenging each Critical or High it raises. A change to the
        excluded file is High tier.
    - **Base.** The base is the PR's fork point on `master` (`git merge-base`). It moves with each
      rebase.
@@ -385,7 +393,9 @@ worktree half of the confirmation above; branches still need it.
 ## Reserving numbers
 
 - **ADR numbers are reserved through the delegator before the file is
-  written.** Two drafts both took 0066 on 2026-10-10. Ask for the next number;
+  written.** Only repository-wide ADRs take a number: a decision-log file
+  (`docs/agents/decisions/YYYYMMDD-<slug>.md`) and a feature-local id
+  (`<prefix>-r<N>-D<n>`) take none (ADR-0165). Two drafts both took 0066 on 2026-10-10. Ask for the next number;
   the delegator runs `git fetch origin` (ADR-0134; the MacBook is no longer scanned),
   `git log --all -- docs/adr/`, and `ls docs/adr` in every path
   `git worktree list` prints (that covers `mdpro-wt/`,

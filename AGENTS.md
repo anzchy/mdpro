@@ -31,7 +31,7 @@ Codex loads only this file. It does not load `CLAUDE.md` or `.claude/rules/`, an
 | Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
 | A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path in your final message. |
 
-**Delegator routing:** If you hold `herdr-delegator`, run the [mdpro-delegator Skill](.agents/skills/mdpro-delegator/SKILL.md) and follow [rule 71's runtime route](.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route). Codex uses the completion-listener scripts; Claude uses its original background Bash and Claude tools. The agent roster is shared; ADR-0143 requires both auditors on every audit, at most two rounds.
+**Delegator routing:** If you hold `herdr-delegator`, run the [mdpro-delegator Skill](.agents/skills/mdpro-delegator/SKILL.md) and follow [rule 71's runtime route](.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route). Codex uses the completion-listener scripts; Claude uses its original background Bash and Claude tools. The agent roster is shared; ADR-0143 requires both auditors on every audit of a PR, at most two rounds. ADRs and process decisions follow [CLAUDE.md § ADR](./CLAUDE.md#architecture-decision-records-adr) (ADR-0165; [decision log](./docs/agents/decisions/20261102-adr-scope-and-decision-log.md)): an ADR gets plan review only under its review trigger, and a process decision goes to [`docs/agents/decisions/`](./docs/agents/decisions/README.md), with plan review when it is gate-sensitive.
 
 ## Project Structure & Module Organization
 - `src/` holds the React + TypeScript UI (entry in `src/main.tsx`, main component in `src/App.tsx`).

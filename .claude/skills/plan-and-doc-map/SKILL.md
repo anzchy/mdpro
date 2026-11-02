@@ -25,6 +25,7 @@ the truth.
 | `docs/plans/20260911-ui-redesign/` | Plan P's per-stage work-item files (`stage-0-inventory.md` … `stage-5-source-font.md`) plus `decisions.md`, `risks.md`, `baseline-protocol.md` | Living |
 | `docs/plans/archive/` | Plans whose effort closed | Frozen; do not edit |
 | `docs/adr/` | 36 ADRs (`0001`–`0036`) — the **why** behind long-lived constraints, one file per decision | **Survives** plan archival; never edited after Accepted, only superseded |
+| `docs/agents/decisions/` | Process and tooling decisions, one `YYYYMMDD-<slug>.md` file each, listed in its `README.md` (ADR-0165) | Never edited; a wrong entry is corrected by a new one |
 | `docs/test/` | Dated GUI-acceptance records (one per defect/ADR verified on a real device) | Append-only evidence |
 | `docs/guide/` | Reference material CLAUDE.md links out to (architecture, debugging, view-modes, tables, …) | Living |
 | `docs/reference/` | Research and competitor/workflow analyses — **not** decisions | Living |
@@ -53,13 +54,16 @@ Five documents, five non-overlapping jobs. When two disagree, this order settles
 5. **`CHANGELOG.md`** — when it shipped.
 
 **ADRs are not plans.** A plan compares options and tracks execution; an ADR records the
-outcome that must outlive the plan. Decisions worth interrupting a human for (anything that
-reached `AskUserQuestion`) are ADR-worthy. Record the **costs**, not just the benefits — an
+outcome that must outlive the plan. Only a product or architecture decision gets an ADR: the
+scope list and test are in [CLAUDE.md § ADR](../../../CLAUDE.md#architecture-decision-records-adr) (ADR-0165 decision 1; [decision log](../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). A process or
+tooling decision goes to `docs/agents/decisions/`, and a decision inside one feature stays in its
+spec snapshot under a local id (rule 12). Record the **costs**, not just the benefits — an
 ADR whose Consequences section lists only upsides is advocacy, not a record.
 
 Decisions for the in-flight redesign still live inline in `docs/plans/` (E26, E29, E39, the
 `export_html` non-deletion). **Do not backfill them wholesale.** Promote one when it is next
-disputed, superseded, or built on.
+disputed, superseded, or built on: to an ADR if it is on CLAUDE.md § ADR's scope list, otherwise
+to a decision-log entry.
 
 ## Status vocabulary — a closed enum
 

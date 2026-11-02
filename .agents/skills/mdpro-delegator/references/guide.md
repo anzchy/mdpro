@@ -24,7 +24,7 @@ rule wins and this guide is the bug.
 | gpt-imple-1, gpt-imple-2 | Codex `gpt-6-sol`, `-s danger-full-access`, effort by difficulty (ADR-0138); `gpt-6-luna` high on `routine` items (ADR-0139) | `mdpro-wt/<name>` | `$SK/scripts/reset-codex.sh <name> <wt> <model> <effort> implementor` |
 | gpt-imple-3 | Codex `gpt-5.6-sol` (Low tier; `routine` items on Luna) | `mdpro-wt/gpt-imple-3` | same |
 | gpt-auditor | Codex `gpt-6-sol`, medium, high on `hard` (ADR-0138); audit sandboxed, device full access | detached `mdpro-wt/gpt-auditor` | `reset-codex.sh gpt-auditor <wt> gpt-6-sol <effort> auditor` for audit; `reset-codex.sh gpt-auditor <wt> <model> <effort> device` for device |
-| opus-auditor | required by ADR-0143 on every audit | detached `mdpro-wt/opus-auditor` | fresh pane per audit |
+| opus-auditor | required by ADR-0143 on every PR audit | detached `mdpro-wt/opus-auditor` | fresh pane per audit |
 | mac-test/dtrack | retired for future GUI assignments; gpt-auditor owns them | — | — |
 | High-tier security review | gpt-auditor's fresh-pane audit request and security count | auditor worktree | same reset as audit |
 | verifier, number registrar | Codex delegator runs checks; Claude delegator uses the original `Agent` subagents | verify worktrees | — |
@@ -82,7 +82,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 6. **PR.** On Codex, `node scripts/codex-rules/push-guard.mjs <sha> <branch> [--expected-remote-oid <A>]`;
    on Claude, use rule 70's plain push. Then `gh pr create`.
 7. **Audit**: both auditors on every audit, at most two rounds (ADR-0143). Send fresh-pane requests
-   (`audit-request-template.md`), including a security section on High;
+   (`audit-request-template.md`), including a security section on High unless policy-only (§ Which set; [policy set](../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md));
    run the landing verifier directly on Codex or through the original `mdpro-landing-verifier` subagent on Claude.
 8. **Verdict** (`merged-verdict-template.md`): check both reports' evidence and record the merged blocking count.
    Post the reports when a PR exists. At most two rounds (ADR-0143); after the cap, ADR-0129.
@@ -90,16 +90,34 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 10. **Land** when the verifier passes, the merged blocking count is zero, and `ci-gate` is green on the PR head
     (`gh pr checks <pr> --required`). The checked scripts do not check verifier PASS or audit verdict.
     Receipt exceptions need the user's word first. On Codex, use `node scripts/codex-rules/land-guard.mjs <sha>`;
-    for direct docs commits, `node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review). On Claude, use
+    for direct docs commits, `node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review); a gate-sensitive decision-log entry ([README § Gate-sensitive entries](../../../../docs/agents/decisions/README.md#gate-sensitive-entries)) goes this way only after both auditors' plan review of it and its rule edit. On Claude, use
     `git merge --ff-only <sha>` and `git push origin master`, then `references/templates/landing-docs-checklist.md`.
 
-## 6. ADRs
+## 6. ADRs and decision-log entries
 
-Draft → gpt-auditor in plan mode → revise → confirm, at most two rounds → ask the user through
-the active runtime's question channel, stating what the reviewers left open (and ADR-0121 decision 6's result when an auditor's model,
-definition or request template changes) → on acceptance, the Status line quotes the user, forward links go on every
-partially superseded ADR, and rules change in the same commit. An accepted ADR's body is never edited; a later event
-is a dated Status line.
+**Classify first** ([ADR-0165](../../../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md);
+[decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)), before
+reserving any number. Use [CLAUDE.md § ADR](../../../../CLAUDE.md#architecture-decision-records-adr)'s scope list and test.
+A product or architecture decision, or a mixed one, is a repository-wide ADR. A process or tooling decision is a
+[decision-log entry](../../../../docs/agents/decisions/README.md). A decision inside one feature is a spec-local decision
+(rule 12). Doubt goes to the ADR route and to the user.
+
+**An ADR.** Reserve its number. Then check CLAUDE.md § ADR's review trigger and record the classification in its Status
+line; doubt means review.
+- *Review needed:* draft → both auditors in plan mode → revise → confirm, at most two rounds → ask the user through the
+  active runtime's question channel, stating what the reviewers left open (and ADR-0121 decision 6's result when an
+  auditor's model, definition or request template changes).
+- *No review needed:* draft → ask the user.
+- *On acceptance:* the Status line quotes the user, forward links go on every partially superseded ADR, and rules
+  change in the same commit. An accepted ADR's body is never edited; a later event is a dated Status line.
+
+**A decision-log entry** takes no number. Write the entry and its rule edit in one commit, by the README's format.
+- *Gate-sensitive* (README § Gate-sensitive entries; doubt means review): both auditors plan-review the entry with
+  [plan-review-request-template.md](templates/plan-review-request-template.md) before it lands.
+- *Otherwise:* a docs-only commit quoting the user. An entry whose change is a script rides that script's PR.
+
+**Until the references lint lands** (ADR-0165 follow-up 2), check by hand at each docs commit that every cited ADR
+number, feature-local id and decision-log file resolves, and that every decision-log file is in the index.
 
 ## 7. Device batches
 

@@ -5,7 +5,8 @@
 2. a `/to-spec` spec;
 3. `/to-tickets` tickets the user approved;
 4. the approved snapshot, committed;
-5. both auditors' plan review.
+5. both auditors' plan review of the spec and tickets, and of any ADR draft that meets
+   [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr)'s review trigger.
 
 **If any is missing, stop and ask the user. A vague plan is never enough.** Reasons, options and supersessions:
 [ADR-0148](../../docs/adr/0148-new-features-pass-grill-spec-and-tickets-before-implementation.md) (user, 2026-10-28:
@@ -32,14 +33,22 @@
   `MDPRO_ROLE=planner`, in rule 70's roster. One conversation per feature, because `to-spec` synthesises the grill.
 - **What the planner may do.** It publishes the spec and ticket issues to `anzchy/mdpro`. It grants nothing, reserves nothing, commits
   nothing and lands nothing.
-- **Where its outputs go.** Unnumbered ADR drafts, in CLAUDE.md's ADR structure and marked Proposed, plus glossary edits and the user's
-  approval words, all under `~/.mdpro-redesign/planner/<feature>/`. It hands the paths to the delegator.
+- **Where its outputs go.** Glossary edits and the user's approval words, plus an unnumbered ADR draft (CLAUDE.md's ADR structure,
+  marked Proposed) **only** for a decision on [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr)'s scope list,
+  all under `~/.mdpro-redesign/planner/<feature>/`. It hands the paths to the delegator.
+- **Which decisions are ADRs** ([ADR-0165](../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
+  decisions 1 and 3; [decision log](../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). The planner proposes the class by CLAUDE.md § ADR's scope list and test, and the delegator classifies before
+  reserving a number; doubt goes to the user. The spec cites each ADR it relies on. Every other decision in the spec takes a local id
+  `<prefix>-r<N>-D<n>` (e.g. `T567-r1-D1`) and no global number. A feature decision made after `r<N>` is approved goes in
+  `docs/specs/<feature>/decisions.md`, under the same ids, committed with the ticket's landing record; one that changes an AC still
+  needs `r<N+1>`. A local decision that later governs shared code or another feature is promoted by a new ADR that links the snapshot.
 - **The delegator then:**
   1. reserves the ADR numbers and commits the drafts Proposed;
   2. commits `GLOSSARY.md`;
   3. commits the snapshot `docs/specs/<feature>/r<N>/`: `spec.md`, `tickets/<T-nn>.md`, and a `manifest.md` with issue URLs, body
      SHA-256s, approval words and blocking edges;
-  4. sends spec, tickets and ADR drafts to both auditors for plan review.
+  4. sends spec and tickets to both auditors for plan review, with each ADR draft that meets CLAUDE.md § ADR's review trigger
+     (doubt means review). It records that classification in the draft's Status line.
 - **Snapshot revisions never change.** A normative issue edit becomes `r<N+1>` and needs re-approval. Before any brief cites it, both
   auditors plan-review its diff against `r<N>`; an earlier review never covers a later revision. `docs/specs/**` is never Low tier.
 - **Asking.** "Ask the user" means the delegator's route question channel: `AskUserQuestion` on Claude, Codex's channel on Codex. It

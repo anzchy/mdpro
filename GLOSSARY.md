@@ -17,6 +17,17 @@ _Avoid_: keymap version, schema version
 **Owned elsewhere**: a chord that something else on the machine takes before mdpro sees it, so mdpro never receives it. That can be a system-wide hotkey another program registered, a low-level keyboard hook, or an input method's hotkey while that input method is active.
 _Avoid_: blocked key, stolen shortcut
 
+## Decisions
+
+**Repository-wide ADR**: a numbered record `docs/adr/NNNN-*.md` of a decision about the product or its architecture, on the scope list in CLAUDE.md § ADR (ADR-0165 decision 1; [decision log](docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). Its test: would a user of the released app, or a contributor reading product code, see the difference?
+_Avoid_: global decision, process ADR (for new records)
+
+**Decision-log entry**: one file `docs/agents/decisions/YYYYMMDD-<slug>.md` recording one process or tooling decision, listed in that folder's index. It takes no number and is never edited; a wrong one is corrected by a new entry.
+_Avoid_: process ADR, decision log line
+
+**Feature-local decision**: a decision that belongs to one feature, recorded in its spec snapshot `docs/specs/<feature>/r<N>/` or, after approval, in `docs/specs/<feature>/decisions.md`, under a local id `<prefix>-r<N>-D<n>` such as `T567-r1-D1`. It takes no global number.
+_Avoid_: spec ADR, local ADR
+
 ## Landing
 
 **Policy file**:

@@ -1,6 +1,6 @@
 ---
 name: mdpro-delegator
-description: Run mdpro's herdr roster as herdr-delegator — write implementor briefs and fix briefs, reset and prompt Codex panes, obtain gpt-auditor reports and confirmations, land by fast-forward, record landings and device batches, take ADRs through review to the user, and coordinate the desktop GUI lock with picsee. Use when you are (or are taking over as) herdr-delegator, or when you need the brief, request or record templates or the pane-control scripts. Not for implementing product code or auditing a diff yourself.
+description: Run mdpro's herdr roster as herdr-delegator — write implementor briefs and fix briefs, reset and prompt Codex panes, obtain gpt-auditor reports and confirmations, land by fast-forward, record landings and device batches, classify decisions as ADRs or decision-log entries and take those that need it through review to the user, and coordinate the desktop GUI lock with picsee. Use when you are (or are taking over as) herdr-delegator, or when you need the brief, request or record templates or the pane-control scripts. Not for implementing product code or auditing a diff yourself.
 ---
 
 # mdpro delegator
@@ -21,8 +21,8 @@ An unknown runtime stops dispatch. Agent names, briefs, tests, audits and landin
 | `codex` | Use the detached `prompt.sh`/`watch-agent.sh` completion listeners and `notify-settled.sh` wake-up, plus the delegator's own deterministic verifier and registrar checks. |
 | `claude` | Use Claude's original background Bash completion, `Agent` verifier/registrar, `AskUserQuestion` and `SendMessage`. The scripts return the settled result to Bash without prompting the Claude delegator. |
 
-ADR-0143 requires both auditors on every audit, at most two rounds. Record both reports in
-the request. If a model is unavailable, tell the user. See [rule 71](../../../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route).
+ADR-0143 requires both auditors on every audit of a PR, at most two rounds. Record both reports in
+the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision log](../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). If a model is unavailable, tell the user. See [rule 71](../../../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route).
 
 ## Start of a session
 
@@ -49,7 +49,7 @@ the request. If a model is unavailable, tell the user. See [rule 71](../../../.c
 6. **PR and audit**: on Codex, `node scripts/codex-rules/push-guard.mjs <sha> <branch> [--expected-remote-oid <A>]`;
    on Claude, use rule 70's plain push. Then `gh pr create` and fresh-pane requests to both auditors
    (`reset-codex.sh gpt-auditor <worktree> <model> <effort> auditor`) with [audit-request-template.md](references/templates/audit-request-template.md).
-   High-tier requests include security dimensions. Codex records deterministic lane, receipt, ancestry and tree
+   High-tier requests include security dimensions, unless policy-only (§ Which set; [policy set](../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)). Codex records deterministic lane, receipt, ancestry and tree
    verification itself; Claude uses the original verifier subagent.
 7. **Record the two auditor verdicts** ([merged-verdict-template.md](references/templates/merged-verdict-template.md));
    post when a PR exists. Fix ([fix-brief-template.md](references/templates/fix-brief-template.md)) and obtain
@@ -79,7 +79,9 @@ the request. If a model is unavailable, tell the user. See [rule 71](../../../.c
    `$SK/scripts/gui-lock.sh status`, and gpt-auditor runs the macOS GUI batch; record in `docs/test/`.
 10. **Log**: `$SK/scripts/heartbeat.py set|note` after every change of assignment, and a handoff file before a restart.
 
-ADRs: [plan-review-request-template.md](references/templates/plan-review-request-template.md), guide §6.
+ADRs and decision-log entries: classify by [CLAUDE.md § ADR](../../../CLAUDE.md#architecture-decision-records-adr), then guide §6;
+[plan-review-request-template.md](references/templates/plan-review-request-template.md) only for an ADR that meets
+its review trigger or a [gate-sensitive entry](../../../docs/agents/decisions/README.md#gate-sensitive-entries).
 On Codex, send the pending ruling as its final message; never queue it. Ask only after writing the ruling file.
 
 ## Never (guide §9)

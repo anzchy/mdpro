@@ -24,7 +24,7 @@ Unchanged from rule 70:
 - the slot cap, which is three everywhere since 2026-10-30 (ADR-0156, superseding ADR-0124's two);
 - landing (the three conditions, `--ff-only`, push);
 - the audit-round cap and landing conditions, except the two-verdict merge now replaced above;
-- ADR-0121's tiers; the round cap is now **two rounds, with gpt-auditor and opus-auditor both on every audit**, after which an open Critical or High goes to the user ([ADR-0143](../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), superseding ADR-0120's three rounds and folding in ADR-0142; user, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」). Where this file elsewhere calls opus-auditor optional or gpt-auditor the sole required auditor, ADR-0143 wins;
+- ADR-0121's tiers; the round cap is now **two rounds, with gpt-auditor and opus-auditor both on every audit of a PR**, after which an open Critical or High goes to the user ([ADR-0143](../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md), superseding ADR-0120's three rounds and folding in ADR-0142; user, 2026-10-25: 「audit now has gpt-auditor + opus-auditor at the same time, audit cap is two」). Where this file elsewhere calls opus-auditor optional or gpt-auditor the sole required auditor, ADR-0143 wins;
 - **A review with zero Critical and zero High does not block** (user, 2026-10-25: 「if no c and no h, only medium exists, merge it」): when an implementor's final TDD review or an audit round finds only Medium or Low, the item commits and lands; the Medium and Low findings are recorded in the handoff, the PR and the audit-log row, not sent into another fix round. A Medium `NOT PROVED` does not license landing the AC unmet: only ADR-0146 decision 4's recorded grounds (a), (b) or (c) permit that disposition;
 - receipts, number reservation, and the Mac mini and device-batch rules (the device roster is replaced above).
 
@@ -60,11 +60,11 @@ delegator addresses its blocking Critical/High findings before landing.
 | Implementor | `gpt-imple-1`, `gpt-imple-2` | Codex `gpt-6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/<name>` (ADR-0134) | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/<name>/<item>-handoff.md`, then idle |
 | Implementor, Low tier (ADR-0133) | `gpt-imple-3` | Codex `gpt-5.6-sol` medium, `-s danger-full-access`, herdr pane, persistent worktree `mdpro-wt/gpt-imple-3`; Low-tier items (ADR-0121) and prep only | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/gpt-imple-3/<item>-handoff.md`, then idle |
 | Implementor, Claude (2026-10-25) | `opus-imple-1` | Claude Code on Opus (`--model opus --dangerously-skip-permissions`, `MDPRO_ROLE=implementor`, so `role-guard.sh` applies), herdr pane; takes over the worktree of the item it is given (D319: `mdpro-wt/gpt-imple-1`), then D317. User: 「Hand D319 and D317 to Claude implementors, create a new pane powered by Opus, opus-imple-1」, while Codex usage is exhausted | a brief file plus `herdr agent prompt` | `~/.mdpro-redesign/herdr-spike/opus-imple-1/<item>-handoff.md`, then idle |
-| Required auditor (PRs, ADRs, plans) | `gpt-auditor` | Codex `gpt-6-sol`, effort medium (user decision, 2026-10-23: 「update gpt-auditor's model to `GPT-6-Sol medium`, from now on」; `gpt-6-astra` high before), herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
+| Required auditor (PRs; ADRs, plans and decision-log entries under § Audits under herdr) | `gpt-auditor` | Codex `gpt-6-sol`, effort medium (user decision, 2026-10-23: 「update gpt-auditor's model to `GPT-6-Sol medium`, from now on」; `gpt-6-astra` high before), herdr pane, detached `mdpro-wt/gpt-auditor` | a new-pane reset (§ Restart), then `herdr agent prompt` pointing at a request file, under `~/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md` (§ Fresh context) | `<item>-r<round>.md` in that folder, then idle |
 | Optional auditor, Claude route only | `opus-auditor` | Claude, only after the user's explicit request and a sufficient usage check | a fresh request recording both conditions | its report, then idle; absent otherwise |
-| High-tier security reviewer | `gpt-auditor` | Codex, in the same fresh-pane audit request | the High-tier request names security dimensions | security count in its report |
+| High-tier security reviewer | `gpt-auditor` | Codex, in the same fresh-pane audit request | the High-tier request names security dimensions, unless policy-only (§ Which set) | security count in its report |
 | Landing verifier | herdr-delegator on Codex; `mdpro-landing-verifier` subagent on Claude | the same lane, receipt, ancestry and tree checks | after handoff | verification record under `herdr-spike/delegator/` |
-| ADR and plan reviewer | `gpt-auditor` | Codex, fresh pane | a review request | its report |
+| ADR and plan reviewer | `gpt-auditor` | Codex, fresh pane | a review request, only for a plan, an ADR that meets CLAUDE.md § ADR's review trigger, or a gate-sensitive decision-log entry (§ Audits under herdr) | its report |
 | Number registrar | herdr-delegator on Codex; `mdpro-number-registrar` subagent on Claude | read-only register check | before brief | reservation record |
 | GUI tester for batches formerly assigned to dtrack, Mac mini and Windows | `gpt-auditor` | Codex herdr pane; Windows through `remote-windows-device-test` after the host-key/SSH checks | a fresh-pane device brief from the delegator | `~/.mdpro-redesign/device/<batch>-report.md`, then idle |
 
@@ -424,14 +424,20 @@ unproved in the handoff alone does not accept it.
 - **Dimensions.** Both auditors use `docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`
   named in the request, with one pin for the full review (ADR-0146).
 - **PRs.** The delegator sends one fresh-pane request to `gpt-auditor` on the exact range.
-  On High tier, the request also requires an explicit security review section and count.
+  On High tier, unless policy-only (§ Which set; [policy set](../../docs/agents/decisions/20261102-cc-suite-policy-set.md)), the request also requires an explicit security review section and count.
   Optional `opus-auditor` follows § Delegator runtime route; it never replaces
   this required request.
 - **Round one is blind to PR comments and delegator conclusions.** `gpt-auditor` writes its report;
   the delegator checks the evidence and posts the report when a PR exists. It records a
   single-auditor verdict unless the optional Opus audit ran; then it merges both reports.
   Any blocking Critical or High stays open until a scoped gpt-auditor confirm closes it.
-- **ADRs and plans.** `gpt-auditor` reviews consistency, completeness, feasibility, ambiguity and
+- **ADRs and plans.** Reviewed only as rule 70 item 4 "ADRs and plans" says
+  ([ADR-0165](../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md);
+  [decision log](../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)): a plan; an ADR that
+  meets [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr)'s review trigger; a
+  [gate-sensitive decision-log entry](../../docs/agents/decisions/README.md#gate-sensitive-entries) before it lands.
+  Doubt means review. Another ADR lands with the user's quoted acceptance, and another log entry is a docs-only commit.
+  `gpt-auditor` reviews consistency, completeness, feasibility, ambiguity and
   risk in a fresh pane. The delegator records the applicable verdict and asks the user about
   unresolved decisions.
 
