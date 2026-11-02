@@ -96,6 +96,8 @@ export const slug = (h: string) => h.trim().toLowerCase().replace(/[^\p{L}\p{N}\
 export const headings = (rel: string) => read(rel).split("\n").filter((l) => /^#{1,6} /.test(l)).map((l) => l.replace(/^#+ /, ""));
 export const anchorExists = (rel: string, anchor: string) => headings(rel).some((h) => slug(h) === anchor);
 
+/** The template placeholders written as `§ word` in live homes at 44ec12d0: `<report path § finding>` and `§ policy`. */
+export const SECTION_PLACEHOLDERS: ReadonlySet<string> = new Set(["finding", "policy"]);
 const NAMED_TARGETS: Record<string, string> = { "CLAUDE.md": "CLAUDE.md", "AGENTS.md": "AGENTS.md",
   "pinned file": "docs/agents/audit-dimensions.md", "dimension file": "docs/agents/audit-dimensions.md" };
 /** `file:line: § word → target` for each § reference in `text` (as if it were `file`) that names no heading there. */
@@ -104,9 +106,9 @@ export function unresolvedSectionRefs(file: string, text: string): string[] {
   const bad: string[] = [];
   text.replace(/<!--[\s\S]*?-->/g, "").split("\n").forEach((line, i) => {
     for (const m of line.matchAll(/§\s*"?([A-Za-z][\w'-]*)/g)) {
-      // GREEN-time test fixes: a lowercase word is a placeholder (§ finding, § policy), not a heading; a § inside
+      // a placeholder is not a heading (D355 fix 2: only these, so any other lowercase word must resolve); a § inside
       // link text is the link checker's; § Which set is always the pinned dimension file's
-      if (/^[a-z]/.test(m[1])) continue;
+      if (SECTION_PLACEHOLDERS.has(m[1])) continue;
       if (/\[[^\]]*$/.test(line.slice(0, m.index!)) && /^[^\]]*\]\(/.test(line.slice(m.index!))) continue;
       const word = m[1].replace(/'s$/, "").toLowerCase();
       const before = line.slice(Math.max(0, m.index! - 70), m.index!);
