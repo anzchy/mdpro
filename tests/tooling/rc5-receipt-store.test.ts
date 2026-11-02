@@ -174,3 +174,16 @@ describe("RC5 engine view", () => {
     expect(store.buildView(new Map())).toBe(canonical({ schemaVersion: 2, receipts: [] }));
   });
 });
+
+describe("RC5 the repository's .gitignore (GI1)", () => {
+  const repoRoot = join(import.meta.dirname, "../..");
+  const ignored = async (path: string) => (await exec("git", ["check-ignore", "-q", "--no-index", path], { cwd: repoRoot })).status;
+  it("GI1, ruling 1 L2: ignores the view, the sidecar, the stamp, the store lock and the temp dir, and tracks the item files", async () => {
+    for (const path of ["receipts.json", "evidence.json", ".receipts.view", ".receipts.store.lock/owner.json", ".tmp/x.json"]) {
+      expect(await ignored(`.claude/tdd-guardian/${path}`), path).toBe(0);
+    }
+    for (const path of ["receipts/D41-WI-1.json", "receipt-evidence/D41-WI-1.json"]) {
+      expect(await ignored(`.claude/tdd-guardian/${path}`), path).toBe(1);
+    }
+  });
+});
