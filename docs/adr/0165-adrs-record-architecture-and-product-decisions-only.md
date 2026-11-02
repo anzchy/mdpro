@@ -2,13 +2,15 @@
 
 ## Status
 
-Proposed, 2026-11-02 (herdr-delegator), revision 2. The user chose each option below by AskUserQuestion on 2026-11-02:
+Proposed, 2026-11-02 (herdr-delegator), revision 3. The user chose each option below by AskUserQuestion on 2026-11-02:
 「只收架构与产品 (Recommended)」, 「单独一份决定日志」, 「留在 spec 快照里 (Recommended)」,
 「Enforced by + 大项才审 (Recommended)」. The user then asked: 「上面决定让fable和codex也评估一下」. Plan review round 1
 by gpt-auditor and opus-auditor (Fable) found four Highs each, all fixable in the text, and agreed with every choice
 with changes. On the two points where they differed or narrowed a choice, the user ruled:
 「One file per entry (Recommended)」 and 「Keep review for gate changes (Recommended)」. Acceptance follows a scoped
-confirm by both auditors, under the review route as it stands today (CLAUDE.md § ADR).
+confirm by both auditors, under the review route as it stands today (CLAUDE.md § ADR). Round 2 left two of
+gpt-auditor's Highs partial (ADR-0148 decision 9 unnamed; release controls missing from the gate list); the user chose
+「Fix + Codex confirms (Recommended)」: revision 3 fixes both, and gpt-auditor confirms the fix diff alone (ADR-0129).
 
 **Partially supersedes, on acceptance, by name:**
 - ADR-0118 decision 2, and ADR-0143 decision 1's "ADR review and plan review" clause: plan review of a repository-wide
@@ -16,6 +18,8 @@ confirm by both auditors, under the review route as it stands today (CLAUDE.md �
 - ADR-0148 decision 1's fifth item and decision 3's "unnumbered ADR drafts": the planner drafts a repository-wide ADR
   only for a decision on decision 1's list; other decisions in a spec take local ids (decision 3). ADR-0148's spec and
   ticket review is unchanged;
+- ADR-0148 decision 9's foreclosure of grill-made ADRs "committed without number reservation and review", for its
+  "review" half only: a planner-drafted ADR is reviewed under decision 4's trigger. Number reservation stays;
 - ADR-0147 decision 2's CLAUDE.md ADR row: the `AskUserQuestion` criterion is dropped, and `docs/adr/README.md`
   (ADR-0147 WI-1) carries the two id spaces and the "Enforced by" convention;
 - the rule texts that restate those clauses: CLAUDE.md § ADR, rule 70 item 4 "ADRs and plans", and rule 71 § Roster
@@ -117,10 +121,15 @@ the follow-up PR hold it.
      - a landing or CI condition;
      - the auditor set or the round cap;
      - the receipt contract;
+     - a release publication or verification control: what may publish, `verify-release`, and the publish job's
+       `needs` and `if` wiring (ADR-0073, ADR-0076);
      - a control that protects user data.
 
+     The delegator classifies, and doubt means review.
+
      `docs/agents/audit-dimensions.md` keeps ADR-0146's route.
-   - **Every other entry** is a delegator docs-only commit, quoting the user.
+   - **Every other entry** is a delegator docs-only commit, quoting the user. An entry whose change is a script rides
+     that script's PR, in the same commit.
    - **Once ADR-0159 is accepted,** entry and rule edit are one Policy PR on its route, and gate-sensitive entries are
      High tier there.
 3. **A decision that belongs to one feature stays in that feature's spec snapshot** (`docs/specs/<feature>/r<N>/`),
@@ -128,15 +137,18 @@ the follow-up PR hold it.
    spec (rule 12) and takes no global number.
    - **Decision 1's list wins.** A contract, format or preference key that one feature introduces still gets a
      repository-wide ADR, drafted by the planner and cited by the spec.
-   - **After approval.** A feature decision made after `r<N>` is approved goes on that ticket's issue, under the same
-     id scheme, because the snapshot does not change.
+   - **After approval.** A feature decision made after `r<N>` is approved goes in `docs/specs/<feature>/decisions.md`,
+     outside the immutable `r<N>/` folders, under the same id scheme. The delegator commits it with the ticket's landing
+     record (ADR-0148 decision 8), and it may be mirrored on the issue. A decision that changes an AC is still a
+     normative edit and needs `r<N+1>` (ADR-0148 decision 4).
    - **Promotion.** A local decision that later governs shared code or another feature is promoted by a new global ADR
      that links the snapshot.
 4. **Every new repository-wide ADR has an "Enforced by" line after its Status:** the lint, test, gate or config that
    holds the decision, or a plain statement that nothing does.
    - **Plan review by both auditors** is required in any of these cases, and otherwise the ADR lands with the user's
      quoted acceptance:
-     - the ADR touches `src-tauri/`, `src/services/`, a persisted format, an IPC or MCP contract, or a dependency;
+     - the ADR touches `src-tauri/`, `src/services/`, a persisted format or preference key, an IPC or MCP contract, or
+       a dependency;
      - it spans more than one PR;
      - the user asks for review.
 
@@ -178,10 +190,12 @@ the follow-up PR hold it.
   in `docs/adr/`; after it, they are in `docs/agents/decisions/`.
 - **Follow-up items.**
   1. **One PR** that:
-     - edits CLAUDE.md § ADR: the scope, the Status set, the "Enforced by" line in the Structure, and the review route;
+     - edits CLAUDE.md § ADR: the scope, the Status set, the "Current text" forward link to a rule, the "Enforced by"
+       line in the Structure, and the review route;
      - edits `AGENTS.md`'s ADR and routing lines;
      - edits rule 12 and the planner's flow (decision 1's test in the planner's brief);
-     - edits rule 70 item 4 and rule 70 § Reserving numbers;
+     - edits rule 70 item 4 and rule 70 § Reserving numbers, and `.claude/agents/mdpro-number-registrar.md` (global
+       ADR numbers only);
      - edits rule 71 § Roster and § Audits under herdr;
      - edits the delegator skill (`SKILL.md`, `references/guide.md` § 6 and the plan-review request template);
      - edits `.claude/skills/plan-and-doc-map/SKILL.md`, `docs/agents/domain.md` and dimension F9's wording in
