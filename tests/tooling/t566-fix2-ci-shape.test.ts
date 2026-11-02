@@ -21,7 +21,7 @@ const CACHE_FREE = "tests/tooling/t566-fix2-cache-free.test.ts";
 const MATTPOCOCK = "tests/tooling/t567-mattpocock-version.test.ts";
 const MATTPOCOCK_HOME = /^\s*const home = os\.homedir\(\);$/;
 const MATTPOCOCK_PREDICATE = "liveCaseEnabled(process)";
-/** The 39 receipt suites tagged `plugin` before fix 2 (255 ids); fix 2 adds only `CACHE_FREE`. RC5 adds its two entry suites (23 ids): 41 suites, 278 ids. */
+/** The 39 receipt suites tagged `plugin` before fix 2 (255 ids); fix 2 adds only `CACHE_FREE`. RC5 adds its two entry suites (24 ids): 41 suites, 279 ids. */
 const RECEIPT_SUITES = [
   ...["digest-stable", "digest-text", "digest", "holes", "launcher-bound", "lock-wait-bound", "message-fallback", "normalise-law", "pin",
     "pre-entry-incomplete", "pre-entry", "print", "record-evidence", "replay-env", "replay-fail", "replay-killed", "replay-pass", "replay-prune",
@@ -38,9 +38,9 @@ const scratch: string[] = [];
 afterEach(() => { for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 describe("T566-F2-1 the plugin inventory is conserved", () => {
-  it("tags exactly the 41 receipt suites (278 ids), the cache-free file and T-01's one live case, with the exclusions unchanged", () => {
+  it("tags exactly the 41 receipt suites (279 ids), the cache-free file and T-01's one live case, with the exclusions unchanged", () => {
     expect(pluginFiles).toEqual([...RECEIPT_SUITES, CACHE_FREE, MATTPOCOCK].sort());
-    expect(pluginEntries.filter((item) => item.id[0] !== CACHE_FREE && item.id[0] !== MATTPOCOCK)).toHaveLength(278);
+    expect(pluginEntries.filter((item) => item.id[0] !== CACHE_FREE && item.id[0] !== MATTPOCOCK)).toHaveLength(279);
     expect(pluginEntries.filter((item) => item.id[0] === MATTPOCOCK)).toHaveLength(1);
     expect(inventory.exclusions).toHaveLength(73);
     expect(inventory.exclusions.map((item) => item.id)).toContainEqual(["tests/tooling/unit-red-phase.test.ts", "D302 owner cleanup probe"]);
