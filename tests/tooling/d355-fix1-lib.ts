@@ -1,22 +1,15 @@
 // Shared helpers for the D355 fix-1 tests (d355-fix1-*.test.ts).
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
 
 export const root = path.resolve(__dirname, "../..");
 export const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
 export const exists = (rel: string) => fs.existsSync(path.join(root, rel));
 export const flat = (text: string) => text.replace(/\s+/g, " ");
 export const count = (text: string, phrase: string) => text.split(phrase).length - 1;
-// awaited git: D302 keeps synchronous child processes out of test workers (D355 fix 3)
-const runFile = promisify(execFile);
-const SHOW_MAX_BUFFER = 64 * 1024 * 1024;
-export const show = async (rev: string, rel: string): Promise<string> =>
-  (await runFile("git", ["show", `${rev}:${rel}`], { cwd: root, encoding: "utf8", maxBuffer: SHOW_MAX_BUFFER })).stdout;
-export const BASE = "22ffe5ea";
-export const CANDIDATE = "98de0c69";
+// No git: CI checks out one commit, and a permanent test may not read history (D355 fix 4). An immutable body is held
+// to a recorded sha256 instead, with its blob id beside it.
 export const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 // built at runtime so the UI-token hook does not read the issue numbers as colours
 export const ISSUE_570 = ["#", "570"].join("");
@@ -65,7 +58,7 @@ export const R70 = ".claude/rules/70-multi-session-coordination.md";
 export const R71 = ".claude/rules/71-herdr-mixed-roster.md";
 export const R12 = ".claude/rules/12-feature-planning-gate.md";
 export const IMPL = "docs/agents/implementor.md";
-// the .claude path is a symlink, which git show cannot read
+// the .agents path, not the .claude symlink to it
 export const SKILL = ".agents/skills/jack-tdd-workflow/SKILL.md";
 export const PROMPT = `${SK}/scripts/prompt.sh`;
 export const HISTORY = "docs/reference/20261027-rules-70-71-history.md";

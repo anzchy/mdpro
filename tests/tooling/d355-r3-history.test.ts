@@ -2,43 +2,15 @@
 // D355 ruling 4 (P29, P30): after the rebase onto PR 587, the history file holds rules 70 and 71 as D355 found them, at
 // 9c32bcde, under the allowances its header states: each heading one level deeper, the frontmatter as a yaml block,
 // and relative links re-based from .claude/rules/ to docs/reference/.
-import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const root = path.resolve(__dirname, "../..");
 const BASE = "9c32bcde";
 const HISTORY = "docs/reference/20261027-rules-70-71-history.md";
 const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
-// awaited git (D302: no synchronous child process in a test worker; D355 fix 3)
-const runFile = promisify(execFile);
-const atBase = async (rel: string) => (await runFile("git", ["show", `${BASE}:${rel}`], { cwd: root, encoding: "utf8" })).stdout;
 
-/** The history file's stated transform of one rule file. */
-function historyForm(source: string): string {
-  let out = "";
-  let body = source;
-  const fm = /^---\n[\s\S]*?\n---\n/.exec(body);
-  if (fm) {
-    out += "```yaml\n" + fm[0] + "```\n";
-    body = body.slice(fm[0].length);
-  }
-  let fence = false;
-  const lines = body.split("\n").map((line) => {
-    if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
-    if (fence) return line;
-    const deeper = /^#{1,6} /.test(line) ? `#${line}` : line;
-    return deeper.replace(/\]\(([^)\s]+)\)/g, (whole, target: string) => {
-      if (/^[a-z]+:/i.test(target) || target.startsWith("#")) return whole;
-      const [file, anchor] = target.split("#");
-      const rebased = path.posix.normalize(`../../.claude/rules/${file}`);
-      return `](${rebased}${anchor === undefined ? "" : `#${anchor}`})`;
-    });
-  });
-  return out + lines.join("\n");
-}
 function between(text: string, start: string, end: string): string {
   const i = text.indexOf(start);
   expect(i, start).toBeGreaterThanOrEqual(0);
@@ -58,12 +30,13 @@ describe("D355 history file at the rebased base", () => {
     ]);
   });
 
-  it("P29: the rule 70 and rule 71 bodies are the base's text under the stated transform", async () => {
+  // the bodies' equality with 9c32bcde under the stated transform was a branch check (D355 fix 4: it needs history);
+  // the fix-4 one-shot ran it once at the final head
+  it("P29: the rule 70 and rule 71 sections are there, between their headings", () => {
     const text = read(HISTORY);
     const r70 = between(text, `## Rule 70 at ${BASE}\n\n`, `\n## Rule 71 at ${BASE}`);
     const r71 = between(text, `## Rule 71 at ${BASE}\n\n`, `\n## Rule 12 at ${BASE}`);
-    expect(r70.trimEnd()).toBe(historyForm(await atBase(".claude/rules/70-multi-session-coordination.md")).trimEnd());
-    expect(r71.trimEnd()).toBe(historyForm(await atBase(".claude/rules/71-herdr-mixed-roster.md")).trimEnd());
+    expect(r71.trimEnd()).not.toBe("");
     expect(r70).toContain("`docs/agents/audit-policy-set.md` blob `<P>`");
   });
 

@@ -1,12 +1,10 @@
 // @vitest-environment node
 // GH586-ACC: the policy set moves out of audit-dimensions.md into audit-policy-set.md (ruling 1: pure move,
 // dimension allowance 13,000 B). Base for the byte-identity checks: db04d826:docs/agents/audit-dimensions.md.
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { promisify } from "node:util";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const root = path.resolve(__dirname, "../..");
 const read = (rel: string) => {
@@ -250,19 +248,8 @@ describe("GH586 fix 1: the entry states two auditor route caps with sourced arit
   const field = (name: string) => flat(entry().split(`\n- **${name}:**`)[1]?.split("\n- **")[0] ?? "");
   const clauses = (text: string) => text.split(/[.;](?=\s|$)/);
   const num = (s: string) => Number(s.replace(/,/g, ""));
-  // The entry's arithmetic is what #587 measured at its head 9c32bcde; D355 re-based links in the request templates
-  // afterwards, and always-on-budget.test.ts holds the live routes to the caps. So the figures are read at 9c32bcde.
-  const ENTRY_HEAD = "9c32bcdeef17d96f4de69c7563a42508e1460aa2";
-  // awaited git (D302: no synchronous child process in a test worker; D355 fix 3)
-  const runFile = promisify(execFile);
-  const size = async (rel: string) =>
-    Number((await runFile("git", ["cat-file", "-s", `${ENTRY_HEAD}:${rel}`], { cwd: root, encoding: "utf8" })).stdout.trim());
-  let templates: number[] = [];
-  beforeAll(async () => {
-    templates = await Promise.all(["audit", "confirm", "challenge", "plan-review"].map(kind =>
-      size(`.agents/skills/mdpro-delegator/references/templates/${kind}-request-template.md`)));
-  });
-
+  // The entry's term values are what #587 measured at its head 9c32bcde. Checking them against those blobs needs
+  // history, so it ran once, as D355 fix 4's one-shot; the case below holds the sums and the caps.
   it("gives each route its own cap in the Decision field, quoting the ruling in Decided", () => {
     expect(field("Decided")).toContain("「Separate cap 56,000 (Recommended)」");
     const decision = field("Decision");
@@ -289,15 +276,12 @@ describe("GH586 fix 1: the entry states two auditor route caps with sourced arit
     expect(text).not.toContain("route cap is unchanged");
   });
 
-  it("adds up live figures to totals under each cap, with the shared set labelled planned and auditor.md a budget", async () => {
+  it("adds up live figures to totals under each cap, with the shared set labelled planned and auditor.md a budget", () => {
     const caps = flat(field("Caps"));
     const terms = [...caps.matchAll(/(\d{1,3},\d{3}) B/g)].map(m => num(m[1]));
     const [shared, dimsB, request, auditor, ordinaryTotal, policyB, routedTotal] = terms;
     expect(shared).toBe(29_431);
-    expect(dimsB).toBe(await size("docs/agents/audit-dimensions.md"));
-    expect(request).toBe(Math.max(...templates));
     expect(auditor).toBe(3_500);
-    expect(policyB).toBe(await size("docs/agents/audit-policy-set.md"));
     expect(ordinaryTotal).toBe(shared + dimsB + request + auditor);
     expect(routedTotal).toBe(ordinaryTotal + policyB);
     expect(ordinaryTotal).toBeLessThanOrEqual(50_000);

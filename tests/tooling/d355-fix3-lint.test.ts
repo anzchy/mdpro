@@ -22,7 +22,6 @@ const run = promisify(execFile);
 const made: string[] = [];
 const root = path.resolve(__dirname, "../..");
 const LINT = "scripts/lint/conditional-tests.mjs";
-const BASE = "22ffe5ea";
 const FLAGGED = [
   "tests/tooling/codex-land-guard-export.test.ts",
   "tests/tooling/d355-fix1-lib.ts",
@@ -126,8 +125,4 @@ describe("D355 fix 3: the test lint", () => {
     expect([...trackedFiles(dir)].sort()).toEqual(["b.md", "docs/架构.md"]);
   });
 
-  it("L11: no D302 exception entry was added", async () => {
-    const { stdout } = await run("git", ["show", `${BASE}:scripts/lint/d302-sync-exceptions.json`], { cwd: root, maxBuffer: 16 << 20 });
-    expect(fs.readFileSync(path.join(root, "scripts/lint/d302-sync-exceptions.json"), "utf8")).toBe(stdout);
-  });
 });

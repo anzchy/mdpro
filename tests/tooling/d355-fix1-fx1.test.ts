@@ -2,7 +2,7 @@
 // D355 fix 1, fx1: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, show, BASE, CANDIDATE, rawSection, section, normalise, sentences, LA, RR, R70, R71, HISTORY, FOLD_IN, ADR, liveHomes, hitsIn, hits, anchorExists, withoutCurrentText, currentText, SUPERSEDED, CONDITIONAL,
+  read, flat, sha, rawSection, section, normalise, sentences, LA, RR, R70, R71, HISTORY, FOLD_IN, ADR, liveHomes, hits, anchorExists, withoutCurrentText, currentText, SUPERSEDED, CONDITIONAL,
 } from "./d355-fix1-lib";
 describe("FX-1: the moved audit homes state ADR-0143", () => {
   it("A1: no live home keeps the superseded round cap or auditor routing", () => {
@@ -13,12 +13,6 @@ describe("FX-1: the moved audit homes state ADR-0143", () => {
     const re = /\btwo (scoped |more )?confirms?\b|second confirm|third round|confirm rounds|after the (blind )?audit,? (at most )?two/;
     const bad = [...liveHomes(), R70, R71, "AGENTS.md"].flatMap((f) => sentences(read(f)).filter((x) => re.test(x)).map((x) => `${f}: ${x.slice(0, 100)}`));
     expect(bad).toEqual([]);
-  });
-
-  it("A1-cal: the same scanner sees every known site at the candidate", async () => {
-    const found = (await Promise.all([LA, RR].map(async (f) => hitsIn(f, await show(CANDIDATE, f), SUPERSEDED)))).flat().map((h) => h.replace(/: .*$/, ""));
-    for (const site of [`${RR}:20`, `${RR}:53`, `${RR}:56`, `${RR}:72`, `${LA}:121`, `${LA}:149`, `${LA}:150`, `${LA}:153`,
-      `${LA}:154`, `${LA}:232`, `${LA}:236`, `${LA}:267`]) expect(found, site).toContain(site);
   });
 
   it("A2: § Audit merge states the pair, the blind round, the challenge by request file, both posts and two rounds", () => {
@@ -63,11 +57,12 @@ describe("FX-1: the moved audit homes state ADR-0143", () => {
     expect(cells[4]).toMatch(/request file/);
   });
 
-  it("A6: ADR-0143's Current text points at the corrected § Audit merge, and its body is unchanged", async () => {
+  it("A6: ADR-0143's Current text points at the corrected § Audit merge, and its body is unchanged", () => {
     const rel = ADR("0143");
     expect(currentText(rel)).toContain("landing-and-audit.md#audit-merge");
     expect(anchorExists(LA, "audit-merge")).toBe(true);
-    expect(withoutCurrentText(read(rel))).toBe(withoutCurrentText(await show(BASE, rel)));
+    // the accepted body is immutable: its bytes at 22ffe5ea (blob ce26122c), less the Current text line
+    expect(sha(withoutCurrentText(read(rel)))).toBe("b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3");
   });
 
   it("A7: the old wording lives on in the history file", () => {

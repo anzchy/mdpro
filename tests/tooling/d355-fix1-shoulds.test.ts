@@ -2,9 +2,8 @@
 // D355 fix 1, shoulds: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutCurrentText, currentText,
+  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutCurrentText, currentText,
 } from "./d355-fix1-lib";
-import { applyExactly, FIX3_D302 } from "./d355-fix3-g1-sanctioned";
 describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   it("D1: codex-panes.md links AGENTS.md's renamed section", () => {
     const t = read(CP);
@@ -69,7 +68,7 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     expect(bad).toEqual([]);
   });
 
-  it("D3: ADR-0085 and ADR-0134 point at the clauses they decided; auditor.md cites the user decision", async () => {
+  it("D3: ADR-0085 and ADR-0134 point at the clauses they decided; auditor.md cites the user decision", () => {
     const l85 = currentText(ADR("0085"));
     expect(l85).toContain("70-multi-session-coordination.md#commits-and-branches");
     expect(l85).toContain("landing-and-audit.md#audit-merge");
@@ -78,7 +77,12 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     for (const a of ["device-tester.md#mac-mini", "roster-and-routing.md#roster", "codex-panes.md#restart", "device-batches.md#device-routing"]) {
       expect(l134, a).toContain(a);
     }
-    for (const n of ["0085", "0134"]) expect(withoutCurrentText(read(ADR(n)))).toBe(withoutCurrentText(await show(BASE, ADR(n))));
+    // the accepted bodies are immutable: their bytes at 22ffe5ea (blobs b58c7599, aa0f8aa4), less the Current text line
+    const bodies: Record<string, string> = {
+      "0085": "23c1faaab46b40ab2fcea0d04daf13eb78b3d02be45df4e57e2f34a649e807fa",
+      "0134": "efd568390b3e71affb8db11600f0630d327c8dbe4bf54158442138c4b45c3c42",
+    };
+    for (const n of ["0085", "0134"]) expect(sha(withoutCurrentText(read(ADR(n)))), n).toBe(bodies[n]);
     const entry = read(FOLD_IN);
     expect(entry.split("\n").find((l) => l.startsWith("| 0085 |"))).toContain("70-multi-session-coordination.md#commits-and-branches");
     expect(entry.split("\n").find((l) => l.startsWith("| 0134 |"))).toContain("device-batches.md#device-routing");
@@ -150,14 +154,9 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     }
   });
 
-  it("D10: fN13 as reviewed: the entry records the narrow ADR-0147 change with exact figures; both templates carry the field", async () => {
+  it("D10: fN13 as reviewed: the entry records the narrow ADR-0147 change with exact figures; both templates carry the field", () => {
     const e = flat(read(FOLD_IN));
     expect(count(e, "「Brief names them (Recommended)」")).toBeGreaterThanOrEqual(1);
-    // re-attack gap 11: the rules 22 + 50 figure is recomputed from the candidate's blobs
-    const r2250 = [".claude/rules/22-comment-maintenance.md", ".claude/rules/50-codebase-conventions.md"]
-      .map((f) => show(CANDIDATE, f));
-    const r2250Bytes = (await Promise.all(r2250)).map((t) => Buffer.byteLength(t)).reduce((a, b) => a + b, 0);
-    expect(r2250Bytes).toBe(5716);
     for (const p of ["ADR-0147", "decisions 5 and 9", "only", "98de0c69", "45,302", "5,716", "51,018", "3,018", "48,000", ISSUE_592]) {
       expect(e, p).toContain(p);
     }
@@ -188,22 +187,5 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     const r71 = read(R71).split("\n").find((l) => l.startsWith("| Implementor |")) ?? "";
     const current = read(RR).split("\n").find((l) => l.startsWith("Implementors:")) ?? "";
     expect(new Set(names(current))).toEqual(new Set(names(r71)));
-  });
-});
-
-describe("G1: the standing guards and the route table are unchanged", () => {
-  it("each guard file equals the candidate", async () => {
-    const guards = ["tests/tooling/always-on-budget.test.ts", "tests/tooling/rules-budget-caps.test.ts", "tests/tooling/rule-citations.test.ts",
-      "tests/tooling/d355-r3-history.test.ts", "tests/tooling/d355-r3-homes.test.ts", "tests/tooling/adr0146-audit-dimensions.test.ts",
-      "tests/tooling/gh586-audit-policy-split.test.ts", "tests/tooling/rules-budget-lib.ts", "tests/tooling/rules-lib-core.ts",
-      "tests/tooling/rule-citations-lib.ts", PROMPT];
-    // ruling 2 (user: 「Raise to 48,500 B (Recommended)」) sanctions exactly one change: the implementor route cap
-    const sanctioned: Record<string, (t: string) => string> = {
-      "tests/tooling/always-on-budget.test.ts": (t) => t
-        .replace("const IMPLEMENTOR_ROUTE_CAP = 48_000;", "// D355 fix 1 ruling 2 (user: 「Raise to 48,500 B (Recommended)」; the D355 fold-in entry): the implementor routes only.\nconst IMPLEMENTOR_ROUTE_CAP = 48_500;")
-        .replace("toEqual({ implementor: 48_000, auditor", "toEqual({ implementor: 48_500, auditor"),
-    };
-    // D355 fix 3 sanctions exactly its D302 conversion (awaited git), hunk by hunk: d355-fix3-g1-sanctioned.ts
-    for (const g of guards) expect(read(g), g).toBe(applyExactly((sanctioned[g] ?? ((t: string) => t))(await show(CANDIDATE, g)), FIX3_D302[g]));
   });
 });
