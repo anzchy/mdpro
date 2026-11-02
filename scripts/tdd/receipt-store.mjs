@@ -17,7 +17,7 @@
  *   leaves a temp name inside the item directories.
  * @coordinates-with scripts/tdd/red-receipt.mjs, scripts/tdd/receipt-evidence.mjs, scripts/tdd/vendor/tdd-guardian-0.10.2/lib/verification.js
  */
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -161,4 +161,115 @@ export function collision(cwd, id) {
 export function buildView(receipts) {
   const ids = [...receipts.keys()].sort();
   return canonical({ schemaVersion: 2, receipts: ids.map((id) => receipts.get(id)) });
+}
+
+
+/** Resolve `rev` to a commit; a usage error naming it otherwise. */
+function commitOf(cwd, rev) {
+  const result = git(cwd, ["rev-parse", "--verify", "--quiet", `${rev}^{commit}`]);
+  if (result.status !== 0) throw usageError(`Cannot resolve revision ${rev}.`);
+  return result.stdout.trim();
+}
+/** The receipt paths in `rev`'s tree, read with their blob contents in one `cat-file --batch`. */
+function snapshot(cwd, rev) {
+  const listing = spawnSync("git", ["ls-tree", "-r", "-z", "--full-tree", rev, "--", `${BASE}/`], { cwd, maxBuffer: 64 * 1024 * 1024 });
+  if (listing.status !== 0) throw usageError(`Cannot list the tree of ${rev}.`);
+  const rows = listing.stdout.toString("utf8").split("\0").filter(Boolean).map((row) => {
+    const [meta, path] = row.split("\t"), [mode, type, blob] = meta.split(" ");
+    return { mode, type, blob, path };
+  }).filter((row) => row.path === VIEW || row.path === LEGACY_EVIDENCE || row.path.startsWith(`${RECEIPTS_DIR}/`) || row.path.startsWith(`${EVIDENCE_DIR}/`));
+  const wanted = rows.filter((row) => row.type === "blob");
+  const batch = spawnSync("git", ["cat-file", "--batch"], { cwd, input: wanted.map((row) => `${row.blob}\n`).join(""), maxBuffer: 512 * 1024 * 1024 });
+  if (batch.status !== 0) throw usageError(`Cannot read the receipt blobs of ${rev}.`);
+  let at = 0;
+  for (const row of wanted) {
+    const end = batch.stdout.indexOf(10, at), size = Number(batch.stdout.subarray(at, end).toString().split(" ")[2]);
+    row.text = batch.stdout.subarray(end + 1, end + 1 + size).toString("utf8");
+    at = end + 2 + size;
+  }
+  const byPath = new Map(rows.map((row) => [row.path, row]));
+  return { rows, byPath, legacy: byPath.has(VIEW) || byPath.has(LEGACY_EVIDENCE), items: rows.some((row) => row.path !== VIEW && row.path !== LEGACY_EVIDENCE) };
+}
+function legacyStore(side, where) {
+  const parse = (path, empty) => { const row = side.byPath.get(path); if (!row) return empty; try { return JSON.parse(row.text); } catch { throw usageError(`${path} at ${where} is not valid JSON.`); } };
+  const receipts = parse(VIEW, { receipts: [] }).receipts, entries = parse(LEGACY_EVIDENCE, { entries: {} }).entries;
+  if (!Array.isArray(receipts) || !isObject(entries)) throw usageError(`The legacy store at ${where} is malformed.`);
+  return { receipts: new Map(receipts.map((receipt) => [receipt.id, canonical(receipt)])), evidence: new Map(Object.entries(entries).map(([id, value]) => [id, canonical(value)])) };
+}
+/** The head's item files, as id → text, with a problem line for each that is not a well-formed item. */
+function headItems(head, lines) {
+  const out = { receipt: new Map(), evidence: new Map() };
+  for (const row of head.rows) {
+    if (row.path === VIEW || row.path === LEGACY_EVIDENCE) continue;
+    const kind = row.path.startsWith(`${RECEIPTS_DIR}/`) ? "receipt" : "evidence", prefix = kind === "receipt" ? "" : "evidence ";
+    const name = row.path.slice(DIRS[kind].length + 1), id = name.slice(0, -".json".length);
+    if (name.includes("/") || row.type !== "blob" || row.mode === "120000") { lines.push(`unexpected path: ${row.path}`); continue; }
+    try { if (!name.endsWith(".json")) throw usageError("name"); checkId(id); } catch { lines.push(`${prefix}misnamed: ${name}`); continue; }
+    out[kind].set(id, row.text);
+    let value;
+    try { value = JSON.parse(row.text); } catch { lines.push(`${prefix}malformed: ${id}`); continue; }
+    if ((kind === "receipt" ? receiptProblem(value) : evidenceProblem(value))) lines.push(`${prefix}malformed: ${id}`);
+    else if (value.id !== id) lines.push(`${prefix}misnamed: ${name}`);
+    else if (canonical(value) !== row.text) lines.push(`${prefix}non-canonical: ${id}`);
+  }
+  for (const pair of caseCollisions([...out.receipt.keys()])) lines.push(`case-insensitive duplicate: ${pair.join(", ")}`);
+  for (const id of out.evidence.keys()) if (!out.receipt.has(id)) lines.push(`orphan evidence: ${id}`);
+  return out;
+}
+
+/**
+ * The verifier's check that `head` keeps every receipt and evidence record of `parent`
+ * (RC5 AC-5), reading both trees only. A parent on the item layout is compared by blob; a
+ * legacy parent record by its canonical bytes, against the head's item file or, when both
+ * sides are legacy (R-c), the head's record. A tracked legacy store at the head fails unless
+ * both sides are legacy and the head tracks no item file (R-f).
+ */
+export function keepCheck(cwd, parentRev, headRev) {
+  const parent = snapshot(cwd, commitOf(cwd, parentRev)), head = snapshot(cwd, commitOf(cwd, headRev));
+  const lines = [], legacyToLegacy = parent.legacy && head.legacy && !head.items;
+  if (head.legacy && !legacyToLegacy) lines.push("legacy store tracked at head");
+  const items = legacyToLegacy ? legacyStore(head, headRev) : headItems(head, lines);
+  const headText = { receipt: legacyToLegacy ? items.receipts : items.receipt, evidence: items.evidence };
+  const expected = { receipt: new Map(), evidence: new Map() };
+  for (const row of parent.rows) {
+    if (row.path === VIEW || row.path === LEGACY_EVIDENCE) continue;
+    const kind = row.path.startsWith(`${RECEIPTS_DIR}/`) ? "receipt" : "evidence";
+    expected[kind].set(row.path.slice(DIRS[kind].length + 1).replace(/\.json$/, ""), row.text);
+  }
+  if (parent.legacy) {
+    const old = legacyStore(parent, parentRev);
+    for (const [id, text] of old.receipts) expected.receipt.set(id, text);
+    for (const [id, text] of old.evidence) expected.evidence.set(id, text);
+  }
+  let kept = 0;
+  for (const kind of ["receipt", "evidence"]) {
+    const prefix = kind === "receipt" ? "" : "evidence ";
+    for (const [id, text] of expected[kind]) {
+      const now = headText[kind].get(id);
+      if (now === undefined) lines.push(`${prefix}deleted: ${id}`);
+      else if (now !== text) lines.push(`${prefix}changed: ${id}`);
+      else if (kind === "receipt") kept++;
+    }
+  }
+  const added = [...headText.receipt.keys()].filter((id) => !expected.receipt.has(id)).length;
+  return { lines, kept, total: expected.receipt.size, added };
+}
+
+function cli(argv) {
+  const [action, ...tail] = argv, args = {};
+  for (let index = 0; index < tail.length; index += 2) {
+    if (!["--parent", "--head", "--import"].includes(tail[index]) || !tail[index + 1] || tail[index + 1].startsWith("--")) throw usageError(`Unknown option or missing value: ${tail[index]}.`);
+    args[tail[index].slice(2)] = tail[index + 1];
+  }
+  if (action === "keep-check") {
+    if (!args.parent || !args.head) throw usageError("keep-check needs --parent <rev> and --head <rev>.");
+    const result = keepCheck(process.cwd(), args.parent, args.head);
+    process.stdout.write(`${result.lines.map((line) => `${line}\n`).join("")}kept ${result.kept} of ${result.total}; added ${result.added}\n`);
+    return result.lines.length ? 1 : 0;
+  }
+  throw usageError("Use keep-check --parent <rev> --head <rev>.");
+}
+if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
+  try { process.exitCode = cli(process.argv.slice(2)); }
+  catch (error) { process.stderr.write(`[receipt-store] ${error.message}\n`); process.exitCode = 64; }
 }
