@@ -135,6 +135,43 @@ it("refuses alternate spellings, a rename, and a symlink alias of audit dimensio
   expect((await linked.remote())).toBe(linked.a);
 });
 
+it("GH586: refuses the policy set file, its spellings, a rename and a delete through the docs-only guard", { timeout: 30_000 }, async () => {
+  const name = "docs/agents/audit-policy-set.md";
+  for (const spelling of [name, "docs/agents/AUDIT-POLICY-SET.md", "./docs/agents/audit-policy-set.md"]) {
+    const f = (await fixture());
+    (await f.add(spelling));
+    const result = (await f.run());
+    expect(result.status, spelling).not.toBe(0);
+    expect(result.stderr, spelling).toContain("ADR-0146 decision 1");
+    expect((await f.remote()), spelling).toBe(f.a);
+  }
+  for (const change of ["rename away", "delete", "rename into"]) {
+    const f = (await fixture());
+    (await f.add(change === "rename into" ? "docs/agents/other.md" : name));
+    (await git(f.main, "push", "-q", f.bare, "HEAD:refs/heads/master"));
+    const base = (await f.remote());
+    if (change === "rename away") (await git(f.main, "mv", name, "docs/agents/renamed.md"));
+    if (change === "delete") (await git(f.main, "rm", "-q", name));
+    if (change === "rename into") (await git(f.main, "mv", "docs/agents/other.md", name));
+    (await git(f.main, "commit", "-qm", change));
+    const result = (await f.run());
+    expect(result.status, change).not.toBe(0);
+    expect(result.stderr, change).toContain("ADR-0146 decision 1");
+    expect((await f.remote()), change).toBe(base);
+  }
+});
+
+it("GH586: still pushes docs-only paths that only resemble the protected audit files", { timeout: 30_000 }, async () => {
+  for (const name of ["docs/agents/decisions/20261102-audit-policy-set-split.md", "docs/audit/audit-log.md",
+    "docs/agents/audit-policy-set-notes.md"]) {
+    const f = (await fixture());
+    const head = (await f.add(name));
+    const result = (await f.run());
+    expect(result.status, `${name}: ${result.stderr}`).toBe(0);
+    expect((await f.remote()), name).toBe(head);
+  }
+});
+
 it("pushes only master when Git is configured to follow annotated tags", async () => {
   const f = (await fixture());
   const head = (await f.add("docs/tagged.md"));
