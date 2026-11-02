@@ -47,9 +47,10 @@ Five documents, five non-overlapping jobs. When two disagree, this order settles
 2. **`docs/plans/20260911-plan-ui-redesign.md` (Plan P)** and
    **`docs/plans/20260912-plan-markdown-source-consolidation.md` (Plan M)** — acceptance
    criteria. These are where a work item's definition of done lives.
-3. **`docs/plans/20260912-frontend-backend-sequencing-order.md`** — **the sole definition site
-   for execution order and status**, and nothing else. It carries order + status only; when it
-   and a plan disagree on acceptance, **the plan wins and the sequencing doc is corrected**.
+3. **`docs/plans/20260912-frontend-backend-sequencing-order.md`** — **execution order only**; its
+   existing rows stay as the record. Since 2026-11-02 a new item is a GitHub issue in `anzchy/mdpro`,
+   and its status is the issue's state and labels ([decision](../../../docs/agents/decisions/20261102-new-items-are-github-issues.md#decision)).
+   When it and a plan disagree on acceptance, **the plan wins and the sequencing doc is corrected**.
 4. **`docs/feature-ledger.md`** — present-tense capability state, not plan state.
 5. **`CHANGELOG.md`** — when it shipped.
 
@@ -72,8 +73,8 @@ The sequencing doc's legend (`:16`) is fixed. Do not invent a marker:
 `✅ 已完成并验证` ｜ `🔄 部分完成` ｜ `⬜ 未开始` ｜ `⏭️ 已改期到另一个 PR` ｜ `⛔ 常驻约束（非任务）`
 
 **`✅ 已完成并验证` means its own gates ran green — not that the code is written.** Updating
-the status is part of finishing the work item: the same commit updates the row, the SHA, and
-anything the work proved wrong. A status column refreshed in a later cleanup pass is a status
+the status is part of finishing the work item: for an issue, the landing record updates and closes
+it; for an existing row, the same commit updates the row, the SHA, and anything the work proved wrong. A status column refreshed in a later cleanup pass is a status
 column nobody can trust.
 
 The feature ledger has its own closed enum of five words — `Shipped` / `Partial` / `Stub` /

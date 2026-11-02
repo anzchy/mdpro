@@ -159,3 +159,22 @@ src/
 - [View Modes](./view-modes.md)
 - [State Management](./state-management.md)
 - [Keyboard Shortcuts](./keyboard-shortcuts.md)
+
+## Phase 1 scope
+
+<!-- moved-from: CLAUDE.md § Typora-Parity Phase 1 Scope (rendering) (ADR-0147) -->
+Phase 1 wires math (`$…$` / `$$…$$`), footnotes, autolinks, and emoji on the
+**canonical Rust render surface** — i.e. HTML export (`render_markdown` →
+`sanitize_html` / MathML export). That is the supported math/footnote path
+for Phase 1. The Preview pane was the other consumer of this surface; it was
+deleted in the stage-2 dead-code cleanup, so export is now the only one.
+
+**Explicitly deferred to Phase 2 / follow-up:**
+
+- **Milkdown WYSIWYG (surface 4)** does NOT typeset math or render footnotes.
+  There is no Milkdown math/footnote plugin in `src/plugins/milkdown/`. In source
+  mode `$…$` and `[^1]` remain visible as plain literal text (readable, not broken
+  markup) — this is the accepted Phase 1 behavior, not a bug.
+- **Export `marked` fallback** (`exportService.renderMarkdown` catch block, used
+  only when the Rust IPC throws) renders neither math nor footnotes. Accepted
+  degradation (plan decision A1); pinned by `tests/export-fallback-degradation.test.ts`.

@@ -1,5 +1,9 @@
 # <ITEM> fix <n>: <what> (<date>, herdr-delegator)
 
+<!-- read-every-session:begin -->
+- [docs/agents/implementor.md](../../../../../docs/agents/implementor.md)
+<!-- read-every-session:end -->
+
 **Tier <T>, difficulty <D>.** Fresh session (rule 71 § Fresh context: fix 2+, or fix 1 when the session is over 12 %).
 Read, in order: `<ID>-brief.md` (grants still bind), `<ID>-handoff.md`, the merged verdict
 `~/.mdpro-redesign/herdr-spike/delegator/<ID>-r<k>-merged.md`, then each open finding in full:

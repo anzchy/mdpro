@@ -1,7 +1,14 @@
 ---
 description: Test-Driven Development discipline — when tests are required, mdpro-specific test patterns, and where test files must live.
+paths:
+  - "src/**"
+  - "src-tauri/**"
+  - "tests/**"
+  - "scripts/**"
+  - ".claude/hooks/**"
+  - ".agents/skills/**/scripts/**"
+  - "vitest*.ts"
 ---
-
 # 10 - TDD Workflow
 
 Vitest + jsdom (frontend) and `cargo test` (Rust). Run `pnpm test:run`
@@ -59,8 +66,8 @@ Control wins over tooling, and both apply only when the file imports nothing fro
 
 ## Environment and the slow tier
 
-- **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../../docs/adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).
-- **An exhaustive, property or cost-enumeration test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts` sibling.** The default run and the per-commit `unit` lane exclude it; `pnpm test:slow` and the tdd-guardian `slow` lane (push / manual) run it. Share the domain through `tests/support/`, never by copying it ([ADR-0050](../../docs/adr/0050-exhaustive-tests-run-in-a-separate-slow-lane.md)).
+jsdom is the default; a DOM-free file opts into node. A test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts`
+sibling. Governing text: `docs/guide/receipt-evidence.md#environment` (ADR-0049, ADR-0050).
 
 **Format before you record.** A Rust red goes through the same entry, on
 `rustfmt`-clean test files: `cargo fmt` first, then
@@ -79,22 +86,8 @@ heap inherited from the outer guard; the full unit coverage
 lane still runs before commit. Using direct receipt.js bypasses the entry script's
 selection guard and is a residual risk, so it is not a supported frontend path.
 
-**The entry keeps evidence for both lanes** (ADR-0145 as amended by ADR-0149):
-- the failing ids, each with its kind, location and message;
-- the RED-time test tree, pinned under `refs/receipts/`;
-- an evidence file per id, `.claude/tdd-guardian/receipt-evidence/<ID>.json`, beside the receipt's
-  own `.claude/tdd-guardian/receipts/<ID>.json`; `receipts.json` is a generated, gitignored view
-  ([decision log](../../docs/agents/decisions/20261102-receipts-per-item-files.md)).
-
-`verify` routes any byte change of a spec file since RED to evidence, even when the plugin holds,
-and `check-pending` judges every lane. `node scripts/tdd/red-receipt.mjs replay --id <ID>` prints
-the diffs and replays the RED against the PR base. See
-[`docs/guide/receipt-evidence.md`](../../docs/guide/receipt-evidence.md).
-
-**The receipt engine is vendored at `scripts/tdd/vendor/tdd-guardian-0.10.2/`** (#566). The entry runs it from
-there and never reads a plugin cache under `~/.claude` or `~/.codex`; a missing or unloadable engine file stops it
-with the path named. Upgrading the engine is a reviewed diff of that directory (its README pins each file's SHA-256),
-never a side effect of a plugin update.
+The entry keeps evidence for both lanes and runs the vendored receipt engine; `verify` routes any byte change of a spec
+file since RED to evidence. Governing text: `docs/guide/receipt-evidence.md#evidence-and-engine` (ADR-0145, ADR-0149, #566).
 
 ## How much to run, and when
 
@@ -119,15 +112,10 @@ the CPU load.
   full lane on the exact tree being committed, the session reviewing its work
   reads that log and re-runs only the decisive test files. Run it again only
   if the tree changed after that run.
-- **An unlocked partial run takes at most 2 workers and the guard-only monitor.** The RED → GREEN
-  runs in the first row are outside the lock, so three sessions doing them at
-  once stack their workers on the same cores; on 2026-10-11 the machine sat at
-  load 45 on 10 cores with one locked lane running. Since D147 (`bce24d3`)
-  `vitest.workers.ts` makes 2 the default; a locked run also defaults to 2
-  after ADR-0151's measurement, and an explicit override is clamped to its
-  measured cap. Guard-only workers get a 1024 MiB V8 heap. A worker heap
-  failure is reported as a test failure, never retried. Exit 76 is a load-guard
-  infrastructure stop; callers follow [the retry rule](../../docs/guide/load-guard.md).
+- **An unlocked partial run takes at most 2 workers and the guard-only monitor**: three sessions running them at once
+  stack their workers on the same cores. `vitest.workers.ts` makes 2 the default, locked runs too (ADR-0151), and an
+  override is clamped to the measured cap. A worker heap failure is a test failure, never retried. Exit 76 is a
+  load-guard infrastructure stop; callers follow [the retry rule](../../docs/guide/load-guard.md).
 - **Two handoffs on the same parent cost one full run, not two.** The one
   that arrived first is verified and landed; the other waits for that landing,
   rebases once, and is verified by tree identity (rule 70 § Commits). A peer

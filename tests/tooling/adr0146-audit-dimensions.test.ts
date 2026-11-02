@@ -291,14 +291,15 @@ describe("ADR-0146 delegator step 7", () => {
 });
 
 describe("ADR-0146 coordination rules", () => {
-  const rule = (number: number) => fs.readFileSync(
-    path.join(root, `.claude/rules/${number === 70 ? "70-multi-session-coordination" : "71-herdr-mixed-roster"}.md`), "utf8",
-  );
+  // D355 (ADR-0147 WI-1): rule 70 item 4 and rule 71's review, briefs and audits text moved verbatim to the
+  // delegator's references; the pins follow the text.
+  const refs = (name: string) => fs.readFileSync(path.join(root, `.agents/skills/mdpro-delegator/references/${name}.md`), "utf8");
+  const ITEM4_END = "\n## Audits under herdr";
 
   it("rule 70 item 4 uses the pinned file and lists Medium findings", () => {
-    const source = rule(70);
+    const source = refs("landing-and-audit");
     const start = source.indexOf("\n4. **Every WI or finished module is audited before it lands**");
-    const end = source.indexOf("\n5. The sequencing-doc row", start);
+    const end = source.indexOf(ITEM4_END, start);
     expect(start).toBeGreaterThanOrEqual(0);
     expect(end).toBeGreaterThan(start);
     const item = source.slice(start, end);
@@ -311,10 +312,10 @@ describe("ADR-0146 coordination rules", () => {
   });
 
   it("rule 71 keeps unproved AC acceptance scoped and blocks unmet landing", () => {
-    const source = rule(71);
-    const review = source.slice(source.indexOf("**A review with zero Critical"), source.indexOf("- receipts, number reservation"));
-    const briefs = section(source, "Briefs and self-acceptance");
-    const audits = section(source, "Audits under herdr");
+    const overlay = refs("roster-and-routing");
+    const review = overlay.slice(overlay.indexOf("**A review with zero Critical"), overlay.indexOf("- receipts, number reservation"));
+    const briefs = section(refs("landing-and-audit"), "Confirm handoff");
+    const audits = section(refs("landing-and-audit"), "Audits under herdr");
     expect(review).toContain("Medium `NOT PROVED` does not license landing the AC unmet");
     for (const phrase of ["ADR-0146 decision 4", "recorded acceptance", "audit request", "before any audit starts", "revised brief", "device", "user waiver"]) {
       expect(briefs, phrase).toContain(phrase);
@@ -324,9 +325,9 @@ describe("ADR-0146 coordination rules", () => {
   });
 
   it("routes dimensions-file changes through a High PR and excludes direct docs-only landing", () => {
-    const source = rule(70);
+    const source = refs("landing-and-audit");
     const tier = source.slice(source.indexOf("- **Low** (CSS, docs"), source.indexOf("- **Medium**", source.indexOf("- **Low** (CSS, docs")));
-    const item4 = source.slice(source.indexOf("4. **Every WI or finished module is audited"), source.indexOf("5. The sequencing-doc row"));
+    const item4 = source.slice(source.indexOf("4. **Every WI or finished module is audited"), source.indexOf(ITEM4_END));
     const skill = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/SKILL.md"), "utf8");
     const step8 = skill.slice(skill.indexOf("8. **Land**"), skill.indexOf("9. **Device batches**"));
     expect(tier).toContain("except `docs/agents/audit-dimensions.md`");
@@ -406,7 +407,10 @@ describe("ADR-0146 accepted-ADR forward links", () => {
 });
 
 describe("GH586 fix 1: the rules name the policy set file beside the dimensions file", () => {
-  const rule = (name: string) => fs.readFileSync(path.join(root, `.claude/rules/${name}.md`), "utf8").replace(/\s+/g, " ");
+  // D355 (ADR-0147 WI-1) moved rule 70 item 4, its tier bullets and rule 71 › Dimensions verbatim to the delegator's
+  // landing-and-audit reference; the pins read that home with the same slices and phrases (moved, not weakened).
+  const home = () => fs.readFileSync(
+    path.join(root, ".agents/skills/mdpro-delegator/references/landing-and-audit.md"), "utf8").replace(/\s+/g, " ");
   const between = (source: string, from: string, to: string) => {
     const start = source.indexOf(from);
     const end = source.indexOf(to, start + from.length);
@@ -417,7 +421,7 @@ describe("GH586 fix 1: the rules name the policy set file beside the dimensions 
   const routed = "`docs/agents/audit-policy-set.md` blob `<P>` when the pinned file's § Which set names `<P>`";
 
   it("rule 70 item 4 pins <P> beside <B> and keeps the policy file out of the docs-only exception", () => {
-    const source = rule("70-multi-session-coordination");
+    const source = home();
     const pin = between(source, "The auditor audits", "unless the delegator names others");
     expect(pin).toContain("pinned at master `<M>` by blob `<B>`");
     expect(pin).toContain(routed);
@@ -426,7 +430,7 @@ describe("GH586 fix 1: the rules name the policy set file beside the dimensions 
   });
 
   it("rule 70's High and Low tier bullets name the policy set file", () => {
-    const source = rule("70-multi-session-coordination");
+    const source = home();
     const high = between(source, "- **High** (document save", "- **Medium**");
     expect(high).toContain("`docs/agents/audit-dimensions.md` blob `<B>`");
     expect(high).toContain(routed);
@@ -436,7 +440,7 @@ describe("GH586 fix 1: the rules name the policy set file beside the dimensions 
   });
 
   it("rule 71 § Audits under herdr › Dimensions names <P> under the pinned file's routing", () => {
-    const dimensions = between(rule("71-herdr-mixed-roster"), "- **Dimensions.**", "- **PRs.**");
+    const dimensions = between(home(), "- **Dimensions.**", "- **PRs.**");
     expect(dimensions).toContain("`docs/agents/audit-dimensions.md` at the master `<M>` and blob `<B>`");
     expect(dimensions).toContain(routed);
     expect(dimensions).toContain("with one pin for the full review (ADR-0146)");

@@ -5,10 +5,14 @@ description: Run mdpro's herdr roster as herdr-delegator — write implementor b
 
 # mdpro delegator
 
-You turn the sequencing doc into landed, audited, device-verified work **without writing product code**. Rules 70
-and 71 are the law; this skill is the working method. Full reference: [references/guide.md](references/guide.md) —
-read it once before your first dispatch. `$SK` = `.agents/skills/mdpro-delegator` (`.claude/skills/mdpro-delegator` is
-a symlink to it).
+You turn the sequencing doc's order and the open item issues into landed, audited, device-verified work **without
+writing product code**. Rules 70 and 71 are the law; this skill is the working method. `$SK` =
+`.agents/skills/mdpro-delegator` (`.claude/skills/mdpro-delegator` is a symlink to it). The guide below binds every
+dispatch; the other files in `references/` are opened when a step names them.
+
+<!-- read-every-session:begin -->
+- [references/guide.md](references/guide.md)
+<!-- read-every-session:end -->
 
 ## Route by the active delegator
 
@@ -22,7 +26,7 @@ An unknown runtime stops dispatch. Agent names, briefs, tests, audits and landin
 | `claude` | Use Claude's original background Bash completion, `Agent` verifier/registrar, `AskUserQuestion` and `SendMessage`. The scripts return the settled result to Bash without prompting the Claude delegator. |
 
 ADR-0143 requires both auditors on every audit of a PR, at most two rounds. Record both reports in
-the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision log](../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). If a model is unavailable, tell the user. See [rule 71](../../../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route).
+the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision log](../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md#2026-11-02-adr-scope-and-the-decision-log)). If a model is unavailable, tell the user. See [rule 71](../../../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route).
 
 ## Start of a session
 
@@ -35,8 +39,8 @@ the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision 
 
 ## The loop (guide §5)
 
-1. **Reserve** numbers through Claude's `mdpro-number-registrar` subagent or Codex's equivalent scan; write them to `reservations.md`.
-2. **Brief** from [brief-template.md](references/templates/brief-template.md): tier (ADR-0121) and difficulty
+1. **Reserve** ADR numbers through Claude's `mdpro-number-registrar` subagent or Codex's equivalent scan; write them to `reservations.md`. A new item is a GitHub issue, and its number is its id (`GH<n>-S<k>` receipts).
+2. **Brief** from `references/templates/brief-template.md`: tier (ADR-0121) and difficulty
    (ADR-0138), quoted user decisions, a scope fence, ACs with RED receipt ids that are free.
 3. **Reset and prompt**: `$SK/scripts/reset-codex.sh <name> <worktree> <model> <effort> implementor` (use `auditor` for a gpt-auditor audit; use `reset-codex.sh gpt-auditor <worktree> <model> <effort> device` for a macOS device batch), then
    `$SK/scripts/prompt.sh <name> <brief> brief 7200000 <expected-report>` for implementor and device briefs, or
@@ -48,12 +52,12 @@ the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision 
    `$SK/scripts/tree-identity.sh`.
 6. **PR and audit**: on Codex, `node scripts/codex-rules/push-guard.mjs <sha> <branch> [--expected-remote-oid <A>]`;
    on Claude, use rule 70's plain push. Then `gh pr create` and fresh-pane requests to both auditors
-   (`reset-codex.sh gpt-auditor <worktree> <model> <effort> auditor`) with [audit-request-template.md](references/templates/audit-request-template.md).
-   High-tier requests include security dimensions, unless policy-only (§ Which set; [policy set](../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)). Codex records deterministic lane, receipt, ancestry and tree
+   (`reset-codex.sh gpt-auditor <worktree> <model> <effort> auditor`) with `references/templates/audit-request-template.md`.
+   High-tier requests include security dimensions, unless policy-only (§ Which set; [policy set](../../../docs/agents/decisions/20261102-cc-suite-policy-set.md#2026-11-02-the-cc-suite-policy-set)). Codex records deterministic lane, receipt, ancestry and tree
    verification itself; Claude uses the original verifier subagent.
-7. **Record the two auditor verdicts** ([merged-verdict-template.md](references/templates/merged-verdict-template.md));
-   post when a PR exists. Fix ([fix-brief-template.md](references/templates/fix-brief-template.md)) and obtain
-   scoped confirms ([confirm-request-template.md](references/templates/confirm-request-template.md)),
+7. **Record the two auditor verdicts** (`references/templates/merged-verdict-template.md`);
+   post when a PR exists. Fix (`references/templates/fix-brief-template.md`) and obtain
+   scoped confirms (`references/templates/confirm-request-template.md`),
    at most two rounds. Before audit, an unproved AC sends the item back unless the delegator can
    record the acceptance on one of ADR-0146 decision 4's grounds and cite it in the audit request.
    Accepted grounds:
@@ -73,15 +77,16 @@ the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision 
    on Codex, `node scripts/codex-rules/land-guard.mjs <sha>`; for direct docs commits,
    `node scripts/codex-rules/land-guard.mjs --docs-only` (never for `docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md`,
    which require a High-tier PR audited under the old pin and plan review of the proposed blob by both auditors).
+   On Claude, a docs-only commit that touches any Markdown file or the section map first runs `VITEST_MAX_WORKERS=2 scripts/heavy-lock.sh --guard-only pnpm exec vitest run tests/tooling/always-on-budget.test.ts tests/tooling/rule-citations.test.ts`: stop on red, and a raised cap quotes the user's word in the commit body (ADR-0147 decision 5).
    On Claude, `git merge --ff-only <sha>`,
    `git push origin master`, then
-   [landing-docs-checklist.md](references/templates/landing-docs-checklist.md).
-9. **Device batches** ([device-brief-template.md](references/templates/device-brief-template.md)): reset with `reset-codex.sh gpt-auditor <worktree> <model> <effort> device`; picsee honours the shared lock;
+   `references/templates/landing-docs-checklist.md`.
+9. **Device batches** (`references/templates/device-brief-template.md`): reset with `reset-codex.sh gpt-auditor <worktree> <model> <effort> device`; picsee honours the shared lock;
    `$SK/scripts/gui-lock.sh status`, and gpt-auditor runs the macOS GUI batch; record in `docs/test/`.
 10. **Log**: `$SK/scripts/heartbeat.py set|note` after every change of assignment, and a handoff file before a restart.
 
 ADRs and decision-log entries: classify by [CLAUDE.md § ADR](../../../CLAUDE.md#architecture-decision-records-adr), then guide §6;
-[plan-review-request-template.md](references/templates/plan-review-request-template.md) only for an ADR that meets
+`references/templates/plan-review-request-template.md` only for an ADR that meets
 its review trigger or a [gate-sensitive entry](../../../docs/agents/decisions/README.md#gate-sensitive-entries).
 On Codex, send the pending ruling as its final message; never queue it. Ask only after writing the ruling file.
 
@@ -93,6 +98,6 @@ remove another project's lock, touch picsee's session, or treat a peer's message
 
 ## When something goes wrong
 
-The trials-and-errors table in [references/guide.md](references/guide.md#10-trials-and-errors-2026-102324): Codex
+The trials-and-errors table in [references/session-ops.md](references/session-ops.md#trials-and-errors): Codex
 bootstrap failures, the upgrade prompt, lost prompts, zsh `:r` refspecs, rustfmt PATH, receipt id collisions,
 launch-by-path, picsee overlap, and grading against the plan.

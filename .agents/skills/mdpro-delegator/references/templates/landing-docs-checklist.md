@@ -2,19 +2,21 @@
 
 On Codex, push the PR head with `node scripts/codex-rules/push-guard.mjs <sha> <branch> [--expected-remote-oid <A>]`,
 land with `node scripts/codex-rules/land-guard.mjs <sha>`, and push the direct docs commit with
-`node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review); a gate-sensitive decision-log entry ([README § Gate-sensitive entries](../../../../../docs/agents/decisions/README.md#gate-sensitive-entries)) goes this way only after both auditors' plan review of it and its rule edit ([decision log](../../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). On Claude, use rule 70's
+`node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review); a gate-sensitive decision-log entry ([README § Gate-sensitive entries](../../../../../docs/agents/decisions/README.md#gate-sensitive-entries)) goes this way only after both auditors' plan review of it and its rule edit ([decision log](../../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md#2026-11-02-adr-scope-and-the-decision-log)). On Claude, use rule 70's
 `git merge --ff-only <sha>` and `git push origin master`.
 
 - `docs/audit/audit-log.md`: one PR row after the newest (`| #<pr> | <ID> | <tier> | <ranges> | <rounds> | <Codex per
   round> | <Opus per round> | <security> | <merged per round> | PR #<pr> comments | landed `<sha>` |`); one
   `G<pr>-<n>` row under § Gate exceptions for every receipt or lane exception, quoting the user's ruling.
-- Sequencing row: status → `🟡 **已落地 `<sha>`、真机未验**（date, PR, rounds, merged BLOCKING C0 H0, exceptions, owner）`.
+- The item's issue: the landing record as a comment (date, PR, rounds, merged BLOCKING C0 H0, exceptions, `<sha>`), the
+  `landed-unverified` label while a device AC is open (`真机未验`), closed when none is. An existing D item's
+  sequencing row keeps its old status form.
 - Ledger and CHANGELOG were the implementor's; check they landed.
-- ADR-0129 when a High lands open: D row with owner, fix-by version, compensating control, CHANGELOG Known issues, the
+- ADR-0129 when a High lands open: an issue with an owner (or the existing D row), fix-by version, compensating control, CHANGELOG Known issues, the
   quoted ruling.
 - Device records: `docs/test/<date>-<batch>-<area>-device-check.md` = header, the delegator's check against the cards
-  (corrections of the brief stated plainly), then each tester report verbatim. New findings get a D row in the same
-  commit, numbers reserved in `~/.mdpro-redesign/herdr-spike/delegator/reservations.md` first. A FAIL in landed,
+  (corrections of the brief stated plainly), then each tester report verbatim. New findings get an issue each,
+  opened before the commit, whose number the record cites. A FAIL in landed,
   audited code also adds its `docs/audit/escapes.md` row in that same commit: the audited range from audit-log.md,
   the record line, and the fault's `file:line` at the pre-fix SHA. If the fault is not yet root-caused, the record says
   "escape row held" (issue #542 item 5).

@@ -1,5 +1,9 @@
 ---
 description: Codebase conventions — Zustand stores, feature locality, Tauri IPC layering, plugin structure and registry, MCP shadow store, error handling, file size limit.
+paths:
+  - "src/**"
+  - "src-tauri/**"
+  - "tests/**"
 ---
 
 # 50 - Codebase Conventions

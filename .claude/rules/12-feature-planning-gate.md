@@ -29,65 +29,14 @@
 - **Doubt** goes to the user. Items granted before 2026-10-28 finish under the old flow.
 
 ## Planning
-- **Who runs it.** The user runs the three skills, which are user-invoked only, in the **`planner`** pane: a Claude Code session with
-  `MDPRO_ROLE=planner`, in rule 70's roster. One conversation per feature, because `to-spec` synthesises the grill.
-- **What the planner may do.** It publishes the spec and ticket issues to `anzchy/mdpro`. It grants nothing, reserves nothing, commits
-  nothing and lands nothing.
-- **Where its outputs go.** Glossary edits and the user's approval words, plus an unnumbered ADR draft (CLAUDE.md's ADR structure,
-  marked Proposed) **only** for a decision on [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr)'s scope list,
-  all under `~/.mdpro-redesign/planner/<feature>/`. It hands the paths to the delegator.
-- **Which decisions are ADRs** ([ADR-0165](../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
-  decisions 1 and 3; [decision log](../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). The planner proposes the class by CLAUDE.md § ADR's scope list and test, and the delegator classifies before
-  reserving a number; doubt goes to the user. The spec cites each ADR it relies on. Every other decision in the spec takes a local id
-  `<prefix>-r<N>-D<n>` (e.g. `T567-r1-D1`) and no global number. A feature decision made after `r<N>` is approved goes in
-  `docs/specs/<feature>/decisions.md`, under the same ids, committed with the ticket's landing record; one that changes an AC still
-  needs `r<N+1>`. A local decision that later governs shared code or another feature is promoted by a new ADR that links the snapshot.
-- **The delegator then:**
-  1. reserves the ADR numbers and commits the drafts Proposed;
-  2. commits `GLOSSARY.md`;
-  3. commits the snapshot `docs/specs/<feature>/r<N>/`: `spec.md`, `tickets/<T-nn>.md`, and a `manifest.md` with issue URLs, body
-     SHA-256s, approval words and blocking edges;
-  4. sends spec and tickets to both auditors for plan review, with each ADR draft that meets CLAUDE.md § ADR's review trigger
-     (doubt means review). It records that classification in the draft's Status line.
-- **Snapshot revisions never change.** A normative issue edit becomes `r<N+1>` and needs re-approval. Before any brief cites it, both
-  auditors plan-review its diff against `r<N>`; an earlier review never covers a later revision. `docs/specs/**` is never Low tier.
-- **Asking.** "Ask the user" means the delegator's route question channel: `AskUserQuestion` on Claude, Codex's channel on Codex. It
-  names the next missing step and the planner pane. Implementors never ask the user (rule 70).
-- **Setup.** `/setup-matt-pocock-skills` runs once, by the user, with GitHub Issues. The delegator reviews and commits what it writes.
+The user runs the three skills in the **`planner`** pane, which publishes the spec and ticket issues and grants, reserves,
+commits and lands nothing. Snapshot revisions never change: a normative issue edit becomes `r<N+1>` and needs re-approval
+and both auditors' plan review of its diff. Governing text: `.agents/skills/mdpro-delegator/references/roster-and-routing.md#planner`,
+`.agents/skills/mdpro-delegator/references/landing-and-audit.md#gated-items`.
 
 ## From tickets to landing
-- **One approved ticket is one brief and one PR.** It is granted only when every ticket that blocks it has landed: `ready-for-agent` is
-  not a grant.
-- **The brief** pins the snapshot's commit and blobs and the skill versions. It maps each AC to a ticket and a spec story or testing
-  decision, tagged `unit` or `device`.
-- **Precedence:** spec snapshot, then ticket, then brief, then card. This replaces CLAUDE.md's "the original plan wins" and ADR-0144's
-  plan or D-row anchor for gated items. A card may quote a snapshot AC id.
-- **Implementation:**
-  - **Matrix and attack first.** Rule 71 steps 1–3 are unchanged on both runtimes. Codex runs the tdd-guardian test-designer and
-    spec-adversary. A Claude implementor designs the matrix itself and has a fresh subagent, outside its own context, attack it
-    with `matrix-attack-prompt.md`, or writes `ATTACK-NOT-RUN` (the plugin is off for Claude: 「Disable + narrow cleanup (Recommended)」).
-  - **Then the `tdd` cycle loop,** which replaces rule 71's "all REDs first" step 4. Each cycle takes one matrix case at one agreed seam:
-    test, intended failure, a RED receipt `<ID>-S<n>`, the minimal change, `verify`. The cycle settles before the next begins.
-  - **Seams.** The spec's Testing Decisions are the seam confirmation. A new seam stops the work and goes to the delegator.
-  - **Review.** Refactor in the `code-review` stage with tests green, then `code-review` on the committed candidate, before the handoff.
-- **Runtimes.**
-  - Claude implementors use the installed `tdd` and `code-review` skills.
-  - Codex implementors use the vendored, pinned copies in `.agents/skills/` plus the mdpro adapter. That starts only after one validated
-    cycle; until then, Codex briefs keep the tdd-guardian workflow and say so.
-- **Unchanged:**
-  - RED receipts (rule 10);
-  - briefs and self-acceptance (rule 71);
-  - both auditors (ADR-0143);
-  - device ACs (ADR-0144);
-  - the pinned dimensions (ADR-0146);
-  - the verifier, `ci-gate`, and the delegator's `--ff-only` landing.
-- **Closing tickets.** After the push, the delegator closes the ticket issue with the landing record, and closes the spec issue after the
-  last ticket.
+- **One approved ticket is one brief and one PR**, granted only when every ticket that blocks it has landed.
+- **Precedence:** spec snapshot, then ticket, then brief, then card.
+- **Implementation** follows `jack-tdd-workflow`: matrix and attack first, then one cycle per RED receipt, then
+  `code-review` on the committed candidate (`docs/agents/implementor.md#gated-items`).
 - **Never:** `/implement`, `/implement-spec`, or an integration branch.
-
-## Before the first gated grant
-All of these must be done:
-- the setup run;
-- the `planner` roster row and its `role-guard.sh` branch;
-- the brief template's snapshot fields;
-- for any `device` AC, the card checker's snapshot anchor.

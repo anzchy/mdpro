@@ -33,7 +33,7 @@ with a command, not from memory:
   - branch, its HEAD, whether it is landed on master;
   - uncommitted state, with a patch saved next to the handoff;
   - the next concrete step;
-  - ADR and D numbers you hold;
+  - ADR numbers and issues you hold;
   - open questions and pending messages from other sessions.
 Reply with ONE line: the file path (and the patch path if any).
 Keep working afterwards unless a PAUSE is in force.

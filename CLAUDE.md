@@ -1,49 +1,31 @@
-# [CLAUDE.md](http://CLAUDE.md)
+# CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code in this repository. Rules with enforceable detail live in `.claude/rules/`; the text this file
+held before D355 is in `docs/reference/20261027-rules-70-71-history.md`.
 
 ## gstack
 
 Use the `/browse` skill from gstack for all web browsing tasks. Never use `mcp__claude-in-chrome__*` tools.
-
 Skill list, setup, and workflow: [`docs/guide/gstack-workflow-guide.md`](./docs/guide/gstack-workflow-guide.md).
 
 ## Lessons Learned
 
-See [`progress.md`](./progress.md) for accumulated implementation lessons — bug post-mortems, root causes, and patterns to avoid.
+See [`progress.md`](./progress.md) for bug post-mortems, root causes, and patterns to avoid.
 
 ## Design System
 
-**The design every UI decision references is
-[`design/DESIGN.md`](design/DESIGN.md)**
-(user decision, 2026-10-11: 「mark 这个就是最后所有的 UI 设计都参考的设计方案」).
-Read it before making any visual or UI decision; the root
-[`DESIGN.md`](./DESIGN.md) is only the index into `design/`, and
-`design/archive/20260920-mdpro-ui-old/DESIGN.md` describes the UI as shipped, not where it
-is going. Aesthetic register, "memorable thing", token names and component
-contracts live in the new file. Enforceable rules live in `.claude/rules/30-34`
-and win any conflict with it:
-
-- `30-ui-consistency.md` — index + 6 universal discipline rules
-- `31-design-tokens.md` — color, type, spacing, z-index reference
-- `32-component-patterns.md` — modal, context menu, button, code block
-- `33-focus-indicators.md` — 4 focus patterns, WCAG enforcement
-- `34-dark-theme.md` — `.theme-light` / `.theme-dark` convention
-
-Do not deviate without explicit user approval. In QA mode, flag any code that
-doesn't match the rules.
+**Every UI decision references [`design/DESIGN.md`](design/DESIGN.md)** (user decision, 2026-10-11: 「mark
+这个就是最后所有的 UI 设计都参考的设计方案」). Read it before a visual or UI decision. Rules 30–34 (path-scoped) are the
+enforceable part and win any conflict with it. Do not deviate without explicit user approval; in QA mode, flag code
+that doesn't match the rules.
 
 ## Project Overview
 
-mdpro is a local Markdown editor for macOS, combining Typora's WYSIWYG experience with modern design. Built with Tauri 2.0 (Rust backend + React frontend).
+mdpro is a local Markdown editor for macOS, combining Typora's WYSIWYG experience with modern design, built with Tauri
+2.0 (Rust backend + React frontend). **Target**: macOS 13+, Apple Silicon (ARM64).
 
-**Target**: macOS 13+, Apple Silicon (ARM64)
-
-## Prerequisites
-
-- **pnpm 10.26.1** — pinned by `packageManager` in `package.json`; never use `npm`/`yarn`.
-- **Rust stable toolchain** (via `rustup`) — `src-tauri/Cargo.toml` is edition 2021; no toolchain file pins a version.
-- **Xcode Command Line Tools** — required by Tauri to build on macOS.
+Prerequisites: **pnpm 10.26.1** (pinned by `packageManager`; never `npm`/`yarn`), the Rust stable toolchain via
+`rustup`, and the Xcode Command Line Tools.
 
 ## Development Commands
 
@@ -53,480 +35,114 @@ pnpm tauri dev            # Start development (frontend + Tauri window)
 pnpm dev                  # Frontend only (Vite dev server, no Tauri)
 pnpm build                # Build frontend (runs tsc + vite build)
 pnpm tauri build          # Build production app (.dmg)
+cd src-tauri && cargo check | cargo test | cargo fmt | cargo clippy
 ```
 
-### Rust Backend Commands
-
-```bash
-cd src-tauri
-cargo check               # Check compilation
-cargo test                # Run unit tests
-cargo fmt                 # Format code
-cargo clippy              # Lint
-```
+**Every heavy command runs through `scripts/heavy-lock.sh`**: vitest with coverage, `tsc`, `pnpm build`, `cargo test`,
+`tauri build`. Rule 10 has the lanes and the worker limits.
 
 ## Architecture
 
-Rust backend in `src-tauri/src/` (`commands/` = IPC handlers, `services/` = business
-logic, `models/` = data types, `menu.rs` = native menu); React frontend in `src/`
-(`components/`, `hooks/`, `services/` = typed `invoke()` wrappers, `stores/` =
-Zustand, `plugins/` = Milkdown/CodeMirror). Stack: Tauri 2.0, React 19 + Vite 7,
-CodeMirror 6 + Milkdown, pulldown-cmark, Zustand. Directory map and full stack
-table: [`docs/guide/architecture.md`](./docs/guide/architecture.md).
+Rust backend in `src-tauri/src/` (`commands/` = IPC handlers, `services/` = business logic, `models/` = data types,
+`menu.rs` = native menu); React frontend in `src/` (`components/`, `hooks/`, `services/` = typed `invoke()` wrappers,
+`stores/` = Zustand, `plugins/` = Milkdown/CodeMirror). Stack and directory map:
+[`docs/guide/architecture.md`](./docs/guide/architecture.md).
 
-## IPC & Event System
-
-### Commands (Frontend → Rust)
-
-Frontend calls Rust via `invoke()`. Commands are registered in `src-tauri/src/commands/mod.rs`:
-
-```typescript
-// src/services/fileService.ts
-import { invoke } from '@tauri-apps/api/core';
-const result = await invoke<OpenFileResult>('open_file', { path, encoding });
-```
-
-Key commands: `open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `pick_image`, `save_draft`, `recover_draft` (returns `target` and `claimToken`; `save_draft`/`delete_draft` take an optional `claimToken`, ADR-0127), `get_preferences`, `get_app_version`, `quit_guard_reply`, `mcp_set_server_enabled`, `mcp_confirm_reply`, `get_applied_shortcuts`
-
-### Events (Rust → Frontend)
-
-Rust emits events that frontend listens to via `listen()`:
-
-| Event           | Payload                | Source                                        |
-| --------------- | ---------------------- | --------------------------------------------- |
-| `menu:action`   | `{ action, value, target }` | Native menu clicks (menu.rs); `target` names the window the click was for (D261) |
-| `file:open`     | `string[]`             | External open routed to a window (services/open\_route/tauri\_glue.rs) and `create_window(Some(path))` (commands/window.rs) |
-| `file:changed`  | `{ path, changeType, newPath?, origin? }` | External file modification (file\_watcher.rs), sent once to every spelling the file is open under (services/file\_watcher\_fanout.rs, D185), and a save in another window: the save notice carries `origin: { windowLabel, documentId }` (services/file\_watcher\_save\_notice.rs, ADR-0086) |
-| `file:open-in-window` | `{ windowLabel, documentId, path }` | External open of an already-open file, `emit_to` the one window that has it (services/open\_route/tauri\_glue.rs) → `useOpenInWindow.ts` |
-| `theme:changed` | `"light" \| "dark"`    | System theme change                           |
-| `mcp:write_document` | `{ document_id, content, window_label, action_id }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |
-| `mcp:insert_content` | `{ document_id, text, position, window_label, action_id }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
-| `mcp:create_document` | `{ document_id, content, window_label, action_id }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
-| `mcp:table_action` | `{ document_id, action, payload, window_label, action_id }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
-| `mcp:confirm_request` | `{ requestId, documentId, documentTitle, operation, action?, expiresInMs }` | MCP write awaiting approval (ADR-0042), `emit_to` the window that owns the document (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
-| `mcp:confirm_resolved` | `{ requestId, outcome }` (`approved` \| `rejected` \| `timedOut` \| `cancelled` \| `withdrawn`) | Closes that prompt, `emit_to` the owning window (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
-| `app:quit-requested` | `{ requestId, round }` | Quit phase 1 — asks every window if it is dirty (quit\_guard/events.rs) → `useQuitGuard.ts` |
-| `app:quit-prompt` | `{ requestId, round }` | Quit phase 2 — prompts one dirty window at a time (quit\_guard/events.rs) → `useQuitGuard.ts` |
-| `app:quit-cancelled` | `{ requestId, round }` | Quit aborted; windows dismiss their prompt (quit\_guard/events.rs) → `useQuitGuard.ts` |
-| `app:quit-backstop` | `{ requestId, round }` | Quit commit — every window drafts every unsaved document, then replies `drafted` with counts (ADR-0035; quit\_guard/events.rs) → `useQuitGuard.ts` |
-
-## Menu System
-
-Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled via `menu:action` event:
-
-- File: New (⌘N), Open (⌘O), Save (⌘S), Export HTML (⌘⇧E), Close (⌘W)
-- View: Source (⌃2), WYSIWYG (⌃4), Toggle Sidebar (⌘⇧L)
-- Format: Highlight Selection (⌘⇧H)
-- App (Windows/Linux): Exit → quit guard; Stop Waiting and Quit… (ADR-0090)
-- Theme: Light, Dark, System
+The frontend calls Rust with `invoke()`; commands are registered in `src-tauri/src/commands/mod.rs`. Key commands:
+`open_file`, `save_file`, `create_document`, `export_html`, `export_rendered_html`, `pick_image`, `save_draft`,
+`recover_draft` (returns `target` and `claimToken`; `save_draft`/`delete_draft` take an optional `claimToken`,
+ADR-0127), `get_preferences`, `get_app_version`, `quit_guard_reply`, `mcp_set_server_enabled`, `mcp_confirm_reply`,
+`get_applied_shortcuts`. Rust → frontend events: [`docs/guide/architecture.md#events`](./docs/guide/architecture.md#events).
+The native menu: [`docs/guide/keyboard-shortcuts.md#menu-system`](./docs/guide/keyboard-shortcuts.md#menu-system).
 
 ## Release Workflow
 
-See `.claude/rules/40-version-bump.md` for the full procedure (3 files must
-stay in sync: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`).
-Or use the `/bump` command, which handles all three atomically.
-
-Releases are built by a manually dispatched workflow, not by pushing a tag
-([ADR-0073](./docs/adr/0073-release-workflow-auto-publishes-only-after-verifying-the-uploaded-draft.md);
-runbook: [`docs/guide/release-runbook.md`](./docs/guide/release-runbook.md)).
-
-```bash
-# 1. Bump the three files (/bump or rule 40) on a chore/ branch; the delegator
-#    lands it on master by `git merge --ff-only` and pushes origin master
-# 2. Precondition: the 0.3.1 device regression passed on the locked SHA
-# 3. Rehearse, then release (mode: build-only | draft | rehearsal-draft)
-gh workflow run release.yml -f ref=<sha> -f version=0.3.1 -f mode=build-only
-gh workflow run release.yml -f ref=<sha> -f version=0.3.1 -f mode=draft
-```
-
-`mode=draft` publishes on its own, but only after `verify-release` passes on
-the uploaded draft. Never `gh release create` by hand. A leftover draft is
-deleted only after confirmation (rule 25).
+Bump `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml` together (rule 40, or `/bump`). Releases
+are built by dispatching `release.yml`, never by pushing a tag, and never by `gh release create` (ADR-0073). Runbook:
+[`docs/guide/release-runbook.md`](./docs/guide/release-runbook.md).
 
 ## Git Commit Conventions
 
-This project follows **atomic commit** principles. Each commit should contain one logical change.
-
-### Commit Message Format
-
-```
-<type>(<scope>): <short summary>
-
-<body>
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-### Types
-
-| Type       | Use For          | Example Scope                    |
-| ---------- | ---------------- | -------------------------------- |
-| `feat`     | New features     | `toc`, `tabs`, `image`, `editor` |
-| `fix`      | Bug fixes        | `save`, `encoding`, `menu`       |
-| `docs`     | Documentation    | `readme`, `changelog`, `specs`   |
-| `style`    | CSS/formatting   | `css`, `theme`                   |
-| `refactor` | Code restructure | `commands`, `stores`             |
-| `test`     | Test files       | `fixtures`, `unit`               |
-| `chore`    | Build/tooling    | `deps`, `config`, `tooling`      |
-| `perf`     | Performance      | `render`, `parsing`              |
-
-### Splitting Strategy for mdpro
-
-When making large changes, split by architectural layer:
-
-1. **Backend first**: `src-tauri/src/commands/*.rs` - Rust commands
-2. **Services**: `src/services/*.ts` - TypeScript IPC wrappers
-3. **Stores**: `src/stores/*.ts` - Zustand state
-4. **Hooks**: `src/hooks/*.ts` - React hooks
-5. **Components**: `src/components/**/*.tsx` - UI components
-6. **Styles**: `src/styles/*.css` - CSS updates
-7. **Integration**: `src/App.tsx` - Wiring everything together
-8. **Docs/Tests**: Documentation and test fixtures
-
-### Commit Checklist
-
-Before each commit, verify:
-
-- [ ] Only related files are staged (`git diff --cached --stat`)
-- [ ] Project still builds (`pnpm build` or `cargo check`)
-- [ ] Message follows `type(scope): summary` format
-- [ ] Body explains WHY, not WHAT
-- [ ] No secrets or large binaries included
+Atomic commits, one logical change each, as `<type>(<scope>): <short summary>`, a body that explains why, and the
+`Co-Authored-By` trailer. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`. Before each
+commit: only related files staged (`git diff --cached --stat`), the project builds, no secrets or large binaries.
+Splitting a large change by layer: `docs/agents/implementor.md#commit-splitting`.
 
 ## User questions and answers
 
-**A question the user asks a session goes into
-[`docs/reference/user-question-and-answer.md`](./docs/reference/user-question-and-answer.md)
-when its answer is still worth finding a week later**
-(user decisions: 2026-10-14, 「目前我在本session和各个session直接问的问题的回答会被很多消息淹没掉，之后你单独维护一个md文档」
-and 「排除系统自带askuserquestion tool引发的，一定是user来问的，才记录」; 2026-10-20, 「也不是所有问题都要如实记录，问开发进度这个就不用记录了」
-and 「Archive status rows, tag the rest (Recommended)」).
-Answers given in a chat get buried under peer messages; this file is where the
-user finds them again. It is an index for routing: the knowledge itself lives
-in the ADR, rule, guide or row each entry points to.
+A question the user asks a session directly, whose answer is worth finding a week later, goes into
+[`docs/reference/user-question-and-answer.md`](./docs/reference/user-question-and-answer.md), whose header holds the
+criteria. The session answers, then sends the delegator the question verbatim and the answer in one to four sentences
+(a Codex session puts them in its final message); the delegator records it or not.
 
-- **Record five kinds**, written in the **Kind** column:
-  - `Decision`: the answer led to a decision, or explains one;
-  - `How-to`: how a tool, rule or subsystem works;
-  - `Diagnosis`: the root cause of something surprising;
-  - `Assessment`: a feasibility or trade-off judgment later planning cites;
-  - `Correction`: an earlier claim turned out wrong.
-- **Don't record:**
-  - progress or status snapshots (「进度如何」, 「X 在做什么」, 「都通过了吗」, 「can PR N merge」). The
-    timeline, the sequencing doc and the PR already hold that answer;
-  - yes/no questions about the current state;
-  - questions whose whole answer is a pointer to an existing file.
+## Plan status tracking
 
-  A status question whose answer turned up an anomaly is recorded as a `Diagnosis` of that cause.
-- **Only questions the user asked.** A question a session puts to the user
-  (AskUserQuestion or prose) is not recorded there; its answer lives in the
-  ADR, row or rule it decided. Instructions and slash commands are not
-  questions.
-- **Topic** is one of a closed set, listed in the file's header. A new topic is added to the header
-  first.
-- **Where to read more points at the durable home.** A reusable how-to answer that has no home yet
-  gets one under `docs/guide/` or `docs/knowledge/`, in the same commit.
-- **The delegator maintains it** and commits it to `master` as a docs-only
-  commit. It batches these commits while a code handoff is in flight, so
-  `master` does not move under the handoff.
-- **Every other session reports its own.** When the user asks a session a
-  question directly, that session answers, then sends the delegator one
-  message: the question verbatim, the answer condensed to one to four
-  sentences, and a pointer to anything longer. The delegator applies the
-  criteria above and records it or not.
-- **One entry per question, newest first.** Each entry has the date, the session it was asked in,
-  Kind, Topic, the question quoted exactly, the condensed answer, and where to read more.
-  A corrected answer is a new `Correction` entry naming the one it corrects.
-  Rows are not edited after commit. The one-off 2026-10-20 cleanup moved status rows,
-  verbatim, to `docs/reference/user-question-and-answer-archive.md`.
-
-## Plan Status Tracking (UI redesign × Markdown consolidation)
-
-Sequencing for this effort lives in
-[`docs/plans/20260912-frontend-backend-sequencing-order.md`](./docs/plans/20260912-frontend-backend-sequencing-order.md).
-
-- **Branch**: every work item lands on `master`, the single trunk, and only
-  through the delegator's `git merge --ff-only` of a short-lived branch that
-  has passed the landing verifier and the required `gpt-auditor` audit (with optional Opus only under
-  [rule 71's delegator runtime route](./.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route)) with no Critical
-  or High finding, **and** a green `ci-gate` check on its PR's head (rule 70,
-  [ADR-0085](./docs/adr/0085-a-branch-is-audited-before-it-is-fast-forwarded-onto-master.md),
-  [ADR-0095](./docs/adr/0095-pull-request-ci-is-a-landing-gate.md)).
-  Nobody lands by merge commit, and the only direct commits are
-  the delegator's docs-only ones. Before 2026-10-12 this effort lived on `frontend-backend-redesign`,
-  now frozen ([ADR-0083](./docs/adr/0083-master-is-the-single-integration-trunk.md)).
-- **Updating the status is part of finishing the work item, not a follow-up.**
-  When an independent WI is implemented **and verified**, update its row in the
-  sequencing doc — status marker, commit SHAs, and anything the work proved
-  wrong — in the same commit that finishes it. A status column that gets
-  refreshed in a later cleanup pass is a status column nobody can trust.
-- **Verified means its own gates passed**, not that the code is written. A WI
-  that is deferred records what deferred it and where it went, rather than
-  being left blank.
-- The sequencing doc carries **order and status only**. Acceptance criteria stay
-  in plans P and M; when they conflict, the original plan wins and the
-  sequencing doc is corrected to match. **For rule-12 (gated) items, the approved
-  spec snapshot under `docs/specs/<feature>/r<N>/` wins instead, and the row carries
-  its ticket reference** ([ADR-0148](./docs/adr/0148-new-features-pass-grill-spec-and-tickets-before-implementation.md)).
+**A new item is a GitHub issue in `anzchy/mdpro`**, and its state and labels are its status; the landing record updates
+and closes it (decision: `docs/agents/decisions/20261102-new-items-are-github-issues.md`). The sequencing doc,
+[`docs/plans/20260912-frontend-backend-sequencing-order.md`](./docs/plans/20260912-frontend-backend-sequencing-order.md),
+carries order only; its existing rows stay as the record. Verified means the item's own gates passed. A rule-12 item
+follows its approved spec snapshot. Landing: rule 70 § Commits and branches.
 
 ## Agent skills
 
-### Issue tracker
-
-Specs and tickets are GitHub issues in `anzchy/mdpro`, through `gh`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-The five default triage labels, each label string equal to its role. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Specs and tickets are GitHub issues in `anzchy/mdpro` (`docs/agents/issue-tracker.md`); triage labels in
+`docs/agents/triage-labels.md`; one `GLOSSARY.md` and `docs/adr/` (`docs/agents/domain.md`).
 
 ## Worktrees
 
-Parallel work (peer sessions, verification builds) uses git worktrees, and they
-all live in **one place**: `/Users/jack/Documents/mac-app/mdpro-wt/` on the Mac mini, where development runs since
-2026-10-22 ([ADR-0134](./docs/adr/0134-the-herdr-roster-moves-to-the-mac-mini-isolated-from-picsee.md)).
-**The herdr roster's Codex agents each keep one persistent worktree, `mdpro-wt/<agent-name>`**, and check out
-one item branch at a time. It is removed only when the agent is retired, after the delegator's pre-grant check
-(ADR-0134 decision 3). The naming and removal rules below cover every other worktree.
-Not as `mac-app/mdpro-*` siblings, not under the repo's `.claude/worktrees/`, and
-not in a session scratchpad, where they become broken entries when the
-scratchpad is wiped.
-
-- **A large feature gets its own worktree, and the user approves it first.**
-  Before implementing a large feature, decide whether it needs an isolated
-  worktree in `../mdpro-wt/`. If it does, **ask the user before creating it**,
-  naming the branch, the directory, and the base commit. Small fixes and
-  doc-only edits stay on the current checkout.
-- **Implementor sessions (rule 70) get one worktree per item in flight**, created
-  without asking each time (user decision, 2026-10-11: 「同意，作为常设安排」).
-  A held item's rebase must not wait for the active item's worktree. Removal
-  still goes through the delegator under rule 25, once the item has landed.
-- **Branch**: `<type>/<id>-<slug>`. `<type>` comes from the commit types table,
-  and `<id>` is the defect or work item, e.g. `fix/d41-source-tab-gaps` or
-  `docs/d35-device-verified`.
-- **Directory**: the branch name with `/` → `-`, e.g.
-  `mdpro-wt/fix-d41-source-tab-gaps`. A detached checkout for verifying a commit
-  is `mdpro-wt/verify-<sha7>`.
-- **Create**: `git worktree add ../mdpro-wt/<dir> -b <branch> master`.
-  Copy the gitignored sidecar `src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin`
-  in before `pnpm tauri build`.
-- **Move only with `git worktree move`**, never `mv`. A plain `mv` leaves git's
-  registry pointing at the old path, and the worktree shows as `prunable`.
-- **Remove once merged**: `git worktree remove <dir>` then `git branch -d <branch>`.
-  Since [ADR-0157](./docs/adr/0157-a-landed-branchs-worktree-is-removed-at-landing-without-asking.md), the delegator
-  removes a landed item's worktree at landing without asking, behind its identity, liveness and ignored-file checks;
-  the branch is still deleted only with the user's confirmation.
-  A merged worktree left lying around gets its stale tdd-guardian state mistaken
-  for live work.
-- **Exceptions**: `isolation: "worktree"` subagents create
-  `.claude/worktrees/agent-*` themselves; remove each one when its agent is done.
-  `~/.codex/worktrees/` is managed by the Codex app, so leave it alone.
+All worktrees live in `/Users/jack/Documents/mac-app/mdpro-wt/` (ADR-0134). A large feature's worktree needs the
+user's approval first (branch, directory, base). Branch `<type>/<id>-<slug>`; directory is the branch with `/` → `-`;
+create with `git worktree add ../mdpro-wt/<dir> -b <branch> master` and copy the gitignored sidecar
+`src-tauri/binaries/mdpro_mcp-aarch64-apple-darwin` in before `pnpm tauri build`. Move only with `git worktree move`.
+A landed item's worktree is removed at landing (ADR-0157); deleting a branch needs the user's confirmation (rule 25).
+`isolation: "worktree"` subagents remove their own `.claude/worktrees/agent-*`; leave `~/.codex/worktrees/` alone.
 
 ## Manual test fixtures
 
-Markdown documents for device checks (`/macos-device-test`, `/gui-manual-verify`)
-live in **`tests/manual-fixtures/`**, named `<id>-<slug>.md`, e.g.
-`d41-source-tab.md`. Not in a session scratchpad, where they vanish, and not in
-`tests/fixtures/`, which holds the unit tests' contract JSON. Vitest only
-collects `*.test.{ts,tsx}`, so nothing here runs.
-
-- **Run on a copy.** Copy the fixture to the scratchpad and open the copy. A
-  run edits the document, ⌘S writes it and a draft can outlive the run, so the
-  committed original must stay pristine.
-- Large generated fixtures (multi-MB) are not committed. Commit the generator
-  script instead.
+Device-check documents live in `tests/manual-fixtures/` (`<id>-<slug>.md`); run on a copy
+([`tests/manual-fixtures/README.md`](./tests/manual-fixtures/README.md)).
 
 ## Feature Ledger
 
-[`docs/feature-ledger.md`](./docs/feature-ledger.md) is the inventory of **what
-mdpro has right now**: every capability, its state, where the code is, and how to
-confirm it in the running app. `docs/feature-ledger.html` is the rendered view —
-generated, never hand-edited.
-
-- **The commit that changes the behaviour rewrites the row.** Same rule as the
-  sequencing doc above, same reason: a state column refreshed in a later cleanup
-  pass is a state column nobody can trust. Shipping a feature, stubbing one out,
-  or discovering a claim was false all edit the ledger in that commit.
-- **State is one of five words** — `Shipped` / `Partial` / `Stub` / `Absent` /
-  `Unknown`. The enum is closed; `Shipped (export only)` is a gate failure, not a
-  nuance. Nuance goes in the 怎么确认 column. `Partial` **must** carry a literal
-  `限制：` naming the limit.
-- **Run `pnpm ledger:check` before committing a behaviour change**, and
-  `pnpm ledger:build` when the markdown changes. The gate gives three answers:
-  every path claim resolves, every state cell is in the enum, and every declared
-  app surface (`#[tauri::command]`, `http_server.rs` routes, `menu.rs` `MENU_*`
-  ids, `pluginConfig.ts` plugin ids, `src/stores/`) appears in some row. The
-  third is the one that catches a surface nobody wrote a row for.
-- **It is not a changelog, a plan, or an ADR.** When it changed → `CHANGELOG.md`.
-  What is next and its acceptance → `docs/plans/`, or `docs/specs/` for rule-12
-  items (ADR-0148). Why → `docs/adr/`.
-- The gate **cannot** tell you a sentence is still true. A path that resolves
-  says nothing about whether the behaviour it describes still exists.
+[`docs/feature-ledger.md`](./docs/feature-ledger.md) is the inventory of what mdpro has now. **The commit that changes
+the behaviour rewrites the row**, the same rule as the item's issue. State is one of `Shipped` / `Partial` / `Stub` /
+`Absent` / `Unknown`; `Partial` carries a literal `限制：`. Run `pnpm ledger:check` before committing a behaviour change,
+and `pnpm ledger:build` when the markdown changes. It is not a changelog, a plan or an ADR.
 
 ## Architecture Decision Records (ADR)
 
-**A repository-wide ADR records a decision about the product or its architecture**
-([ADR-0165](./docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
-decision 1; [decision log](./docs/agents/decisions/20261102-adr-scope-and-decision-log.md)):
+**An ADR records a decision about the product or its architecture** (ADR-0165): an IPC or MCP contract, a persisted
+format or preference key, a dependency, a rendering surface or engine, platform and release scope, an accepted known
+defect, or deciding not to build something. The test: would a user of the released app, or a contributor reading
+product code, see the difference? How the work is done goes to
+[`docs/agents/decisions/`](./docs/agents/decisions/README.md) instead.
 
-- **Scope.** An IPC or MCP contract; a persisted format or preference key; a
-  dependency added or refused; a rendering surface or editor engine; platform and
-  release scope, including what a release workflow ships; accepting a known
-  product defect; deciding **not** to build something.
-- **The test.** Would a user of the released app, or a contributor reading product
-  code, see the difference? If yes, it is a product decision.
-- **Not an ADR:** how the work is done (the roster, slots, audit shape and rounds,
-  receipts, locks on machine load, model and effort routing, brief and handoff
-  formats, CI lane layout). Each goes to one file in the
-  [decision log](./docs/agents/decisions/README.md). A decision that reaches for
-  `AskUserQuestion` is not, by that fact alone, ADR-worthy.
-- **Mixed cases** (both product and process) get an ADR, and their process half is
-  a log entry pointing at it.
-- **Who classifies.** The delegator, before reserving a number; the planner
-  proposes for a feature. Doubt goes to the ADR route and to the user.
-- **Below the bar.** A product decision too small for an ADR is recorded where it
-  is made: the D row, the spec snapshot or the ledger row.
-- **One feature's decisions** stay in its spec snapshot under local ids
-  `<prefix>-r<N>-D<n>` (rule 12), unless they are on the scope list above.
-- **Location**: `docs/adr/NNNN-kebab-title.md`, numbered sequentially from
-  `0001`, never renumbered and never deleted.
-- **Structure** (Nygard): `# NNNN. Title` → **Status** → **Enforced by** →
-  **Context** → **Options considered** → **Decision** → **Consequences**. Every
-  new ADR's "Enforced by" line names the lint, test, gate or config that holds the
-  decision, or says plainly that nothing does. Context states the
-  forces *as they were understood at the time*, not as they look in hindsight.
-  Options considered names every option that was on the table, with the reason
-  each losing one lost; a record without them cannot stop the re-litigation it
-  exists to prevent. Keep it to a page where you can; evidence (log lines, device
-  runs, probe output) goes in a linked record under `docs/test/` or
-  `docs/reference/`, not in the ADR.
-- **Status** is one of `Proposed` / `Accepted` / `Rejected` /
-  `Superseded by ADR-NNNN` / `Deprecated` / `Drifted` / `False in practice`. Date
-  every status change, and on
-  `Accepted` or `Rejected` say **who decided**, quoting the user's words when the
-  user did. `Rejected` keeps a proposal that was turned down, with the reason, so
-  it is not proposed again from scratch. `Drifted` and `False in practice` are
-  dated lines with a link to the evidence, added without a superseding ADR.
-- **An accepted ADR's body is immutable.** Only its Status line and a forward
-  link (`Superseded by ADR-NNNN`, `partially superseded: <clause> by ADR-NNNN`,
-  `Current text: <rule>#<anchor>; folded by ADR-0165` for a clause moved unchanged,
-  or `Current text: <rule>#<anchor>; folded and changed by docs/agents/decisions/<file>`
-  for a changed one) may change after acceptance. Changing your mind on a repository-wide ADR writes a
-  **new** ADR that supersedes the old one, in whole or for a named clause, and links
-  back; both stay in the tree. (A process ADR's unfolded clause is folded in
-  instead: see Existing records below.) Editing an accepted record destroys the evidence of why the
-  earlier decision looked right at the time — which is the only thing that stops
-  it being remade by accident. (Rules amended 2026-10-11 after the vendor
-  comparison in `docs/reference/20261011-adr-criteria-best-practices.md`;
-  ADRs accepted before then keep their shape.)
-- **Review.** Plan review by both auditors is required when the ADR touches
-  `src-tauri/`, `src/services/`, a persisted format or preference key, an IPC or
-  MCP contract, or a dependency; when it spans more than one PR; or when the user
-  asks. Otherwise it lands with the user's quoted acceptance. The delegator records
-  the classification in the Status line, and doubt means review (ADR-0165
-  decision 4).
-- **Existing records** are not rewritten or renumbered (ADR-0165 decision 5). A
-  process ADR up to 0164 governs each clause until that clause is folded into a
-  rule while ADR-0147 is carried out; the folded ADR stays `Accepted` and gains the
-  dated "Current text: `<rule>#<anchor>`; folded by ADR-0165" line. ADR-0159 finishes under the old flow. Changing a
-  clause that is not yet folded in takes no new ADR: the change folds the clause
-  into its rule with a decision-log entry recording the new decision (plan review
-  by both auditors when it is
-  [gate-sensitive](./docs/agents/decisions/README.md#gate-sensitive-entries)), and
-  the old ADR gains "Current text: `<rule>#<anchor>`; folded and changed by
-  `docs/agents/decisions/<file>`", naming that entry ([entry](./docs/agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md)).
-- **Record the costs, not just the benefits.** An ADR whose Consequences section
-  lists only upsides is advocacy, not a record. Name what the decision gives up
-  and what it forecloses.
-- Plans and rules **link** to ADRs rather than restating the reasoning. When a
-  plan and an ADR disagree, the ADR is the decision and the plan is corrected.
-
-Decisions already taken for the in-flight redesign still live inline in
-`docs/plans/` (E26, E29 Stryker-not-adopted, E39 no-benchmarking-harness, the
-`export_html` non-deletion). **Do not backfill them wholesale** — a bulk
-conversion produces records nobody wrote and nobody trusts. Promote one when it
-is next disputed, superseded, or built on: to an ADR if it is on the scope list
-above, otherwise to a decision-log entry.
-
-The B′ export-anchor decision was promoted this way on 2026-09-15
-([ADR-0003](./docs/adr/0003-export-fragment-sanitizer-scope.md)): it was about to
-be built on by WI-3.2, and it carries a precondition with a failure condition
-(`<form>` entering the sanitizer allowlist) that must outlive any plan document.
+Numbers are reserved through the delegator. Structure: Status, Enforced by, Context, Options considered, Decision,
+Consequences. An accepted ADR's body is immutable; changing your mind writes a new ADR that supersedes it. Review,
+Status values and the fold-in of process ADRs: [`docs/adr/README.md`](./docs/adr/README.md).
 
 ## Spec-Driven Development
 
-Feature specifications live in `specs/001-mdpro-mvp/`:
-
-- `spec.md` - Requirements and user stories
-- `plan.md` - Technical architecture
-- `tasks.md` - Implementation tasks
-- `contracts/` - IPC command definitions
-
-### Project Constitution
-
-- **Atomic commits**: see "Git Commit Conventions" above.
-- **Test-driven development**: see `.claude/rules/10-tdd.md` for the mdpro-specific test matrix and where test files must live.
-- **Changelog**: every release-affecting change updates `CHANGELOG.md` under `## [Unreleased]`, moved to a versioned section on release. Format follows [Keep a Changelog](https://keepachangelog.com/).
+Feature specifications live in `specs/001-mdpro-mvp/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/`). Constitution:
+atomic commits; TDD per rule 10; every release-affecting change updates `CHANGELOG.md` under `## [Unreleased]`.
 
 ## Cross-Platform Development (Mac + WSL)
 
-Developed on macOS (primary) and WSL/Linux (secondary). Two must-follow rules:
-
-- **Always LF.** `.gitattributes` (`* text=auto eol=lf`) is authoritative. **Never commit CRLF.**
-- **Never set `core.autocrlf = true`** (use `git config core.autocrlf false` on WSL).
-
-Mass "modified" files after a pull, re-normalizing, and verification commands: see [`docs/guide/cross-platform-wsl.md`](./docs/guide/cross-platform-wsl.md).
+**Always LF** (`.gitattributes` is authoritative); **never set `core.autocrlf = true`**. Details:
+[`docs/guide/cross-platform-wsl.md`](./docs/guide/cross-platform-wsl.md).
 
 ## Constraints
 
-- Local files only (no cloud sync)
-- No third-party plugin marketplace (the internal `src/plugins/` Milkdown/CodeMirror architecture is editor-internal only)
-- HTML export only (no PDF/Word)
-- Max file size: 10MB
+Local files only (no cloud sync); no third-party plugin marketplace; HTML export only (no PDF/Word); max file size 10MB.
 
 ## Logging Rules
 
-After implementing any new feature, **always add structured logging** to enable debugging in production builds.
-
-Rust (`logger::log_event`) and TypeScript (`loggingService.logEventSync`) code samples live in `.claude/rules/20-logging-and-docs.md` (auto-loads when commands/services/hooks/components are touched).
-
-### Event Naming Convention
-
-- UI events: `ui.<component>.<action>` (e.g., `ui.button.click`, `ui.menu.select`)
-- File events: `file.<action>` (e.g., `file.open`, `file.save`, `file.open.external`)
-- App events: `app.<action>` (e.g., `app.launch`, `app.ready`, `app.quit`)
-- Window events: `window.<action>` (e.g., `window.open`, `window.close`, `window.focus`)
-- Tab events: `tab.<action>` (e.g., `tab.open`, `tab.close`, `tab.switch`)
-
-### Log File Location
-
-- Path: `~/.mdpro/mdpro.log`
-- Format: JSONL (one JSON object per line)
-- Verify with: `tail -f ~/.mdpro/mdpro.log | jq .`
+After any new feature, add structured logging (rule 20 has the code samples). Event names: `ui.<component>.<action>`,
+`file.<action>`, `app.<action>`, `window.<action>`, `tab.<action>`. The log is `~/.mdpro/mdpro.log`, JSONL
+(`tail -f ~/.mdpro/mdpro.log | jq .`).
 
 ## Debugging
 
-DevTools in dev/prod builds, when to use `pnpm dev` vs `pnpm tauri dev` + JSONL logs, and the debug workflow: see [`docs/guide/debugging.md`](./docs/guide/debugging.md).
-MCP server setup, connecting clients (`claude mcp add`), the tool reference, and driving the local HTTP API by hand with curl (token header, confirm prompts) for device checks: see [`docs/guide/mdpro-mcp-guide.md`](./docs/guide/mdpro-mcp-guide.md).
-
-## Typora-Parity Phase 1 Scope (rendering)
-
-Phase 1 wires math (`$…$` / `$$…$$`), footnotes, autolinks, and emoji on the
-**canonical Rust render surface** — i.e. HTML export (`render_markdown` →
-`sanitize_html` / MathML export). That is the supported math/footnote path
-for Phase 1. The Preview pane was the other consumer of this surface; it was
-deleted in the stage-2 dead-code cleanup, so export is now the only one.
-
-**Explicitly deferred to Phase 2 / follow-up:**
-
-- **Milkdown WYSIWYG (surface 4)** does NOT typeset math or render footnotes.
-  There is no Milkdown math/footnote plugin in `src/plugins/milkdown/`. In source
-  mode `$…$` and `[^1]` remain visible as plain literal text (readable, not broken
-  markup) — this is the accepted Phase 1 behavior, not a bug.
-- **Export `marked` fallback** (`exportService.renderMarkdown` catch block, used
-  only when the Rust IPC throws) renders neither math nor footnotes. Accepted
-  degradation (plan decision A1); pinned by `tests/export-fallback-degradation.test.ts`.
-
+[`docs/guide/debugging.md`](./docs/guide/debugging.md); the MCP server and its HTTP API:
+[`docs/guide/mdpro-mcp-guide.md`](./docs/guide/mdpro-mcp-guide.md). Phase 1 rendering scope (math and footnotes on the
+export surface only): [`docs/guide/md-engine-architecture.md#phase-1-scope`](./docs/guide/md-engine-architecture.md#phase-1-scope).

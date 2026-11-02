@@ -1,12 +1,16 @@
 # <ITEM>: <one-line defect or work item> (<date>, herdr-delegator)
 
+<!-- read-every-session:begin -->
+- [docs/agents/implementor.md](../../../../../docs/agents/implementor.md)
+<!-- read-every-session:end -->
+
 **Tier: <High|Medium|Low>** (ADR-0121: why). **Difficulty: <routine|standard|hard>** (ADR-0138: why; it sets your
 effort and the adversary). Fresh session. On Codex, run `$tdd-guardian:tdd-guardian-workflow` for the whole item, including the
 matrix attack. On Claude (the plugin is off there), follow rule 71 § Briefs for Claude: design the matrix yourself, have a fresh
 subagent attack it with `references/templates/matrix-attack-prompt.md`, and record REDs with `node scripts/tdd/red-receipt.mjs`.
 
 ## 1. Background
-- **The row.** `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>` (and the plan row, if any).
+- **The issue.** `anzchy/mdpro#<n>` (or, for an existing D item, `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>`), and the plan row, if any.
 - **Evidence.** <device record / report path, the decisive log lines>.
 - **The user's decisions**, quoted: 「…」.
 - **Binding ADRs and rules:** <ADR-NNNN (what it fixes)>, rule 60's <items>. **Do not** <the guard that must hold>.
@@ -32,7 +36,7 @@ what actually happens: <the seam, and the probe to run>. Write the observed orde
 assumed one. Write "WI-0: none, because <reason>" when no AC rests on platform behaviour. (D261 → D319: four
 implementations and seven audit rounds came from an assumed AppKit order.)
 
-**Smoke ([ADR-0162](../../../../../docs/adr/0162-rework-countermeasures-before-0-3-6-and-a-process-freeze.md) decision 2):**
+**Smoke ([ADR-0162](../../../../../docs/adr/0162-rework-countermeasures-before-0-3-6-and-a-process-freeze.md#decision) decision 2):**
 "Smoke: owed, <operation>, run by <implementor|tester>" when a `device` AC exists, the item changes
 `.agents/skills/*/scripts/**`, `scripts/{device,control}/**` or `scripts/redesign/device/**`, or it touches window and menu
 targeting; otherwise "Smoke: none, because <reason>". It runs after implementation on each audited head, through the real

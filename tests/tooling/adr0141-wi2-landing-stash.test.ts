@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { afterEach } from "vitest";
 
 const skill = path.resolve(".agents/skills/mdpro-delegator");
-const guide = path.join(skill, "references/guide.md");
+const guide = path.join(skill, "references/session-ops.md"); // D355: the trials table moved here from guide.md
 const checklist = path.join(skill, "references/templates/landing-docs-checklist.md");
 const helper = path.join(skill, "scripts/landing-stash.mjs");
 const dirs: string[] = [];

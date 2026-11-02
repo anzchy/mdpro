@@ -52,3 +52,26 @@ src/                    # React frontend
 | State         | Zustand                                                |
 | File dialogs  | rfd (Rust)                                             |
 | File watching | notify (Rust)                                          |
+
+## Events
+
+<!-- moved-from: CLAUDE.md § IPC & Event System (ADR-0147) -->
+Rust emits events that frontend listens to via `listen()`:
+
+| Event           | Payload                | Source                                        |
+| --------------- | ---------------------- | --------------------------------------------- |
+| `menu:action`   | `{ action, value, target }` | Native menu clicks (menu.rs); `target` names the window the click was for (D261) |
+| `file:open`     | `string[]`             | External open routed to a window (services/open\_route/tauri\_glue.rs) and `create_window(Some(path))` (commands/window.rs) |
+| `file:changed`  | `{ path, changeType, newPath?, origin? }` | External file modification (file\_watcher.rs), sent once to every spelling the file is open under (services/file\_watcher\_fanout.rs, D185), and a save in another window: the save notice carries `origin: { windowLabel, documentId }` (services/file\_watcher\_save\_notice.rs, ADR-0086) |
+| `file:open-in-window` | `{ windowLabel, documentId, path }` | External open of an already-open file, `emit_to` the one window that has it (services/open\_route/tauri\_glue.rs) → `useOpenInWindow.ts` |
+| `theme:changed` | `"light" \| "dark"`    | System theme change                           |
+| `mcp:write_document` | `{ document_id, content, window_label, action_id }` | MCP `write_document` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:insert_content` | `{ document_id, text, position, window_label, action_id }` | MCP `insert_content` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:create_document` | `{ document_id, content, window_label, action_id }` | MCP `create_document` tool (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:table_action` | `{ document_id, action, payload, window_label, action_id }` | MCP table tools (http\_server.rs) → `useMcpEvents.ts` |
+| `mcp:confirm_request` | `{ requestId, documentId, documentTitle, operation, action?, expiresInMs }` | MCP write awaiting approval (ADR-0042), `emit_to` the window that owns the document (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
+| `mcp:confirm_resolved` | `{ requestId, outcome }` (`approved` \| `rejected` \| `timedOut` \| `cancelled` \| `withdrawn`) | Closes that prompt, `emit_to` the owning window (mcp\_confirm/outbox.rs) → `useMcpConfirm.ts` |
+| `app:quit-requested` | `{ requestId, round }` | Quit phase 1 — asks every window if it is dirty (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-prompt` | `{ requestId, round }` | Quit phase 2 — prompts one dirty window at a time (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-cancelled` | `{ requestId, round }` | Quit aborted; windows dismiss their prompt (quit\_guard/events.rs) → `useQuitGuard.ts` |
+| `app:quit-backstop` | `{ requestId, round }` | Quit commit — every window drafts every unsaved document, then replies `drafted` with counts (ADR-0035; quit\_guard/events.rs) → `useQuitGuard.ts` |

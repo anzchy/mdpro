@@ -1,7 +1,11 @@
 # Request: <ADR-<NNNN> | decision <YYYYMMDD-slug>> plan review, round <k> (difficulty: <D>)
 
+<!-- read-every-session:begin -->
+- [docs/agents/auditor.md](../../../../../docs/agents/auditor.md)
+<!-- read-every-session:end -->
+
 Use this only for an ADR that meets CLAUDE.md § ADR's review trigger, or for a gate-sensitive decision-log entry
-(`docs/agents/decisions/README.md` § Gate-sensitive entries), as guide §6 says (ADR-0165; [decision log](../../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). Doubt means review.
+(`docs/agents/decisions/README.md` § Gate-sensitive entries), as guide §6 says (ADR-0165; [decision log](../../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md#2026-11-02-adr-scope-and-the-decision-log)). Doubt means review.
 
 - **Protocol pin:** `<M>` is the master SHA and `<B>` is the blob id of `docs/agents/audit-dimensions.md` at `<M>`.
   Verify `git rev-parse <M>:docs/agents/audit-dimensions.md` equals <B>, then read `git cat-file -p <B>` and echo
@@ -13,7 +17,7 @@ Use this only for an ADR that meets CLAUDE.md § ADR's review trigger, or for a 
 - **Document:** `docs/adr/<NNNN>-<slug>.md` (Proposed) or `docs/agents/decisions/<YYYYMMDD>-<slug>.md` with its rule
   edit, in `/Users/jack/Documents/mac-app/mdpro` (uncommitted). Read it from that path.
 - **Mode:** plan review using the plan set from the pinned file at `<B>` for an ADR, and the plan set + policy set
-  at Full depth (§ Which set; [policy set](../../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)) for a decision-log entry, which
+  at Full depth (§ Which set; [policy set](../../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md#2026-11-02-the-cc-suite-policy-set)) for a decision-log entry, which
   reads the policy set at `<P>`. An ADR review names no `<P>`.
 - **Read also:** <the ADRs and rules it supersedes or touches; the evidence it cites>.
 - **Check in particular:** <the questions that matter>; every clause of an Accepted ADR or rule it contradicts

@@ -271,7 +271,8 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
 
   it("documents the sanctioned receipt entry and verifies pending branch receipts", () => {
     const rule10 = readFileSync(join(repo, ".claude/rules/10-tdd.md"), "utf8");
-    const rule71 = readFileSync(join(repo, ".claude/rules/71-herdr-mixed-roster.md"), "utf8");
+    // D355 (ADR-0147 WI-1): rule 71's receipt paragraph moved verbatim to the implementor's role file.
+    const rule71 = readFileSync(join(repo, "docs/agents/implementor.md"), "utf8");
     const verifier = readFileSync(join(repo, ".claude/agents/mdpro-landing-verifier.md"), "utf8");
     for (const rule of [rule10, rule71]) {
       expect(rule).toContain("scripts/tdd/red-receipt.mjs");

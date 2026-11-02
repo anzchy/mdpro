@@ -1,6 +1,7 @@
 // @vitest-environment node
 // GH586-ACC: the policy set moves out of audit-dimensions.md into audit-policy-set.md (ruling 1: pure move,
 // dimension allowance 13,000 B). Base for the byte-identity checks: db04d826:docs/agents/audit-dimensions.md.
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -243,7 +244,11 @@ describe("GH586 fix 1: the entry states two auditor route caps with sourced arit
   const field = (name: string) => flat(entry().split(`\n- **${name}:**`)[1]?.split("\n- **")[0] ?? "");
   const clauses = (text: string) => text.split(/[.;](?=\s|$)/);
   const num = (s: string) => Number(s.replace(/,/g, ""));
-  const size = (rel: string) => Buffer.byteLength(read(rel));
+  // The entry's arithmetic is what #587 measured at its head 9c32bcde; D355 re-based links in the request templates
+  // afterwards, and always-on-budget.test.ts holds the live routes to the caps. So the figures are read at 9c32bcde.
+  const ENTRY_HEAD = "9c32bcdeef17d96f4de69c7563a42508e1460aa2";
+  const size = (rel: string) =>
+    Number(execFileSync("git", ["cat-file", "-s", `${ENTRY_HEAD}:${rel}`], { cwd: root, encoding: "utf8" }).trim());
   const templates = ["audit", "confirm", "challenge", "plan-review"].map(kind =>
     size(`.agents/skills/mdpro-delegator/references/templates/${kind}-request-template.md`));
 

@@ -1,5 +1,9 @@
 # Request: <ID> PR #<n> confirm, round <k> (both auditors, at most two rounds, ADR-0143)
 
+<!-- read-every-session:begin -->
+- [docs/agents/auditor.md](../../../../../docs/agents/auditor.md)
+<!-- read-every-session:end -->
+
 - **Protocol pin:** `<M>` is the master SHA and `<B>` is the blob id of `docs/agents/audit-dimensions.md`
   at `<M>`. Verify `git rev-parse <M>:docs/agents/audit-dimensions.md` equals <B>, then read
   `git cat-file -p <B>` and echo `<B>` in the report. One pin covers round one, its challenges, the confirm and the confirm's challenges;

@@ -1,5 +1,9 @@
 # Device brief <batch>: <area> (Mac mini), from herdr-delegator, <date>
 
+<!-- read-every-session:begin -->
+- [docs/agents/device-tester.md](../../../../../docs/agents/device-tester.md)
+<!-- read-every-session:end -->
+
 Before dispatch, reset the macOS tester with `reset-codex.sh gpt-auditor <wt> <model> <effort> device` and send this file from `~/.mdpro-redesign/device/` with `prompt.sh gpt-auditor <file> brief`.
 
 **Tester:** <gpt-auditor in a device pane (macOS, rule 71) | remote-windows-device-test (Windows)>. **User:** 「…」 for

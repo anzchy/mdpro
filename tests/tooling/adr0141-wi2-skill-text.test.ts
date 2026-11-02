@@ -36,7 +36,8 @@ describe("ADR-0141 WI-2 published guard protocol", () => {
 
   it("makes the shared and per-role Codex guard, evasion, and reset order explicit", () => {
     const agents = read("AGENTS.md");
-    const rule = read(".claude/rules/71-herdr-mixed-roster.md");
+    // D355 (ADR-0147 WI-1): rule 71's restart steps moved verbatim to codex-panes.md#restart.
+    const rule = skillText("references/codex-panes.md");
     expect(agents).toContain(".codex/rules/mdpro-role.rules");
     expect(agents).toContain("gitignored");
     expect(agents).toContain("push-guard.mjs");

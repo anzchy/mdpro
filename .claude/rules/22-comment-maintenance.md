@@ -1,5 +1,12 @@
 ---
 description: Keep `Purpose:` headers and Rust `//!` module docs in sync when modifying documented files.
+paths:
+  - "src/**"
+  - "src-tauri/**"
+  - "tests/**"
+  - "scripts/**"
+  - ".claude/hooks/**"
+  - ".agents/skills/**/scripts/**"
 ---
 
 # 22 - Comment Maintenance

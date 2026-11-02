@@ -6,8 +6,8 @@ How the engineering skills should consume this repo's domain documentation when 
 
 - **`GLOSSARY.md`** at the repo root, or
 - **`GLOSSARY-MAP.md`** at the repo root if it exists: it points at one `GLOSSARY.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`**: read ADRs that touch the area you're about to work in. These are product and architecture decisions only ([ADR-0165](../adr/0165-adrs-record-architecture-and-product-decisions-only.md); [decision log](decisions/20261102-adr-scope-and-decision-log.md)); the scope list and test are in [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr). In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
-- **`docs/agents/decisions/`**: process and tooling decisions, one file each, listed in its [`README.md`](decisions/README.md).
+- **`docs/adr/`**: read ADRs that touch the area you're about to work in. These are product and architecture decisions only ([ADR-0165](../adr/0165-adrs-record-architecture-and-product-decisions-only.md#decision); [decision log](decisions/20261102-adr-scope-and-decision-log.md#2026-11-02-adr-scope-and-the-decision-log)); the scope list and test are in [CLAUDE.md § ADR](../../CLAUDE.md#architecture-decision-records-adr). In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+- **`docs/agents/decisions/`**: process and tooling decisions, one file each, listed in its [`README.md`](decisions/README.md#decision-log).
 - **`docs/specs/<feature>/`**: decisions that belong to one feature, under local ids `<prefix>-r<N>-D<n>` in the spec snapshot or in `decisions.md`.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved. A resolved decision becomes an ADR only when it is on CLAUDE.md § ADR's scope list; any other decision from a grill goes in the feature's spec under a local id (rule 12).

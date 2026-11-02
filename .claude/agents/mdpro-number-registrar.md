@@ -1,15 +1,16 @@
 ---
 name: mdpro-number-registrar
 description: >-
-  Read-only lookup of the next free repository-wide ADR number and D number for mdpro-delegator
-  (rule 70). Decision-log files and feature-local ids take no number (ADR-0165). It
+  Read-only lookup of the next free repository-wide ADR number for mdpro-delegator, and of existing
+  D ids (rule 70). Decision-log files and feature-local ids take no number (ADR-0165); a new item is a
+  GitHub issue and takes no D number (docs/agents/decisions/20261102-new-items-are-github-issues.md). It
   scans every branch, every worktree and the Mac mini remote, and returns the highest number seen
   and the next free one, with where each high-water mark was found. Use it before the delegator
   reserves a number. Not for reserving or announcing: the delegator does both.
 
   <example>
   Context: mdpro-a5 asks the delegator for an ADR number for a draft about table parsing.
-  assistant: "I'll dispatch mdpro-number-registrar to find the highest ADR and D numbers across
+  assistant: "I'll dispatch mdpro-number-registrar to find the highest ADR number across
   every branch, worktree and mac-mini, then reserve the next ADR and announce it."
   <commentary>
   Two drafts both took 0066 on 2026-10-10 because only one checkout was searched.
@@ -32,7 +33,7 @@ The repo is `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro`; run git from t
    - `ls docs/adr` inside every path printed by `git worktree list --porcelain` (lines starting
      `worktree `). That covers the main checkout, `../mdpro-wt/*`, `.claude/worktrees/agent-*`
      and the Codex worktree, including uncommitted drafts.
-3. D numbers. Collect every `<a id="dNN">` anchor in
+3. D numbers, as a lookup of existing ids only (no new D number is handed out). Collect every `<a id="dNN">` anchor in
    `docs/plans/20260912-frontend-backend-sequencing-order.md` from:
    - that file in every worktree path from step 2 (`grep -o '<a id="d[0-9]*">'`)
    - every branch: `git log --all -S'<a id="d' --format=%H -- <that file>`, then
@@ -46,7 +47,7 @@ The repo is `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro`; run git from t
 ## Output (exactly this shape)
 ```
 ADR  highest <NNNN> found in <path or ref@sha7>[, ...]   next free <NNNN>
-D    highest D<NN> found in <path or ref@sha7>[, ...]    next free D<NN>
+D    highest D<NN> found in <path or ref@sha7>[, ...]    (lookup only; no D number is handed out)
 COLLISIONS  none | ADR <NNNN>: <name1> (<where>) vs <name2> (<where>)
 GAPS        none | ADR <list>; D <list>
 SOURCES     worktrees scanned: <n>; refs scanned: <n>; mac-mini: fetched | fetch failed <reason>

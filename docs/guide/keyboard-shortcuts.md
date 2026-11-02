@@ -390,3 +390,14 @@ high-precedence keymap, which calls the global store action directly.
 
 - [View Modes](./view-modes.md)
 - [Milkdown Integration](./milkdown-integration.md)
+
+## Menu system
+
+<!-- moved-from: CLAUDE.md § Menu System (ADR-0147) -->
+Native macOS menu defined in `src-tauri/src/menu.rs`. Menu events are handled via `menu:action` event:
+
+- File: New (⌘N), Open (⌘O), Save (⌘S), Export HTML (⌘⇧E), Close (⌘W)
+- View: Source (⌃2), WYSIWYG (⌃4), Toggle Sidebar (⌘⇧L)
+- Format: Highlight Selection (⌘⇧H)
+- App (Windows/Linux): Exit → quit guard; Stop Waiting and Quit… (ADR-0090)
+- Theme: Light, Dark, System

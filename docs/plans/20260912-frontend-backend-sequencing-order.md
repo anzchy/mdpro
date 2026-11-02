@@ -4,6 +4,7 @@
 `docs/plans/20260912-plan-markdown-source-consolidation.md`（计划 M）综合而成。
 **作用**：本文只定义**先后顺序**。每个工作项的验收条件、文件集合与门禁细则仍以两个原计划为准；
 两者冲突时，以原计划为准，并回来修正本文。
+**Since 2026-11-02:** order only; new items are GitHub issues in `anzchy/mdpro` ([decision](../agents/decisions/20261102-new-items-are-github-issues.md#decision)); the rows below stay as the record.
 
 **核心结论**：计划 M 的**标题身份契约与 TOC 切换提前到计划 P 之前**；M 的其余部分不动。
 理由是 P 的 WI-4.26 要求「按 heading identity 协调折叠状态」，而今天的 heading identity

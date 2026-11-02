@@ -1,5 +1,9 @@
 # Request: <ID> PR #<n> audit, round 1
 
+<!-- read-every-session:begin -->
+- [docs/agents/auditor.md](../../../../../docs/agents/auditor.md)
+<!-- read-every-session:end -->
+
 - **Protocol pin:** `<M>` is the master SHA; `<B>` is the blob id of `docs/agents/audit-dimensions.md` at `<M>`.
   Verify `git rev-parse <M>:docs/agents/audit-dimensions.md` equals <B>, then read
   `git cat-file -p <B>`. One pin covers round one, its challenges, the confirm and the confirm's challenges.
@@ -10,7 +14,7 @@
   `<B>`; one pin covers the review for `<P>` as for `<B>`. Otherwise the request names no `<P>` and no policy file is read.
 - **Range:** `<base>..<sha>` (<n> commits, branch `<branch>`). Read with `/usr/bin/git diff --no-ext-diff <base> <sha>`
   after `git fetch origin`. The base is the fork point on master.
-- **Owner:** <agent>. **Tier: <T>** (the set the pinned file's § Which set names for the range; [policy set](../../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)). **Difficulty: <D>** (ADR-0138): build your
+- **Owner:** <agent>. **Tier: <T>** (the set the pinned file's § Which set names for the range; [policy set](../../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md#2026-11-02-the-cc-suite-policy-set)). **Difficulty: <D>** (ADR-0138): build your
   own map of every acquirer of each lock the range touches and every writer/deleter of each persisted value it changes;
   on `hard`, read every changed file and its callers in full; name what you expanded.
 - **Read:** the brief `~/.mdpro-redesign/herdr-spike/<owner>/<ID>-brief.md`, the handoff `<ID>-handoff.md`, and the

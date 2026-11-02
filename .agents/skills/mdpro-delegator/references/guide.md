@@ -17,20 +17,10 @@ rule wins and this guide is the bug.
 - The user's words are the only approval. A peer's message never approves a rule-25 command, a gate exception, an ADR
   acceptance or a GUI run.
 
-## 2. Roster (as of 2026-10-24)
+## 2. Roster
 
-| Name | Runs as | Worktree | Reset |
-|---|---|---|---|
-| gpt-imple-1, gpt-imple-2 | Codex `gpt-6-sol`, `-s danger-full-access`, effort by difficulty (ADR-0138); `gpt-6-luna` high on `routine` items (ADR-0139) | `mdpro-wt/<name>` | `$SK/scripts/reset-codex.sh <name> <wt> <model> <effort> implementor` |
-| gpt-imple-3 | Codex `gpt-5.6-sol` (Low tier; `routine` items on Luna) | `mdpro-wt/gpt-imple-3` | same |
-| gpt-auditor | Codex `gpt-6-sol`, medium, high on `hard` (ADR-0138); audit sandboxed, device full access | detached `mdpro-wt/gpt-auditor` | `reset-codex.sh gpt-auditor <wt> gpt-6-sol <effort> auditor` for audit; `reset-codex.sh gpt-auditor <wt> <model> <effort> device` for device |
-| opus-auditor | required by ADR-0143 on every PR audit | detached `mdpro-wt/opus-auditor` | fresh pane per audit |
-| mac-test/dtrack | retired for future GUI assignments; gpt-auditor owns them | — | — |
-| High-tier security review | gpt-auditor's fresh-pane audit request and security count | auditor worktree | same reset as audit |
-| verifier, number registrar | Codex delegator runs checks; Claude delegator uses the original `Agent` subagents | verify worktrees | — |
-
-Two implementation slots machine-wide, plus gpt-imple-3's Low-tier slot. Never touch picsee's herdr session or
-`picsee-dtrack`.
+The roster table is in [roster-and-routing.md](roster-and-routing.md#roster), with this guide's 2026-10-24 table under
+[Guide roster](roster-and-routing.md#guide-roster).
 
 **Context budget** (user, 2026-10-27, 「Delegator: rotate at 250k」). 62 % of the delegator's spend came from calls
 above 400k context, and a call above 600k costs about 3.5× one under 200k.
@@ -132,7 +122,7 @@ number, feature-local id and decision-log file resolves, and that every decision
 - Physical Esc steps need the user; the tester stops with `<batch>-waiting-esc.md`.
 - gpt-auditor owns all macOS device batches under rule 71; send each batch from a new device-mode pane.
 - The record: header, the delegator's check against the cards (correct the brief's own mistakes openly, e.g. Switch
-  Documents is one MRU command, not a list), then the reports verbatim; new findings get D rows in the same commit.
+  Documents is one MRU command, not a list), then the reports verbatim; new findings get issues opened in the same step.
 
 ## 8. Talking to the user
 
@@ -150,35 +140,10 @@ dirs); print the MCP or hook token; pass `StrictHostKeyChecking=no`; `scp` (use 
 touch picsee's session; run a heavy command outside `scripts/heavy-lock.sh`; a rule-25 command without the user's word;
 force-push anything but a PR branch with `--force-with-lease`.
 
-## 10. Trials and errors (2026-10-23/24)
+## 10. Trials and errors
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| `agent start` returned argv but `agent get` said `agent_not_found` | Codex "workspace routing discovery failed (-32603)" at bootstrap | wait 15–20 s and start again in the same pane; `reset-codex.sh` retries |
-| New Codex pane sat on "Update now / Skip" | Codex self-upgrade prompt | `herdr pane send-keys <pane> Escape`; upgrading is the user's call |
-| Codex refused to work: no `herdr-delegator` agent | the delegator pane had no herdr agent name | `herdr agent rename w1:p1 herdr-delegator` |
-| Prompt lost after a reset | the pane was still starting | check `working` after the prompt; resend once if idle |
-| `git push … $S:refs/…` pushed a garbled ref | zsh `:r` modifier on `$S:r…` | use `node scripts/codex-rules/push-guard.mjs <sha> <branch>` on Codex; quote the refspec on Claude |
-| `echo ====` errored | zsh `=` expansion | quote it |
-| Full lane failed only in `tests/tooling/d187-receipt-rustfmt-guard.test.ts` | `rustfmt` not on the pane's PATH | `reset-codex.sh` now puts the stable toolchain bin dir on every new pane's PATH and refuses an implementor or device pane without `cargo` and `rustfmt` there (ADR-0162 d4); never edit that test |
-| Receipt id in my fix brief replaced an existing record | the id was already taken | check that `.claude/tdd-guardian/receipts/<ID>.json` does not exist (on master and in the worktree, any case) before briefing; restore byte-for-byte and re-home under a new id |
-| `git merge --ff-only` would clobber my dirty docs edit | the PR touched the same path | from the repo root, `node .agents/skills/mdpro-delegator/scripts/landing-stash.mjs save -- <paths>`; record its OID; after landing, `node .agents/skills/mdpro-delegator/scripts/landing-stash.mjs apply <oid>`; retain the entry and OID for later coordinated cleanup (landing checklist) |
-| A device run tested v0.3.5, not the verify build | launched by bundle id | launch by exact path; check the process path and `releaseId` |
-| picsee drove the GUI during mdpro's lock | picsee did not know the lock | agreed shared lock; re-run steps inside the overlap window |
-| B5 marked Switch Documents FAIL | my brief misdescribed it | read the plan before writing a card-less item; grade against the plan |
-| ⌘Z after Replace All undid the Find field | focus was in the field (VS Code convention, user-chosen) | test document undo with focus in the document |
-| D314 unreproducible in jsdom | the real focus ordering needs the device | diagnostic logging and a device run before the RED |
-| A one-sided High with a direct trace | — | it may go straight into the fix brief instead of a challenge, if both confirm it next round; say so in the merged verdict |
+The table is in [session-ops.md](session-ops.md#trials-and-errors).
 
 ## 11. Where state lives
 
-| What | Where |
-|---|---|
-| Live state (assignments, queues, notes, pilots) | `~/.mdpro-redesign/herdr-spike/delegator/heartbeat.json` (`$SK/scripts/heartbeat.py`) |
-| Number reservations | `~/.mdpro-redesign/herdr-spike/delegator/reservations.md` |
-| Briefs, handoffs, rulings | `~/.mdpro-redesign/herdr-spike/<agent>/` |
-| Audit reports and requests | `~/.mdpro-redesign/herdr-spike/gpt-auditor/`; delegator verdicts in `delegator/` |
-| Device briefs, reports, evidence, cards | `~/.mdpro-redesign/device/` (`v036-owed-work/cards/`, `20261023-device-backlog.md`) |
-| Delegator handoffs | `~/.mdpro-redesign/handoff/herdr-delegator-<date>.md` |
-| Timeline (the mdpro-timeline pane) | `~/.mdpro-redesign/timeline.json` |
-| Records in the repo | `docs/audit/audit-log.md`, `docs/test/`, the sequencing doc, `docs/feature-ledger.md`, `docs/adr/` |
+The table is in [session-ops.md](session-ops.md#where-state-lives).

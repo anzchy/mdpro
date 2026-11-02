@@ -1,0 +1,14 @@
+{
+  "adr": "docs/adr/0147-always-on-instructions-become-a-routing-map.md",
+  "purpose": "Resolves every rule 70/71 citation label that is not a heading (ADR-0147 decision 4). A row may list several targets, one per clause; tests/tooling/rule-citations.test.ts requires every target to exist.",
+  "rows": [
+    { "cite": "rule 70 item 1", "targets": ["docs/agents/implementor.md#rebase-and-tree-identity", ".claude/rules/70-multi-session-coordination.md#commits-and-branches"] },
+    { "cite": "rule 70 item 2", "targets": [".agents/skills/mdpro-delegator/references/landing-and-audit.md#landing"] },
+    { "cite": "rule 70 item 3", "targets": [".agents/skills/mdpro-delegator/references/landing-and-audit.md#landing", ".claude/rules/70-multi-session-coordination.md#commits-and-branches"] },
+    { "cite": "rule 70 item 4", "targets": [".agents/skills/mdpro-delegator/references/landing-and-audit.md#audit-merge", ".agents/skills/mdpro-delegator/references/landing-and-audit.md#after-the-cap", ".agents/skills/mdpro-delegator/references/landing-and-audit.md#tiers"] },
+    { "cite": "rule 70 item 5", "targets": [".claude/rules/70-multi-session-coordination.md#commits-and-branches"] },
+    { "cite": "rule 70 § 会话轮换", "targets": [".agents/skills/mdpro-delegator/references/session-ops.md#rotation", ".claude/rules/70-multi-session-coordination.md#session-rotation"] },
+    { "cite": "rule 71 § preamble", "targets": [".claude/rules/71-herdr-mixed-roster.md#71---herdr-mixed-model-roster", ".agents/skills/mdpro-delegator/references/roster-and-routing.md#overlay"] },
+    { "cite": "rule 71 § Restart", "targets": [".agents/skills/mdpro-delegator/references/codex-panes.md#restart", ".claude/rules/71-herdr-mixed-roster.md#codex-agents"] }
+  ]
+}

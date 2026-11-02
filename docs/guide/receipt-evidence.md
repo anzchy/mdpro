@@ -234,3 +234,29 @@ A pin ref is kept for 30 days after its work lands on `master`, then deleted
 commit that tracks `.claude/tdd-guardian/receipts/<id>.json` (before the migration, the first whose
 `receipts.json` held the id). A pin is never deleted before landing. `discard` leaves
 its ref in place for this sweep. The sweep itself is not automated yet; the delegator runs it.
+
+## Environment
+
+<!-- moved-from: rule 10 § Environment and the slow tier (ADR-0147) -->
+- **jsdom is the default; a DOM-free file opts into node** with `// @vitest-environment node` as its first line. `tests/setup.ts` then makes any first-party read of `window`, `document`, `navigator` and the rest fail the file — if it trips, remove the marker rather than stubbing around it ([ADR-0049](../adr/0049-dom-free-test-files-opt-into-the-node-environment.md)).
+- **An exhaustive, property or cost-enumeration test that takes ≥ 2 s under coverage goes in a `*.slow.test.ts` sibling.** The default run and the per-commit `unit` lane exclude it; `pnpm test:slow` and the tdd-guardian `slow` lane (push / manual) run it. Share the domain through `tests/support/`, never by copying it ([ADR-0050](../adr/0050-exhaustive-tests-run-in-a-separate-slow-lane.md)).
+
+## Evidence and engine
+
+<!-- moved-from: rule 10 § Format before you record (ADR-0147) -->
+**The entry keeps evidence for both lanes** (ADR-0145 as amended by ADR-0149):
+- the failing ids, each with its kind, location and message;
+- the RED-time test tree, pinned under `refs/receipts/`;
+- an evidence file per id, `.claude/tdd-guardian/receipt-evidence/<ID>.json`, beside the receipt's
+  own `.claude/tdd-guardian/receipts/<ID>.json`; `receipts.json` is a generated, gitignored view
+  ([decision log](../agents/decisions/20261102-receipts-per-item-files.md)).
+
+`verify` routes any byte change of a spec file since RED to evidence, even when the plugin holds,
+and `check-pending` judges every lane. `node scripts/tdd/red-receipt.mjs replay --id <ID>` prints
+the diffs and replays the RED against the PR base. See
+[`docs/guide/receipt-evidence.md`](receipt-evidence.md).
+
+**The receipt engine is vendored at `scripts/tdd/vendor/tdd-guardian-0.10.2/`** (#566). The entry runs it from
+there and never reads a plugin cache under `~/.claude` or `~/.codex`; a missing or unloadable engine file stops it
+with the path named. Upgrading the engine is a reviewed diff of that directory (its README pins each file's SHA-256),
+never a side effect of a plugin update.
