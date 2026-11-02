@@ -1,10 +1,8 @@
 // @vitest-environment node
 // D355 fix 1, shoulds: see d355-fix1-lib.ts for the shared scanner.
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  root, read, exists, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, headings, anchorExists, withoutCurrentText, currentText,
+  root, read, exists, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutCurrentText, currentText,
 } from "./d355-fix1-lib";
 describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   it("D1: codex-panes.md links AGENTS.md's renamed section", () => {
@@ -30,34 +28,19 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   });
 
   it("D2-structural: every § reference in a live home resolves to a heading in the file it names", () => {
-    const rules = fs.readdirSync(path.join(root, ".claude/rules"));
-    const named: Record<string, string> = { "CLAUDE.md": "CLAUDE.md", "AGENTS.md": "AGENTS.md", "pinned file": "docs/agents/audit-dimensions.md",
-      "dimension file": "docs/agents/audit-dimensions.md" };
-    const bad: string[] = [];
-    for (const file of liveHomes()) {
-      read(file).replace(/<!--[\s\S]*?-->/g, "").split("\n").forEach((line, i) => {
-        for (const m of line.matchAll(/§\s*"?([A-Za-z][\w'-]*)/g)) {
-          // GREEN-time test fixes: a lowercase word is a placeholder (§ finding, § policy), not a heading; a § inside
-          // link text is the link checker's; § Which set is always the pinned dimension file's
-          if (/^[a-z]/.test(m[1])) continue;
-          if (/\[[^\]]*$/.test(line.slice(0, m.index!)) && /^[^\]]*\]\(/.test(line.slice(m.index!))) continue;
-          const word = m[1].replace(/'s$/, "").toLowerCase();
-          const before = line.slice(Math.max(0, m.index! - 70), m.index!);
-          const clause = before.split(/[.;:(]\s/).pop() ?? "";
-          let target = file;
-          const rule = clause.match(/\brule (\d\d)\b(?!.*\brule \d\d\b)/i);
-          const md = clause.match(/([\w./-]+\.md)(?!.*\.md)/);
-          const key = Object.keys(named).find((k) => clause.includes(k));
-          if (word === "which") target = "docs/agents/audit-dimensions.md";
-          else if (rule) target = `.claude/rules/${rules.find((r) => r.startsWith(`${rule[1]}-`))}`;
-          else if (md) target = md[1].includes("/") ? md[1] : (liveHomes().find((h) => h.endsWith(`/${md[1]}`)) ?? md[1]);
-          else if (key) target = named[key];
-          if (!exists(target) || !target.endsWith(".md")) continue; // a path this check cannot resolve is the link checker's
-          if (!headings(target).some((h) => h.toLowerCase().includes(word))) bad.push(`${file}:${i + 1}: § ${m[1]} → ${target}`);
-        }
-      });
-    }
-    expect(bad).toEqual([]);
+    expect(liveHomes().flatMap((f) => unresolvedSectionRefs(f, read(f)))).toEqual([]);
+  });
+
+  // D355 fix 2 (both auditors' receipt rulings): a lowercase § word is checked unless it is a known placeholder
+  it("D12: a lowercase § that names no heading is reported; real lowercase headings and the placeholders are not", () => {
+    const home = `${REF}/session-ops.md`;
+    const at = (text: string) => unresolvedSectionRefs(home, text);
+    expect(at("See § missing for the rest.")).toEqual([`${home}:1: § missing → ${home}`]);
+    expect(at("Rule 70 says so, by rule 70 § mistyped.")).toHaveLength(1);
+    expect(at("Read `docs/agents/audit-dimensions.md` § nosuch first.")).toHaveLength(1);
+    expect(at("Read `docs/agents/audit-dimensions.md` § plan, and `docs/agents/audit-dimensions.md` § mini.")).toEqual([]);
+    expect(at("<report path § finding>, and the request still holds § policy names no <P>.")).toEqual([]);
+    expect([...(SECTION_PLACEHOLDERS ?? [])].sort()).toEqual(["finding", "policy"]);
   });
 
   // GREEN-time allowlist, each read by hand: the referent is in the same section of the same file

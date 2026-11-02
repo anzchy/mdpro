@@ -95,6 +95,37 @@ export const hits = (phrases: string[], files = liveHomes()) => files.flatMap((f
 export const slug = (h: string) => h.trim().toLowerCase().replace(/[^\p{L}\p{N}\- _]/gu, "").replace(/ /g, "-");
 export const headings = (rel: string) => read(rel).split("\n").filter((l) => /^#{1,6} /.test(l)).map((l) => l.replace(/^#+ /, ""));
 export const anchorExists = (rel: string, anchor: string) => headings(rel).some((h) => slug(h) === anchor);
+
+const NAMED_TARGETS: Record<string, string> = { "CLAUDE.md": "CLAUDE.md", "AGENTS.md": "AGENTS.md",
+  "pinned file": "docs/agents/audit-dimensions.md", "dimension file": "docs/agents/audit-dimensions.md" };
+/** `file:line: § word → target` for each § reference in `text` (as if it were `file`) that names no heading there. */
+export function unresolvedSectionRefs(file: string, text: string): string[] {
+  const rules = fs.readdirSync(path.join(root, ".claude/rules"));
+  const bad: string[] = [];
+  text.replace(/<!--[\s\S]*?-->/g, "").split("\n").forEach((line, i) => {
+    for (const m of line.matchAll(/§\s*"?([A-Za-z][\w'-]*)/g)) {
+      // GREEN-time test fixes: a lowercase word is a placeholder (§ finding, § policy), not a heading; a § inside
+      // link text is the link checker's; § Which set is always the pinned dimension file's
+      if (/^[a-z]/.test(m[1])) continue;
+      if (/\[[^\]]*$/.test(line.slice(0, m.index!)) && /^[^\]]*\]\(/.test(line.slice(m.index!))) continue;
+      const word = m[1].replace(/'s$/, "").toLowerCase();
+      const before = line.slice(Math.max(0, m.index! - 70), m.index!);
+      const clause = before.split(/[.;:(]\s/).pop() ?? "";
+      let target = file;
+      const rule = clause.match(/\brule (\d\d)\b(?!.*\brule \d\d\b)/i);
+      const md = clause.match(/([\w./-]+\.md)(?!.*\.md)/);
+      const key = Object.keys(NAMED_TARGETS).find((k) => clause.includes(k));
+      if (word === "which") target = "docs/agents/audit-dimensions.md";
+      else if (rule) target = `.claude/rules/${rules.find((r) => r.startsWith(`${rule[1]}-`))}`;
+      else if (md) target = md[1].includes("/") ? md[1] : (liveHomes().find((h) => h.endsWith(`/${md[1]}`)) ?? md[1]);
+      else if (key) target = NAMED_TARGETS[key];
+      if (!exists(target) || !target.endsWith(".md")) continue; // a path this check cannot resolve is the link checker's
+      if (!headings(target).some((h) => h.toLowerCase().includes(word))) bad.push(`${file}:${i + 1}: § ${m[1]} → ${target}`);
+    }
+    return line;
+  });
+  return bad;
+}
 /** The ADR's text with its `Current text:` Status line removed. */
 // the Status line and the blank line the fold-in added after it (a GREEN-time test fix: without it A6 could never pass)
 export const withoutCurrentText = (text: string) => text.replace(/^\*\*Current text:.*\n\n/m, "");
