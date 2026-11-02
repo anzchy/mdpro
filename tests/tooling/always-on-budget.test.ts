@@ -6,8 +6,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  bytesOf, claudeAlwaysOn, codexShared, directiveScanSet, frontmatterPaths, readBlocks, readDirectiveViolations, readRel,
-  route, ROUTES, SCOPED_PATTERN_ALLOWLIST, trackedFiles, type Runtime,
+  bytesOf, capOf, claudeAlwaysOn, codexShared, directiveScanSet, frontmatterPaths, overCaps, POLICY_SET, readBlocks,
+  readDirectiveViolations, readRel, route, ROUTES, SCOPED_PATTERN_ALLOWLIST, trackedFiles, type Runtime,
 } from "./rules-budget-lib";
 
 const root = path.resolve(__dirname, "../..");
@@ -30,16 +30,21 @@ const DEVICE_ROUTE_CAP = 42_000;
 const DELEGATOR_ROUTE_CAP = 50_000;
 // D355 ruling 2 (user: 「Fable's split (Recommended)」): ADR-0147's values stand.
 const AUDITOR_ROUTE_CAP = 50_000;
+// D355 ruling 3 (user: 「Separate cap 56,000 (Recommended)」; docs/agents/decisions/20261102-audit-policy-set-split.md):
+// a policy-routed auditor route, one whose request names `<P>` (plan reviews included), also loads audit-policy-set.md.
+const POLICY_AUDITOR_ROUTE_CAP = 56_000;
 const DIMENSIONS_ALLOWANCE = 13_000; // ruling 2 amendment (user, #586: 「Pure move, allowance 13,000」)
 const DIMENSIONS = "docs/agents/audit-dimensions.md";
 const ROLE_CAPS = { implementor: IMPLEMENTOR_ROUTE_CAP, auditor: AUDITOR_ROUTE_CAP, device: DEVICE_ROUTE_CAP, delegator: DELEGATOR_ROUTE_CAP };
+const CAPS = { role: ROLE_CAPS, policyAuditor: POLICY_AUDITOR_ROUTE_CAP };
+const AUDITOR_KINDS = ["audit", "confirm", "challenge", "plan"];
+const RUNTIMES: Runtime[] = ["claude", "codex"];
 
 // A known exception asserts that its check is STILL failing, so it cannot outlive its cause: when the cause is fixed,
-// this test fails until the entry is removed (D355 ruling 2). Every check not listed here must pass.
+// this test fails until the entry is removed (D355 ruling 2). Every check not listed here must pass. The #586 entry on
+// the dimension allowance was retired when #587 made the file fit (D355 ruling 3).
 interface KnownException { check: string; issue: string; why: string }
-const KNOWN_EXCEPTIONS: KnownException[] = [
-  { check: "dimensions-allowance", issue: "anzchy/mdpro#586", why: "the cc-suite policy set moves to its own pinned file" },
-];
+const KNOWN_EXCEPTIONS: KnownException[] = [];
 
 // ADR-0147 d5 line targets, set at the targets the trim met (plan § 1).
 const LINE_CAPS: Record<string, number> = {
@@ -78,6 +83,19 @@ describe("always-on budget (live tree)", () => {
       ".claude/rules/71-herdr-mixed-roster.md": 4_000, "AGENTS.md": 7_000 });
     expect(ROLE_CAPS).toEqual({ implementor: 48_000, auditor: 50_000, device: 42_000, delegator: 50_000 });
     expect(DIMENSIONS_ALLOWANCE).toBe(13_000);
+    expect(POLICY_AUDITOR_ROUTE_CAP).toBe(56_000);
+  });
+
+  it("P28: the policy cap's comment quotes the user and names #587's entry", () => {
+    const src = readRel(root, "tests/tooling/always-on-budget.test.ts").split("\n");
+    const at = src.findIndex((l) => l.startsWith("const POLICY_AUDITOR_ROUTE_CAP"));
+    const above = src.slice(Math.max(0, at - 3), at + 1).join("\n");
+    expect(above).toContain("「Separate cap 56,000 (Recommended)」");
+    expect(above).toContain("20261102-audit-policy-set-split.md");
+  });
+
+  it("P9: no known exception is left", () => {
+    expect(KNOWN_EXCEPTIONS).toEqual([]);
   });
 
   it("the Claude always-on set is CLAUDE.md plus the five always-on rules, under its cap (B1, B2, B34)", () => {
@@ -111,9 +129,8 @@ describe("always-on budget (live tree)", () => {
       for (const runtime of ["claude", "codex"] as Runtime[]) {
         const r = route(root, name, runtime);
         expect(r.errors, `${name} (${runtime})`).toEqual([]);
-        const cap = ROLE_CAPS[ROUTES[name].role];
-        rows.push([`${name} (${runtime})`, r.bytes, cap]);
-        if (r.bytes > cap) over.push(`${name} (${runtime})`);
+        rows.push([`${name} (${runtime})`, r.bytes, capOf(name, CAPS)]);
+        over.push(...overCaps([[name, runtime, r.bytes]], CAPS));
       }
     }
     const excepted = over.filter((o) => isException(`route:${o}`));
@@ -123,15 +140,24 @@ describe("always-on budget (live tree)", () => {
     }
   });
 
-  it("the auditor routes carry the dimension file, within its allowance or as the named exception (B21, B32, B36)", () => {
-    for (const name of ["auditor-audit", "auditor-confirm", "auditor-challenge", "auditor-plan"]) {
-      for (const runtime of ["claude", "codex"] as Runtime[]) expect(route(root, name, runtime).members).toContain(DIMENSIONS);
+  it("the auditor routes carry the dimension file, within its allowance (B21, B32, B36, P8)", () => {
+    for (const kind of AUDITOR_KINDS) {
+      for (const name of [`auditor-${kind}`, `auditor-${kind}-policy`]) {
+        for (const runtime of RUNTIMES) expect(route(root, name, runtime).members).toContain(DIMENSIONS);
+      }
     }
-    const size = bytesOf(root, DIMENSIONS);
-    if (isException("dimensions-allowance")) {
-      expect(size, `${DIMENSIONS} now fits ${DIMENSIONS_ALLOWANCE}: remove the known exception (anzchy/mdpro#586)`).toBeGreaterThan(DIMENSIONS_ALLOWANCE);
-    } else {
-      expect(size).toBeLessThanOrEqual(DIMENSIONS_ALLOWANCE);
+    expect(bytesOf(root, DIMENSIONS)).toBeLessThanOrEqual(DIMENSIONS_ALLOWANCE);
+  });
+
+  it("P1, P2, P5: only a policy route loads the policy set, and it costs exactly that file's bytes on top", () => {
+    for (const kind of AUDITOR_KINDS) {
+      for (const runtime of RUNTIMES) {
+        const plain = route(root, `auditor-${kind}`, runtime);
+        const policy = route(root, `auditor-${kind}-policy`, runtime);
+        expect(plain.members, `auditor-${kind} (${runtime})`).not.toContain(POLICY_SET);
+        expect([...policy.members].sort(), `auditor-${kind}-policy (${runtime})`).toEqual([...plain.members, POLICY_SET].sort());
+        expect(policy.bytes).toBe(plain.bytes + bytesOf(root, POLICY_SET));
+      }
     }
   });
 
@@ -169,6 +195,14 @@ describe("always-on budget (live tree)", () => {
     for (const rule of ["10-tdd", "22-comment-maintenance", "50-codebase-conventions"]) expect(agents).toContain(`${rule}.md`);
     for (const p of [...RULE_10_PATHS, ...RULE_22_PATHS, ...RULE_50_PATHS]) expect(agents).toContain(`\`${p}\``);
     expect(readRel(root, "CLAUDE.md")).toContain("scripts/heavy-lock.sh");
+  });
+
+  it("P10: the scan skips the two ADR-0146 pinned blobs by name, and only them", () => {
+    const set = directiveScanSet(root);
+    expect(set).not.toContain(DIMENSIONS);
+    expect(set).not.toContain(POLICY_SET);
+    const agents = trackedFiles(root).filter((f) => /^docs\/agents\/[^/]+\.md$/.test(f) && f !== DIMENSIONS && f !== POLICY_SET);
+    for (const f of agents) expect(set).toContain(f);
   });
 
   it("no mandatory read hides outside a read block, and every repo link there carries a live anchor (B12–B14, B23, B30, B39)", () => {

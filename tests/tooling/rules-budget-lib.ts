@@ -7,6 +7,8 @@
  * Key decisions:
  * - Read blocks are the only mandatory reads. A route is the runtime's shared set, the role file, the whole template,
  *   and every file reached through a read block, transitively, deduplicated by resolved path.
+ * - A route's cap comes from capOf alone: a policy-routed auditor route (its start names the policy set) has its own
+ *   cap (D355 ruling 3), every other route its role's.
  * - A read-block entry must be Markdown, because land-guard runs the rule tests only for ranges touching Markdown or
  *   the section map.
  *
@@ -199,6 +201,9 @@ export type Runtime = "claude" | "codex";
 export interface RouteDef { role: "delegator" | "implementor" | "auditor" | "device"; start: string[] }
 
 const T = ".agents/skills/mdpro-delegator/references/templates";
+/** The cc-suite policy set (#587). A route whose start names it is policy-routed. */
+export const POLICY_SET = "docs/agents/audit-policy-set.md";
+
 export const ROUTES: Record<string, RouteDef> = {
   "delegator": { role: "delegator", start: [".agents/skills/mdpro-delegator/SKILL.md"] },
   "implementor-brief": { role: "implementor", start: ["docs/agents/implementor.md", `${T}/brief-template.md`] },
@@ -209,6 +214,25 @@ export const ROUTES: Record<string, RouteDef> = {
   "auditor-plan": { role: "auditor", start: ["docs/agents/auditor.md", `${T}/plan-review-request-template.md`] },
   "device": { role: "device", start: ["docs/agents/device-tester.md", `${T}/device-brief-template.md`] },
 };
+// a request that names `<P>` (#587) also loads the policy set, plan reviews included: the ordinary start plus that file
+for (const kind of ["audit", "confirm", "challenge", "plan"]) {
+  const base = ROUTES[`auditor-${kind}`];
+  ROUTES[`auditor-${kind}-policy`] = { role: "auditor", start: [...base.start, POLICY_SET] };
+}
+
+export interface RouteCaps { role: Record<RouteDef["role"], number>; policyAuditor: number }
+
+/** The cap `name` is held to: the policy auditor cap exactly when its start names the policy set, else its role's. */
+export function capOf(name: string, caps: RouteCaps, routes: Record<string, RouteDef> = ROUTES): number {
+  const def = routes[name];
+  if (!def) throw new Error(`unknown route ${name}`);
+  return def.role === "auditor" && def.start.includes(POLICY_SET) ? caps.policyAuditor : caps.role[def.role];
+}
+
+/** The rows (`[route, runtime, bytes]`) over their cap, as "route (runtime)": the live gate's only over-cap test. */
+export function overCaps(rows: [string, Runtime, number][], caps: RouteCaps, routes: Record<string, RouteDef> = ROUTES): string[] {
+  return rows.filter(([n, , b]) => b > capOf(n, caps, routes)).map(([n, rt]) => `${n} (${rt})`);
+}
 
 export function route(root: string, name: string, runtime: Runtime): SetResult {
   const def = ROUTES[name];
@@ -236,13 +260,14 @@ export const READ_DIRECTIVES: RegExp[] = [
 
 export const DOC_REFERENCE = /\.md\b|\]\(|\bguide\b|\brules?\b|\bCLAUDE\b|\bAGENTS\b|\bSKILL\b|\bskill\b|读|文档/;
 
-/** Files the directive and anchorless-link checks cover (ADR-0147 d5; G21: audit-dimensions.md is exempt by name,
- *  because it is ADR-0146's reviewed blob, changed only by its own High-tier PR). */
+/** Files the directive and anchorless-link checks cover (ADR-0147 d5). ADR-0146's two pinned blobs are exempt by name,
+ *  because each changes only through its own High-tier PR: audit-dimensions.md (G21) and audit-policy-set.md (#587,
+ *  D355 ruling 3 P10). */
 export function directiveScanSet(root: string): string[] {
   return trackedFiles(root).filter((f) =>
     f === "AGENTS.md" || f === ".agents/skills/mdpro-delegator/SKILL.md" ||
     (f.startsWith(`${T}/`) && f.endsWith(".md")) ||
-    (/^docs\/agents\/[^/]+\.md$/.test(f) && f !== "docs/agents/audit-dimensions.md"));
+    (/^docs\/agents\/[^/]+\.md$/.test(f) && f !== "docs/agents/audit-dimensions.md" && f !== POLICY_SET));
 }
 
 export interface Violation { where: string; what: string }
