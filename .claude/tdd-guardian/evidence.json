@@ -3666,6 +3666,129 @@
         "tests/tooling/rc5-keep-check.test.ts": "f1d19cb57a30abf77c78376f1db05e739ea0fe4b"
       }
     },
+    "RC5-S3": {
+      "id": "RC5-S3",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T09:38:06.277Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate --import\",\"M7: an unresolvable revision or one with no tracked receipts.json is refused naming it\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 177
+          },
+          "message": "AssertionError: no-such-rev: expected +0 not to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate --import\",\"M8: a branch id differing only in case from a master file is refused naming both\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 187
+          },
+          "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate --import\",\"R4, R4b: the modify/delete conflict is resolved by --import, keeping master's files and adding the branch's\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 140
+          },
+          "message": "AssertionError: expected 'Rebasing (1/1)\\rSuccessfully rebased …' to match /CONFLICT \\(mo…/delete\\).*receipts\\.json"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate --import\",\"R5: a branch that changed a master record is refused naming the id, and nothing is written\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 158
+          },
+          "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate --import\",\"ruling 1 gpt M2: inherited evidence that differs from master's file is refused naming the id; equal is R4\"]",
+          "kind": "panic",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 33
+          },
+          "message": "Error: ENOENT: no such file or directory, open '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-rc5-migrate-FFOuZC/.claude/tdd-guardian/receipt-evidence/M-1.json'"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate\",\"M1, AC-8: the real store at the pinned base splits and round-trips byte for byte\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 63
+          },
+          "message": "AssertionError: expected '' to contain 'receipts.json sha256 28c933a8c06e7472…'"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate\",\"M2, K5: a second run writes nothing, and the index holds config.json plus the item paths\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 78
+          },
+          "message": "AssertionError: expected [ …(3) ] to deeply equal [ …(4) ]"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate\",\"M3: a duplicate, non-conforming or case-colliding id is refused naming it, and nothing is written\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 99
+          },
+          "message": "AssertionError: A-1: expected +0 not to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate\",\"M4: a store that is not the engine's canonical bytes is refused\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 109
+          },
+          "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate\",\"M5: an orphan evidence key or a key holding another id is refused, and neither directory is made\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 118
+          },
+          "message": "AssertionError: Z-9: expected +0 not to be +0 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/rc5-migrate.test.ts\",\"RC5 migrate\",\"ruling 1 opus M1(b): migrate splits the blob the index names, not the working-tree file\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/rc5-migrate.test.ts",
+            "line": 90
+          },
+          "message": "AssertionError: expected null to deeply equal [ 'A-1.json' ]"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/RC5-S3/20261102T093806277Z/tests",
+        "tree": "b26da085226d6018fdd2bea8c50b6794882eb8aa"
+      },
+      "spec_blobs": {
+        "tests/tooling/rc5-migrate.test.ts": "0821d0177544b489a8bbe264c435959062f0d6e4"
+      },
+      "settled_blobs": {
+        "tests/tooling/rc5-migrate.test.ts": "0821d0177544b489a8bbe264c435959062f0d6e4"
+      }
+    },
     "T566-1": {
       "id": "T566-1",
       "lane": "unit-red",

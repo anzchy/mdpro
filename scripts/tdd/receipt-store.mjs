@@ -20,7 +20,7 @@
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { usageError } from "./unit-red-lane.mjs";
 import { loadEngine } from "./receipt-engine.mjs";
@@ -255,6 +255,92 @@ export function keepCheck(cwd, parentRev, headRev) {
   return { lines, kept, total: expected.receipt.size, added };
 }
 
+const sha256 = (text) => createHash("sha256").update(text, "utf8").digest("hex");
+const named = (id, fn) => { try { return fn(); } catch (error) { throw usageError(`${id}: ${error.message}`); } };
+/** Check one legacy store's records and entries as item files would hold them; returns [id, value] lists. */
+function splitLegacy(records, entries, receiptOk = () => {}) {
+  const ids = records.map((record) => (isObject(record) ? record.id : undefined));
+  ids.forEach((id) => named(String(id), () => checkId(id)));
+  const dup = ids.find((id, index) => ids.indexOf(id) !== index);
+  if (dup) throw usageError(`duplicate receipt id ${dup}.`);
+  const pair = caseCollisions(ids)[0];
+  if (pair) throw usageError(`case-insensitive duplicate: ${pair.join(", ")}.`);
+  for (const record of records) { if (receiptProblem(record)) throw usageError(`receipt ${record.id} is malformed.`); receiptOk(record); }
+  for (const [key, value] of Object.entries(entries)) {
+    named(key, () => checkId(key));
+    if (evidenceProblem(value)) throw usageError(`evidence ${key} is malformed.`);
+    if (value.id !== key) throw usageError(`evidence key ${key} holds id ${value.id}.`);
+    if (!ids.includes(key)) throw usageError(`orphan evidence: ${key} has no receipt.`);
+  }
+  return { receipts: records.map((record) => [record.id, record]), evidence: Object.entries(entries) };
+}
+function stageItems(cwd, written) {
+  const drop = git(cwd, ["rm", "--cached", "-q", "--ignore-unmatch", "--", VIEW, LEGACY_EVIDENCE]);
+  const add = written.length ? git(cwd, ["add", "--", ...written]) : { status: 0 };
+  if (drop.status !== 0 || add.status !== 0) throw usageError(`Cannot update the index: ${drop.stderr}${add.stderr ?? ""}`.trim());
+}
+function writeAll(cwd, split) {
+  const written = [];
+  for (const kind of ["receipt", "evidence"]) {
+    for (const [id, value] of split[kind === "receipt" ? "receipts" : "evidence"]) { writeItem(cwd, kind, id, value); written.push(`${DIRS[kind]}/${id}.json`); }
+  }
+  return written;
+}
+
+/**
+ * Split the receipts.json and evidence.json the index names (never the working-tree files)
+ * into item files, after proving their bytes rebuild both blobs; then untrack the two files and
+ * stage the items. With nothing legacy in the index it writes nothing.
+ */
+export function migrate(cwd) {
+  const staged = git(cwd, ["ls-files", "--", VIEW, LEGACY_EVIDENCE]).stdout.split("\n").filter(Boolean);
+  if (!staged.length) return ["already migrated: the index tracks no receipts.json or evidence.json."];
+  const blob = (path, empty) => { if (!staged.includes(path)) return empty; const shown = git(cwd, ["show", `:${path}`]); if (shown.status !== 0) throw usageError(`Cannot read ${path} from the index.`); return shown.stdout; };
+  const rawReceipts = blob(VIEW, canonical({ schemaVersion: 2, receipts: [] })), rawEvidence = blob(LEGACY_EVIDENCE, canonical({ schemaVersion: 1, entries: {} }));
+  let store, sidecar;
+  try { store = JSON.parse(rawReceipts); sidecar = JSON.parse(rawEvidence); } catch { throw usageError("receipts.json or evidence.json is not a canonical engine store (not JSON)."); }
+  const shaped = isObject(store) && store.schemaVersion === 2 && Array.isArray(store.receipts) && Object.keys(store).length === 2
+    && isObject(sidecar) && sidecar.schemaVersion === 1 && isObject(sidecar.entries) && Object.keys(sidecar).length === 2;
+  if (!shaped || canonical(store) !== rawReceipts || canonical(sidecar) !== rawEvidence) throw usageError("receipts.json or evidence.json is not a canonical engine store.");
+  const split = splitLegacy(store.receipts, sidecar.entries);
+  const checked = engine().validateReceipts({ receipts: store.receipts });
+  if (checked.problems.length || JSON.stringify(checked.receipts) !== JSON.stringify(store.receipts)) throw usageError("receipts.json is not a canonical engine store: the engine's validator changes it.");
+  const rebuiltReceipts = canonical({ schemaVersion: 2, receipts: split.receipts.map(([, value]) => JSON.parse(canonical(value))) });
+  const rebuiltEvidence = canonical({ schemaVersion: 1, entries: Object.fromEntries(split.evidence.map(([id, value]) => [id, JSON.parse(canonical(value))])) });
+  if (rebuiltReceipts !== rawReceipts || rebuiltEvidence !== rawEvidence) throw usageError("The item files would not rebuild receipts.json and evidence.json byte for byte.");
+  const present = [...names(cwd, "receipt"), ...names(cwd, "evidence")];
+  if (present.length) throw usageError(`Item files already exist (${present[0]}); migrate splits only into empty directories.`);
+  stageItems(cwd, writeAll(cwd, split));
+  return [`receipts.json sha256 ${sha256(rawReceipts)} rebuilt ${sha256(rebuiltReceipts)}`, `evidence.json sha256 ${sha256(rawEvidence)} rebuilt ${sha256(rebuiltEvidence)}`,
+    `migrated ${split.receipts.length} receipts and ${split.evidence.length} evidence entries.`];
+}
+
+/**
+ * Bring a branch cut before the migration across: the legacy store at `rev` is split, every id
+ * this worktree already holds must be byte-equal (receipt and evidence), a case variant of a
+ * worktree or master id is refused, and only the new ids are written and staged.
+ */
+export function importLegacy(cwd, rev) {
+  const at = commitOf(cwd, rev), side = snapshot(cwd, at);
+  if (!side.byPath.has(VIEW)) throw usageError(`${rev} tracks no receipts.json; there is nothing to import.`);
+  const old = legacyStore(side, rev), parsed = (text) => JSON.parse(text);
+  const split = splitLegacy([...old.receipts.values()].map(parsed), Object.fromEntries([...old.evidence].map(([id, text]) => [id, parsed(text)])));
+  const here = loadStore(cwd), known = [...here.receipts.keys(), ...masterIds(cwd)];
+  const fresh = { receipts: [], evidence: [] };
+  for (const [id, value] of split.receipts) {
+    if (here.receipts.has(id)) { if (canonical(here.receipts.get(id)) !== canonical(value)) throw usageError(`receipt ${id} at ${rev} differs from this worktree's; resolve it by hand.`); continue; }
+    const variant = known.find((other) => other !== id && other.toLowerCase() === id.toLowerCase());
+    if (variant) throw usageError(`receipt ${id} at ${rev} differs only in case from ${variant}.`);
+    fresh.receipts.push([id, value]);
+  }
+  for (const [id, value] of split.evidence) {
+    if (here.receipts.has(id)) { if (!here.evidence.has(id) || canonical(here.evidence.get(id)) !== canonical(value)) throw usageError(`evidence ${id} at ${rev} differs from this worktree's; resolve it by hand.`); continue; }
+    fresh.evidence.push([id, value]);
+  }
+  stageItems(cwd, writeAll(cwd, fresh));
+  return [`imported ${fresh.receipts.length} receipts and ${fresh.evidence.length} evidence entries from ${rev}.`];
+}
+
 function cli(argv) {
   const [action, ...tail] = argv, args = {};
   for (let index = 0; index < tail.length; index += 2) {
@@ -267,7 +353,12 @@ function cli(argv) {
     process.stdout.write(`${result.lines.map((line) => `${line}\n`).join("")}kept ${result.kept} of ${result.total}; added ${result.added}\n`);
     return result.lines.length ? 1 : 0;
   }
-  throw usageError("Use keep-check --parent <rev> --head <rev>.");
+  if (action === "migrate") {
+    const lines = args.import ? importLegacy(process.cwd(), args.import) : migrate(process.cwd());
+    process.stdout.write(lines.map((line) => `${line}\n`).join(""));
+    return 0;
+  }
+  throw usageError("Use keep-check --parent <rev> --head <rev>, or migrate [--import <rev>].");
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
   try { process.exitCode = cli(process.argv.slice(2)); }
