@@ -116,5 +116,8 @@
   },
   "spec_blobs": {
     "tests/tooling/rc5-receipt-entry.test.ts": "00fdfb0bdea8b3bf204923e03a78e9bbe2510ea4"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-receipt-entry.test.ts": "00fdfb0bdea8b3bf204923e03a78e9bbe2510ea4"
   }
 }

@@ -248,7 +248,13 @@
       "reason": ""
     }
   },
-  "verified_at": null,
-  "verdict": null,
-  "findings": []
+  "verified_at": "2026-11-02T11:14:55.961Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "3 non-test file(s) were already modified when the red was recorded (.claude/settings.json, docs/agents/decisions/20261102-receipts-per-item-files.md, docs/agents/decisions/README.md). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
 }
