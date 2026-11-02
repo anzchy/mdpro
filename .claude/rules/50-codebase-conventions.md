@@ -37,6 +37,9 @@ Every Tauri command follows the same 3-layer flow:
 | Registration | `src-tauri/src/commands/mod.rs` → `handlers()` | Registers with Tauri |
 | TS wrapper | `src/services/<service>.ts` | Typed `invoke()` call, error handling |
 
+A new command does **not** need an entry in `src-tauri/capabilities/default.json`, which carries only `core:*` and plugin
+permissions.
+
 **Return `Result` from every command and never panic on user input** — a panic takes down the command instead of surfacing an error; the error type is `String` or a `Serialize` enum such as `FileError`.
 
 ## 3. Plugin Structure (Milkdown + CodeMirror)

@@ -80,7 +80,7 @@ criteria. The session answers, then sends the delegator the question verbatim an
 **A new item is a GitHub issue in `anzchy/mdpro`**, and its state and labels are its status; the landing record updates
 and closes it (decision: `docs/agents/decisions/20261102-new-items-are-github-issues.md`). The sequencing doc,
 [`docs/plans/20260912-frontend-backend-sequencing-order.md`](./docs/plans/20260912-frontend-backend-sequencing-order.md),
-carries order only; its existing rows stay as the record. Verified means the item's own gates passed. A rule-12 item
+carries order only; its existing D rows are still updated by the commit that finishes them. Verified means the item's own gates passed. A rule-12 item
 follows its approved spec snapshot. Landing: rule 70 § Commits and branches.
 
 ## Agent skills

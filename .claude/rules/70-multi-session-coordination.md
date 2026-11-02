@@ -58,7 +58,7 @@ Governing text: `.agents/skills/mdpro-delegator/references/session-ops.md#queues
   that SHA with a green `ci-gate` (ADR-0095); every `device` AC has PASS evidence for that SHA or a recorded waiver
   (ADR-0144). Governing text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#landing`.
 - **Every item is audited before it lands** (ADR-0085), by both auditors on the pinned dimensions, at most two rounds
-  (ADR-0143). Governing text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#audit-merge`,
+  (ADR-0143); a docs-only or device-record commit is not. Governing text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#audit-merge`,
   `#after-the-cap`, `#tiers`.
 - `master` and `release/x.y` take no merge commit; nobody else pushes or lands. Stage only paths you can name, never
   the user's dirty files. Branch deletion asks (rule 25); a landed item's worktree goes at landing (ADR-0157); remote

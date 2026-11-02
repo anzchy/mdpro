@@ -64,7 +64,8 @@ tasks and manifests.
 
 <!-- moved-from: rule 70 § The Mac mini (ADR-0147) -->
 - **Since ADR-0134 the mini's main checkout belongs to herdr-delegator**; development runs on the mini, and the
-  device tester is `mac-test` (tmux `dtrack`), briefed directly by `SendMessage` (rule 71). The bullets below still
+  device tester is `gpt-auditor` in device mode, briefed by a device brief file (§ Device routing); `mac-test` (tmux
+  `dtrack`) is retired for new GUI assignments, and the `dtrack` steps below are its record. The bullets below still
   bind where they apply; those about SSH, `rsync` and the MacBook hook receiver now matter only for remote hosts.
 - **When the tester is stuck on a Computer Use permission prompt for mdpro,
   pick "Allow for this session" yourself; don't wait for the user.** The

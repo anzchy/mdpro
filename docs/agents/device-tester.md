@@ -22,20 +22,12 @@ process path and the `app.ready` `releaseId` before any step. NOT EXERCISED is n
 <!-- moved-from: rule 70 § The Mac mini (ADR-0147) -->
 - **Don't switch branches or rebuild in the mini's main checkout** for a device check; it belongs
   to the delegator. Builds for device checks use a separate
-  `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` worktree on the mini. Tell mdpro-device-harness whenever a mini
+  `/Users/jack/Documents/mac-app/mdpro-wt/verify-<sha7>` worktree on the mini. Tell the delegator whenever a mini
   worktree is created or removed. Never touch `src-tauri/target/verify`, and
   never `cargo clean` there.
-- **Only real-device-tester runs GUI tests**, one run at a time. Never
-  create, kill or restart its tmux session over SSH. Run
-  `tmux capture-pane -pt <its tmux session>` (currently `dtrack`) once
-  before sending it anything. Over SSH, put
-  `/opt/homebrew/bin` on `PATH` first.
-- **Dim text in the tester's input box is Claude Code's prompt suggestion,
-  not anything the user typed.** Read the box with `capture-pane -ep`: a
-  suggestion is wrapped in `ESC[2m`. Never submit it or report it as the
-  user's answer. On 2026-10-17 a suggestion was taken for the user's S2
-  answer and sent; the user had pressed no Esc (「I did not hit Esc」), and
-  the run was recorded as not exercised.
+- **Only the device tester runs GUI tests**, one run at a time: today `gpt-auditor` in device mode, from a device
+  brief ([device-batches.md § Device routing](../../.agents/skills/mdpro-delegator/references/device-batches.md#device-routing)).
+  Over SSH, put `/opt/homebrew/bin` on `PATH` first.
 - **A long `send-keys` string needs `C-m`, not `Enter`, to submit**, and
   nothing goes through while a read-only viewer (`tmux attach -r`) is the
   session's most recent client: `send-keys` answers "client is read-only"

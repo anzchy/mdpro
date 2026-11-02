@@ -29,7 +29,7 @@ count line in [§ Report shape](audit-dimensions.md#report-shape).
 ## Downgrades
 
 A Critical or High is lowered only with a reproduction or a counter-proof
-([§ Evidence for a blocker](audit-dimensions.md#evidence-for-a-blocker), "Lowering"; ADR-0085, user decision 2026-10-16:
+([§ Evidence for a blocker](audit-dimensions.md#evidence-for-a-blocker), "Lowering"; user decision 2026-10-16:
 「后续每次降级都附上复现或者反证」). You report to the delegator, not to the implementor.
 
 ## Tiers

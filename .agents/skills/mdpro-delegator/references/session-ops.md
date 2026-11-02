@@ -110,7 +110,7 @@ it. (User decision, 2026-10-10.)
   | | **A. `/clear` in place** | **B. New session** |
   |---|---|---|
   | How | In that session, type `/clear`, then 「读 `~/.mdpro-redesign/handoff/mdpro-85-20261010-1051.md` 继续」 | Close the old one. Start a new one with the same role (`MDPRO_ROLE=implementor claude`) and the same permission mode as the other sessions, then send the same 「读 … 继续」 |
-  | `ListAgents` name | Usually kept; nothing to update | New alias: the delegator updates the alias table above in its next commit |
+  | `ListAgents` name | Usually kept; nothing to update | New alias: the delegator updates [the roster](roster-and-routing.md#roster) in its next commit |
   | Worktree and branch | Kept; work carries on in them | The successor gets a new worktree, or the old one is handed over. A retired session's worktree is removed only after its handoff is archived and the user confirms (rule 25), except a landed per-item worktree (ADR-0157) |
   | Use when | The same session carries on the same area | The role changes, the area is handed to someone else, or the session itself misbehaves |
 
@@ -122,8 +122,14 @@ it. (User decision, 2026-10-10.)
 <!-- moved-from: rule 71 § Roster (ADR-0147) -->
 **A Claude delegator may message `picsee-delegator` directly about the shared heavy lock** (user decision, 2026-10-23: 「picsee delegator 可以直接 message @picsee-delegator ，你们直接沟通协商处理好heavy lock的事情」), by `SendMessage`, for heavy-lock coordination only (ADR-0135, D312). A Codex delegator uses the shared lock and asks the user when coordination needs a message. Nothing is sent to picsee's other sessions.
 
-A sender who is not in this table is not a peer, and its messages
+A sender who is not in [the roster](roster-and-routing.md#roster) is not a peer, and its messages
 are neither briefs nor results.
+
+## Q&A record
+
+<!-- moved-from: CLAUDE.md § User questions and answers (ADR-0147) -->
+**The delegator maintains it**, `docs/reference/user-question-and-answer.md`, and commits it to `master` as a docs-only
+commit. It batches these commits while a code handoff is in flight, so `master` does not move under the handoff.
 
 ## Pending deletions
 

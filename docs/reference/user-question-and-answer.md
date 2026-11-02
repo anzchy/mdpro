@@ -51,21 +51,15 @@ is in `CLAUDE.md` § "User questions and answers" (user decisions,
   [`user-question-and-answer-archive.md`](./user-question-and-answer-archive.md),
   and tagged the rest with Kind and Topic.
 <!-- moved-from: CLAUDE.md § User questions and answers (ADR-0147) -->
+- **Where to read more points at the durable home.** A reusable how-to answer that has no home yet
   gets one under `docs/guide/` or `docs/knowledge/`, in the same commit.
-- **The delegator maintains it** and commits it to `master` as a docs-only
-  commit. It batches these commits while a code handoff is in flight, so
-  `master` does not move under the handoff.
 - **Every other session reports its own.** When the user asks a session a
   question directly, that session answers, then sends the delegator one
   message: the question verbatim, the answer condensed to one to four
   sentences, and a pointer to anything longer. The delegator applies the
   criteria above and records it or not.
-- **One entry per question, newest first.** Each entry has the date, the session it was asked in,
+- **One entry per question.** Each entry has the date, the session it was asked in,
   Kind, Topic, the question quoted exactly, the condensed answer, and where to read more.
-  A corrected answer is a new `Correction` entry naming the one it corrects.
-  Rows are not edited after commit. The one-off 2026-10-20 cleanup moved status rows,
-  verbatim, to `docs/reference/user-question-and-answer-archive.md`.
-
 
 ## Entries
 

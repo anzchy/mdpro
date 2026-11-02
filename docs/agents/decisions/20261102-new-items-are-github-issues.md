@@ -20,6 +20,6 @@
 A new item, finding or D-class defect is a GitHub issue in `anzchy/mdpro` (`docs/agents/issue-tracker.md`). Its id is
 the issue number, with no `D<n>` alias in the title, and its receipt ids are `GH<n>-S<k>`. Its status is the issue's
 state and labels, and the landing record comments on it and closes it. The sequencing doc keeps order only; its
-existing rows stay unchanged as the record, and existing `D<n>` ids keep resolving through its anchors. A tooling
+existing rows are still updated by the commit that finishes them, and existing `D<n>` ids keep resolving through its anchors. A tooling
 stumble (PATH, lock, inventory, load) is a handoff line, not an issue, unless the delegator registers it.
 `mdpro-number-registrar` keeps reserving ADR numbers and only looks up D ids.

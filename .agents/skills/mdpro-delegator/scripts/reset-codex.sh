@@ -1,6 +1,6 @@
 #!/bin/zsh
 # reset-codex.sh <agent> <worktree> <model> <effort> <implementor|auditor|device>
-# Rule 71 § Restart: every reset is a new pane. Verify flags from the start result when available; when the update
+# references/codex-panes.md § Restart: every reset is a new pane. Verify flags from the start result when available; when the update
 # prompt suppresses argv, verify model and effort from the pane status line instead. Steps: refuse unless idle/done;
 # split a pane in the worktree (with MDPRO_ROLE=implementor for an implementor); close the old pane after the split;
 # start Codex with the full launch line, retrying only the transient bootstrap error ("workspace routing discovery

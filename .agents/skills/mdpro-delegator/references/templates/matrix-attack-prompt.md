@@ -1,4 +1,4 @@
-# Matrix attack prompt (Claude implementors, rule 71 § Briefs step 2)
+# Matrix attack prompt (implementors; `jack-tdd-workflow` step 2)
 
 The Claude implementor sends this, filled in, to a **fresh** subagent: never a fork, never a resumed one, so the attacker
 shares none of the implementor's reasoning. It passes only the three paths below. The plugin's adversary is off for

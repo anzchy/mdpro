@@ -49,7 +49,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 - A timeout re-arms only after `herdr --session mdpro agent get` still shows `working`; it never resends.
 - `$SK/scripts/status.sh`: every agent's pane, status and context line, plus the GUI lock.
 
-## 4. Fresh context and resets (rule 71 § Restart, § Fresh context)
+## 4. Fresh context and resets (codex-panes.md § Restart, landing-and-audit.md § Requests)
 
 - Every audit request, confirm, challenge or plan review: a new pane.
 - Implementors: fix 1 may stay in the session only when it names one or two findings and the status line shows ≤ 12 %;
@@ -65,7 +65,7 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
    tier and difficulty; quote the user; read the code before writing the scope fence; check a receipt id is free.
 3. **Watch.** One background `prompt.sh` per agent. A stop for a ruling (scope, attack gap after round two): write
    `<ID>-ruling-<n>.md`, restart if over 20 %, resume "from step N".
-4. **Check the handoff** (rule 71 § Briefs): re-read each AC's evidence; an AC without evidence goes back before audit.
+4. **Check the handoff** (landing-and-audit.md § Confirm handoff): re-read each AC's evidence; an AC without evidence goes back before audit.
 5. **Ancestry and scope.** `git cat-file -p`, `git diff-tree --no-ext-diff --stat -r <parent> <sha>`. If master moved
    by docs only, the delegator may rebase the branch in the implementor's worktree and prove it with
    `$SK/scripts/tree-identity.sh <old> <new>`.
@@ -102,7 +102,7 @@ line; doubt means review.
   change in the same commit. An accepted ADR's body is never edited; a later event is a dated Status line.
 
 **A decision-log entry** takes no number. Write the entry and its rule edit in one commit, by the README's format.
-- *Gate-sensitive* (README § Gate-sensitive entries; doubt means review): both auditors plan-review the entry with
+- *Gate-sensitive* ([README § Gate-sensitive entries](../../../../docs/agents/decisions/README.md#gate-sensitive-entries); doubt means review): both auditors plan-review the entry with
   [plan-review-request-template.md](templates/plan-review-request-template.md) before it lands.
 - *Otherwise:* a docs-only commit quoting the user. An entry whose change is a script rides that script's PR.
 

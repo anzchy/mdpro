@@ -46,7 +46,7 @@ Rules:
 - Never `unwrap()` or `expect()` user input.
 - Validate paths, IDs, strings, and MCP args at the Rust boundary.
 - Emit only serializable, non-secret event payloads.
-- New commands need capability entries in `src-tauri/capabilities/default.json`.
+- New commands do not need an entry in `src-tauri/capabilities/default.json`; it carries only `core:*` and plugin permissions.
 
 Event naming:
 - `menu:action`

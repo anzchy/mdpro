@@ -8,11 +8,11 @@ each block names where it came from. When this file and a rule disagree, the rul
 <!-- moved-from: rule 70 § Sessions (ADR-0147) -->
 **A Codex implementor under herdr** (`gpt-imple-*`; user decision,
 2026-10-18: 「retire @mdpro-a3 whose job now is taken by impl-1 (rename
-impl-1 to `gpt-imple-1`)」) is the one exception to the Opus rule above.
+impl-1 to `gpt-imple-1`)」) is the one exception to the Opus rule in rule 70 § Sessions.
 It is not in `ListAgents` and has no `SendMessage`. The delegator gives it
 work with `herdr agent prompt <name> … --wait` and reads its report from
 `~/.mdpro-redesign/herdr-spike/<name>/`. `role-guard.sh` does not run for
-Codex, so `AGENTS.md` § "Read first (Codex)" and the prefix rules in
+Codex, so [AGENTS.md § Every session (Codex)](../../../../AGENTS.md#every-session-codex) and the prefix rules in
 `.codex/rules/mdpro.rules` stand in for it. How herdr starts these agents is
 recorded in `docs/reference/20261018-herdr-multi-agent-rule70-roles.md`.
 
@@ -57,7 +57,7 @@ commit that starts it working.
     `notify-settled.sh` returns the result to that command without a second
     Herdr prompt or routine notification. It still reads the report on wake.
 - **The guard.** `role-guard.sh` does not run for Codex. In its place:
-  - `AGENTS.md` § "Read first (Codex)", which lists this rule;
+  - [AGENTS.md § Every session (Codex)](../../../../AGENTS.md#every-session-codex), which names the read set and each role's files;
   - the shared `.codex/rules/mdpro.rules`, which forbids push, blanket staging, branch and worktree deletion,
     checking out `master`, and PR actions;
   - the gitignored per-worktree `.codex/rules/mdpro-role.rules`, installed by `install-role.mjs` for the
@@ -86,6 +86,6 @@ commit that starts it working.
      line reads `<model> <effort> · Context 0% used` before the prompt. Otherwise it is void and
      repeated;
   6. the first prompt points at the brief or the request file.
-- **Challenge and confirm with gpt-auditor.** Every request, these included, follows § Fresh
-  context: a new-pane reset, then a prompt pointing at a self-contained request file. Nothing relies
+- **Challenge and confirm with gpt-auditor.** Every request, these included, follows
+  [landing-and-audit.md § Requests](landing-and-audit.md#requests): a new-pane reset, then a prompt pointing at a self-contained request file. Nothing relies
   on the pane's thread.

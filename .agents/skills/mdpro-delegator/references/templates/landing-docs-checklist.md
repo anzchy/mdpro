@@ -7,10 +7,10 @@ land with `node scripts/codex-rules/land-guard.mjs <sha>`, and push the direct d
 
 - `docs/audit/audit-log.md`: one PR row after the newest (`| #<pr> | <ID> | <tier> | <ranges> | <rounds> | <Codex per
   round> | <Opus per round> | <security> | <merged per round> | PR #<pr> comments | landed `<sha>` |`); one
-  `G<pr>-<n>` row under § Gate exceptions for every receipt or lane exception, quoting the user's ruling.
+  `G<pr>-<n>` row under audit-log.md § Gate exceptions for every receipt or lane exception, quoting the user's ruling.
 - The item's issue: the landing record as a comment (date, PR, rounds, merged BLOCKING C0 H0, exceptions, `<sha>`), the
   `landed-unverified` label while a device AC is open (`真机未验`), closed when none is. An existing D item's
-  sequencing row keeps its old status form.
+  sequencing row is still updated by the commit that finishes it, in its old status form.
 - Ledger and CHANGELOG were the implementor's; check they landed.
 - ADR-0129 when a High lands open: an issue with an owner (or the existing D row), fix-by version, compensating control, CHANGELOG Known issues, the
   quoted ruling.
