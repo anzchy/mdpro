@@ -1,0 +1,123 @@
+{
+  "id": "RC5-S5b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T15:09:01.133Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 foreign changes and the store lock\",\"L1: two records in one worktree serialise on the store lock and both keep their receipt\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 199
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 foreign changes and the store lock\",\"L2b: a discard during another id's engine call is not a foreign change\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 222
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 foreign changes and the store lock\",\"V3, V3c (R-h): a record written into the view during the engine call is a foreign change: exit 64 naming it, own file and evidence kept\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 151
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 foreign changes and the store lock\",\"V3b: a changed or deleted record of another id during the engine call is foreign, and its item file is untouched\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 180
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 foreign changes and the store lock\",\"ruling 1 opus M5: capture takes the evidence lock only after the store lock is released\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 238
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 the launcher bound (R-g)\",\"record's launcher bound is twice the guardian bound plus the margin, so a store-lock wait fits\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 720000 to be 1380000 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 the view and its stamp\",\"L3′: a stamp left in the engine phase by a dead entry is rebuilt over, and the dead run's record is not kept\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 115
+      },
+      "message": "AssertionError: expected { …(4) } to match object { phase: 'idle', …(1) }\n(2 matching properties omitted from actual)"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 the view and its stamp\",\"S10: verify and discard never touch the view or its stamp, and the next record finds them its own\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/adr0149eRepo.ts",
+        "line": 30
+      },
+      "message": "Error: ENOENT: no such file or directory, open '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-adr0149e-OC6C7T/.claude/tdd-guardian/.receipts.view'"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 the view and its stamp\",\"S5′, V2: record rebuilds the view sorted from the item files and leaves an idle stamp that matches it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected '{\\n  \"schemaVersion\": 2,\\n  \"receipts…' to be '{\\n  \"schemaVersion\": 2,\\n  \"receipts…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 the view and its stamp\",\"V1: a view changed after the entry stamped it refuses the next record before any lane, leaving the view alone\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 87
+      },
+      "message": "AssertionError: expected +0 to be 64 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-receipt-view.test.ts\",\"RC5-S5 the view and its stamp\",\"ruling 1 opus M1(a): a view with no stamp is refused as foreign, naming the file and the remedy\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-view.test.ts",
+        "line": 99
+      },
+      "message": "AssertionError: expected +0 to be 64 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/RC5-S5b/20261102T150901133Z/tests",
+    "tree": "5c23cdcf12f3d10086e7fcc64e43cc312af2f3b8"
+  },
+  "spec_blobs": {
+    "tests/tooling/rc5-receipt-view.test.ts": "3cbce7db88e1103bea09b035ccf3eeacd19e5de1"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-receipt-view.test.ts": "3cbce7db88e1103bea09b035ccf3eeacd19e5de1"
+  }
+}

@@ -69,15 +69,28 @@ describe.skipIf(!receiptSuites)("fix1 runner artifacts", () => {
     const completed = new Promise<number | null>(resolveDone => proc.on("close", resolveDone));
     await waitMarker(gate, "record-preflight");
     writeFileSync(join(gate, "record-preflight.go"), "go");
+    writeFileSync(join(gate, "record-engine.go"), "go");
     try { await waitMarker(gate, "runner-created"); } catch { throw Error(output); }
-    expect(record(root, "B").status).toBe(0);
-    const store = itemStore(root);
-    const b = store.receipts.find((item: { id: string }) => item.id === "B");
-    expect(JSON.stringify(b.dirty_source)).not.toContain(".mdpro-unit-red-");
+    // RC5: records in one worktree serialise on the store lock, so B, started while A's runner
+    // directory exists, waits for A's whole engine call instead of recording beside it.
+    const second = spawn(process.execPath, [entry, "record", "--id", "B", "--test", "tests/case.test.ts", "--cwd", root], {
+      cwd: root, env: { ...process.env }, stdio: ["ignore", "pipe", "pipe"],
+    });
+    let secondOutput = "";
+    second.stdout.on("data", chunk => { secondOutput += chunk; });
+    second.stderr.on("data", chunk => { secondOutput += chunk; });
+    let secondDone = false;
+    const secondCompleted = new Promise<number | null>(resolveDone => second.on("close", code => { secondDone = true; resolveDone(code); }));
+    await new Promise(resolveWait => setTimeout(resolveWait, 1_500));
+    expect(secondDone, secondOutput).toBe(false);
     writeFileSync(join(gate, "runner-created.go"), "go");
     await waitMarker(gate, "lane-after-read");
     writeFileSync(join(gate, "lane-after-read.go"), "go");
-    expect(await completed).toBe(0);
+    expect(await completed, output).toBe(0);
+    expect(await secondCompleted, secondOutput).toBe(0);
+    const store = itemStore(root);
+    const b = store.receipts.find((item: { id: string }) => item.id === "B");
+    expect(JSON.stringify(b.dirty_source)).not.toContain(".mdpro-unit-red-");
   });
 
   it("removes the runner directory after configuration generation fails", () => {

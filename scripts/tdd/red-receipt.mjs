@@ -3,9 +3,13 @@
  * verify and discard tdd-guardian RED receipts on the `unit-red` and `rust` lanes, check a
  * branch's receipts on every lane, and replay a broken one against the PR base.
  * Pipeline: parse → OS flock (receipt-locks) → per-id lock → action.
+ * Lock order (record, ruling 1 opus M5): OS flock(id) → operation lock(id) → prepare (evidence
+ * lock, released) → store lock → engine `.receipts.lock` (inside the engine call) → release the
+ * store lock → capture (evidence lock). The evidence lock is never taken under the store lock.
  * Key decisions: receipts and evidence are one file per id (receipt-store, RC5); the
  * engine's receipts.json is a gitignored view the entry builds from the item files, only
- * for record, and reads its own id back from. verify, discard and replay read and write
+ * for record, under the store lock, stamped in `.receipts.view` (receipt-locks), and reads its
+ * own id back from. verify, discard and replay read and write
  * only their own id's files; record and check-pending load the whole store strictly. The
  * engine's receipt never gains a field; the entry's evidence lives in
  * `receipt-evidence/<ID>.json` and the pinned test tree (receipt-tree), written only after
@@ -20,11 +24,11 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { usageError, validateFiles, validateId } from "./unit-red-lane.mjs";
-import { VIEW, buildView, checkId, collision, loadStore, masterIds, readItem, removeItem, writeItem } from "./receipt-store.mjs";
-import { barrier, guardianBoundMs, laneTimeoutMs, withOperationLock, withOsLock } from "./receipt-locks.mjs";
+import { RECEIPTS_DIR, VIEW, checkId, collision, loadStore, masterIds, readItem, removeItem, writeItem } from "./receipt-store.mjs";
+import { VIEW_REMEDY, barrier, checkView, foreignChanges, guardianBoundMs, laneTimeoutMs, rebuildView, settleView, storeLockWaitMs, viewText, withOperationLock, withOsLock } from "./receipt-locks.mjs";
 import { validateRustFiles, requireRustfmtClean } from "./receipt-rust.mjs";
 import { capture, prepare } from "./receipt-capture.mjs";
-import { entryFor, readEntry, removeEntry, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
+import { entryFor, readEntry, removeEntry, updateEntry, withEvidenceLock, withStoreLock } from "./receipt-evidence.mjs";
 import { replay } from "./receipt-replay.mjs";
 import { loadEngine } from "./receipt-engine.mjs";
 const LANES = new Set(["unit-red", "rust"]);
@@ -65,13 +69,9 @@ function parse(argv) {
 }
 function git(cwd, args) { return spawnSync("git", args, { cwd, encoding: "utf8", timeout: 15000, maxBuffer: 64 * 1024 * 1024 }); }
 const readReceipt = (cwd, id) => readItem(cwd, "receipt", id);
-/** The engine's view: every item receipt, sorted, written through the engine's own lock. */
-function writeView(cwd, receipts) {
-  engine("verification").updateReceipts(cwd, () => JSON.parse(buildView(receipts)));
-}
-/** This id's record as the engine left it in the view, or null. */
-function viewRecord(cwd, id) {
-  try { return JSON.parse(readFileSync(join(cwd, VIEW), "utf8")).receipts.find((receipt) => receipt.id === id) ?? null; }
+/** This id's record as the engine left it in the view text, or null. */
+function viewRecord(text, id) {
+  try { return JSON.parse(text).receipts.find((receipt) => receipt.id === id) ?? null; }
   catch { return null; }
 }
 function withSelection(cwd, files, callback, expectedReceipt = null) {
@@ -152,23 +152,37 @@ function record(args) {
   const started = Date.now();
   barrier("record-preflight");
   const pluginArgs = ["record", "--id", args.id, "--lane", lane, "--files", args.tests.join(",")];
-  let status;
+  const update = engine("verification").updateReceipts;
+  let status, receipt, foreign = [];
   try {
-    writeView(args.cwd, receipts);
-    status = lane === "unit-red"
-      ? withSelection(args.cwd, args.tests, (env) => callGuardian(args.cwd, pluginArgs, { ...env, MDPRO_RED_EVIDENCE_DIR: prepared.dir }))
-      : callGuardian(args.cwd, pluginArgs, { ...process.env, MDPRO_RED_EVIDENCE_DIR: prepared.dir });
+    withStoreLock(args.cwd, storeLockWaitMs(args.cwd), () => {
+      checkView(args.cwd);
+      const current = loadStore(args.cwd).receipts;
+      const before = rebuildView(args.cwd, current, update);
+      barrier("record-engine");
+      status = lane === "unit-red"
+        ? withSelection(args.cwd, args.tests, (env) => callGuardian(args.cwd, pluginArgs, { ...env, MDPRO_RED_EVIDENCE_DIR: prepared.dir }))
+        : callGuardian(args.cwd, pluginArgs, { ...process.env, MDPRO_RED_EVIDENCE_DIR: prepared.dir });
+      const after = viewText(args.cwd);
+      // Write back on every engine return: a refused RED stays visible and discardable (R-a).
+      receipt = viewRecord(after, args.id);
+      if (receipt) { writeItem(args.cwd, "receipt", args.id, receipt); current.set(args.id, receipt); }
+      foreign = foreignChanges(before, after, args.id);
+      // A discard during the call removed its item, not its view record (L2b).
+      for (const id of [...current.keys()]) if (id !== args.id && !existsSync(join(args.cwd, RECEIPTS_DIR, `${id}.json`))) current.delete(id);
+      settleView(args.cwd, current, update, foreign);
+    });
   } catch (error) { rmSync(prepared.dir, { recursive: true, force: true }); throw error; }
-  // Write back on every engine return: a refused RED stays visible and discardable (R-a).
-  const receipt = viewRecord(args.cwd, args.id);
-  if (receipt) writeItem(args.cwd, "receipt", args.id, receipt);
+  const foreignNote = foreign.length ? ` A foreign change to ${VIEW} during the engine call touched ${foreign.join(", ")}: ${VIEW_REMEDY}.` : "";
   if (status !== 0 || !receipt || receipt.lane !== lane ||
       JSON.stringify(Object.keys(receipt.test_files)) !== JSON.stringify(args.tests) ||
       Date.parse(receipt.recorded_at) < started || !redOk(lane, receipt.red?.kind)) {
     rmSync(prepared.dir, { recursive: true, force: true });
-    throw usageError(`Record refused: ${receipt?.red?.kind || "missing"} is not a counted RED for this selection. Use discard for stale evidence.`);
+    throw usageError(`Record refused: ${receipt?.red?.kind || "missing"} is not a counted RED for this selection. Use discard for stale evidence.${foreignNote}`);
   }
   const failures = capture(args.cwd, { receipt, laneCommand: laneConfig(args.cwd, lane).command, pluginVersion: pluginVersion(), prepared, specFiles: args.tests });
+  // R-h: the RED is kept, pinned and evidenced, and the run still fails on a foreign change.
+  if (foreign.length) throw usageError(`Recorded ${args.id}, but refused:${foreignNote}`);
   process.stdout.write(`Recorded ${args.id}: ${receipt.red.kind} in ${args.tests.join(", ")}; ${failures.length} failing id(s) in the evidence\n`);
 }
 function specBlobs(cwd, files) {

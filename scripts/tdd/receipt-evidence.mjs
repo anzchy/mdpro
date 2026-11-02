@@ -21,6 +21,10 @@
  *   taken a fresh lock, which is waited on. The deadline holds on the stale path too. A reap mutex older than 10 s is dropped
  *   (its critical section is a stat, a read and a rename). Test barriers here use
  *   MDPRO_EVIDENCE_BARRIER_DIR, never the entry's MDPRO_UNIT_RED_BARRIER_DIR.
+ * - The same lock code guards the receipt store (`.receipts.store.lock`, RC5-S5): record holds
+ *   it from the view rebuild through the engine call. withEvidenceLock refuses while this
+ *   process holds the store lock (ruling 1 opus M5): the order is store lock, released, then
+ *   evidence lock, never both.
  * - A malformed evidence file is an error naming the file, never "no evidence".
  * - entryFor reads an entry whose recorded_at, lane or plugin version differs from the
  *   receipt's as "no evidence" (stale or mismatched), which is the user path.
@@ -33,14 +37,16 @@ import { randomUUID } from "node:crypto";
 import { usageError } from "./unit-red-lane.mjs";
 
 const LOCK = ".claude/tdd-guardian/.evidence.lock";
+const STORE_LOCK = ".claude/tdd-guardian/.receipts.store.lock";
+let storeLockHeld = false;
 const STALE_WITHOUT_OWNER_MS = 1000;
 const STALE_REAP_MS = 10_000;
 const POLL_MS = 25;
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
-function barrier(name) {
+function barrier(name, enabled = true) {
   const directory = process.env.MDPRO_EVIDENCE_BARRIER_DIR;
-  if (!directory) return;
+  if (!directory || !enabled) return;
   writeFileSync(join(directory, `${name}.ready`), "ready");
   const deadline = Date.now() + 10_000;
   while (!existsSync(join(directory, `${name}.go`))) {
@@ -99,26 +105,40 @@ function claim(lock, owner, token) {
   finally { rmSync(temp, { force: true }); }
 }
 
-/** Run `operation` holding the repo-wide evidence lock. */
-export function withEvidenceLock(cwd, operation) {
-  const lock = join(cwd, LOCK), owner = join(lock, "owner.json"), token = randomUUID();
-  const deadline = Date.now() + Number(process.env.MDPRO_EVIDENCE_LOCK_WAIT_MS || 20_000);
+/** Run `operation` holding the mkdir lock `rel`, waiting at most `waitMs` for a live owner. */
+function withLock(cwd, rel, waitMs, busy, operation, barriers) {
+  const lock = join(cwd, rel), owner = join(lock, "owner.json"), token = randomUUID();
+  const deadline = Date.now() + waitMs;
   mkdirSync(dirname(lock), { recursive: true });
   for (;;) {
     let made = false;
     try { mkdirSync(lock); made = true; } catch (error) { if (error.code !== "EEXIST") throw error; }
     if (made) {
-      barrier("evidence-before-owner");
+      barrier("evidence-before-owner", barriers);
       if (claim(lock, owner, token)) break;
       continue; // reaped while this process stalled, and another took it
     }
-    if (Date.now() > deadline) throw usageError("The evidence lock is held by another process; nothing was written.");
+    if (Date.now() > deadline) throw usageError(busy);
     const seen = observe(lock);
-    if (seen?.stale) { barrier("evidence-stale-observed"); reap(lock, seen); continue; }
+    if (seen?.stale) { barrier("evidence-stale-observed", barriers); reap(lock, seen); continue; }
     sleep(POLL_MS);
   }
   try { return operation(); }
   finally { try { if (JSON.parse(readFileSync(owner, "utf8")).token === token) removeLock(lock); } catch {} }
+}
+
+/** Run `operation` holding the repo-wide evidence lock; never while this process holds the store lock. */
+export function withEvidenceLock(cwd, operation) {
+  if (storeLockHeld) throw usageError("Lock order: the evidence lock is never taken while the receipt store lock is held.");
+  return withLock(cwd, LOCK, Number(process.env.MDPRO_EVIDENCE_LOCK_WAIT_MS || 20_000), "The evidence lock is held by another process; nothing was written.", operation, true);
+}
+
+/** Run `operation` holding the receipt store lock (record's view rebuild and engine call), waiting at most `waitMs`. */
+export function withStoreLock(cwd, waitMs, operation) {
+  return withLock(cwd, STORE_LOCK, waitMs, "The receipt store lock is held by another record; nothing was written.", () => {
+    storeLockHeld = true;
+    try { return operation(); } finally { storeLockHeld = false; }
+  }, false);
 }
 
 /** One id's evidence item, or null when absent; a malformed, misnamed or case-variant file throws naming it. */
