@@ -4,6 +4,12 @@
   at `<M>`. Verify `git rev-parse <M>:docs/agents/audit-dimensions.md` equals <B>, then read
   `git cat-file -p <B>` and echo `<B>` in the report. One pin covers round one, its challenges, the confirm and the confirm's challenges;
   use the round-one `<M>` and `<B>` even if master moved. Read the procedure source at `<M>`.
+- **Policy pin, only when § Which set routes the range to the policy set:** `<P>` is the blob id of
+  `docs/agents/audit-policy-set.md` at `<M>`. When the request names `<P>`, verify
+  `git rev-parse <M>:docs/agents/audit-policy-set.md` equals <P>, read `git cat-file -p <P>` and echo `<P>` beside
+  `<B>`; one pin covers the review for `<P>` as for `<B>`. Otherwise the request names no `<P>` and no policy file is read.
+  A confirm whose fix adds a policy-routed path takes `<P>` at round one's `<M>`. A review pinned to a `<B>` that
+  still holds § policy names no `<P>`.
 - **Range:** `<base>..<new sha>`; the fix diff is `<old sha>..<new sha>`; across a rebase, check
   `git range-diff <old base>..<old sha> <new base>..<rebased>`. Tier <T>. Phase: `confirm`.
 - **Open findings**, each with its text: <id> [High] (raised by <who>, <challenge outcome>): <text>. <Every

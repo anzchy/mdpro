@@ -66,12 +66,13 @@ the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision 
 
    Re-ask checks: re-ask the auditor in the same round, in a fresh pane with its own report, for
    no COVERAGE line; a dimension skipped without a reason; an AC with no verdict; a report naming
-   a blob other than <B>; or a traced runtime High without why tests miss it. Ask only for the
+   a blob other than <B> or <P>; a policy-routed report without <P> (a review pinned to a <B> that
+   still holds § policy names no <P>); or a traced runtime High without why tests miss it. Ask only for the
    missing lines. A re-ask is not a new round (ADR-0146 decision 3).
 8. **Land** when verifier PASS, merged blocking C0 H0, `ci-gate` green, and any receipt exception approved by the user:
    on Codex, `node scripts/codex-rules/land-guard.mjs <sha>`; for direct docs commits,
-   `node scripts/codex-rules/land-guard.mjs --docs-only` (never for `docs/agents/audit-dimensions.md`,
-   which requires a High-tier PR audited under the old pin and plan review of the proposed blob by both auditors).
+   `node scripts/codex-rules/land-guard.mjs --docs-only` (never for `docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md`,
+   which require a High-tier PR audited under the old pin and plan review of the proposed blob by both auditors).
    On Claude, `git merge --ff-only <sha>`,
    `git push origin master`, then
    [landing-docs-checklist.md](references/templates/landing-docs-checklist.md).

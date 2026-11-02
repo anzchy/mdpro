@@ -4,6 +4,10 @@
   Verify `git rev-parse <M>:docs/agents/audit-dimensions.md` equals <B>, then read
   `git cat-file -p <B>`. One pin covers round one, its challenges, the confirm and the confirm's challenges.
   Read each auditor's procedure source at `<M>`; echo `<B>` in the report.
+- **Policy pin, only when § Which set routes the range to the policy set:** `<P>` is the blob id of
+  `docs/agents/audit-policy-set.md` at `<M>`. When the request names `<P>`, verify
+  `git rev-parse <M>:docs/agents/audit-policy-set.md` equals <P>, read `git cat-file -p <P>` and echo `<P>` beside
+  `<B>`; one pin covers the review for `<P>` as for `<B>`. Otherwise the request names no `<P>` and no policy file is read.
 - **Range:** `<base>..<sha>` (<n> commits, branch `<branch>`). Read with `/usr/bin/git diff --no-ext-diff <base> <sha>`
   after `git fetch origin`. The base is the fork point on master.
 - **Owner:** <agent>. **Tier: <T>** (the set the pinned file's § Which set names for the range; [policy set](../../../../../docs/agents/decisions/20261102-cc-suite-policy-set.md)). **Difficulty: <D>** (ADR-0138): build your

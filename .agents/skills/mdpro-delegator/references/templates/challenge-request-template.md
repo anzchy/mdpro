@@ -4,6 +4,13 @@
 `git rev-parse <M>:docs/agents/audit-dimensions.md` equals <B>, then read `git cat-file -p <B>` and echo `<B>` in
 the report. One pin covers round one, its challenges, the confirm and the confirm's challenges.
 
+**Policy pin, only when § Which set routes the range to the policy set:** `<P>` is the blob id of
+`docs/agents/audit-policy-set.md` at `<M>`. When the request names `<P>`, verify
+`git rev-parse <M>:docs/agents/audit-policy-set.md` equals <P>, read `git cat-file -p <P>` and echo `<P>` beside
+`<B>`; one pin covers the review for `<P>` as for `<B>`. Otherwise the request names no `<P>` and no policy file is read.
+A confirm whose fix adds a policy-routed path takes `<P>` at round one's `<M>`. A review pinned to a `<B>` that
+still holds § policy names no `<P>`.
+
 Range `<base>..<sha>` (PR #<n>). Phase: `challenge`. Read only the finding below and its evidence, plus the code. Do
 not read anything else from the other auditor's folder.
 

@@ -50,6 +50,10 @@ anything, and never run a heavy command (tests, `tsc`, builds): you read code. T
   ADR-0121); master SHA `<M>` and the `docs/agents/audit-dimensions.md` blob `<B>`, shared with the
   Codex auditor. Verify `git rev-parse <M>:docs/agents/audit-dimensions.md` equals `<B>`. You may raise
   the tier, with a reason, but never lower it.
+- policy pin: `<P>`, the `docs/agents/audit-policy-set.md` blob at `<M>`, only when § Which set routes the request to
+  the policy set; verify `git rev-parse <M>:docs/agents/audit-policy-set.md` equals `<P>`. A policy-routed request
+  without `<P>` → BLOCKED. A review pinned to a `<B>` that still holds § policy names no `<P>`. A confirm whose fix
+  adds a policy-routed path takes `<P>` at round one's `<M>`.
 - `confirm`: the findings to re-check, each with its id, text and file:line, from **both**
   auditors' previous rounds
 - `challenge`: one finding the other auditor raised and you did not, with its evidence
@@ -58,6 +62,8 @@ anything, and never run a heavy command (tests, `tsc`, builds): you read code. T
 ## Dimensions
 Read `docs/agents/audit-dimensions.md` with `git cat-file -p <B>`. Use its mini, full or plan set,
 including its cross-tier dimensions; echo <B> in the report. The same pin applies to the whole review.
+When the request names `<P>`, also read the policy set from `docs/agents/audit-policy-set.md` with
+`git cat-file -p <P>` and echo <P> beside <B>; otherwise read no policy file.
 
 ## Severity
 Read the severity and evidence rules from `docs/agents/audit-dimensions.md` with
@@ -97,4 +103,4 @@ Read the severity and evidence rules from `docs/agents/audit-dimensions.md` with
 ## Output
 Read the report shape in `docs/agents/audit-dimensions.md` with `git cat-file -p <B>`.
 echo <B> in the report and use its `COVERAGE`, `AC`, findings and count lines. The delegator
-merges the two auditors' verdicts.
+merges the two auditors' verdicts. When the request names `<P>`, echo <P> on the same first line.

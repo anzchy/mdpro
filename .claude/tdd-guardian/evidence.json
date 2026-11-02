@@ -2627,6 +2627,408 @@
         "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
       }
     },
+    "GH586-ACC": {
+      "id": "GH586-ACC",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:04:43.240Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"excludes the receipt folders from the split count\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 150
+          },
+          "message": "AssertionError: expected '### Split recommendation A range with…' to contain '`receipts.json`, `.claude/tdd-guardia…'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"fits the 13,000 B allowance and leaves every non-policy section byte-identical to the base\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 95
+          },
+          "message": "AssertionError: expected 17601 to be less than or equal to 13000"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"holds no copy of the moved policy text\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 140
+          },
+          "message": "AssertionError: expected '# Audit dimensions\\n\\n**What both aud…' not to contain '## policy (cc-suite NL)'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"keeps each changed line's non-policy obligation\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 111
+          },
+          "message": "AssertionError: never: expected '## How this file is read - Every requ…' to contain 'never'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"routes a PR range by every base path group, and names no <P> otherwise\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 131
+          },
+          "message": "AssertionError: `.claude/rules/`: expected '' to contain '`.claude/rules/`'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"states the pin rules for <P>, including the two ruled transitions\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 121
+          },
+          "message": "AssertionError: expected '## How this file is read - Every requ…' to contain 'names `<P>`, the blob of `docs/agents…'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-policy-set\",\"carries the moved routing paragraphs, with the policy file on the gate-tooling list\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 174
+          },
+          "message": "AssertionError: A plan review has no ADR-0121 tier; a gate-sensitive entry is High in effect, so its policy set runs at Full.: expected '' to contain 'A plan review has no ADR-0121 tier; a…'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-policy-set\",\"carries § policy with its source pin, severity rule and D355 link\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 197
+          },
+          "message": "AssertionError: The set is cc-suite 2.5.0's NL auditors, used as they are: expected '' to contain 'The set is cc-suite 2.5.0\\'s NL audit…'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-policy-set\",\"is pinned like the dimensions file and changes only through a High-tier PR\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 157
+          },
+          "message": "AssertionError: expected '' to contain 'only when the request names `<P>`'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-ACC/20261102T060443240Z/tests",
+        "tree": "8deb3932026d6be556e3b977db35b3cfeca2b721"
+      },
+      "spec_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "da66c1562874d8aff38097912b6c80a8ae0daeed"
+      },
+      "settled_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "da66c1562874d8aff38097912b6c80a8ae0daeed"
+      }
+    },
+    "GH586-S1": {
+      "id": "GH586-S1",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:05:13.210Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 reviewed audit dimensions\",\"publishes the authorized fix 2 dimensions blob byte for byte\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 21
+          },
+          "message": "AssertionError: expected '69af47a9c367aa40a0640903fbe07c816ad03…' to be '7bbce83c79e79f81217e9523cb3db0be4050b…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S1/20261102T060513210Z/tests",
+        "tree": "e6688fdacd5058d3f886a77bcbc89d2c53f97c67"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "4dddad663cc2b4f8fb1de812271d3363d9de5ca2"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "4dddad663cc2b4f8fb1de812271d3363d9de5ca2"
+      }
+    },
+    "GH586-S2": {
+      "id": "GH586-S2",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:06:05.161Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 reviewed audit dimensions\",\"publishes the GH586 policy set blob byte for byte\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 32
+          },
+          "message": "AssertionError: expected 'e3b0c44298fc1c149afbf4c8996fb92427ae4…' to be 'f045a7efd9cd6d0457ed33c964781e92153a6…' // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S2/20261102T060605161Z/tests",
+        "tree": "87bfc8d14c83ecb5b891ba9dd86a91a24a4b5564"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "b712714f1bc695671dd0d7067be947ea1e3e8881"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "b712714f1bc695671dd0d7067be947ea1e3e8881"
+      }
+    },
+    "GH586-S3": {
+      "id": "GH586-S3",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:07:02.344Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator templates\",\"GH586: names <P> only when § Which set routes the range to the policy set\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 133
+          },
+          "message": "AssertionError: audit-request: git rev-parse <M>:docs/agents/audit-policy-set.md: expected '# Request: <ID> PR #<n> audit, round …' to contain 'git rev-parse <M>:docs/agents/audit-p…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S3/20261102T060702344Z/tests",
+        "tree": "2a75efe77f712f6eb52572866ba74b7b7532a63f"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "dbc9cb086242eae1376763e0d406376ced476302"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "dbc9cb086242eae1376763e0d406376ced476302"
+      }
+    },
+    "GH586-S4": {
+      "id": "GH586-S4",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:07:25.413Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator templates\",\"GH586: confirm and challenge carry ruling 1's two <P> transitions\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 144
+          },
+          "message": "AssertionError: confirm-request: expected '# Request: <ID> PR #<n> confirm, roun…' to contain 'A confirm whose fix adds a policy-rou…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S4/20261102T060725413Z/tests",
+        "tree": "18ef73b5f5ce011dc8a75958d6079d36929092ce"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "c219b99271a2e8cbaa20ebe482c1930d8dca8158"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "c219b99271a2e8cbaa20ebe482c1930d8dca8158"
+      }
+    },
+    "GH586-S5": {
+      "id": "GH586-S5",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:07:47.793Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator templates\",\"GH586: a plan review names <P> for a decision-log entry, never for an ADR\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 155
+          },
+          "message": "AssertionError: expected 'for a decision-log entry. ' to contain '`<P>`'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S5/20261102T060747793Z/tests",
+        "tree": "274956252177fe98b581d28d12e352f6d6bf1266"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "be78d289f8ee1d0a3eaa2a54c25939d7ad94a11a"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "be78d289f8ee1d0a3eaa2a54c25939d7ad94a11a"
+      }
+    },
+    "GH586-S6": {
+      "id": "GH586-S6",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:08:16.469Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 Opus auditor procedure\",\"GH586: reads the policy pin <P> only when the request is policy-routed\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 82
+          },
+          "message": "AssertionError: expected '' to contain 'only when § Which set routes the requ…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S6/20261102T060816469Z/tests",
+        "tree": "98fd44c1e9e88f721bd0c39407be04e9e0a2acf0"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "f86d87dc8b4a3a6fd759593d906b47d5d8d7c5d7"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "f86d87dc8b4a3a6fd759593d906b47d5d8d7c5d7"
+      }
+    },
+    "GH586-S7": {
+      "id": "GH586-S7",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:08:40.658Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator step 7\",\"GH586: re-asks a wrong or missing policy pin, except for a review pinned before the split\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 262
+          },
+          "message": "AssertionError: expected 'Re-ask checks: re-ask the auditor in …' to contain 'a blob other than <B> or <P>'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S7/20261102T060840658Z/tests",
+        "tree": "f46e9c0d9c6d415c838450a13a6d77134b5d30cd"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "ec0bdc88c99a0fa7fd3ee302e0f06be1bcdba656"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "ec0bdc88c99a0fa7fd3ee302e0f06be1bcdba656"
+      }
+    },
+    "GH586-S8": {
+      "id": "GH586-S8",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:09:11.781Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 docs-only landing excludes the policy set file\",\"names docs/agents/audit-policy-set.md beside the dimensions file wherever direct docs-only landing is described\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+            "line": 350
+          },
+          "message": "AssertionError: expected '8. **Land** when verifier PASS, merge…' to contain 'never for `docs/agents/audit-dimensio…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S8/20261102T060911781Z/tests",
+        "tree": "2fb6c3770ad53944863ed41bb7bfaf3263a49e27"
+      },
+      "spec_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "2caddba80ce36bf76f8da2fa3f86cd2dbed49dec"
+      },
+      "settled_blobs": {
+        "tests/tooling/adr0146-audit-dimensions.test.ts": "2caddba80ce36bf76f8da2fa3f86cd2dbed49dec"
+      }
+    },
+    "GH586-S9": {
+      "id": "GH586-S9",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:10:16.850Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"GH586: refuses the policy set file, its spellings, a rename and a delete through the docs-only guard\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/codex-land-guard-docs.test.ts",
+            "line": 144
+          },
+          "message": "AssertionError: docs/agents/audit-policy-set.md: expected +0 not to be +0 // Object.is equality"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S9/20261102T061016850Z/tests",
+        "tree": "9a037ab071ea870e70580d480bb4f485c3860159"
+      },
+      "spec_blobs": {
+        "tests/tooling/codex-land-guard-docs.test.ts": "c576db8ab1ab2bc246c10ac218c886ba25bc7be2"
+      },
+      "settled_blobs": {
+        "tests/tooling/codex-land-guard-docs.test.ts": "c576db8ab1ab2bc246c10ac218c886ba25bc7be2"
+      }
+    },
     "T566-1": {
       "id": "T566-1",
       "lane": "unit-red",

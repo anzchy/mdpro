@@ -20,9 +20,19 @@ describe("ADR-0146 reviewed audit dimensions", () => {
   it("publishes the authorized fix 2 dimensions blob byte for byte", () => {
     expect(createHash("sha256").update(bytes()).digest("hex")).toBe(
       // ADR-0146 fix 2 authorizes the single challenge-shape line deviation; ADR0165-WI1 rewords F9
-      // (decision-log and feature-local decisions) and adds the policy set (cc-suite NL) with its source
-      // pin and gate-tooling list, pending both auditors' plan review of this blob.
-      "69af47a9c367aa40a0640903fbe07c816ad03da96b21effec1d1b5d7ab56673b",
+      // (decision-log and feature-local decisions); GH586 moves the policy set (cc-suite NL) into
+      // docs/agents/audit-policy-set.md, pinned below, pending both auditors' plan review of both blobs.
+      "7bbce83c79e79f81217e9523cb3db0be4050be184d12b78f2f5aa1612b80dcbd",
+    );
+  });
+
+  it("publishes the GH586 policy set blob byte for byte", () => {
+    const policyPath = path.join(root, "docs/agents/audit-policy-set.md");
+    const policy = fs.existsSync(policyPath) ? fs.readFileSync(policyPath) : Buffer.alloc(0);
+    expect(createHash("sha256").update(policy).digest("hex")).toBe(
+      // GH586 moves § policy (cc-suite NL), its source pin and the policy-only / mixed / gate-tooling routing here
+      // verbatim except for pointers, pending both auditors' plan review of this blob.
+      "f045a7efd9cd6d0457ed33c964781e92153a646d2071a08bc6a1c4a057a52a6d",
     );
   });
 
@@ -62,6 +72,27 @@ describe("ADR-0146 Opus auditor procedure", () => {
       expect(content, name).toContain("git cat-file -p <B>");
       expect(content, name).toContain("echo <B>");
     }
+  });
+
+  it("GH586: reads the policy pin <P> only when the request is policy-routed", () => {
+    const source = auditor();
+    const flat = (text: string) => text.replace(/\s+/g, " ");
+    const input = flat(section(source, "Input (any missing item → BLOCKED)"));
+    const bullet = input.slice(input.indexOf("- policy pin:"), input.indexOf("- `confirm`:"));
+    expect(bullet).toContain("only when § Which set routes the request to the policy set");
+    expect(bullet).toContain("git rev-parse <M>:docs/agents/audit-policy-set.md");
+    expect(bullet).toContain("A policy-routed request without `<P>` → BLOCKED");
+    expect(bullet).toContain("A review pinned to a `<B>` that still holds § policy names no `<P>`.");
+    expect(bullet).toContain("A confirm whose fix adds a policy-routed path takes `<P>` at round one's `<M>`.");
+    for (const name of ["Dimensions", "Output"]) {
+      const content = flat(section(source, name));
+      expect(content, name).toContain("When the request names `<P>`");
+      for (const sentence of content.split(/(?<=\.)\s+/)) {
+        if (/<P>|audit-policy-set/.test(sentence)) expect(sentence, `${name}: ${sentence}`).toContain("When the request names `<P>`");
+      }
+    }
+    expect(flat(section(source, "Dimensions"))).toContain("git cat-file -p <P>");
+    expect(flat(section(source, "Output"))).toContain("echo <P>");
   });
 
   it("does not redefine the shared dimensions or skip test files", () => {
@@ -110,6 +141,40 @@ describe("ADR-0146 delegator templates", () => {
       expect(source, name).toContain("git cat-file -p <B>");
       expect(source, name).toContain("round one, its challenges, the confirm and the confirm's challenges");
     }
+  });
+
+  it("GH586: names <P> only when § Which set routes the range to the policy set", () => {
+    const sentences = (source: string) => source.replace(/\s+/g, " ").split(/(?<=[.;])\s+(?=[-*A-Z`<])/);
+    for (const name of ["audit-request", "confirm-request", "challenge-request", "plan-review-request"]) {
+      const source = template(name);
+      const flat = source.replace(/\s+/g, " ");
+      for (const phrase of [
+        "git rev-parse <M>:docs/agents/audit-policy-set.md", "equals <P>", "git cat-file -p <P>", "echo `<P>`",
+        "names no `<P>`", "for `<P>` as for `<B>`",
+      ]) expect(flat, `${name}: ${phrase}`).toContain(phrase);
+      for (const sentence of sentences(source)) {
+        if (!/audit-policy-set\.md|git cat-file -p <P>/.test(sentence)) continue;
+        expect(sentence, `${name}: ${sentence}`).toMatch(/§ Which set routes|[Ww]hen the request names `<P>`/);
+      }
+    }
+  });
+
+  it("GH586: confirm and challenge carry ruling 1's two <P> transitions", () => {
+    for (const name of ["confirm-request", "challenge-request"]) {
+      const flat = template(name).replace(/\s+/g, " ");
+      expect(flat, name).toContain("A confirm whose fix adds a policy-routed path takes `<P>` at round one's `<M>`.");
+      expect(flat, name).toContain("A review pinned to a `<B>` that still holds § policy names no `<P>`.");
+    }
+  });
+
+  it("GH586: a plan review names <P> for a decision-log entry, never for an ADR", () => {
+    const flat = template("plan-review-request").replace(/\s+/g, " ");
+    const mode = flat.slice(flat.indexOf("- **Mode:**"), flat.indexOf("- **Read also:**"));
+    const split = mode.indexOf("for a decision-log entry");
+    expect(split).toBeGreaterThan(0);
+    expect(mode.slice(0, split)).not.toMatch(/<P>|audit-policy-set/);
+    expect(mode.slice(split)).toContain("`<P>`");
+    expect(flat).toContain("An ADR review names no `<P>`.");
   });
 
   it("requires coverage, per-AC verdicts and cited acceptance in audit and confirm", () => {
@@ -191,6 +256,14 @@ describe("ADR-0146 delegator step 7", () => {
     }
   });
 
+  it("GH586: re-asks a wrong or missing policy pin, except for a review pinned before the split", () => {
+    const source = step7().replace(/\s+/g, " ");
+    const reask = source.slice(source.indexOf("Re-ask checks:"));
+    expect(reask).toContain("a blob other than <B> or <P>");
+    expect(reask).toContain("a policy-routed report without <P>");
+    expect(reask).toContain("a review pinned to a <B> that still holds § policy names no <P>");
+  });
+
   it("accepts an unproved AC before audit on only the three authorized grounds", () => {
     const source = step7();
     const start = source.indexOf("Accepted grounds:");
@@ -264,6 +337,19 @@ describe("ADR-0146 coordination rules", () => {
       expect(source).toContain("docs/agents/audit-dimensions.md");
       expect(source).toContain("ADR-0146 decision 1");
       expect(source).toContain("High-tier PR");
+    }
+  });
+});
+
+describe("GH586 docs-only landing excludes the policy set file", () => {
+  it("names docs/agents/audit-policy-set.md beside the dimensions file wherever direct docs-only landing is described", () => {
+    const skill = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/SKILL.md"), "utf8");
+    const step8 = skill.slice(skill.indexOf("8. **Land**"), skill.indexOf("9. **Device batches**"));
+    const guide = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/references/guide.md"), "utf8");
+    const checklist = fs.readFileSync(path.join(root, ".agents/skills/mdpro-delegator/references/templates/landing-docs-checklist.md"), "utf8");
+    expect(step8).toContain("never for `docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md`");
+    for (const source of [guide, checklist]) {
+      expect(source).toContain("except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md` (ADR-0146 decision 1");
     }
   });
 });
