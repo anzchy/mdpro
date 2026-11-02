@@ -19,8 +19,10 @@ function section(source: string, heading: string): string {
 describe("ADR-0146 reviewed audit dimensions", () => {
   it("publishes the authorized fix 2 dimensions blob byte for byte", () => {
     expect(createHash("sha256").update(bytes()).digest("hex")).toBe(
-      // ADR-0146 fix 2 authorizes the single challenge-shape line deviation.
-      "11646b4a591f8a5b0059e708fc325567a369743f9534152599f0a039349cf748",
+      // ADR-0146 fix 2 authorizes the single challenge-shape line deviation; ADR0165-WI1 rewords F9
+      // (decision-log and feature-local decisions) and adds the policy set (cc-suite NL) with its source
+      // pin and gate-tooling list, pending both auditors' plan review of this blob.
+      "69af47a9c367aa40a0640903fbe07c816ad03da96b21effec1d1b5d7ab56673b",
     );
   });
 
@@ -220,7 +222,7 @@ describe("ADR-0146 coordination rules", () => {
     expect(start).toBeGreaterThanOrEqual(0);
     expect(end).toBeGreaterThan(start);
     const item = source.slice(start, end);
-    for (const phrase of ["docs/agents/audit-dimensions.md", "<B>", "mini", "full", "Mediums are listed", "Lows counted", "Round one is blind", "counter-proof"]) {
+    for (const phrase of ["docs/agents/audit-dimensions.md", "<B>", "§ Which set", "Mediums are listed", "Lows counted", "Round one is blind", "counter-proof"]) {
       expect(item, phrase).toContain(phrase);
     }
     for (const obsolete of ["runs\n   `/cc-suite:audit --mini`", "mini's five unless the request names full's nine", "both auditors on full's nine dimensions", "reports only Critical\n   and High findings"]) {
