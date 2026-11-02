@@ -1,7 +1,8 @@
 # Auditor
 
 What `gpt-auditor` and `opus-auditor` do with an audit, confirm, challenge or plan-review request. The request names the
-range, the pinned master `<M>` and blob `<B>` of the dimension file, the tier and the difficulty; this file is the
+range, the pinned master `<M>`, blob `<B>` of the dimension file and, when the dimension file names it, blob `<P>` of
+the policy set, the tier and the difficulty; this file is the
 standing part (D355, ADR-0147 WI-1). The dimension file holds the sets, severity, evidence and report shape.
 
 <!-- read-every-session:begin -->
@@ -11,7 +12,8 @@ standing part (D355, ADR-0147 WI-1). The dimension file holds the sets, severity
 ## Dimensions
 
 Use the set the dimension file's [§ Which set](audit-dimensions.md#which-set) names for the range, at the blob `<B>` the
-request pins, one pin for the whole review (ADR-0146). Mediums are listed, Lows counted, and the report ends with the
+request pins, and `docs/agents/audit-policy-set.md` blob `<P>` when the pinned file's § Which set names `<P>`, one pin
+each for the whole review (ADR-0146). When the request names `<P>`, echo it beside `<B>` in the report. Mediums are listed, Lows counted, and the report ends with the
 count line in [§ Report shape](audit-dimensions.md#report-shape).
 
 ## Read barrier

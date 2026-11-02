@@ -51,7 +51,7 @@ ADR-0146 supersedes clauses of rule 70 item 4 and rule 71 by name. Decision 8 sa
 
 **Current text: `docs/agents/decisions/20261102-audit-policy-set-split.md`; folded and changed by [`docs/agents/decisions/20261102-audit-policy-set-split.md`](../agents/decisions/20261102-audit-policy-set-split.md)**, 2026-11-02 (user: 「Pure move, allowance 13,000 (Recommended)」, then 「Separate cap 56,000 (Recommended)」), for decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap.
 
-**Current text: `.claude/rules/70-multi-session-coordination.md`, `.claude/rules/71-herdr-mixed-roster.md`; folded and changed by [`docs/agents/decisions/20261102-d355-rules-70-71-fold-in.md`](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)**, 2026-11-02 (D355, ADR-0147 WI-1): rules 22 and 50 reach Codex through AGENTS.md's path table (Q2); rule 10 is path-scoped (Q3, user: 「Path-scope it (Recommended)」); decision 5's dimension allowance is 13,000 B (user: 「Pure move, allowance 13,000 (Recommended)」).
+**Current text: `.claude/rules/70-multi-session-coordination.md`, `.claude/rules/71-herdr-mixed-roster.md`; folded and changed by [`docs/agents/decisions/20261102-d355-rules-70-71-fold-in.md`](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)**, 2026-11-02 (D355, ADR-0147 WI-1): rules 22 and 50 reach Codex through AGENTS.md's path table (Q2); rule 10 is path-scoped (Q3, user: 「Path-scope it (Recommended)」).
 
 ## Context
 
