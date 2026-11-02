@@ -11,7 +11,7 @@
   `.claude/agents/mdpro-number-registrar.md`, `.claude/skills/plan-and-doc-map/SKILL.md`,
   `.claude/skills/mdpro-handoff/SKILL.md`, `docs/adr/README.md` (Below the bar), `docs/agents/auditor.md` (§ Tiers),
   and one preamble line in `docs/plans/20260912-frontend-backend-sequencing-order.md`.
-- **supersedes:** none. It replaces the D-row clauses of rule 70 at `db04d826`, which were rule text, not an ADR.
+- **supersedes:** none. It replaces the D-row clauses of rule 70 at `9c32bcde`, which were rule text, not an ADR.
 - **gate-sensitive:** no (herdr-delegator, 2026-11-02, D355 ruling 1 Q6): where an item's status is kept changes no
   landing condition, auditor set or receipt contract.
 
