@@ -4,10 +4,10 @@
 // The checker is tests/tooling/rules-budget-lib.ts; its fixture self-tests are rules-budget-lib.test.ts.
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   bytesOf, capOf, claudeAlwaysOn, codexShared, directiveScanSet, frontmatterPaths, overCaps, POLICY_SET, readBlocks,
-  readDirectiveViolations, readRel, route, ROUTES, SCOPED_PATTERN_ALLOWLIST, trackedFiles, type Runtime,
+  readDirectiveViolations, readRel, route, ROUTES, SCOPED_PATTERN_ALLOWLIST, loadTrackedFiles, trackedFiles, type Runtime,
 } from "./rules-budget-lib";
 
 const root = path.resolve(__dirname, "../..");
@@ -76,6 +76,9 @@ const isException = (check: string) => KNOWN_EXCEPTIONS.some((e) => e.check === 
 const table = (rows: [string, number, number][]) => rows.map(([n, b, c]) => `${n.padEnd(28)} ${String(b).padStart(7)} / ${c}`).join("\n");
 
 describe("always-on budget (live tree)", () => {
+  // D355 fix 3: the tracked list is read by an awaited git (D302); every case below reads it from the cache
+  beforeAll(() => loadTrackedFiles(root));
+
   it("the cap constants are the ruled values and under ADR-0147's ceilings (B18, B40)", () => {
     expect([CLAUDE_SHARED_CAP, CODEX_SHARED_CAP]).toEqual([30_000, 28_000]);
     expect(CLAUDE_SHARED_CAP).toBeLessThanOrEqual(CLAUDE_SHARED_CEILING);

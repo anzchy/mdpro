@@ -3,9 +3,9 @@
 // docs/reference/adr-0147-rule-section-map.json, and every Governing-text link and binding pointer resolves.
 // The checker is tests/tooling/rules-budget-lib.ts; its fixture self-tests are rules-budget-lib.test.ts.
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
-  citationScanSet, findCitations, githubSlug, headingsAt, loadMap, readRel, RULE_FILES, scanCitations, SECTION_MAP,
+  citationScanSet, findCitations, githubSlug, headingsAt, loadMap, loadTrackedFiles, readRel, RULE_FILES, scanCitations, SECTION_MAP,
 } from "./rules-budget-lib";
 import fs from "node:fs";
 
@@ -24,7 +24,12 @@ const HEADINGS_AT_BASE: Record<"70" | "71", string[]> = {
 };
 
 describe("rule 70 and 71 citations resolve (live tree)", () => {
-  const scan = scanCitations(root);
+  // D355 fix 3: the tracked list is read by an awaited git (D302), so the scan runs once the cache is loaded
+  let scan: ReturnType<typeof scanCitations>;
+  beforeAll(async () => {
+    await loadTrackedFiles(root);
+    scan = scanCitations(root);
+  });
 
   it("the section map exists and every row's targets resolve", () => {
     expect(fs.existsSync(path.join(root, SECTION_MAP)), `${SECTION_MAP} is missing`).toBe(true);

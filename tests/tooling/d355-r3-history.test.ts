@@ -2,16 +2,19 @@
 // D355 ruling 4 (P29, P30): after the rebase onto PR 587, the history file holds rules 70 and 71 as D355 found them, at
 // 9c32bcde, under the allowances its header states: each heading one level deeper, the frontmatter as a yaml block,
 // and relative links re-based from .claude/rules/ to docs/reference/.
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const root = path.resolve(__dirname, "../..");
 const BASE = "9c32bcde";
 const HISTORY = "docs/reference/20261027-rules-70-71-history.md";
 const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
-const atBase = (rel: string) => execFileSync("git", ["show", `${BASE}:${rel}`], { cwd: root, encoding: "utf8" });
+// awaited git (D302: no synchronous child process in a test worker; D355 fix 3)
+const runFile = promisify(execFile);
+const atBase = async (rel: string) => (await runFile("git", ["show", `${BASE}:${rel}`], { cwd: root, encoding: "utf8" })).stdout;
 
 /** The history file's stated transform of one rule file. */
 function historyForm(source: string): string {
@@ -55,12 +58,12 @@ describe("D355 history file at the rebased base", () => {
     ]);
   });
 
-  it("P29: the rule 70 and rule 71 bodies are the base's text under the stated transform", () => {
+  it("P29: the rule 70 and rule 71 bodies are the base's text under the stated transform", async () => {
     const text = read(HISTORY);
     const r70 = between(text, `## Rule 70 at ${BASE}\n\n`, `\n## Rule 71 at ${BASE}`);
     const r71 = between(text, `## Rule 71 at ${BASE}\n\n`, `\n## Rule 12 at ${BASE}`);
-    expect(r70.trimEnd()).toBe(historyForm(atBase(".claude/rules/70-multi-session-coordination.md")).trimEnd());
-    expect(r71.trimEnd()).toBe(historyForm(atBase(".claude/rules/71-herdr-mixed-roster.md")).trimEnd());
+    expect(r70.trimEnd()).toBe(historyForm(await atBase(".claude/rules/70-multi-session-coordination.md")).trimEnd());
+    expect(r71.trimEnd()).toBe(historyForm(await atBase(".claude/rules/71-herdr-mixed-roster.md")).trimEnd());
     expect(r70).toContain("`docs/agents/audit-policy-set.md` blob `<P>`");
   });
 

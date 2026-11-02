@@ -13,8 +13,8 @@ afterAll(cleanupFixtures);
 describe("always-on sets and routes (fixtures)", () => {
   const scoped = '---\npaths:\n  - "src/**"\n---\n';
 
-  it("B3/B26: imports are transitive, cycle-safe, relative to the importer, and skip code and emails", () => {
-    const root = fixture({
+  it("B3/B26: imports are transitive, cycle-safe, relative to the importer, and skip code and emails", async () => {
+    const root = await fixture({
       "CLAUDE.md": "@docs/a.md\n`@docs/x.md` a@b.md\n```\n@docs/y.md\n```\n",
       "docs/a.md": "@b.md\n", "docs/b.md": "@a.md\n",
     });
@@ -24,15 +24,15 @@ describe("always-on sets and routes (fixtures)", () => {
     expect(set.bytes).toBe(Buffer.byteLength("@docs/a.md\n`@docs/x.md` a@b.md\n```\n@docs/y.md\n```\n") + 12);
   });
 
-  it("B4/B22: a missing or outside import fails by name", () => {
-    const root = fixture({ "CLAUDE.md": "@missing.md\n@~/.claude/CLAUDE.md\n@../../outside.md\n" });
+  it("B4/B22: a missing or outside import fails by name", async () => {
+    const root = await fixture({ "CLAUDE.md": "@missing.md\n@~/.claude/CLAUDE.md\n@../../outside.md\n" });
     const errors = claudeAlwaysOn(root).errors.join("\n");
     expect(errors).toMatch(/missing.md/);
     expect(errors).toMatch(/~\/.claude\/CLAUDE.md.*outside/);
     expect(errors).toMatch(/outside.md.*outside/);
   });
 
-  it("B5–B8/B10/B24/B25: what counts as path-scoped", () => {
+  it("B5–B8/B10/B24/B25: what counts as path-scoped", async () => {
     expect(isPathScoped(scoped)).toBe(true);
     expect(isPathScoped('---\npaths: ["src/**", "tests/**"]\n---\n')).toBe(true);
     for (const p of ["**/*", "docs/**", "**/*.md", "weird/**", ".claude/**", "docs/adr/**"]) {
@@ -42,27 +42,27 @@ describe("always-on sets and routes (fixtures)", () => {
     expect(isPathScoped("---\npaths: []\n---\n")).toBe(false);
     expect(isPathScoped("---\npaths:\n---\n")).toBe(false);
     expect(isPathScoped('# body\n\npaths:\n  - "src/**"\n')).toBe(false);
-    const root = fixture({ "CLAUDE.md": "c\n", ".claude/rules/sub/x.md": "nested\n", ".claude/rules/s.md": scoped });
+    const root = await fixture({ "CLAUDE.md": "c\n", ".claude/rules/sub/x.md": "nested\n", ".claude/rules/s.md": scoped });
     expect(claudeAlwaysOn(root).members).toEqual(["CLAUDE.md", ".claude/rules/sub/x.md"]);
   });
 
   const B = (...entries: string[]) => `<!-- read-every-session:begin -->\n${entries.map((e) => `- ${e}`).join("\n")}\n<!-- read-every-session:end -->\n`;
 
-  it("B9/B10/B27: AGENTS.md's block; missing block or entry; repeated and unterminated blocks", () => {
-    const root = fixture({ "AGENTS.md": B("[c](CLAUDE.md)") + "mid\n" + B("[r](.claude/rules/25.md)"), "CLAUDE.md": "c", ".claude/rules/25.md": "r" });
+  it("B9/B10/B27: AGENTS.md's block; missing block or entry; repeated and unterminated blocks", async () => {
+    const root = await fixture({ "AGENTS.md": B("[c](CLAUDE.md)") + "mid\n" + B("[r](.claude/rules/25.md)"), "CLAUDE.md": "c", ".claude/rules/25.md": "r" });
     const s = codexShared(root);
     expect(s.members).toEqual(["AGENTS.md", "CLAUDE.md", ".claude/rules/25.md"]);
     expect(s.errors).toEqual([]);
-    const none = fixture({ "AGENTS.md": "no block\n" });
+    const none = await fixture({ "AGENTS.md": "no block\n" });
     expect(codexShared(none).errors).toContain("AGENTS.md has no read block");
-    const bad = fixture({ "AGENTS.md": B("[c](missing.md)") });
+    const bad = await fixture({ "AGENTS.md": B("[c](missing.md)") });
     expect(codexShared(bad).errors.join()).toMatch(/AGENTS.md:2: read-block entry names no existing file/);
-    const open = fixture({ "AGENTS.md": "<!-- read-every-session:begin -->\n- [c](CLAUDE.md)\nread [g](g.md) first\n", "CLAUDE.md": "c", "g.md": "g" });
+    const open = await fixture({ "AGENTS.md": "<!-- read-every-session:begin -->\n- [c](CLAUDE.md)\nread [g](g.md) first\n", "CLAUDE.md": "c", "g.md": "g" });
     expect(codexShared(open).errors.join()).toMatch(/unterminated/);
     expect(readDirectiveViolations(open, "AGENTS.md").map((v) => v.what).join()).toMatch(/read directive/);
   });
 
-  it("B11/B15/B28/B38: route closure follows blocks anywhere, counts whole files once, in every spelling", () => {
+  it("B11/B15/B28/B38: route closure follows blocks anywhere, counts whole files once, in every spelling", async () => {
     const files: Record<string, string> = {
       "CLAUDE.md": "c", "AGENTS.md": B("[c](CLAUDE.md)"),
       "docs/agents/implementor.md": B("[x](x.md)", "[g](../guide/g.md#core)", "`../guide/b.md`", "../guide/bare.md",
@@ -72,7 +72,7 @@ describe("always-on sets and routes (fixtures)", () => {
       "docs/guide/auto.md": pad(30), "docs/guide/ref.md": pad(40), "docs/guide/README.md": "readme", "docs/README.md": "other",
       ".agents/skills/mdpro-delegator/references/templates/brief-template.md": B("[x](../../../../../docs/agents/x.md)"),
     };
-    const root = fixture(files);
+    const root = await fixture(files);
     const r = route(root, "implementor-brief", "codex");
     expect(r.errors).toEqual([]);
     expect(new Set(r.members).size).toBe(r.members.length);
@@ -83,13 +83,13 @@ describe("always-on sets and routes (fixtures)", () => {
     expect(r.bytes).toBe(expected);
   });
 
-  it("B20: a missing template is an error, never 0", () => {
-    const root = fixture({ "CLAUDE.md": "c", "AGENTS.md": B("[c](CLAUDE.md)"), "docs/agents/auditor.md": "a" });
+  it("B20: a missing template is an error, never 0", async () => {
+    const root = await fixture({ "CLAUDE.md": "c", "AGENTS.md": B("[c](CLAUDE.md)"), "docs/agents/auditor.md": "a" });
     expect(route(root, "auditor-audit", "claude").errors.join()).toMatch(/audit-request-template.md missing/);
   });
 
-  it("B37/B31: a block in an always-on rule or in CLAUDE.md is counted on its runtime", () => {
-    const root = fixture({
+  it("B37/B31: a block in an always-on rule or in CLAUDE.md is counted on its runtime", async () => {
+    const root = await fixture({
       "CLAUDE.md": B("[y](y.md)"), "AGENTS.md": B("[c](CLAUDE.md)"),
       [R71]: B("[x](../../x.md)"), "x.md": pad(5000), "y.md": pad(7),
       "docs/agents/device-tester.md": "d",
@@ -102,8 +102,8 @@ describe("always-on sets and routes (fixtures)", () => {
     expect(route(root, "device", "codex").members).not.toContain("x.md");
   });
 
-  it("B16: sizes are UTF-8 bytes", () => {
-    const root = fixture({ "CLAUDE.md": "会话" });
+  it("B16: sizes are UTF-8 bytes", async () => {
+    const root = await fixture({ "CLAUDE.md": "会话" });
     expect(claudeAlwaysOn(root).bytes).toBe(6);
   });
 });
@@ -126,27 +126,48 @@ describe("read directives and links outside blocks (fixtures)", () => {
     "每次都要读 x.md。",
   ];
 
-  it("a procedure read that names no document is not a directive", () => {
-    const root = fixture({ "docs/agents/r.md": "intro\n\nRead every changed file and its callers in full.\n" });
+  it("a procedure read that names no document is not a directive", async () => {
+    const root = await fixture({ "docs/agents/r.md": "intro\n\nRead every changed file and its callers in full.\n" });
     expect(readDirectiveViolations(root, "docs/agents/r.md")).toEqual([]);
   });
 
-  it.each(lines.filter((l) => !l.startsWith("Read every changed")))("B12/B13/B30/B39: %s fails outside a block and passes inside", (line) => {
+  // D355 fix 3: the .each data is a literal (the D302 lint refuses computed data); `lines` minus its non-directive line
+  const DIRECTIVE_LINES = [
+    "Read [the guide](../guide/g.md#a) before you start.",
+    "Read [x](../x.md#a) first.",
+    "READ [x](../x.md#a) once.",
+    "Read [x](../x.md#a) in full.",
+    "Before your first dispatch, open [g](../guide/g.md#a).",
+    "Read [x](../x.md#a) every time.",
+    "At the start of every session, read [x](../x.md#a).",
+    "Read `x.md` at session start.",
+    "On every session, read [x](../x.md#a).",
+    "Start by reading [x](../x.md#a).",
+    "开始工作前先读 x.md。",
+    "每次都要读 x.md。",
+  ];
+
+  it("the .each literal is exactly the directive lines (attack gap 5)", () => {
+    expect(DIRECTIVE_LINES).toHaveLength(12);
+    expect(DIRECTIVE_LINES).toEqual(lines.filter((l) => !l.startsWith("Read every changed")));
+  });
+
+  it.each(DIRECTIVE_LINES)("B12/B13/B30/B39: %s fails outside a block and passes inside", async (line) => {
     const files = { "docs/x.md": "# X\n\n## A\n", "docs/guide/g.md": "# G\n\n## A\n" };
-    const out = fixture({ ...files, "docs/agents/r.md": `intro\n\n${line}\n` });
+    const out = await fixture({ ...files, "docs/agents/r.md": `intro\n\n${line}\n` });
     expect(readDirectiveViolations(out, "docs/agents/r.md").filter((v) => /directive/.test(v.what)).map((v) => v.where))
       .toEqual(["docs/agents/r.md:3"]);
-    const inside = fixture({ ...files, "docs/agents/r.md": `intro\n\n${B(`- ${line}`)}` });
+    const inside = await fixture({ ...files, "docs/agents/r.md": `intro\n\n${B(`- ${line}`)}` });
     expect(readDirectiveViolations(inside, "docs/agents/r.md").filter((v) => /directive/.test(v.what))).toEqual([]);
   });
 
-  it("B29: a directive wrapped across lines fails at its paragraph line", () => {
-    const root = fixture({ "docs/agents/r.md": "a\n\nPlease read the\nguide in\nfull.\n" });
+  it("B29: a directive wrapped across lines fails at its paragraph line", async () => {
+    const root = await fixture({ "docs/agents/r.md": "a\n\nPlease read the\nguide in\nfull.\n" });
     expect(readDirectiveViolations(root, "docs/agents/r.md").map((v) => v.where)).toEqual(["docs/agents/r.md:3"]);
   });
 
-  it("B14/B23: anchorless repo links fail, anchored ones pass, dead anchors fail, external and comments are ignored", () => {
-    const root = fixture({
+  it("B14/B23: anchorless repo links fail, anchored ones pass, dead anchors fail, external and comments are ignored", async () => {
+    const root = await fixture({
       "docs/x.md": "# X\n\n## Here\n",
       "docs/agents/r.md": "[a](../x.md)\n[b](../x.md#here)\n[c](../x.md#nonexistent)\n[d](https://e.com/x.md)\n<!-- [e](../x.md) -->\n",
     });
@@ -155,8 +176,8 @@ describe("read directives and links outside blocks (fixtures)", () => {
     ]);
   });
 
-  it("readBlocks ignores prose lines inside a block", () => {
-    const root = fixture({ "a.md": "<!-- read-every-session:begin -->\nThen the role file your brief names.\n- [c](c.md)\n<!-- read-every-session:end -->\n", "c.md": "c" });
+  it("readBlocks ignores prose lines inside a block", async () => {
+    const root = await fixture({ "a.md": "<!-- read-every-session:begin -->\nThen the role file your brief names.\n- [c](c.md)\n<!-- read-every-session:end -->\n", "c.md": "c" });
     expect(readBlocks(root, "a.md")).toEqual({ entries: ["c.md"], errors: [] });
   });
 });

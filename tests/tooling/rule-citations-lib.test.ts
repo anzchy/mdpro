@@ -20,8 +20,8 @@ describe("rule citations (fixtures)", () => {
     "# 71\n\n## Slots\n\n## Briefs and self-acceptance\n\n## Delegator runtime route\n",
   );
 
-  it("R3/R4/R11: exact heading, heading followed by prose, punctuation slug", () => {
-    const root = fixture({
+  it("R3/R4/R11: exact heading, heading followed by prose, punctuation slug", async () => {
+    const root = await fixture({
       ...base,
       "docs/a.md": "See rule 71 § Slots. And rule 71 § Briefs and self-acceptance confirms only the table.\n" +
         "Link [r](../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-route) and rule 70 § \"When a session is idle\".\n" +
@@ -31,34 +31,34 @@ describe("rule citations (fixtures)", () => {
     expect(scanCitations(root).count).toBe(5);
   });
 
-  it("R11: a wrong anchor is unresolved", () => {
-    const root = fixture({ ...base, "docs/a.md": "[r](../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-routes)\n" });
+  it("R11: a wrong anchor is unresolved", async () => {
+    const root = await fixture({ ...base, "docs/a.md": "[r](../.claude/rules/71-herdr-mixed-roster.md#delegator-runtime-routes)\n" });
     expect(unresolved(root).map((u) => u.where)).toEqual(["docs/a.md:1"]);
   });
 
-  it("R6/R7: ambiguous prefix and missing label are unresolved, with file:line", () => {
-    const root = fixture({ ...base, "docs/a.md": "x\nrule 70 § Device stuff\nrule 70 § Nonexistent\n" });
+  it("R6/R7: ambiguous prefix and missing label are unresolved, with file:line", async () => {
+    const root = await fixture({ ...base, "docs/a.md": "x\nrule 70 § Device stuff\nrule 70 § Nonexistent\n" });
     const u = unresolved(root);
     expect(u.map((x) => x.where)).toEqual(["docs/a.md:2", "docs/a.md:3"]);
     expect(u[0].reason).toMatch(/ambiguous.*Device a \| Device b/);
     expect(u[1].reason).toMatch(/Nonexistent/);
   });
 
-  it("R8/R20: a CJK label resolves only through its map row, and a dead row target fails", () => {
-    const withRow = fixture({
+  it("R8/R20: a CJK label resolves only through its map row, and a dead row target fails", async () => {
+    const withRow = await fixture({
       ...base, ...map([{ cite: "rule 70 § 会话轮换", targets: [`${R70}#sessions`] }]), "docs/a.md": "见 rule 70 § 会话轮换。\n",
     });
     expect(unresolved(withRow)).toEqual([]);
-    const without = fixture({ ...base, "docs/a.md": "见 rule 70 § 会话轮换。\n" });
+    const without = await fixture({ ...base, "docs/a.md": "见 rule 70 § 会话轮换。\n" });
     expect(unresolved(without)).toHaveLength(1);
-    const dead = fixture({
+    const dead = await fixture({
       ...base, ...map([{ cite: "rule 70 § Sessions", targets: [`${R70}#gone`] }]), "docs/a.md": "rule 70 § Sessions\n",
     });
     expect(unresolved(dead)[0].reason).toMatch(/dead target/);
   });
 
-  it("R9/R10/R21: multi-target rows need every target; the map validates rows nobody cites", () => {
-    const root = fixture({
+  it("R9/R10/R21: multi-target rows need every target; the map validates rows nobody cites", async () => {
+    const root = await fixture({
       ...base, "docs/agents/auditor.md": "# A\n\n## Downgrades\n",
       ...map([
         { cite: "rule 70 item 4", targets: [`${R70}#commits-and-branches`, "docs/agents/auditor.md#downgrades"] },
@@ -75,8 +75,8 @@ describe("rule citations (fixtures)", () => {
     expect(unresolved(root)[0].reason).toMatch(/auditor.md#downgrades/);
   });
 
-  it("R5/R19/R27: item rows are keyed by rule; `<label> item <n>` needs both; item lists check every item", () => {
-    const root = fixture({
+  it("R5/R19/R27: item rows are keyed by rule; `<label> item <n>` needs both; item lists check every item", async () => {
+    const root = await fixture({
       ...base, ...map([{ cite: "rule 70 item 4", targets: [`${R70}#commits-and-branches`] }]),
       "docs/a.md": [
         "rule 70 § Commits item 4", "rule 70 Commits item 4", "rule 71 item 4", "rule 70 item 9",
@@ -97,13 +97,13 @@ describe("rule citations (fixtures)", () => {
     expect(cite("rule 70 says item 4 is fine\n")).toEqual([]); // prose, not `<Label> item <n>`
   });
 
-  it("R18: a heading of rule 71 does not resolve a rule 70 citation", () => {
-    const root = fixture({ ...base, "docs/a.md": "rule 70 § Slots\nrule 71 § Slots\n" });
+  it("R18: a heading of rule 71 does not resolve a rule 70 citation", async () => {
+    const root = await fixture({ ...base, "docs/a.md": "rule 70 § Slots\nrule 71 § Slots\n" });
     expect(unresolved(root).map((u) => u.where)).toEqual(["docs/a.md:1"]);
   });
 
-  it("R22: links resolve from the citing file's directory", () => {
-    const root = fixture({
+  it("R22: links resolve from the citing file's directory", async () => {
+    const root = await fixture({
       ...base, "docs/agents/auditor.md": "# A\n\n## Downgrades\n",
       "docs/agents/b.md": "`../../docs/agents/auditor.md#downgrades` [ok](../../.claude/rules/71-herdr-mixed-roster.md#slots) [bad](.claude/rules/71-herdr-mixed-roster.md#slots)\n",
       "CLAUDE.md": "`docs/agents/auditor.md#downgrades` `docs/agents/auditor.md#nope`\n",
@@ -112,30 +112,30 @@ describe("rule citations (fixtures)", () => {
     expect(unresolved(root).map((u) => u.where).sort()).toEqual(["CLAUDE.md:1", "docs/agents/b.md:1"]);
   });
 
-  it("R23: citations wrapped across a line break are found at their first line", () => {
-    const root = fixture({ ...base, "docs/a.md": "intro rule 70\n§ Nonexistent here\nand rule 70\n§ Sessions\n" });
+  it("R23: citations wrapped across a line break are found at their first line", async () => {
+    const root = await fixture({ ...base, "docs/a.md": "intro rule 70\n§ Nonexistent here\nand rule 70\n§ Sessions\n" });
     expect(unresolved(root).map((u) => u.where)).toEqual(["docs/a.md:1"]);
   });
 
-  it("R24/R14: CJK paths come back unquoted; untracked files are not scanned", () => {
-    const root = fixture({ ...base, "docs/架构.md": "rule 70 § Nonexistent\n" }, { "docs/untracked.md": "rule 70 § Nope\n" });
+  it("R24/R14: CJK paths come back unquoted; untracked files are not scanned", async () => {
+    const root = await fixture({ ...base, "docs/架构.md": "rule 70 § Nonexistent\n" }, { "docs/untracked.md": "rule 70 § Nope\n" });
     expect(unresolved(root).map((u) => u.where)).toEqual(["docs/架构.md:1"]);
   });
 
-  it("R13: hooks and agents are scanned", () => {
-    const root = fixture({ ...base, ".claude/hooks/x.sh": "# rule 70 § Nope\n", ".claude/agents/a.md": "rule 71 § Nope\n" });
+  it("R13: hooks and agents are scanned", async () => {
+    const root = await fixture({ ...base, ".claude/hooks/x.sh": "# rule 70 § Nope\n", ".claude/agents/a.md": "rule 71 § Nope\n" });
     expect(unresolved(root).map((u) => u.where).sort()).toEqual([".claude/agents/a.md:1", ".claude/hooks/x.sh:1"]);
   });
 
-  it("R16: renaming a heading breaks a citation that resolved before", () => {
-    const root = fixture({ ...base, "docs/a.md": "rule 71 § Slots\n" });
+  it("R16: renaming a heading breaks a citation that resolved before", async () => {
+    const root = await fixture({ ...base, "docs/a.md": "rule 71 § Slots\n" });
     expect(unresolved(root)).toEqual([]);
     update(root, R71, "# 71\n\n## Places\n");
     expect(unresolved(root)).toHaveLength(1);
   });
 
-  it("R12/R26: Governing-text and binding pointers resolve; a renamed target fails", () => {
-    const root = fixture({
+  it("R12/R26: Governing-text and binding pointers resolve; a renamed target fails", async () => {
+    const root = await fixture({
       ...base, "docs/agents/auditor.md": "# A\n\n## Downgrades\n",
       ".agents/skills/mdpro-delegator/SKILL.md": "Apply `references/l.md#landing`.\n",
       ".agents/skills/mdpro-delegator/references/l.md": "# L\n\n## Landing\n",
@@ -146,8 +146,8 @@ describe("rule citations (fixtures)", () => {
     expect(unresolved(root).map((u) => u.where)).toEqual([".agents/skills/mdpro-delegator/SKILL.md:1"]);
   });
 
-  it("resolveCitation reports an empty label", () => {
-    const root = fixture(base);
+  it("resolveCitation reports an empty label", async () => {
+    const root = await fixture(base);
     expect(resolveCitation(root, { file: "x", line: 1, rule: "70", kind: "label", label: "", raw: "" }, []).ok).toBe(false);
   });
 });

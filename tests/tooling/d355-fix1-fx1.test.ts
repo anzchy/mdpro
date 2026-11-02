@@ -15,8 +15,8 @@ describe("FX-1: the moved audit homes state ADR-0143", () => {
     expect(bad).toEqual([]);
   });
 
-  it("A1-cal: the same scanner sees every known site at the candidate", () => {
-    const found = [LA, RR].flatMap((f) => hitsIn(f, show(CANDIDATE, f), SUPERSEDED)).map((h) => h.replace(/: .*$/, ""));
+  it("A1-cal: the same scanner sees every known site at the candidate", async () => {
+    const found = (await Promise.all([LA, RR].map(async (f) => hitsIn(f, await show(CANDIDATE, f), SUPERSEDED)))).flat().map((h) => h.replace(/: .*$/, ""));
     for (const site of [`${RR}:20`, `${RR}:53`, `${RR}:56`, `${RR}:72`, `${LA}:121`, `${LA}:149`, `${LA}:150`, `${LA}:153`,
       `${LA}:154`, `${LA}:232`, `${LA}:236`, `${LA}:267`]) expect(found, site).toContain(site);
   });
@@ -63,11 +63,11 @@ describe("FX-1: the moved audit homes state ADR-0143", () => {
     expect(cells[4]).toMatch(/request file/);
   });
 
-  it("A6: ADR-0143's Current text points at the corrected § Audit merge, and its body is unchanged", () => {
+  it("A6: ADR-0143's Current text points at the corrected § Audit merge, and its body is unchanged", async () => {
     const rel = ADR("0143");
     expect(currentText(rel)).toContain("landing-and-audit.md#audit-merge");
     expect(anchorExists(LA, "audit-merge")).toBe(true);
-    expect(withoutCurrentText(read(rel))).toBe(withoutCurrentText(show(BASE, rel)));
+    expect(withoutCurrentText(read(rel))).toBe(withoutCurrentText(await show(BASE, rel)));
   });
 
   it("A7: the old wording lives on in the history file", () => {

@@ -13,11 +13,11 @@ it("S4: GitHub's slug keeps intraword and code underscores and drops emphasis un
   expect(githubSlug("_emph_ title")).toBe("emph-title");
 });
 
-it("S5: a malformed percent sequence resolves literally instead of throwing, so the scan names the file", () => {
+it("S5: a malformed percent sequence resolves literally instead of throwing, so the scan names the file", async () => {
   let resolved: string | null = null;
   expect(() => { resolved = resolveRel("/r", "docs/a.md", "notes-100%.md#x"); }).not.toThrow();
   expect(resolved).toBe("docs/notes-100%.md");
-  const root = fixture({
+  const root = await fixture({
     "docs/a.md": "<!-- read-every-session:begin -->\n- [n](notes-100%.md)\n<!-- read-every-session:end -->\n",
   });
   expect(readBlocks(root, "docs/a.md").errors).toEqual([
@@ -25,8 +25,8 @@ it("S5: a malformed percent sequence resolves literally instead of throwing, so 
   ]);
 });
 
-it("S6: a read-block entry that is not Markdown is an error, so land-guard's Markdown trigger covers every counted file", () => {
-  const root = fixture({
+it("S6: a read-block entry that is not Markdown is an error, so land-guard's Markdown trigger covers every counted file", async () => {
+  const root = await fixture({
     "docs/a.md": "<!-- read-every-session:begin -->\n- [m](b.md)\n- [j](c.json)\n<!-- read-every-session:end -->\n",
     "docs/b.md": "b\n",
     "docs/c.json": "{}\n",

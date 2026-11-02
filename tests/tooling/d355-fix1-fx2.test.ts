@@ -28,8 +28,8 @@ describe("FX-2: the pre-go-live TDD law (ruling 1 R1)", () => {
     for (const p of ["fresh", "ATTACK-NOT-RUN", "stop"]) expect(s, p).toContain(p);
   });
 
-  it("B2-skill: the skill still carries the four steps, unchanged", () => {
-    expect(read(SKILL)).toBe(show(CANDIDATE, SKILL));
+  it("B2-skill: the skill still carries the four steps, unchanged", async () => {
+    expect(read(SKILL)).toBe(await show(CANDIDATE, SKILL));
     const t = read(SKILL);
     for (const p of ["boundary (empty, max, CJK)", "lifecycle and timing", "invalid input", "platform"]) {
       expect(section(t, "1. Design the test matrix"), p).toContain(p);
@@ -58,10 +58,10 @@ describe("FX-2: the pre-go-live TDD law (ruling 1 R1)", () => {
     }
   });
 
-  it("B5: while prompt.sh still sends Codex tdd-guardian, ADR-0161 is the base bytes with no Current text (T-02 flips this)", () => {
+  it("B5: while prompt.sh still sends Codex tdd-guardian, ADR-0161 is the base bytes with no Current text (T-02 flips this)", async () => {
     const rel = ADR("0161");
     if (goLive()) {
-      expect(sha(read(rel))).toBe(sha(show(BASE, rel)));
+      expect(sha(read(rel))).toBe(sha(await show(BASE, rel)));
       expect(read(rel)).not.toContain("**Current text:");
     } else {
       expect(read(rel)).toContain("**Current text:");

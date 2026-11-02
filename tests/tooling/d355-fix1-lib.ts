@@ -1,15 +1,20 @@
 // Shared helpers for the D355 fix-1 tests (d355-fix1-*.test.ts).
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 
 export const root = path.resolve(__dirname, "../..");
 export const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
 export const exists = (rel: string) => fs.existsSync(path.join(root, rel));
 export const flat = (text: string) => text.replace(/\s+/g, " ");
 export const count = (text: string, phrase: string) => text.split(phrase).length - 1;
-export const show = (rev: string, rel: string) => execFileSync("git", ["show", `${rev}:${rel}`], { cwd: root, encoding: "utf8" });
+// awaited git: D302 keeps synchronous child processes out of test workers (D355 fix 3)
+const runFile = promisify(execFile);
+const SHOW_MAX_BUFFER = 64 * 1024 * 1024;
+export const show = async (rev: string, rel: string): Promise<string> =>
+  (await runFile("git", ["show", `${rev}:${rel}`], { cwd: root, encoding: "utf8", maxBuffer: SHOW_MAX_BUFFER })).stdout;
 export const BASE = "22ffe5ea";
 export const CANDIDATE = "98de0c69";
 export const sha = (text: string) => createHash("sha256").update(text).digest("hex");

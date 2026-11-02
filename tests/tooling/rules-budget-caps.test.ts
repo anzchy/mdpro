@@ -45,8 +45,8 @@ it("P3'/P7: every live route's cap follows from its definition, and each policy 
   }
 });
 
-it("P6: a policy route whose policy set is missing names it as a route error", () => {
-  const root = fixture({
+it("P6: a policy route whose policy set is missing names it as a route error", async () => {
+  const root = await fixture({
     "CLAUDE.md": "c", "AGENTS.md": "<!-- read-every-session:begin -->\n- [c](CLAUDE.md)\n<!-- read-every-session:end -->\n",
     "docs/agents/auditor.md": "a", ".agents/skills/mdpro-delegator/references/templates/audit-request-template.md": "t",
   });

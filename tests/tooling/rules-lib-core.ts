@@ -4,13 +4,15 @@
  * rules-budget-lib.ts.
  *
  * Key decisions: only tracked files are scanned (`git ls-files -z`), so CJK paths come back unquoted and a stray
- * untracked file cannot break the gate.
+ * untracked file cannot break the gate. The list is read once per root by the awaited `loadTrackedFiles` (D302: no
+ * synchronous child process blocks a worker); `trackedFiles` only reads that cache and throws for a root never loaded.
  *
  * @coordinates-with tests/tooling/rules-budget-lib.ts, tests/tooling/rule-citations-lib.ts
  */
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 
 export const RULE_FILES: Record<string, string> = {
   "70": ".claude/rules/70-multi-session-coordination.md",
@@ -21,9 +23,23 @@ export const BLOCK_BEGIN = "<!-- read-every-session:begin -->";
 export const BLOCK_END = "<!-- read-every-session:end -->";
 // ---------- files ----------
 
+const runFile = promisify(execFile);
+const LS_FILES_MAX_BUFFER = 64 * 1024 * 1024;
+const trackedCache = new Map<string, string[]>();
+
+/** Reads `root`'s tracked files with an awaited `git ls-files -z` and caches them for `trackedFiles`; a failure caches nothing. */
+export async function loadTrackedFiles(root: string): Promise<string[]> {
+  const { stdout } = await runFile("git", ["ls-files", "-z"], { cwd: root, maxBuffer: LS_FILES_MAX_BUFFER, encoding: "utf8" });
+  const list = stdout.split("\0").filter(Boolean);
+  trackedCache.set(path.resolve(root), list);
+  return list;
+}
+
+/** The tracked files `loadTrackedFiles(root)` read; it never runs git itself. */
 export function trackedFiles(root: string): string[] {
-  const out = execFileSync("git", ["ls-files", "-z"], { cwd: root, maxBuffer: 64 * 1024 * 1024 }).toString("utf8");
-  return out.split("\0").filter(Boolean);
+  const list = trackedCache.get(path.resolve(root));
+  if (!list) throw new Error(`trackedFiles(${root}): await loadTrackedFiles(root) first`);
+  return list;
 }
 
 export function readRel(root: string, rel: string): string {
