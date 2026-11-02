@@ -2,7 +2,8 @@
 /**
  * Purpose: fast-forward a checked PR head or push validated docs-only commits onto master.
  * Key decisions: a docs-only range that touches Markdown or the ADR-0147 section map runs the always-on budget and
- * citation tests on an export of the candidate commit, never on the working tree (D355, ADR-0147 decision 5).
+ * citation tests on an export of the candidate commit, never on the working tree (D355, ADR-0147 decision 5), under
+ * the heavy-lock load guard.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -53,9 +54,17 @@ function openPrs() {
   return prs;
 }
 /** The runner override exists for the guard's own tests and is ignored outside MDPRO_GUARD_TEST=1. */
+const testRunner = env => (env.MDPRO_GUARD_TEST === "1" && env.MDPRO_GUARD_RULE_TEST_RUNNER) || null;
 export function ruleTestCommand(env = process.env) {
-  if (env.MDPRO_GUARD_TEST === "1" && env.MDPRO_GUARD_RULE_TEST_RUNNER) return [env.MDPRO_GUARD_RULE_TEST_RUNNER, RULE_TESTS];
+  if (testRunner(env)) return [testRunner(env), RULE_TESTS];
   return [process.execPath, [path.join(ROOT, "node_modules/vitest/vitest.mjs"), "run", ...RULE_TESTS]];
+}
+/** The command `runRuleTests` spawns: the real run goes through the load guard (rule 10: an unlocked partial run takes
+ *  at most 2 workers and the guard-only monitor); the test-mode stub runs as given. */
+export function ruleTestSpawn(env = process.env) {
+  const [file, args] = ruleTestCommand(env);
+  if (testRunner(env)) return [file, args];
+  return [path.join(ROOT, "scripts/heavy-lock.sh"), ["--guard-only", file, ...args]];
 }
 /** Runs the two rule tests on a temporary export of `tree` (a commit or tree id) and removes the export. */
 export function runRuleTests(tree, env = process.env) {
@@ -67,14 +76,15 @@ export function runRuleTests(tree, env = process.env) {
     if (archived.status !== 0) return { status: 1, output: `git archive failed: ${archived.stderr.trim()}` };
     const extracted = run("tar", ["-xf", tar, "-C", work]);
     if (extracted.status !== 0) return { status: 1, output: `tar failed: ${extracted.stderr.trim()}` };
-    // The budget test enumerates files with `git ls-files`, so the export gets its own throwaway index.
-    for (const args of [["init", "-q"], ["add", "--all", "--", "."]]) {
+    // The budget test enumerates files with `git ls-files`, so the export gets its own throwaway index; `--force`
+    // keeps tracked files that an ignore rule matches (the archive holds tracked files only).
+    for (const args of [["init", "-q"], ["add", "--all", "--force", "--", "."]]) {
       const r = run("git", args, work);
       if (r.status !== 0) return { status: 1, output: `export index failed: ${r.stderr.trim()}` };
     }
     const modules = path.join(ROOT, "node_modules");
     if (fs.existsSync(modules)) fs.symlinkSync(modules, path.join(work, "node_modules"));
-    const [file, args] = ruleTestCommand(env);
+    const [file, args] = ruleTestSpawn(env);
     const r = spawnSync(file, args, { cwd: work, encoding: "utf8", env: { ...env, VITEST_MAX_WORKERS: "2" } });
     const output = `${r.stdout || ""}${r.stderr || ""}${r.error ? r.error.message : ""}`;
     return { status: r.status === 0 && !r.error ? 0 : 1, output };

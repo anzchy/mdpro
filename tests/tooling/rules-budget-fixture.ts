@@ -1,19 +1,28 @@
 /**
  * Purpose: throwaway git fixture trees for the rules-budget-lib self-tests (D355). Each tree is a real repository
- * under os.tmpdir() with its files tracked, so `git ls-files` sees exactly what the case wrote.
+ * under os.tmpdir() with its files tracked, so `git ls-files` sees exactly what the case wrote; `cleanupFixtures()`
+ * removes them.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { clearCaches } from "./rules-budget-lib";
+import { clearCaches } from "./rules-lib-core";
 
 export const R70 = ".claude/rules/70-multi-session-coordination.md";
 export const R71 = ".claude/rules/71-herdr-mixed-roster.md";
 
+const made: string[] = [];
+
+/** Removes every tree `fixture()` made; call it from `afterAll`. */
+export function cleanupFixtures(): void {
+  for (const root of made.splice(0)) fs.rmSync(root, { recursive: true, force: true });
+}
+
 export function fixture(files: Record<string, string>, untracked: Record<string, string> = {}): string {
   clearCaches();
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "d355-"));
+  made.push(root);
   const write = (rel: string, body: string) => {
     fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
     fs.writeFileSync(path.join(root, rel), body);

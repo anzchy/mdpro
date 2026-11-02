@@ -78,6 +78,7 @@ the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision 
    `node scripts/codex-rules/land-guard.mjs --docs-only` (never for `docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md`,
    which require a High-tier PR audited under the old pin and plan review of the proposed blob by both auditors).
    On Claude, a docs-only commit that touches any Markdown file or the section map first runs `VITEST_MAX_WORKERS=2 scripts/heavy-lock.sh --guard-only pnpm exec vitest run tests/tooling/always-on-budget.test.ts tests/tooling/rule-citations.test.ts`: stop on red, and a raised cap quotes the user's word in the commit body (ADR-0147 decision 5).
+   These tests read the working tree, so run them only when `git diff --quiet HEAD -- '*.md' docs/reference/adr-0147-rule-section-map.json` passes; land-guard tests the commit itself.
    On Claude, `git merge --ff-only <sha>`,
    `git push origin master`, then
    `references/templates/landing-docs-checklist.md`.

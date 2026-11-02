@@ -294,7 +294,8 @@ describe("ADR-0146 coordination rules", () => {
   // D355 (ADR-0147 WI-1): rule 70 item 4 and rule 71's review, briefs and audits text moved verbatim to the
   // delegator's references; the pins follow the text.
   const refs = (name: string) => fs.readFileSync(path.join(root, `.agents/skills/mdpro-delegator/references/${name}.md`), "utf8");
-  const ITEM4_END = "\n## Audits under herdr";
+  // Item 4 ends where § After the cap starts, so the Tiers text cannot satisfy its pins.
+  const ITEM4_END = "\n## After the cap";
 
   it("rule 70 item 4 uses the pinned file and lists Medium findings", () => {
     const source = refs("landing-and-audit");

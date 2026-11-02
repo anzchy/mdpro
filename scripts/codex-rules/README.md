@@ -65,7 +65,9 @@ This mode checks every changed path in the net range from fetched remote
 touches any Markdown file or `docs/reference/adr-0147-rule-section-map.json`,
 it runs `tests/tooling/always-on-budget.test.ts` and
 `tests/tooling/rule-citations.test.ts` on a temporary `git archive` export of
-the candidate commit, and refuses on red (ADR-0147 decision 5). It does not
+the candidate commit (indexed with `git add --force`, so tracked files an
+ignore rule matches still count), under `scripts/heavy-lock.sh --guard-only`,
+and refuses on red (ADR-0147 decision 5). It does not
 consult PR or CI. Both landing modes push without force.
 
 In production, only the two approved GitHub origin URLs are accepted. Test
