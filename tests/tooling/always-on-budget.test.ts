@@ -25,7 +25,8 @@ const FILE_CAPS: Record<string, number> = {
   "AGENTS.md": 7_000,
 };
 // ADR-0147 d5 route caps (user: 「Accept, as failing gates (Recommended)」), both runtimes.
-const IMPLEMENTOR_ROUTE_CAP = 48_000;
+// D355 fix 1 ruling 2 (user: 「Raise to 48,500 B (Recommended)」; the D355 fold-in entry): the implementor routes only.
+const IMPLEMENTOR_ROUTE_CAP = 48_500;
 const DEVICE_ROUTE_CAP = 42_000;
 const DELEGATOR_ROUTE_CAP = 50_000;
 // D355 ruling 2 (user: 「Fable's split (Recommended)」): ADR-0147's values stand.
@@ -81,7 +82,7 @@ describe("always-on budget (live tree)", () => {
     expect(CODEX_SHARED_CAP).toBeLessThanOrEqual(CODEX_SHARED_CEILING);
     expect(FILE_CAPS).toEqual({ "CLAUDE.md": 9_000, ".claude/rules/70-multi-session-coordination.md": 6_000,
       ".claude/rules/71-herdr-mixed-roster.md": 4_000, "AGENTS.md": 7_000 });
-    expect(ROLE_CAPS).toEqual({ implementor: 48_000, auditor: 50_000, device: 42_000, delegator: 50_000 });
+    expect(ROLE_CAPS).toEqual({ implementor: 48_500, auditor: 50_000, device: 42_000, delegator: 50_000 });
     expect(DIMENSIONS_ALLOWANCE).toBe(13_000);
     expect(POLICY_AUDITOR_ROUTE_CAP).toBe(56_000);
   });
