@@ -2,7 +2,8 @@
 
 ## Status
 
-Proposed, 2026-11-02 (herdr-delegator), revision 3. The user chose each option below by AskUserQuestion on 2026-11-02:
+**Accepted, 2026-11-02, by the user:** 「Accept (Recommended)」, after plan review rounds 1–2 by gpt-auditor and
+opus-auditor and gpt-auditor's post-cap confirm (C0 H0). Proposed 2026-11-02 (herdr-delegator), revision 3. The user chose each option below by AskUserQuestion on 2026-11-02:
 「只收架构与产品 (Recommended)」, 「单独一份决定日志」, 「留在 spec 快照里 (Recommended)」,
 「Enforced by + 大项才审 (Recommended)」. The user then asked: 「上面决定让fable和codex也评估一下」. Plan review round 1
 by gpt-auditor and opus-auditor (Fable) found four Highs each, all fixable in the text, and agreed with every choice
