@@ -29,7 +29,7 @@ handoff. Each item is tagged `prep` or `impl`.
   Dirty, committed, waiting and fix work all count; the auditor's audits do not.
   Under herdr-delegator, one more slot holds a Low-tier item for gpt-imple-3 only
   ([ADR-0133](../../../../docs/adr/0133-a-third-codex-implementor-takes-low-tier-items-and-every-codex-agent-runs-with-a-context-cap.md);
-  rule 71 § Slots).
+  rule 71 § Slots). That slot is closed while gpt-imple-3 is retired ([the roster](roster-and-routing.md#roster)).
 - **Precedence**: audit fixes on your own work, then the current priority
   item, then a pull.
 - **Landing order is unchanged.** Among eligible items the user's priority

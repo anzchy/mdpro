@@ -237,7 +237,8 @@ user decision, 2026-10-22: 「Accept (Recommended)」). File-carried context rep
 
 - **Reset a pane** before every `gpt-auditor` and `opus-auditor` request (first audit, confirm, challenge, ADR or
   plan review) and every implementor fix that needs a new session
-  ([codex-panes.md § Restart](codex-panes.md#restart)): each auditor gets a new pane with the full launch line. The in-pane `/new` reset and its session-id check are superseded (ADR-0133
+  ([codex-panes.md § Restart](codex-panes.md#restart) for a Codex pane; `opus-auditor` is a new Claude Code pane on Opus,
+  [the roster](roster-and-routing.md#roster)): each auditor gets a new pane with the full launch line. The in-pane `/new` reset and its session-id check are superseded (ADR-0133
   decision 4): `/new` drops the launch flags, and herdr can report another project's session id.
 - **A request file is self-contained.** A confirm or challenge names:
   - the fix range;

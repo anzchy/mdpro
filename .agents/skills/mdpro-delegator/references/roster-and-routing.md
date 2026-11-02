@@ -72,7 +72,9 @@ Codex-route retirement of Opus). When a model is unavailable, the delegator tell
 | GUI tester for batches formerly assigned to dtrack, Mac mini and Windows | `gpt-auditor` | Codex herdr pane; Windows through `remote-windows-device-test` after the host-key/SSH checks | a fresh-pane device brief from the delegator | `~/.mdpro-redesign/device/<batch>-report.md`, then idle |
 
 The user decisions behind each row are quoted in ADR-0124. The `gpt-imple-3` row and the 2026-10-25 `opus-imple-1`
-row record how those roles were first set up.
+row record how those roles were first set up. `gpt-imple-3` is retired (user, 2026-10-29: 「其他implementor retire」;
+pane closed, worktree kept until rule 25 confirms its removal), and its Low-tier slot is closed. `gpt-imple-1` runs
+`gpt-6.1-sol` medium (user, 2026-10-29: 「gpt-imple-1 use GPT-6.1-Sol medium」; `gpt-6-sol` hit "model at capacity").
 
 **Since 2026-10-30, `opus-imple-2` joins as a third implementor** ([ADR-0156](../../../../docs/adr/0156-three-implementation-slots-and-opus-imple-2-joins-the-roster.md);
 user: 「create a new pane opus-imple-2 and delegate tasks to it.」, 「Raise cap to 3, all start」): Claude Code on Opus
