@@ -2573,7 +2573,30 @@
         "both runtimes have mattpocock-skills at or above the minimum, installed where checked and enabled"
       ],
       "prerequisite": "plugin"
-    }
+    },
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S1′, E1, G9: record writes the two item files in canonical bytes and no evidence.json"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S2, C2′: verify settles the item file beside a corrupt neighbour and leaves every other file's bytes alone"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S3: discard removes both item files of a branch receipt and nothing else"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S4, E2, S7: check-pending judges branch item files, not master's, and not the view"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "B2, B3, B5, B6, B9: an id that cannot be a safe, distinct file name is refused before any lane"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "C1, C5, C2: record refuses a corrupt or stray item file naming it, and check-pending refuses a misnamed one"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "C4: verify refuses an unreadable evidence file before the lane and leaves the receipt alone"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S6: an opaque-failure unit-red item file is re-recorded in place as one file"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "F1, F2, F3: a refused record keeps its invalid receipt visible and discardable, with no evidence, and a later record succeeds"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S8, S9: an id on master is neither discarded nor re-recorded, and a settled item file blocks a record with the view gone"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "S11: verify, discard and replay refuse an id that differs only in case from an item file"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-entry.test.ts", "RC5-S4 the entry on item files", "P2, E2E1: record, verify and replay on a branch keep canonical item files, replay lands in the evidence file, and keep-check passes"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 the view and its stamp", "S5′, V2: record rebuilds the view sorted from the item files and leaves an idle stamp that matches it"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 the view and its stamp", "V1: a view changed after the entry stamped it refuses the next record before any lane, leaving the view alone"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 the view and its stamp", "ruling 1 opus M1(a): a view with no stamp is refused as foreign, naming the file and the remedy"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 the view and its stamp", "L3′: a stamp left in the engine phase by a dead entry is rebuilt over, and the dead run's record is not kept"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 the view and its stamp", "ruling 1 opus M3: a PENDING verdict in an item file refuses record before any lane, naming the file"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 the view and its stamp", "S10: verify and discard never touch the view or its stamp, and the next record finds them its own"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "V3, V3c (R-h): a record written into the view during the engine call is a foreign change: exit 64 naming it, own file and evidence kept"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "V3b: a changed or deleted record of another id during the engine call is foreign, and its item file is untouched"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "L1: two records in one worktree serialise on the store lock and both keep their receipt"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "L2b: a discard during another id's engine call is not a foreign change"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "ruling 1 opus M5: capture takes the evidence lock only after the store lock is released"], "prerequisite": "plugin"}
   ],
   "exclusions": [
     {
