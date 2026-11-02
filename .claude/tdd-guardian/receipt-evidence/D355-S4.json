@@ -1,0 +1,33 @@
+{
+  "id": "D355-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:57:38.633Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rules-budget-lib-edges.test.ts\",\"S4: GitHub's slug keeps intraword and code underscores and drops emphasis underscores\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rules-budget-lib-edges.test.ts",
+        "line": 10
+      },
+      "message": "AssertionError: expected 'step-1-add-http-endpoint-in-httpserve…' to be 'step-1-add-http-endpoint-in-http_serv…' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S4/20261102T065738633Z/tests",
+    "tree": "f6b51040f101c7932301c5c19af1a4f51ba83e93"
+  },
+  "spec_blobs": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": "85be18ef8752295587c817a06808003ca5a49d92"
+  },
+  "settled_blobs": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": "85be18ef8752295587c817a06808003ca5a49d92"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "id": "D355-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:19:51.407Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L1: accepts a delegator references/*.md file as docs-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 324
+      },
+      "message": "AssertionError: docs-only range contains a disallowed path\n: expected 1 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L3: refuses a counted file whose rule tests are red, naming the test, in dry-run and real mode\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 348
+      },
+      "message": "AssertionError: .claude/rules/x.md --docs-only,--dry-run: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L4, L9, L10: runs exactly the two rule tests on an export of the candidate, then pushes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 360
+      },
+      "message": "AssertionError: expected 'checked main role, origin, clean inde…' to contain 'rule tests passed'"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L5: a docs-only range with no Markdown and no section map does not run the rule tests\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 376
+      },
+      "message": "AssertionError: expected 'checked main role, origin, clean inde…' to contain 'rule tests not run'"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L7, L10: references/guide.md, a docs/guide file, an agent file and the section map each trigger the rule tests\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 387
+      },
+      "message": "AssertionError: .agents/skills/mdpro-delegator/references/guide.md: expected '' to contain 'arg=tests/tooling/rule-citations.test…'"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L8: tests the committed tree, so an unstaged green edit over a committed red file is refused\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 397
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L9: the real runner passes this tree and refuses it with a padded CLAUDE.md\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 437
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/codex-land-guard-docs.test.ts\",\"L9: the runner override is honoured only in guard test mode\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-docs.test.ts",
+        "line": 406
+      },
+      "message": "AssertionError: expected [] to deeply equal [ '/tmp/stub', [ …(2) ] ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S3/20261102T061951407Z/tests",
+    "tree": "5cb2db4a2b927498ea2cbe6cc25c34f72bb79f9d"
+  },
+  "spec_blobs": {
+    "tests/tooling/codex-land-guard-docs.test.ts": "4358633145c0e0df6684e1467083fc5da3e69410"
+  },
+  "settled_blobs": {
+    "tests/tooling/codex-land-guard-docs.test.ts": "4358633145c0e0df6684e1467083fc5da3e69410"
+  }
+}

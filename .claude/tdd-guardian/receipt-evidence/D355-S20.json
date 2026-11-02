@@ -1,0 +1,69 @@
+{
+  "id": "D355-S20",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T15:58:54.083Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix4-props.test.ts\",\"D355 fix 4: no permanent D355 test needs history\",\"F0: no D355 test file or lib reads a git object outside the checked-out tree\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix4-props.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [ …(4) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix4-props.test.ts\",\"D355 fix 4: the D302 exceptions file names no D355 file (was fix3-lint L11)\",\"F2: a copy of the real file with two D355 entries reports exactly those two\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix4-props.test.ts",
+        "line": 89
+      },
+      "message": "AssertionError: expected [] to deeply equal [ …(2) ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix4-props.test.ts\",\"D355 fix 4: the D302 exceptions file names no D355 file (was fix3-lint L11)\",\"F2b: a file that is not an array of entries throws\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix4-props.test.ts",
+        "line": 95
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix4-props.test.ts\",\"D355 fix 4: the superseded-phrase scanner, calibrated on the candidate's text (was fx1 A1-cal)\",\"F1: every recorded site has a superseded phrase starting on its first line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix4-props.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected [] to deeply equal [ …(12) ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix4-props.test.ts\",\"D355 fix 4: the superseded-phrase scanner, calibrated on the candidate's text (was fx1 A1-cal)\",\"F1c: the calibration needs normalise: some site's phrase is not a raw substring of its text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix4-props.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected 0 to be greater than 0"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S20/20261102T155854083Z/tests",
+    "tree": "4f1b1fb1ce9bbb77349be7e71db0d77245e60432"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix4-props.test.ts": "4dd26908767f5c82955b821239dc49ba23b462bb"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix4-props.test.ts": "4dd26908767f5c82955b821239dc49ba23b462bb"
+  }
+}

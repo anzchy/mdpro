@@ -1,0 +1,131 @@
+{
+  "id": "D355-S15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T09:21:28.000Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B10: rule 12 and implementor.md § Gated items do not make jack-tdd-workflow every runtime's method before go-live\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 114
+      },
+      "message": "AssertionError: expected '**Implementation** follows `jack-tdd-…' to contain 'go-live'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B1: implementor.md names both runtimes' current method and T-02's go-live\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 15
+      },
+      "message": "AssertionError: go-live: expected ' ## Matrix and attack A test matrix i…' to contain 'go-live'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B2: implementor.md sends Claude to the skill's steps by path#anchor, with a fresh attacker\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: 1-design-the-test-matrix: expected ' ## Matrix and attack A test matrix i…' to contain '.agents/skills/jack-tdd-workflow/SKIL…'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B3: rule 71 § Briefs names go-live and both runtimes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: go-live: expected ' ## Briefs and self-acceptance The im…' to contain 'go-live'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B4: AGENTS.md's skill row says the brief names the skill and keeps tdd-guardian until go-live\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected 'Use your installed copy; the brief na…' to match /the brief names (the|which) skill/"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B5: while prompt.sh still sends Codex tdd-guardian, ADR-0161 is the base bytes with no Current text (T-02 flips this)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 62
+      },
+      "message": "AssertionError: expected '41e6c2a2707d3af08f76594190ce6c1cd7e55…' to be 'b4a4cc54b9c2f6259cd35f3fc28b83d47db09…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B6: the fold-in entry's ADR count matches the ADRs that link it, and 0161 says it waits for T-02\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 71
+      },
+      "message": "ReferenceError: fs is not defined"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B7: § Confirm handoff defines its step and its three Highs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: The plugin runs: expected ' ## Confirm handoff <!-- moved-from: …' not to contain 'The plugin runs'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B8: the brief template keeps Codex on tdd-guardian and points Claude at implementor.md\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 89
+      },
+      "message": "AssertionError: expected '# <ITEM>: <one-line defect or work it…' to contain 'implementor.md#matrix-and-attack'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B9: implementor.md and rule 71 say Codex keeps tdd-guardian until go-live and jack-tdd-workflow applies from it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 96
+      },
+      "message": "AssertionError: docs/agents/implementor.md: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the pre-go-live TDD law (ruling 1 R1)\",\"B9b: implementor.md's Claude sentence links the skill's attack step\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 109
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S15/20261102T092128000Z/tests",
+    "tree": "af7e5d279c05231f964a4e4c2e3ec3b74f65db3c"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix1-fx2.test.ts": "69b2e4d2d55340cd4b51d87ce224b5c929ca05f4"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix1-fx2.test.ts": "286a8a0bc5573389bba7fe2a2f40a3a6c7c38282"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D355-S15.json",
+    "digest": "5f36593b5140bdf4427dfc27b264f9bfba2d4de2fda4370ed24ff183014afc6b",
+    "result": "failed",
+    "base": "22ffe5eadf6abd9de0d234da2e80d8d501a93403",
+    "head": "4fe1b8f2960aa74b1c903e87c655643f475bddba"
+  }
+}

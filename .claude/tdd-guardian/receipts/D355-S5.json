@@ -1,0 +1,55 @@
+{
+  "id": "D355-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:58:34.578Z",
+  "head_sha": "9df980716a760886d61573c712bd51484a097e42",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": {
+      "state": "ok",
+      "sha": "9ecdf7c155b784d60635bc61898609e040e7fd750f183e2d5731b86d50eb912a",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1fc60befc7303258",
+        "f42d192e9532051f",
+        "ae8fc14ffc3dff5b",
+        "6e6e8b4f3304eb81",
+        "47c786f44457cc58",
+        "0cb16cc14c993ffe",
+        "045ddb0b462554e2",
+        "408908aa6974161d",
+        "2fbce4ecdb02ec5d",
+        "e13554126d453b9d",
+        "29576b54e255e3c9",
+        "10713df79e31733e",
+        "608f77ab0c8f32ac",
+        "447d37f511650481",
+        "eb8631553bbc426e",
+        "20e03449fc0c85d1",
+        "46ea972a0e077c32",
+        "29576b54e255e3c9",
+        "e0a38b2fdef860cc",
+        "0a2fc6964382a556",
+        "0ae47a13980fb259",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-02T06:58:52.380Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

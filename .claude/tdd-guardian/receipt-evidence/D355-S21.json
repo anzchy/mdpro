@@ -1,0 +1,186 @@
+{
+  "id": "D355-S21",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T01:48:04.205Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: an allowlist entry clears a flagged file only when its scope check holds\",\"H10: on disk, the closure walks real imports, and a mkdtemp tree runs through the same entry point F0 uses (attack gap 9)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 186
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal [ …(5) ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: an allowlist entry clears a flagged file only when its scope check holds\",\"H7: temp-repo: a confined file is cleared; each route to the repo root is a problem\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 138
+      },
+      "message": "AssertionError: import { execFile, spawn, exec } from \"node:child_process\";\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nconst root = path.resolve(__dirname, \"../..\"); const dir = fs.mkdtempSync(path.join(os.tmpdir(), \"x-\"));\nawait run(\"git\", [\"init\", \"-q\"], { cwd: root });\nawait run(\"git\", [\"show\", \"HEAD:a\"], { cwd: dir });: expected 0 to be greater than 0"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: an allowlist entry clears a flagged file only when its scope check holds\",\"H7c: temp-repo is checked over the entry's imports too (attack gap 7)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 146
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: an allowlist entry clears a flagged file only when its scope check holds\",\"H8: head: the pinned ls-tree HEAD is cleared; every other revision form or verb is a problem\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 167
+      },
+      "message": "AssertionError: import { execFile, spawn, exec } from \"node:child_process\";\nconst committed = await run(\"git\", [\"ls-tree\", \"-r\", \"-z\", \"--name-only\", \"HEAD~1\"], { cwd: root });: expected 0 to be greater than 0"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: an allowlist entry clears a flagged file only when its scope check holds\",\"H8c: head is checked over the entry's imports too (attack gap 7)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 174
+      },
+      "message": "AssertionError: expected 0 to be greater than 0"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: an allowlist entry clears a flagged file only when its scope check holds\",\"H9: an empty reason, an unknown scope, an unscanned file and a stale entry are each a problem\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 179
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H1: variable verb, variable argv, spread, multiline, GIT constant, quotes, template, command string, ] in an argument\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: const verb = \"show\"; execFile(\"git\", [verb, rev]);: expected [] to deeply equal [ 'tests/v/t.test.ts: show' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H2: each listed history verb in a literal call is flagged and named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 50
+      },
+      "message": "AssertionError: ls-tree: expected [] to deeply equal [ 'tests/v/t.test.ts: ls-tree' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H2b: hyphenated compounds and the other history-moving verbs are flagged (attack gap 2)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 56
+      },
+      "message": "AssertionError: diff-index: expected [] to deeply equal [ 'tests/v/t.test.ts: diff-index' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H3: a local helper that runs git makes its importer flagged, also through a verb kept in another module\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'tests/v/t.test.ts: show' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H3b/H3c: helpers outside tests/ are followed too, through two hops (attack gap 5)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 72
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'tests/v/t.test.ts: show' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H4: the exec-a package, and a required child-process module\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected [ 'tests/v/t.test.ts: show' ] to deeply equal [ 'tests/v/t.test.ts: log' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H4b: importing a git library flags the file outright (attack gap 3)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 86
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'tests/v/t.test.ts: git library' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H6: fail closed: an unresolvable relative import, an unreadable entry file, a computed specifier each throw\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 96
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the history rule flags every form both auditors probed\",\"H6b: a side-effect import is followed (attack gap 4)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 105
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'tests/v/t.test.ts: show' ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the real D355 tests\",\"F0-list: the allowlist is the S7 export test, scope head, pinned to its one ls-tree\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 208
+      },
+      "message": "AssertionError: expected [] to deeply equal [ [ …(3) ] ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the real D355 tests\",\"F0-raw: before clearing, exactly the S7 export test is flagged\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 204
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix5-history.test.ts\",\"D355 fix 5: the real D355 tests\",\"F0: no scanned file is flagged uncleared, and no allowlist entry has a problem\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix5-history.test.ts",
+        "line": 214
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S21/20261103T014804205Z/tests",
+    "tree": "274edd03c57f6d6f09dc15e6b3122bc0202e1f8d"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix5-history.test.ts": "9e9dab0a1d72ccb5a5162abedabdf6ef7453e6ca"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix5-history.test.ts": "9e9dab0a1d72ccb5a5162abedabdf6ef7453e6ca"
+  }
+}

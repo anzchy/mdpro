@@ -1,9 +1,21 @@
 #!/usr/bin/env node
-/** Purpose: fast-forward a checked PR head or push validated docs-only commits onto master. */
+/**
+ * Purpose: fast-forward a checked PR head or push validated docs-only commits onto master.
+ * Key decisions: a docs-only range that touches Markdown or the ADR-0147 section map runs the always-on budget and
+ * citation tests on an export of the candidate commit, never on the working tree (D355, ADR-0147 decision 5).
+ */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { checkedContext, commitOid, fail, git, run } from "./push-guard.mjs";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const RULE_TESTS = ["tests/tooling/always-on-budget.test.ts", "tests/tooling/rule-citations.test.ts"];
+const SECTION_MAP = "docs/reference/adr-0147-rule-section-map.json";
+const DELEGATOR_REFERENCE = /^\.agents\/skills\/mdpro-delegator\/references\/[^/]+\.md$/;
+const OUTPUT_TAIL = 4000;
 
 function parse(argv) {
   const [sha, ...rest] = argv;
@@ -19,7 +31,12 @@ function allowedDocsPath(name) {
   return name.startsWith("docs/") ||
     (name.startsWith("design/") && name.endsWith(".md")) ||
     ["CHANGELOG.md", "CLAUDE.md", "AGENTS.md"].includes(name) ||
-    /^\.claude\/(?:rules|agents)\/[^/]+\.md$/.test(name);
+    /^\.claude\/(?:rules|agents)\/[^/]+\.md$/.test(name) ||
+    DELEGATOR_REFERENCE.test(name);
+}
+/** Every counted file is Markdown, so any Markdown (or the section map) is a superset of the budget's closure. */
+function ruleTestsTriggered(changed) {
+  return changed.some(name => name.endsWith(".md") || name === SECTION_MAP);
 }
 const PROTECTED_AUDIT_FILES = new Set(["docs/agents/audit-dimensions.md", "docs/agents/audit-policy-set.md"]);
 function protectedAuditPath(name) {
@@ -34,6 +51,36 @@ function openPrs() {
     fail("open PR lookup returned invalid shape");
   }
   return prs;
+}
+/** The runner override exists for the guard's own tests and is ignored outside MDPRO_GUARD_TEST=1. */
+export function ruleTestCommand(env = process.env) {
+  if (env.MDPRO_GUARD_TEST === "1" && env.MDPRO_GUARD_RULE_TEST_RUNNER) return [env.MDPRO_GUARD_RULE_TEST_RUNNER, RULE_TESTS];
+  return [process.execPath, [path.join(ROOT, "node_modules/vitest/vitest.mjs"), "run", ...RULE_TESTS]];
+}
+/** Runs the two rule tests on a temporary export of `tree` (a commit or tree id) and removes the export. */
+export function runRuleTests(tree, env = process.env) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mdpro-land-rules-"));
+  try {
+    const tar = path.join(dir, "tree.tar"), work = path.join(dir, "tree");
+    fs.mkdirSync(work);
+    const archived = run("git", ["archive", "--format=tar", "-o", tar, tree]);
+    if (archived.status !== 0) return { status: 1, output: `git archive failed: ${archived.stderr.trim()}` };
+    const extracted = run("tar", ["-xf", tar, "-C", work]);
+    if (extracted.status !== 0) return { status: 1, output: `tar failed: ${extracted.stderr.trim()}` };
+    // The budget test enumerates files with `git ls-files`, so the export gets its own throwaway index.
+    for (const args of [["init", "-q"], ["add", "--all", "--", "."]]) {
+      const r = run("git", args, work);
+      if (r.status !== 0) return { status: 1, output: `export index failed: ${r.stderr.trim()}` };
+    }
+    const modules = path.join(ROOT, "node_modules");
+    if (fs.existsSync(modules)) fs.symlinkSync(modules, path.join(work, "node_modules"));
+    const [file, args] = ruleTestCommand(env);
+    const r = spawnSync(file, args, { cwd: work, encoding: "utf8", env: { ...env, VITEST_MAX_WORKERS: "2" } });
+    const output = `${r.stdout || ""}${r.stderr || ""}${r.error ? r.error.message : ""}`;
+    return { status: r.status === 0 && !r.error ? 0 : 1, output };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 function assertCleanIndex() {
   const staged = run("git", ["diff", "--cached", "--quiet"]);
@@ -59,6 +106,15 @@ export function land(argv = process.argv.slice(2)) {
       fail("ADR-0146 decision 1: audit dimensions and policy set changes require a High-tier PR under the old pin and both-auditor plan review; docs-only landing also refuses changed symlinks");
     }
     if (!changed.length || changed.some(name => !allowedDocsPath(name))) fail("docs-only range contains a disallowed path");
+    if (ruleTestsTriggered(changed)) {
+      const tested = runRuleTests(oid);
+      if (tested.status !== 0) {
+        fail(`ADR-0147 decision 5: ${RULE_TESTS.join(" and ")} must pass on ${oid}; stop on red:\n${tested.output.slice(-OUTPUT_TAIL)}`);
+      }
+      process.stdout.write(`rule tests passed on ${oid}\n`);
+    } else {
+      process.stdout.write("rule tests not run: the range touches no Markdown and no section map\n");
+    }
     process.stdout.write("checked main role, origin, clean index, fetched ancestry and docs-only paths; PR, CI, verifier PASS and audit verdict are not checked\n");
     const result = run("git", ["push", "--no-follow-tags", ...(dryRun ? ["--dry-run"] : []), url, `${oid}:refs/heads/master`]);
     if (result.status !== 0) fail(`non-fast-forward docs-only push rejected: ${result.stderr.trim()}`);

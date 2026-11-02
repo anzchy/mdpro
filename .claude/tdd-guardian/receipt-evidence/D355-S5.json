@@ -1,0 +1,33 @@
+{
+  "id": "D355-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:58:34.578Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rules-budget-lib-edges.test.ts\",\"S5: a malformed percent sequence resolves literally instead of throwing, so the scan names the file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rules-budget-lib-edges.test.ts",
+        "line": 18
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'URIError: URI malformed' was thrown"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S5/20261102T065834578Z/tests",
+    "tree": "d7a4c7d692258e0b09e9911a90b95c5b258a0d82"
+  },
+  "spec_blobs": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": "0184240d2eeeeb6213b1b01cfbd3975fa01f6e9a"
+  },
+  "settled_blobs": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": "0184240d2eeeeb6213b1b01cfbd3975fa01f6e9a"
+  }
+}

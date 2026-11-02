@@ -1,0 +1,60 @@
+{
+  "id": "D355-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:42:52.337Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rules-budget-caps.test.ts\",\"P3'/P7: every live route's cap follows from its definition, and each policy route is its ordinary route plus the policy set\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rules-budget-caps.test.ts",
+        "line": 39
+      },
+      "message": "AssertionError: auditor-audit-policy is a route: expected undefined to be defined"
+    },
+    {
+      "id": "[\"tests/tooling/rules-budget-caps.test.ts\",\"P3': an ordinary auditor route at 52,000 B is over; a policy-routed one is over only past 56,000 B\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rules-budget-caps.test.ts",
+        "line": 28
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'auditor-audit (claude)' ]"
+    },
+    {
+      "id": "[\"tests/tooling/rules-budget-caps.test.ts\",\"P3': capOf is the policy cap exactly when the route's start names the policy set, else its role's cap\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rules-budget-caps.test.ts",
+        "line": 22
+      },
+      "message": "AssertionError: expected +0 to be 50000 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rules-budget-caps.test.ts\",\"P6: a policy route whose policy set is missing names it as a route error\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/rules-budget-lib.ts",
+        "line": 229
+      },
+      "message": "TypeError: Cannot read properties of undefined (reading 'start')"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S10/20261102T074252337Z/tests",
+    "tree": "5eb6fb161baa8ddfffa783804aeaf6e51f88b90f"
+  },
+  "spec_blobs": {
+    "tests/tooling/rules-budget-caps.test.ts": "b1431bb7c0e56807f8b3b0e6384ec12e7b259663"
+  },
+  "settled_blobs": {
+    "tests/tooling/rules-budget-caps.test.ts": "b1431bb7c0e56807f8b3b0e6384ec12e7b259663"
+  }
+}

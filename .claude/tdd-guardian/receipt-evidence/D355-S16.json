@@ -1,0 +1,60 @@
+{
+  "id": "D355-S16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T09:21:34.788Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx3.test.ts\",\"FX-3: AGENTS.md binds rules 70 and 71 and maps each role to its files (ruling 1 R3)\",\"C1: the conditional wording is gone\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx3.test.ts",
+        "line": 12
+      },
+      "message": "AssertionError: expected '# Repository Guidelines\\n\\n## Every s…' not to contain 'when your request lists them'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx3.test.ts\",\"FX-3: AGENTS.md binds rules 70 and 71 and maps each role to its files (ruling 1 R3)\",\"C2: rules 70 and 71 bind every herdr session, unconditionally\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx3.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected '## every session (codex) codex loads …' to match /(^|\\. )rules 70 and 71 bind every her…/"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx3.test.ts\",\"FX-3: AGENTS.md binds rules 70 and 71 and maps each role to its files (ruling 1 R3)\",\"C3: a role table maps each role to its role file and rules 70 and 71, all existing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx3.test.ts",
+        "line": 24
+      },
+      "message": "AssertionError: expected '' to contain '`docs/agents/implementor.md`'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx3.test.ts\",\"FX-3: AGENTS.md binds rules 70 and 71 and maps each role to its files (ruling 1 R3)\",\"C5: no sentence about the role file or rules 70/71 is conditional\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx3.test.ts",
+        "line": 44
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S16/20261102T092134788Z/tests",
+    "tree": "af7e5d279c05231f964a4e4c2e3ec3b74f65db3c"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix1-fx3.test.ts": "42bb09627a102b7f120d831e23dc1ea32b421bb7"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix1-fx3.test.ts": "42bb09627a102b7f120d831e23dc1ea32b421bb7"
+  }
+}

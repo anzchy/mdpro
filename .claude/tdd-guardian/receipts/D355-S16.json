@@ -1,0 +1,73 @@
+{
+  "id": "D355-S16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T09:21:34.788Z",
+  "head_sha": "98de0c6973d5acb6aab3e005d66e79d9ccac9971",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "4 of 5 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/d355-fix1-fx3.test.ts": {
+      "state": "ok",
+      "sha": "b6acd80430ca3c4ecec6ed2baa50f015bfbff06ce27f6f3352582836e7a01cca",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "505af006e65a89fd",
+        "9c94784f8cfa14e6",
+        "e0cbdab303939db3",
+        "2e2e1b44dae6837a",
+        "3e64b0f9de5c1ed4",
+        "fc63fdc64824fe70",
+        "e17b39a7c589ac6e",
+        "2d6604ed64a94737",
+        "4ef2d346aa06f7f7",
+        "f92794461b999155",
+        "5b42a98425a0a7c1",
+        "29576b54e255e3c9",
+        "164c4a005b72f5b2",
+        "fbaa33bd410c783d",
+        "29576b54e255e3c9",
+        "37b35264bdf3c99b",
+        "58c4683aa89da151",
+        "fc4b24fe07cc3c68",
+        "8fd60d0b46a9af06",
+        "bf03d4a1b3732a6d",
+        "aebdca599f1e8262",
+        "3476bfcf6cd24c18",
+        "55d4b14c0616cf91",
+        "3995db7bd50e3631",
+        "a3be1cf68f4d07a4",
+        "9993e239492d8cc0",
+        "f9a35fedc144e4e9",
+        "7eb4fc53fc8574b0",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "5262232aad482bf9",
+        "37059ec051023fad",
+        "b0f6affd0e7ef9e7",
+        "94a10372e36fe905",
+        "29576b54e255e3c9",
+        "f35ed7227121d922",
+        "b66d0e568e9d41d3",
+        "e6f0d4ca1047a329",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-02T09:42:11.159Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

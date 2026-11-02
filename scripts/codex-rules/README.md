@@ -59,9 +59,14 @@ node scripts/codex-rules/land-guard.mjs --docs-only [--dry-run]
 
 This mode checks every changed path in the net range from fetched remote
 `master` to local `HEAD`. It permits `docs/**`, Markdown under `design/`,
-`CHANGELOG.md`, `CLAUDE.md`, `AGENTS.md`, and direct Markdown children of
-`.claude/rules/` or `.claude/agents/`. It does not consult PR or CI. Both
-landing modes push without force.
+`CHANGELOG.md`, `CLAUDE.md`, `AGENTS.md`, direct Markdown children of
+`.claude/rules/` or `.claude/agents/`, and direct Markdown children of
+`.agents/skills/mdpro-delegator/references/` (not `templates/`). When the range
+touches any Markdown file or `docs/reference/adr-0147-rule-section-map.json`,
+it runs `tests/tooling/always-on-budget.test.ts` and
+`tests/tooling/rule-citations.test.ts` on a temporary `git archive` export of
+the candidate commit, and refuses on red (ADR-0147 decision 5). It does not
+consult PR or CI. Both landing modes push without force.
 
 In production, only the two approved GitHub origin URLs are accepted. Test
 mode uses `MDPRO_GUARD_TEST=1` with a main checkout and bare origin that both

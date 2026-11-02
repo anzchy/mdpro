@@ -1,0 +1,33 @@
+{
+  "id": "D355-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:59:19.837Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rules-budget-lib-edges.test.ts\",\"S6: a read-block entry that is not Markdown is an error, so land-guard's Markdown trigger covers every counted file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rules-budget-lib-edges.test.ts",
+        "line": 35
+      },
+      "message": "AssertionError: expected [ 'docs/b.md', 'docs/c.json' ] to deeply equal [ 'docs/b.md' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S6/20261102T065919837Z/tests",
+    "tree": "c37a77311a45ea2b3ea10f37ce238079c8932c61"
+  },
+  "spec_blobs": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": "0cc2d6926d7aee387578a63446a247ee2831d275"
+  },
+  "settled_blobs": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": "0cc2d6926d7aee387578a63446a247ee2831d275"
+  }
+}

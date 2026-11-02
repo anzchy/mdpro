@@ -1,0 +1,65 @@
+{
+  "id": "D355-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:59:19.837Z",
+  "head_sha": "9df980716a760886d61573c712bd51484a097e42",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": {
+      "state": "ok",
+      "sha": "f135ac2ee012dae2230b4784803cbff9f1994fd00581b5b66a0902bc5bd6f297",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1fc60befc7303258",
+        "f42d192e9532051f",
+        "ae8fc14ffc3dff5b",
+        "6e6e8b4f3304eb81",
+        "47c786f44457cc58",
+        "0cb16cc14c993ffe",
+        "045ddb0b462554e2",
+        "408908aa6974161d",
+        "2fbce4ecdb02ec5d",
+        "e13554126d453b9d",
+        "29576b54e255e3c9",
+        "10713df79e31733e",
+        "608f77ab0c8f32ac",
+        "447d37f511650481",
+        "eb8631553bbc426e",
+        "20e03449fc0c85d1",
+        "46ea972a0e077c32",
+        "29576b54e255e3c9",
+        "e0a38b2fdef860cc",
+        "0a2fc6964382a556",
+        "0ae47a13980fb259",
+        "29576b54e255e3c9",
+        "89bf0c7e32a43cb4",
+        "20e03449fc0c85d1",
+        "893dbab0d5ca4e8b",
+        "f930c25470da7d43",
+        "6183777269c3c250",
+        "29576b54e255e3c9",
+        "72bfd497ee33c9c5",
+        "b83f8a4cfe8aa2bc",
+        "fcfc94503139fb38",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-02T06:59:38.849Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

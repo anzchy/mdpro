@@ -1,0 +1,51 @@
+{
+  "id": "D355-S9",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:39:28.031Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-r3-history.test.ts\",\"D355 history file at the rebased base\",\"P29: the header and every section heading name 9c32bcde, none db04d826\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-history.test.ts",
+        "line": 50
+      },
+      "message": "AssertionError: expected '# Rules 70 and 71: history\\n\\nThis fi…' to contain 'as they stood at `9c32bcde`'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-r3-history.test.ts\",\"D355 history file at the rebased base\",\"P29: the rule 70 and rule 71 bodies are the base's text under the stated transform\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-history.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: ## Rule 70 at 9c32bcde\n\n: expected -1 to be greater than or equal to 0"
+    },
+    {
+      "id": "[\"tests/tooling/d355-r3-history.test.ts\",\"D355 history file at the rebased base\",\"P30: the entries that state the pre-D355 SHA name 9c32bcde\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-history.test.ts",
+        "line": 69
+      },
+      "message": "AssertionError: expected '# 2026-11-02: D355 folds rules 70 and…' to contain 'The full text at `9c32bcde` is in the…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S9/20261102T073928031Z/tests",
+    "tree": "27f714fb9465a2cbd89a18dc7ccce457a44501f4"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-r3-history.test.ts": "46ee9129fe1a372fbc87c1df4efb8a5572ff0846"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-r3-history.test.ts": "46ee9129fe1a372fbc87c1df4efb8a5572ff0846"
+  }
+}

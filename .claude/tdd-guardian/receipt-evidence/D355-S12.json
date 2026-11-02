@@ -1,0 +1,69 @@
+{
+  "id": "D355-S12",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:46:07.913Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-r3-homes.test.ts\",\"P26: docs/agents/auditor.md carries the policy pin beside the dimension pin\",\"the intro names <P> beside <B>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-homes.test.ts",
+        "line": 31
+      },
+      "message": "AssertionError: expected '# Auditor What `gpt-auditor` and `opu…' to contain '`<P>`'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-r3-homes.test.ts\",\"P26: docs/agents/auditor.md carries the policy pin beside the dimension pin\",\"§ Dimensions carries the routed string and says to echo <P> beside <B>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-homes.test.ts",
+        "line": 36
+      },
+      "message": "AssertionError: expected ' ## Dimensions Use the set the dimens…' to contain '`docs/agents/audit-policy-set.md` blo…'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-r3-homes.test.ts\",\"P27: the D355 fold-in entry and ADR-0147's D355 Status line point to the policy-split entry\",\"ADR-0147's D355 Status line no longer claims the 13,000 B allowance\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-homes.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected '**Current text: `.claude/rules/70-mul…' not to contain '13,000'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-r3-homes.test.ts\",\"P27: the D355 fold-in entry and ADR-0147's D355 Status line point to the policy-split entry\",\"supersedes no allowance and names no retired exception\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-homes.test.ts",
+        "line": 47
+      },
+      "message": "AssertionError: expected ' ADR-0147 decision 5\\'s dimension all…' not to contain '11,500'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-r3-homes.test.ts\",\"P27: the D355 fold-in entry and ADR-0147's D355 Status line point to the policy-split entry\",\"§ Changed points to the policy-split entry for the allowance and both auditor caps\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-r3-homes.test.ts",
+        "line": 53
+      },
+      "message": "AssertionError: expected ' ## Changed - **Codex and rules 22 an…' to contain '20261102-audit-policy-set-split.md'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S12/20261102T074607913Z/tests",
+    "tree": "cd4ff4e75aa2928cb433938b2ba6a74cddc70fdb"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-r3-homes.test.ts": "376b726d7885ff892822d2b4c4d10d8328ba1730"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-r3-homes.test.ts": "376b726d7885ff892822d2b4c4d10d8328ba1730"
+  }
+}

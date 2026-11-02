@@ -1,0 +1,150 @@
+{
+  "id": "D355-S19",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T15:16:53.496Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/codex-land-guard-export.test.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/codex-land-guard-export…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/d355-fix1-lib.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/d355-fix1-lib.ts:12: sy…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/d355-r3-history.test.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/d355-r3-history.test.ts…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/gh586-audit-policy-split.test.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/gh586-audit-policy-spli…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/rules-budget-fixture.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/rules-budget-fixture.ts…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/rules-budget-lib.test.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/rules-budget-lib.test.t…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L1-L7: tests/tooling/rules-lib-core.ts passes the lint on its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 'tests/tooling/rules-lib-core.ts:25: s…' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L10: a fixture's tracked files are exactly what it added: CJK unquoted, untracked absent\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 17
+      },
+      "message": "Error: sync"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L12: no flagged file, nor any module it imports relatively, names a synchronous child call\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected [ …(13) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L13: a fixture is built and read with every synchronous child call throwing\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 103
+      },
+      "message": "Error: promise rejected \"Error: sync\" instead of resolving"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L14: a failed load rejects and caches nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 108
+      },
+      "message": "AssertionError: expected 'undefined' to be 'function' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L15: the cache is per root: two fixtures keep their own lists, a third unloaded repository still throws\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 17
+      },
+      "message": "Error: sync"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L9: trackedFiles never runs git itself; an unloaded root names loadTrackedFiles\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 81
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /loadTrackedFiles/ but got 'sync'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix3-lint.test.ts\",\"D355 fix 3: the test lint\",\"L9b: an unloaded root that is a real repository still throws; trackedFiles does not fall back to git\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix3-lint.test.ts",
+        "line": 86
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /loadTrackedFiles/ but got 'sync'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S19/20261102T151653496Z/tests",
+    "tree": "960656303390b9e7e86e2d4775a5bf9fc4b3692a"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix3-lint.test.ts": "3f13fbe66c260afe92fb86d56ee04d9ab5537e5e"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix3-lint.test.ts": "3f13fbe66c260afe92fb86d56ee04d9ab5537e5e"
+  }
+}

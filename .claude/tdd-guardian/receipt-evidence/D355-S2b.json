@@ -1,0 +1,114 @@
+{
+  "id": "D355-S2b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:17:02.665Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"each shared file is under its own byte and line cap (B17, B33)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 99
+      },
+      "message": "AssertionError: CLAUDE.md bytes: expected 31047 to be less than or equal to 9000"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"every route, on both runtimes, fits its cap; only a named known exception may not, and it must still fail (B2, B20, B31, B36)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 113
+      },
+      "message": "AssertionError: delegator (codex): expected [ 'AGENTS.md has no read block' ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"no mandatory read hides outside a read block, and every repo link there carries a live anchor (B12–B14, B23, B30, B39)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 176
+      },
+      "message": "AssertionError: expected [ …(48) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"rule files: the inventory is the one at db04d826, and paths: scoping is exact (B19, B41)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 140
+      },
+      "message": "AssertionError: expected null to deeply equal [ 'src/**', 'src-tauri/**', …(5) ]"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"the Claude always-on set is CLAUDE.md plus the five always-on rules, under its cap (B1, B2, B34)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 86
+      },
+      "message": "AssertionError: expected [ '.claude/rules/10-tdd.md', …(7) ] to deeply equal [ …(5) ]"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"the Claude delegator's docs-only step runs both tests and stops on red (B43, ADR-0147 d5)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 182
+      },
+      "message": "AssertionError: SKILL.md names both tests in one command: expected undefined to be defined"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"the Codex shared set is AGENTS.md's read block, under its cap (B9, B10, B34)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 92
+      },
+      "message": "AssertionError: expected [ 'AGENTS.md has no read block' ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"the auditor routes carry the dimension file, within its allowance or as the named exception (B21, B32, B36)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 128
+      },
+      "message": "AssertionError: expected [ 'CLAUDE.md', …(9) ] to include 'docs/agents/audit-dimensions.md'"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"the history file and the section map exist (ADR-0147 d2, d4)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 188
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"the role files' read blocks name what the ruling says (B34)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 158
+      },
+      "message": "AssertionError: expected [] to include '.claude/rules/10-tdd.md'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S2b/20261102T061702665Z/tests",
+    "tree": "fd5704cfa38329cbc3c8918a707d0e833232528e"
+  },
+  "spec_blobs": {
+    "tests/tooling/always-on-budget.test.ts": "e7f9bc82c9544105f3b12d443e2cb2804cbb87b1"
+  },
+  "settled_blobs": {
+    "tests/tooling/always-on-budget.test.ts": "e7f9bc82c9544105f3b12d443e2cb2804cbb87b1"
+  }
+}

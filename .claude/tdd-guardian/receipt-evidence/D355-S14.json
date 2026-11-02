@@ -1,0 +1,149 @@
+{
+  "id": "D355-S14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T09:21:15.115Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A10: ADR and plan review, and the round-one posts, go to both auditors\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 110
+      },
+      "message": "AssertionError: expected 'adrs and plans: a plan before its fir…' to contain 'gpt-auditor'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A11: after round two the user rules (ADR-0129), never another owner fix by default\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 122
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A12: the fold-in entry records the ADR-0143 rewrites and no longer calls the moves verbatim\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 129
+      },
+      "message": "AssertionError: #audits-under-herdr: expected '# 2026-11-02: D355 folds rules 70 and…' to contain '#audits-under-herdr'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A13: the Low tier keeps its meaning, with opus-auditor in Fable's place\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected '- low (css, docs except docs/agents/a…' not to contain 'fable'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A1: no live home keeps the superseded round cap or auditor routing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 9
+      },
+      "message": "AssertionError: expected [ …(18) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A1b: no live home brings a third round back under a confirm label\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 15
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A2: § Audit merge states the pair, the blind round, the challenge by request file, both posts and two rounds\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: ADR-0143: expected ' ## Audit merge <!-- moved-from: rule…' to contain 'ADR-0143'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A3: § Audits under herdr sends PRs to both auditors, with security in both requests, and merges both reports\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A4: § Requests resets both auditors into fresh panes in one bullet\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 46
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A5: roster-and-routing makes opus-auditor an auditor on both routes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 53
+      },
+      "message": "AssertionError: expected ' ## Runtime route <!-- moved-from: ru…' to match /`gpt-auditor` and `opus-auditor`/"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A6: ADR-0143's Current text points at the corrected § Audit merge, and its body is unchanged\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 69
+      },
+      "message": "AssertionError: expected '# 0143. Every audit runs gpt-auditor …' to be '# 0143. Every audit runs gpt-auditor …' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A8: no sentence about Opus in the audit and roster homes is conditional, except ADR-0143 decision 4's\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 89
+      },
+      "message": "AssertionError: expected [ …(11) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx1.test.ts\",\"FX-1: the moved audit homes state ADR-0143\",\"A9: Fable is named in the audit homes only as the opus-auditor pane's fallback\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx1.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected [ …(12) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S14/20261102T092115115Z/tests",
+    "tree": "af7e5d279c05231f964a4e4c2e3ec3b74f65db3c"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix1-fx1.test.ts": "7d0fe9fa4e4e4e1a9c4cb2a6b8e458d100ded381"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix1-fx1.test.ts": "e56ead1109720987efbfc6082da0077af8f10d65"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D355-S14.json",
+    "digest": "acb67367ca992e55a6caa9f9705b0fdd8c11760940b885f8b4fcb8dcb44ece2f",
+    "result": "failed",
+    "base": "22ffe5eadf6abd9de0d234da2e80d8d501a93403",
+    "head": "4fe1b8f2960aa74b1c903e87c655643f475bddba"
+  }
+}

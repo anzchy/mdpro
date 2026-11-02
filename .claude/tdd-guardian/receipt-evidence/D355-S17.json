@@ -1,0 +1,149 @@
+{
+  "id": "D355-S17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T09:21:41.665Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D10: fN13 as reviewed: the entry records the narrow ADR-0147 change with exact figures; both templates carry the field\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 150
+      },
+      "message": "AssertionError: expected 0 to be greater than or equal to 1"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D11: no live home calls opus-imple-1 retired; the current implementor set matches rule 71\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 180
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D1: codex-panes.md links AGENTS.md's renamed section\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 10
+      },
+      "message": "AssertionError: expected '# Codex panes\\n\\nHow the delegator st…' not to contain 'Read first (Codex)'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D2-prose: no live home points at a section by prose instead of §\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 64
+      },
+      "message": "AssertionError: expected [ …(10) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D2-structural: every § reference in a live home resolves to a heading in the file it names\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 29
+      },
+      "message": "ReferenceError: fs is not defined"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D2: no dangling intra-rule § reference survives in a live home\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 21
+      },
+      "message": "AssertionError: expected [ …(26) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D3: ADR-0085 and ADR-0134 point at the clauses they decided; auditor.md cites the user decision\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 69
+      },
+      "message": "AssertionError: expected '**Current text: `docs/agents/auditor.…' to contain '70-multi-session-coordination.md#comm…'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D4: the Q&A header's moved block reads whole, once\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected '  gets one under `docs/guide/` or `do…' to match /^- \\*\\*Where to read more/"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D5: rule 70's audit bullet keeps the docs-only exemption\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 103
+      },
+      "message": "AssertionError: expected '**Every item is audited before it lan…' to contain 'docs-only or device-record commit is …'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D6: rule 12 routes an implementor's question through the delegator\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 109
+      },
+      "message": "AssertionError: expected '**If any is missing, stop and ask the…' to contain 'through the delegator'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D7: rule 50 says a new command needs no capability entry, and the Codex project rules agree\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 114
+      },
+      "message": "AssertionError: expected ' ## 2. Tauri IPC Pattern Every Tauri …' to contain 'capabilities/default.json'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D8: superseded routing is out of the role files and the roster reference\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 124
+      },
+      "message": "AssertionError: mdpro-device-harness: expected '# Device tester\\n\\nWhat the device te…' not to contain 'mdpro-device-harness'"
+    },
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D9: existing D rows are still updated, in all three places\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 143
+      },
+      "message": "AssertionError: docs/agents/decisions/20261102-new-items-are-github-issues.md: expected '# 2026-11-02: New items are GitHub is…' to contain 'still updated by the commit that fini…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S17/20261102T092141665Z/tests",
+    "tree": "af7e5d279c05231f964a4e4c2e3ec3b74f65db3c"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix1-shoulds.test.ts": "ba1c4365f39a753c74dc66966ac12fc38f5a9144"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix1-shoulds.test.ts": "324991b91448482fa60a13c2a5b18df9de8c8b26"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D355-S17.json",
+    "digest": "203a394bf5f48defa212cf2f2a979bb8236000be228b067d7f2b63d63c22df7d",
+    "result": "failed",
+    "base": "22ffe5eadf6abd9de0d234da2e80d8d501a93403",
+    "head": "4fe1b8f2960aa74b1c903e87c655643f475bddba"
+  }
+}

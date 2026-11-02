@@ -1,0 +1,42 @@
+{
+  "id": "D355-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T05:41:11.948Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rule-citations.test.ts\",\"rule 70 and 71 citations resolve (live tree)\",\"every citation, anchor link, Governing-text link and binding pointer resolves\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rule-citations.test.ts",
+        "line": 36
+      },
+      "message": "AssertionError: expected [ …(68) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/rule-citations.test.ts\",\"rule 70 and 71 citations resolve (live tree)\",\"the section map exists and every row's targets resolve\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rule-citations.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: docs/reference/adr-0147-rule-section-map.json is missing: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S1/20261102T054111948Z/tests",
+    "tree": "7c2e31b0a638005ea1779bb7c0ea6d27350a628e"
+  },
+  "spec_blobs": {
+    "tests/tooling/rule-citations.test.ts": "bac89f60716607ea2e7d45b161b54c6c617c9f48"
+  },
+  "settled_blobs": {
+    "tests/tooling/rule-citations.test.ts": "bac89f60716607ea2e7d45b161b54c6c617c9f48"
+  }
+}

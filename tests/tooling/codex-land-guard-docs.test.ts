@@ -42,8 +42,16 @@ async function fixture() {
   }
   const gh = path.join(bin, "gh");
   fs.writeFileSync(gh, "#!/bin/sh\necho 'gh must not run' >&2\nexit 99\n"); fs.chmodSync(gh, 0o755);
+  // D355 L9: a stub for the rule-test runner records its argv, its cwd and the exported CLAUDE.md, and fails when
+  // STUB_STATUS says so or when the exported CLAUDE.md holds RED.
+  const stub = path.join(bin, "rule-tests"), stubLog = path.join(dir, "rule-tests.log");
+  fs.writeFileSync(stub, `#!/bin/sh
+{ echo "cwd=$(pwd -P)"; for a in "$@"; do echo "arg=$a"; done; [ -f CLAUDE.md ] && sed 's/^/claude=/' CLAUDE.md; } >> "$STUB_LOG"
+if [ "\${STUB_STATUS:-0}" != 0 ] || grep -q RED CLAUDE.md 2>/dev/null; then echo "FAIL tests/tooling/always-on-budget.test.ts"; exit 1; fi
+echo "Tests 2 passed"
+`); fs.chmodSync(stub, 0o755);
   const env = { PATH: `${bin}:${process.env.PATH}`, GIT_CONFIG_GLOBAL: "/dev/null", MDPRO_GUARD_TEST: "1",
-    MDPRO_GUARD_TEST_MAIN: main, MDPRO_GUARD_TEST_ORIGIN: bare };
+    MDPRO_GUARD_TEST_MAIN: main, MDPRO_GUARD_TEST_ORIGIN: bare, MDPRO_GUARD_RULE_TEST_RUNNER: stub, STUB_LOG: stubLog };
   const add = async (name: string, value = "content\n") => {
     const target = path.join(main, name);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -54,7 +62,8 @@ async function fixture() {
   const run = async (args: string[] = ["--docs-only"], extra: NodeJS.ProcessEnv = {}) =>
     (await cmd(main, process.execPath, ["scripts/codex-rules/land-guard.mjs", ...args], { ...env, ...extra }));
   const remote = async () => (await git(dir, "--git-dir", bare, "rev-parse", "refs/heads/master"));
-  return { dir, main, bare, a, env, add, run, remote };
+  const log = () => (fs.existsSync(stubLog) ? fs.readFileSync(stubLog, "utf8") : "");
+  return { dir, main, bare, a, env, add, run, remote, log };
 }
 afterEach(() => { for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
 
@@ -337,4 +346,131 @@ it("refuses a rename out of docs, wrong branch, staged work and nonancestor remo
   (await git(diverged.main, "switch", "-q", "master"));
   expect((await diverged.run()).status).not.toBe(0);
   expect((await diverged.remote())).toBe(c);
+});
+
+// D355 (ADR-0147 WI-1 decision 3 and 5): references/*.md is docs-only, and a docs-only range that touches a counted
+// file runs the budget and citation tests on the candidate's own tree before it pushes.
+const REFS = ".agents/skills/mdpro-delegator/references";
+const RULE_TESTS = ["tests/tooling/always-on-budget.test.ts", "tests/tooling/rule-citations.test.ts"];
+
+it("L1: accepts a delegator references/*.md file as docs-only", { timeout: 30_000 }, async () => {
+  for (const args of [["--docs-only", "--dry-run"], ["--docs-only"]]) {
+    const f = (await fixture());
+    const head = (await f.add(`${REFS}/x.md`));
+    const result = (await f.run(args));
+    expect(result.status, result.stderr).toBe(0);
+    expect((await f.remote())).toBe(args.includes("--dry-run") ? f.a : head);
+  }
+});
+
+it("L2, L6: refuses templates and every path next to references/*.md, leaving the remote unchanged", { timeout: 60_000 }, async () => {
+  for (const name of [`${REFS}/templates/x.md`, `${REFS}/templates/sub/x.md`, `${REFS}/sub/x.md`, `${REFS}/x.mjs`,
+    ".agents/skills/other/references/x.md", ".agents/skills/mdpro-delegator/SKILL.md",
+    ".agents/skills/mdpro-delegator/scripts/x.sh"]) {
+    const f = (await fixture());
+    (await f.add(name));
+    const result = (await f.run());
+    expect(result.status, name).not.toBe(0);
+    expect(result.stderr, name).toContain("disallowed path");
+    expect((await f.remote()), name).toBe(f.a);
+  }
+});
+
+it("L3: refuses a counted file whose rule tests are red, naming the test, in dry-run and real mode", { timeout: 60_000 }, async () => {
+  for (const name of [".claude/rules/x.md", "AGENTS.md", "CLAUDE.md", "docs/agents/x.md"]) {
+    for (const args of [["--docs-only", "--dry-run"], ["--docs-only"]]) {
+      const f = (await fixture());
+      (await f.add(name));
+      const result = (await f.run(args, { STUB_STATUS: "1" }));
+      expect(result.status, `${name} ${args}`).not.toBe(0);
+      expect(result.stderr, name).toContain("always-on-budget.test.ts");
+      expect((await f.remote()), name).toBe(f.a);
+    }
+  }
+});
+
+it("L4, L9, L10: runs exactly the two rule tests on an export of the candidate, then pushes", { timeout: 30_000 }, async () => {
+  const f = (await fixture());
+  const head = (await f.add("CLAUDE.md", "GREEN\n"));
+  const result = (await f.run(["--docs-only"]));
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout).toContain("rule tests passed");
+  expect((await f.remote())).toBe(head);
+  const log = f.log();
+  expect(log.split("\n").filter((l) => l.startsWith("arg=")).map((l) => l.slice(4))).toEqual(RULE_TESTS);
+  const cwd = log.split("\n").find((l) => l.startsWith("cwd="))!.slice(4);
+  expect(cwd).not.toBe(fs.realpathSync(f.main));
+  expect(cwd.startsWith(fs.realpathSync(os.tmpdir()))).toBe(true);
+  expect(log).toContain("claude=GREEN");
+  expect(fs.existsSync(cwd), "the export is removed afterwards").toBe(false);
+});
+
+it("L5: a docs-only range with no Markdown and no section map does not run the rule tests", async () => {
+  const f = (await fixture());
+  const head = (await f.add("docs/images/x.png", "png\n"));
+  const result = (await f.run(["--docs-only"], { STUB_STATUS: "1" }));
+  expect(result.status, result.stderr).toBe(0);
+  expect(result.stdout).toContain("rule tests not run");
+  expect(f.log()).toBe("");
+  expect((await f.remote())).toBe(head);
+});
+
+it("L7, L10: references/guide.md, a docs/guide file, an agent file and the section map each trigger the rule tests", { timeout: 60_000 }, async () => {
+  for (const name of [`${REFS}/guide.md`, "docs/guide/g.md", ".claude/agents/a.md", "docs/reference/adr-0147-rule-section-map.json"]) {
+    const f = (await fixture());
+    (await f.add(name));
+    const result = (await f.run(["--docs-only"], { STUB_STATUS: "1" }));
+    expect(result.status, name).not.toBe(0);
+    expect(f.log(), name).toContain("arg=tests/tooling/rule-citations.test.ts");
+    expect((await f.remote()), name).toBe(f.a);
+  }
+});
+
+it("L8: tests the committed tree, so an unstaged green edit over a committed red file is refused", async () => {
+  const f = (await fixture());
+  (await f.add("CLAUDE.md", "RED\n"));
+  fs.writeFileSync(path.join(f.main, "CLAUDE.md"), "GREEN\n");
+  const result = (await f.run(["--docs-only"]));
+  expect(result.status).not.toBe(0);
+  expect(f.log()).toContain("claude=RED");
+  expect(f.log()).not.toContain("claude=GREEN");
+  expect((await f.remote())).toBe(f.a);
+});
+
+it("L9: the runner override is honoured only in guard test mode", async () => {
+  const { ruleTestCommand } = await import("../../scripts/codex-rules/land-guard.mjs");
+  const stubbed = ruleTestCommand({ MDPRO_GUARD_TEST: "1", MDPRO_GUARD_RULE_TEST_RUNNER: "/tmp/stub" });
+  expect(stubbed).toEqual(["/tmp/stub", RULE_TESTS]);
+  const real = ruleTestCommand({ MDPRO_GUARD_RULE_TEST_RUNNER: "/tmp/stub" });
+  expect(real[0]).toBe(process.execPath);
+  expect(real[1].slice(-3)).toEqual(["run", ...RULE_TESTS]);
+});
+
+it("L9: the real runner passes this tree and refuses it with a padded CLAUDE.md", { timeout: 240_000 }, async () => {
+  const { runRuleTests } = await import("../../scripts/codex-rules/land-guard.mjs");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "d355-tree-"));
+  made.push(tmp);
+  const genv = { GIT_INDEX_FILE: path.join(tmp, "index") };
+  const g = async (args: string[], input?: string) => {
+    const r = await new Promise<{ status: number; stdout: string; stderr: string }>((resolve) => {
+      const child = execFile("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, ...genv } },
+        (error, stdout, stderr) => resolve({ status: error ? 1 : 0, stdout, stderr }));
+      if (input !== undefined) { child.stdin!.end(input); }
+    });
+    expect(r.status, r.stderr).toBe(0);
+    return r.stdout.trim();
+  };
+  // A tree of the working state, built in a private index so the repository's own index is untouched.
+  await g(["read-tree", "HEAD"]);
+  const names = await g(["ls-files", "-co", "--exclude-standard", "-z"]);
+  await g(["update-index", "--add", "--remove", "-z", "--stdin"], names + "\0");
+  const tree = await g(["write-tree"]);
+  const green = runRuleTests(tree);
+  expect(green.status, green.output.slice(-2000)).toBe(0);
+  const padded = fs.readFileSync(path.join(root, "CLAUDE.md"), "utf8") + "x".repeat(2_000) + "\n";
+  const blob = await g(["hash-object", "-w", "--stdin"], padded);
+  await g(["update-index", "--cacheinfo", `100644,${blob},CLAUDE.md`]);
+  const red = runRuleTests(await g(["write-tree"]));
+  expect(red.status).not.toBe(0);
+  expect(red.output).toContain("always-on-budget.test.ts");
 });

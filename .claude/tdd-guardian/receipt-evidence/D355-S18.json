@@ -1,0 +1,33 @@
+{
+  "id": "D355-S18",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T12:27:47.043Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix1-shoulds.test.ts\",\"Shoulds: fN4–fN13, gN4–gN5\",\"D12: a lowercase § that names no heading is reported; real lowercase headings and the placeholders are not\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-shoulds.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S18/20261102T122747043Z/tests",
+    "tree": "b869a886c3b4562ade09e0016d11af1aeda4cfa2"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix1-shoulds.test.ts": "a616aa29ba20db20b49707c09340b1978ab0a548"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix1-shoulds.test.ts": "a616aa29ba20db20b49707c09340b1978ab0a548"
+  }
+}

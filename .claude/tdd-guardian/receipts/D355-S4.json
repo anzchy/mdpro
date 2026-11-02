@@ -1,0 +1,44 @@
+{
+  "id": "D355-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:57:38.633Z",
+  "head_sha": "9df980716a760886d61573c712bd51484a097e42",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/rules-budget-lib-edges.test.ts": {
+      "state": "ok",
+      "sha": "c633fc32a24f98e0f08e8f11e61bd960936279be8cbe6d99c885d61e1abd0df7",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1fc60befc7303258",
+        "f42d192e9532051f",
+        "dd2a0518cf1263c5",
+        "918a88bfe440ba86",
+        "47c786f44457cc58",
+        "0cb16cc14c993ffe",
+        "045ddb0b462554e2",
+        "408908aa6974161d",
+        "2fbce4ecdb02ec5d",
+        "e13554126d453b9d",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-02T06:58:01.965Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "D355-S11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:44:11.285Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"P10: the scan skips the two ADR-0146 pinned blobs by name, and only them\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 203
+      },
+      "message": "AssertionError: expected [ …(19) ] to not include 'docs/agents/audit-policy-set.md'"
+    },
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"no mandatory read hides outside a read block, and every repo link there carries a live anchor (B12–B14, B23, B30, B39)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 210
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S11/20261102T074411285Z/tests",
+    "tree": "a4ce41fc9ac0b5ae52eb7bc999051397c355ca74"
+  },
+  "spec_blobs": {
+    "tests/tooling/always-on-budget.test.ts": "f67533f505501a0c096905afd24c817c6bf129cd"
+  },
+  "settled_blobs": {
+    "tests/tooling/always-on-budget.test.ts": "f67533f505501a0c096905afd24c817c6bf129cd"
+  }
+}

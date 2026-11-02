@@ -1,0 +1,33 @@
+{
+  "id": "D355-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:00:20.044Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/codex-land-guard-export.test.ts\",\"S7: the export's index lists every file of the commit, including tracked files an ignore rule matches\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-export.test.ts",
+        "line": 29
+      },
+      "message": "AssertionError: expected [ …(29) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S7/20261102T070020044Z/tests",
+    "tree": "c20daf6a8e7044bc8b325277a7004d5e8e697302"
+  },
+  "spec_blobs": {
+    "tests/tooling/codex-land-guard-export.test.ts": "395c11aa98f558f8a1066e468bfd76f28702a35b"
+  },
+  "settled_blobs": {
+    "tests/tooling/codex-land-guard-export.test.ts": "395c11aa98f558f8a1066e468bfd76f28702a35b"
+  }
+}

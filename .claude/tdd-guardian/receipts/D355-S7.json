@@ -1,0 +1,60 @@
+{
+  "id": "D355-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:00:20.044Z",
+  "head_sha": "9df980716a760886d61573c712bd51484a097e42",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/codex-land-guard-export.test.ts": {
+      "state": "ok",
+      "sha": "e6903a251577c8c46b75701f80f11c5a4fb4f222ef922cb3d3aec85c622275dc",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "58d97fece656d9e7",
+        "3c83f626b51c912c",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "b4dd67bea61ed17c",
+        "cc196208ed6eedfd",
+        "a9d5c9668e6710a2",
+        "f847f9950db441a0",
+        "2450cf89e8ea93f3",
+        "85f005a4e4bb4be9",
+        "926616ae7dd7d054",
+        "4e437e473f89a0a8",
+        "3d1de1cbbb63e696",
+        "dea542ba4a47b20c",
+        "6e599a325a4849ba",
+        "d6155c5591f326c1",
+        "57ca591d5d1c1d81",
+        "29576b54e255e3c9",
+        "c4c32728c9287fa2",
+        "74919b896f3d0c2b",
+        "86d243bfd22bbd7c",
+        "02c85eaeeacbcf9b",
+        "14e52d34fff93a99",
+        "56dd26248da66fad",
+        "2fdc482b5d6269fd",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-02T07:00:34.689Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

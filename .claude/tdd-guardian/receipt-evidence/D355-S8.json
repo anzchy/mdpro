@@ -1,0 +1,33 @@
+{
+  "id": "D355-S8",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T07:01:02.567Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/codex-land-guard-export.test.ts\",\"S8: the real rule-test run goes through the heavy-lock load guard; the test-mode stub runs as given\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/codex-land-guard-export.test.ts",
+        "line": 34
+      },
+      "message": "AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D355-S8/20261102T070102567Z/tests",
+    "tree": "850b451303fc58bcd61aa247d7f1c434348a986f"
+  },
+  "spec_blobs": {
+    "tests/tooling/codex-land-guard-export.test.ts": "f57e746118b70739b22bc376a65309bf415bb22a"
+  },
+  "settled_blobs": {
+    "tests/tooling/codex-land-guard-export.test.ts": "f57e746118b70739b22bc376a65309bf415bb22a"
+  }
+}
