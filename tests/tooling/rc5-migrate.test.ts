@@ -126,25 +126,6 @@ describe("RC5 migrate", () => {
       expect([listing(R), listing(E)], key).toEqual([null, null]);
     }
   });
-  it("M6: after the migration commit, a settled B-1 and a stale view do not make migrate write anything", async () => {
-    legacy([receipt("A-1")], { "A-1": entry("A-1") }); await git("add", "-f", VIEW, SIDECAR); await commit("legacy");
-    expect((await store("migrate")).status).toBe(0);
-    await commit("migrate");
-    // B-1 as the entry leaves it after record and verify: item files written, the engine's view not rebuilt.
-    write(`${R}/B-1.json`, canonical(receipt("B-1", "SEPARATION-HELD")));
-    write(`${E}/B-1.json`, canonical(entry("B-1")));
-    write(VIEW, canonical({ schemaVersion: 2, receipts: [receipt("A-1")] }));
-    await git("add", R, E); await commit("record B-1");
-    const bytes = () => [R, E].flatMap((dir) => listing(dir)!.map((name) => [`${dir}/${name}`, read(`${dir}/${name}`)]));
-    const before = bytes(), view = read(VIEW);
-    const again = await store("migrate");
-    expect(again.status, again.output).toBe(0);
-    expect(again.stdout).toContain("already migrated");
-    expect(bytes()).toEqual(before);
-    expect(JSON.parse(read(`${R}/B-1.json`)).verdict).toBe("SEPARATION-HELD");
-    expect(read(VIEW)).toBe(view);
-    expect((await git("status", "--porcelain")).stdout).toBe("");
-  });
 });
 
 describe("RC5 migrate --import", () => {

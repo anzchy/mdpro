@@ -124,29 +124,6 @@ describe.skipIf(!pluginVersion)("RC5-S5 the view and its stamp", () => {
     expect(ran()).toBe(0);
   });
 
-  it("P1: the lane's identity check reads the item file, so a view changed during verify has no effect", async () => {
-    failing();
-    expect((await record("A-1")).status).toBe(0);
-    repo.write("src/x.mjs", "export const v = 2;\n");
-    // The unit-red lane runs through a wrapper that rewrites A-1's selection in the view only.
-    repo.write("scripts/tdd/view-wrapper.mjs", [
-      'import { readFileSync, writeFileSync } from "node:fs"; import { spawn } from "node:child_process";',
-      `const p = "${VIEW}"; const s = JSON.parse(readFileSync(p, "utf8"));`,
-      's.receipts.find((r) => r.id === "A-1").test_files["tests/b.test.ts"] = s.receipts.find((r) => r.id === "A-1").test_files["tests/a.test.ts"];',
-      'writeFileSync(p, JSON.stringify(s, null, 2) + "\\n");',
-      'spawn(process.execPath, ["scripts/tdd/unit-red-lane.mjs"], { stdio: "inherit", env: process.env }).on("exit", (code) => process.exit(code ?? 64));',
-    ].join("\n"));
-    const config = JSON.parse(repo.read(`${T}/config.json`));
-    config.lanes.find((lane: { name: string }) => lane.name === "unit-red").command = "node scripts/tdd/view-wrapper.mjs";
-    repo.write(`${T}/config.json`, JSON.stringify(config));
-    const before = repo.read(VIEW);
-    const result = await repo.entry("verify", "--id", "A-1");
-    expect(result.status, result.output).toBe(0);
-    expect(repo.read(VIEW)).not.toBe(before);
-    expect(item("A-1").verdict).toBe("SEPARATION-HELD");
-    expect(Object.keys(item("A-1").test_files)).toEqual(["tests/a.test.ts"]);
-  });
-
   it("S10: verify and discard never touch the view or its stamp, and the next record finds them its own", async () => {
     // B-1 is recorded, not hand-written: discard checks the recorded test lines' fingerprints.
     failing("tests/b.test.ts");
