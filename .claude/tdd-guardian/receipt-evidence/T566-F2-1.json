@@ -1,0 +1,69 @@
+{
+  "id": "T566-F2-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T08:59:51.160Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"bare_record spawns exactly the receipt.js it is handed\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+        "line": 73
+      },
+      "message": "Error: ENOENT: no such file or directory, open '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-stub-9fHHm7/stub-ran'"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"loads and spawns only the vendored engine in red-receipt and unit-red-lane, under a poisoned cache\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+        "line": 55
+      },
+      "message": "AssertionError: JSON report written to /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-report-OnULWf/vitest.json\n\n: expected [] to deeply equal [ 'passed' ]"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"runs adr0149e-record-evidence with a poisoned newer cache (9.9.9): every test passes, none skips\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+        "line": 42
+      },
+      "message": "AssertionError: expected [ { …(2) } ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"runs adr0149e-record-evidence with no cache at all: every test passes, none skips\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: JSON report written to /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-report-NgQbdo/vitest.json\n\n: expected { skipped: 6 } to deeply equal { passed: 6 }"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-cache-free.test.ts\",\"T566-F2-1 receipt suites ignore the plugin cache\",\"runs adr0149e-record-evidence with unreadable plugin roots: every test passes, none skips\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-cache-free.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: JSON report written to /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-t566f2-report-5H8ua1/vitest.json\n\n: expected { skipped: 6 } to deeply equal { passed: 6 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T566-F2-1/20261031T085951160Z/tests",
+    "tree": "efc95d6d3f1d9f03c3c2743a991f02ae8cae7dfa"
+  },
+  "spec_blobs": {
+    "tests/tooling/t566-fix2-cache-free.test.ts": "36f197d60d5c7567233500008ce0e0ef8edf7a65"
+  },
+  "settled_blobs": {
+    "tests/tooling/t566-fix2-cache-free.test.ts": "36f197d60d5c7567233500008ce0e0ef8edf7a65"
+  }
+}

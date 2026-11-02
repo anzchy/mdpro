@@ -1,0 +1,33 @@
+{
+  "id": "T567-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:42:38.764Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"points at rule 10 for the receipt CLI\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 53
+      },
+      "message": "AssertionError: expected [ …(2) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S4/20261031T144238764Z/tests",
+    "tree": "5e68a457e11f2e11f62d7983b8124bba68ce0cbf"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "3cb26e75bbb876f8cbe9e306d028826f841b212b"
+  }
+}

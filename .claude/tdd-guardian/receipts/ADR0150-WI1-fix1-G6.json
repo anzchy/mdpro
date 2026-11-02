@@ -1,0 +1,75 @@
+{
+  "id": "ADR0150-WI1-fix1-G6",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T05:00:31.393Z",
+  "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-copied-binary.test.ts": {
+      "state": "ok",
+      "sha": "7e38c02ac9962e7a639d5f1cf5748ecbe764205f14241fcb46acc240052eab7f",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "82542184a9b1f0c1",
+        "1bb5a8c689464fc2",
+        "005171067a4d2619",
+        "e4d5334fd6713d0a",
+        "393f6dfd4aa212a6",
+        "03d9aba6351173e5",
+        "332f9d21a55973c1",
+        "47409decf2b5e730",
+        "0b632f35acdc0a7c",
+        "68e83dd73c00a364",
+        "ea51e00f75fe58bb",
+        "58c4dae2cbf3271f",
+        "2f427f2af10e7742",
+        "60d26725946e516e",
+        "b9630244e0cf631e",
+        "b7046a72fa9aa32c",
+        "0f2a4dc0ba17c702",
+        "a9a88beb221d2a38",
+        "d8e5733f50c56a26",
+        "9e53454c533c5949",
+        "b1fb76fd8907cb78",
+        "ca916cf9be7d2cbb",
+        "533c0b7a857b939a",
+        "fad4666a26ec52f1",
+        "1acfc3c5abdb6e10",
+        "256ab0c9695642a3",
+        "0be04709f8d55c9f",
+        "7116501f35c9f936",
+        "9e53454c533c5949",
+        "2a80ebb2a28cee09",
+        "d4711283aad8139c"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T05:07:17.167Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

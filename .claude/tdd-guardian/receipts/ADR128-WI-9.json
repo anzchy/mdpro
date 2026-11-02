@@ -1,0 +1,61 @@
+{
+  "id": "ADR128-WI-9",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T08:00:42.929Z",
+  "head_sha": "fcdf35e0f54d679d3117615f087f9731c85ab489",
+  "dirty_source": [
+    ".github/workflows/ci.yml",
+    "package.json",
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs",
+    "scripts/ci/verify-inventory.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "3 of 4 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/adr128-conditional-alias.test.ts": {
+      "state": "ok",
+      "sha": "3f1245a1473d854d0b94d366c645b0fced171c682dd35fab859ff24e18750d8f",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9c94784f8cfa14e6",
+        "25410a831c481bc0",
+        "107576db170a6de4",
+        "8d15806ef545444c",
+        "c349d9072ed685b0",
+        "b1ea20a6121b6347",
+        "55d8766c1dd32767",
+        "29576b54e255e3c9",
+        "11b4405fc41c024c",
+        "e8b5f549bc2552e3",
+        "29576b54e255e3c9",
+        "4a78add18205f627",
+        "6f81976bcd8d56c4",
+        "29576b54e255e3c9",
+        "f9b9a9e25c697993",
+        "bddb7672fa2a14b0",
+        "aefe3b122c0a801b",
+        "fd92125d42e23142",
+        "37af1b9a0dfbc52b",
+        "847ec96202a5cd57",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T08:01:22.363Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "6 non-test file(s) were already modified when the red was recorded (.github/workflows/ci.yml, package.json, scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

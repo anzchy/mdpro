@@ -1,0 +1,33 @@
+{
+  "id": "T567-S41",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:44:38.370Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: each mode runs its command\",\"W4 rust-verify reaches the entry directly with the id only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 48
+      },
+      "message": "AssertionError: expected [] to deeply equal [ …(2) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S41/20261101T044438370Z/tests",
+    "tree": "85a91dc8352211a6530dae83ff2facae8b4c11e3"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "48f0d970d99d4f6ab036c89dcec9dac508ff536e"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "48f0d970d99d4f6ab036c89dcec9dac508ff536e"
+  }
+}

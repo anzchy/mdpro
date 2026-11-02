@@ -1,0 +1,33 @@
+{
+  "id": "T567-S19",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:51:44.978Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"states one method for both the Claude and the Codex runtime\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 198
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S19/20261031T145144978Z/tests",
+    "tree": "995376c156ebd743e4a8a6b6d3cd75e531613caf"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "88ddc902845ec072f9b0e14e1fc43b4cff1c5ea7"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "88ddc902845ec072f9b0e14e1fc43b4cff1c5ea7"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "D345-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:23:43.870Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D2 keeps stderr when the run wrote one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+        "line": 136
+      },
+      "message": "AssertionError: expected 'status 1' to contain 'pwsh: boom'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D345-S2/20261101T042343870Z/tests",
+    "tree": "85b6cb5c9ba01281235fe9c1e8046bf1a22e5a56"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "25b466f0308eadbbd9b17d05768a4a6d68931f78"
+  }
+}

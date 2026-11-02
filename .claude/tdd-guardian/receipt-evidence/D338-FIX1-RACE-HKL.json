@@ -1,0 +1,33 @@
+{
+  "id": "D338-FIX1-RACE-HKL",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:02:01.187Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts\",\"D338 fix 1 a transition at the held-input progress write never reaches a scan\",\"an HKL change on the input thread at the first held write sends no scan\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [ 'scan:56:False:True', …(1) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D338-FIX1-RACE-HKL/20261031T040201187Z/tests",
+    "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d338-fix1-race-hkl.test.ts": "0f74aa873ac598bab5c3b09af103c04817d9ba13"
+  }
+}

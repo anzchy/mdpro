@@ -1,0 +1,33 @@
+{
+  "id": "T567-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:44:37.027Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"tells the implementor which case classes a matrix covers and what a case asserts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected [ 'success', 'boundary', …(6) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S7/20261031T144437027Z/tests",
+    "tree": "c2794c0e63d53d05e69b741275aa2565a665376e"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "16e4f32722568e52e835638b1e17ff5f2d322634"
+  }
+}

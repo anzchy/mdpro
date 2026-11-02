@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:08:40.658Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator step 7\",\"GH586: re-asks a wrong or missing policy pin, except for a review pinned before the split\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 262
+      },
+      "message": "AssertionError: expected 'Re-ask checks: re-ask the auditor in …' to contain 'a blob other than <B> or <P>'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S7/20261102T060840658Z/tests",
+    "tree": "f46e9c0d9c6d415c838450a13a6d77134b5d30cd"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "ec0bdc88c99a0fa7fd3ee302e0f06be1bcdba656"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "ec0bdc88c99a0fa7fd3ee302e0f06be1bcdba656"
+  }
+}

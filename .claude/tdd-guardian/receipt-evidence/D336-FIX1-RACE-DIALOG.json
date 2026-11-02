@@ -1,0 +1,58 @@
+{
+  "id": "D336-FIX1-RACE-DIALOG",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:01:49.155Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts\",\"D336 fix 1 a transition at the progress write never reaches a dialog mutation\",\"a foreground switch at the cancel phase's progress write sends no Esc\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts",
+        "line": 29
+      },
+      "message": "AssertionError: expected [ 'key-hwnd:602:27:0', …(2) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts\",\"D336 fix 1 a transition at the progress write never reaches a dialog mutation\",\"a foreground switch at the path phase's progress write sends no path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts",
+        "line": 24
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts\",\"D336 fix 1 a transition at the progress write never reaches a dialog mutation\",\"a same-HWND dialog successor at the submit phase's progress write gets no Enter\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts",
+        "line": 34
+      },
+      "message": "AssertionError: expected [ …(4) ] to deeply equal [ Array(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D336-FIX1-RACE-DIALOG/20261031T040149155Z/tests",
+    "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts": "80fd26b8269f7f788eef4494fd22268a94121200"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d336-fix1-race-dialog.test.ts": "80fd26b8269f7f788eef4494fd22268a94121200"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D336-FIX1-RACE-DIALOG.json",
+    "digest": "6d35a70e8b455c1adcf8e92f2c227cbed44cd2d18fda2a3dcb49a8331e0bb6a1",
+    "result": "failed",
+    "base": "376c7e184e904927965311fd0f492f3bd1c003fb",
+    "head": "4d1dda9a2d3ff125220b04b641b4df955a539038"
+  }
+}

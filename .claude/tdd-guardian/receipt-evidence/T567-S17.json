@@ -1,0 +1,33 @@
+{
+  "id": "T567-S17",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:50:08.352Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"runs /code-review on the committed candidate, /diagnosing-bugs before a D item's first RED, and ends with the handoff table\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 189
+      },
+      "message": "AssertionError: expected { Object (review, diagnose, ...) } to deeply equal { review: true, diagnose: true, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S17/20261031T145008352Z/tests",
+    "tree": "2648b8f949b954b40c1d3ee4bab8d99c03b3bc47"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "f12cc064c45c91be4dc6bd85ba602b82464732b3"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "f12cc064c45c91be4dc6bd85ba602b82464732b3"
+  }
+}

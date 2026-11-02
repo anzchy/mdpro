@@ -1,0 +1,33 @@
+{
+  "id": "T567-S52",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T05:04:58.169Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 SKILL.md routes receipts through the wrapper\",\"K1 names the wrapper by its repository path, and the wrapper is a file of the skill\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 391
+      },
+      "message": "AssertionError: expected '---\\nname: jack-tdd-workflow\\ndescrip…' to contain '.agents/skills/jack-tdd-workflow/scri…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S52/20261101T050458169Z/tests",
+    "tree": "03d84b31dd58a53f8c353c045bed284099c3626f"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "e088eff73bedaa2f7103efbfc9b273e7542c1a38"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "e088eff73bedaa2f7103efbfc9b273e7542c1a38"
+  }
+}

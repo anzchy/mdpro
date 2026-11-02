@@ -1,0 +1,58 @@
+{
+  "id": "ADR0149E-F2CI",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T16:19:17.201Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-check-pending-no-plugin.test.ts\",\"ADR0149E-F2CI check-pending on a runner without the plugin\",\"fails closed, naming the plugin, when a branch receipt needs judging\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-check-pending-no-plugin.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '[red-receipt] ENOENT: no such file or…' to match /tdd-guardian receipt\\.js was not found/"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-check-pending-no-plugin.test.ts\",\"ADR0149E-F2CI check-pending on a runner without the plugin\",\"passes a branch with no receipts of its own\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-check-pending-no-plugin.test.ts",
+        "line": 28
+      },
+      "message": "AssertionError: \n[red-receipt] ENOENT: no such file or directory, scandir '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-f2ci-home-pBdVcA/.claude/plugins/cache/xiaolai/tdd-guardian'\n: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-check-pending-no-plugin.test.ts\",\"ADR0149E-F2CI check-pending on a runner without the plugin\",\"passes a master store larger than Node's default subprocess buffer\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-check-pending-no-plugin.test.ts",
+        "line": 37
+      },
+      "message": "AssertionError: \n[red-receipt] ENOENT: no such file or directory, scandir '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/mdpro-f2ci-home-YOTCek/.claude/plugins/cache/xiaolai/tdd-guardian'\n: expected 64 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F2CI/20261029T161917201Z/tests",
+    "tree": "69f3b211964b056c52f877f6b689f5db96b23120"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-check-pending-no-plugin.test.ts": "8f67b9d68fe48263c7b85990dfd1b493e8cbc831"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-check-pending-no-plugin.test.ts": "8f67b9d68fe48263c7b85990dfd1b493e8cbc831"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F2CI.json",
+    "digest": "fd5057b795c67fe11160ed615003ffd0c8359a66dbd3403da627744a143ab117",
+    "result": "passed",
+    "base": "2c0bd49657e392405f6b8b797c9d5ee1eacbc8a5",
+    "head": "0ae098c07c9c32582f8d429ef334811a2caf15d8"
+  }
+}

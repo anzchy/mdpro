@@ -1,0 +1,59 @@
+{
+  "id": "ADR0149E-F4-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T05:59:32.699Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 217
+      },
+      "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 224
+      },
+      "message": "AssertionError: expected 'AssertionError: worker pid <pid> exit…' to match /^AssertionError: worker pid 1 exited: /"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-3: messages that differ only in an ISO timestamp digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 231
+      },
+      "message": "AssertionError: expected 'AssertionError: at <timestamp>: expec…' to match /^AssertionError: at 2026-10-30T01:02:…/"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F4-3/20261030T055932699Z/tests",
+    "tree": "4e6b9585ace2d109a994d8c876a201af7ce82b37"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "ccc3cc77bfa1d9660329488f21d1a1c113e05b7b"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-3.json",
+    "digest": "12bf1e6dde94dba313549121abf6168edda79e114308fd87db2bbab43d561d87",
+    "result": "passed",
+    "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+    "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "id": "D302-WI-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T06:42:36.038Z",
+  "head_sha": "57ea75e59b8d66dfb7ca77ef5b08f238605b88e4",
+  "dirty_source": [
+    "package.json",
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs",
+    "scripts/ci/verify-inventory.mjs",
+    "scripts/lint/d302-sync-exceptions.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 5 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/unit-red-phase-chain.test.ts": {
+      "state": "ok",
+      "sha": "e69b00bb0bb7e89b086cbdd163828fdb278680ba7accc2dfa626c35e84c55ea5",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "b8cbd764da70a65b",
+        "e05fabb2b0d7bcbc",
+        "2dd42f124779333e",
+        "d5dbb991a39a63fa",
+        "096b44f386db1877",
+        "e5d3126656ba054a",
+        "cc0875649af25c74",
+        "db7aff77d73bbdb6",
+        "826bbdbe73d3f462",
+        "ec36c35d842074dc",
+        "73b55f169f067ec6",
+        "70e856088680eba1",
+        "68c1c487909c87c2",
+        "d10b36aa74a59bcf",
+        "be7077e0ac86d115",
+        "1de8c3fc644cca9f",
+        "47c35f07c2622fc5",
+        "a95564ccb1c3084c",
+        "03d9aba6351173e5",
+        "304001510dd4cf79",
+        "5b0faeeb927e1c64",
+        "6f438c4fb9edf067",
+        "358bd4d5a721657a",
+        "29576b54e255e3c9",
+        "01cb1ec83e00a8b8",
+        "9533fb7057d1f73e",
+        "5b0faeeb927e1c64",
+        "7f36c98ca3f39ad2",
+        "29576b54e255e3c9",
+        "5d599d94c4b23fe9",
+        "9533fb7057d1f73e",
+        "af7c73624ed8834d",
+        "4cafd8c6f0022d29",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T06:43:12.955Z",
+  "verdict": "SEPARATION-BROKEN",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "6 non-test file(s) were already modified when the red was recorded (package.json, scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs, scripts/ci/verify-inventory.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "high",
+      "code": "spec-changed-under-green",
+      "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/tooling/unit-red-phase-chain.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+    }
+  ]
+}

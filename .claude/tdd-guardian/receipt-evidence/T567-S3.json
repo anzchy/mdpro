@@ -1,0 +1,33 @@
+{
+  "id": "T567-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:41:51.311Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow skill files\",\"opens with frontmatter that names the skill after its directory and describes it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 46
+      },
+      "message": "AssertionError: expected { name: undefined, keys: [], …(1) } to deeply equal { name: 'jack-tdd-workflow', …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S3/20261031T144151311Z/tests",
+    "tree": "0d00044df8f7d6bebb2985241dc7c7fe3d81e50b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "49c3cda841110ffe91d39c02fc28dbeaf9015cb5"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "49c3cda841110ffe91d39c02fc28dbeaf9015cb5"
+  }
+}

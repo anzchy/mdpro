@@ -1,0 +1,150 @@
+{
+  "id": "RC5-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T09:33:16.173Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across rebases\",\"R1: two PRs adding different ids rebase without a conflict and keep everything\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 141
+      },
+      "message": "AssertionError: expected '' to contain 'kept 2 of 2; added 1'"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across the migration\",\"D8: a migration commit keeps every legacy record byte for byte; a mutated one fails\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 169
+      },
+      "message": "AssertionError: expected '' to contain 'kept 2 of 2; added 0'"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across the migration\",\"D8b, D8c: a legacy record or evidence entry missing or changed at the head fails\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 181
+      },
+      "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across the migration\",\"K-L (R-c): legacy to legacy compares per record\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 190
+      },
+      "message": "AssertionError: expected '' to contain 'kept 2 of 2; added 1'"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across the migration\",\"K2, K4: the result depends on the revisions, not on what is checked out\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 218
+      },
+      "message": "AssertionError: expected [ '0 false' ] to deeply equal [ '1 true' ]"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across the migration\",\"K3: an unresolvable or missing revision exits 64 naming it, with no count\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: 0000000000000000000000000000000000000000: expected +0 to be 64 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check across the migration\",\"K5 (R-f): a head that tracks the legacy store and every item file still fails\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 201
+      },
+      "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"D1, D2, D4, D2e: a deleted or changed receipt or evidence file fails, whitespace included\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 72
+      },
+      "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"D3: a rename with the same content is a deletion and a misnamed file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"D5, K1: a non-canonical, misnamed, orphan or nested head file fails naming it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 99
+      },
+      "message": "AssertionError: non-canonical: X-1: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"D6′, D6e: a head that tracks receipts.json or evidence.json again fails when the parent is on items\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 122
+      },
+      "message": "AssertionError: .claude/tdd-guardian/receipts.json: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"D7: a head that only adds keeps every parent record\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected '' to contain 'kept 2 of 2; added 2'"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"E3: no item files at either side keeps 0 of 0\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 55
+      },
+      "message": "AssertionError: expected '' to contain 'kept 0 of 0; added 0'"
+    },
+    {
+      "id": "[\"tests/tooling/rc5-keep-check.test.ts\",\"RC5 keep-check on the item layout\",\"R3′: two ids equal ignoring case fail, built with plumbing so no filesystem is involved\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-keep-check.test.ts",
+        "line": 111
+      },
+      "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/RC5-S2/20261102T093316173Z/tests",
+    "tree": "4757794d612148db6a6a6e7453e6dd92baa725d1"
+  },
+  "spec_blobs": {
+    "tests/tooling/rc5-keep-check.test.ts": "f1d19cb57a30abf77c78376f1db05e739ea0fe4b"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-keep-check.test.ts": "f1d19cb57a30abf77c78376f1db05e739ea0fe4b"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "ADR0162-WI4-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:55:42.463Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac3-auditor.test.ts\",\"ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)\",\"auditor mode still refuses a test-mode override outside tmpdir\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac3-auditor.test.ts\",\"ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)\",\"gpt-auditor auditor with toolchain absent still resets\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac3-auditor.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac3-auditor.test.ts\",\"ADR0162 WI4 AC-3: auditor resets without a toolchain (requires macos zsh)\",\"gpt-auditor auditor with toolchain cargo only still resets\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac3-auditor.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0162-WI4-3/20261031T145542463Z/tests",
+    "tree": "1ce53f56f09dc5f216f00807385549ea46933e0a"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0162-wi4-ac3-auditor.test.ts": "18719d4418ea6cf976011737ce20d25f8074694c"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0162-wi4-ac3-auditor.test.ts": "18719d4418ea6cf976011737ce20d25f8074694c"
+  }
+}

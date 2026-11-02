@@ -1,0 +1,33 @@
+{
+  "id": "T567-S23",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:55:30.828Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"compares versions by number, not by text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 55
+      },
+      "message": "AssertionError: expected [ false, true, false ] to deeply equal [ true, true, false ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S23/20261031T145530828Z/tests",
+    "tree": "11308eab77c025799425fa73eb8f493e07759f9e"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "16a7aa3cb3654e5e5d793ad4dc1532156a84f6a6"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "16a7aa3cb3654e5e5d793ad4dc1532156a84f6a6"
+  }
+}

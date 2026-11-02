@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:57:56.083Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the decision log keeps both audit files on ADR-0146's route\",\"names the policy set file beside the dimensions file in § Gate-sensitive entries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 322
+      },
+      "message": "AssertionError: expected '## Gate-sensitive entries An entry is…' to contain '`docs/agents/audit-dimensions.md` and…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S15/20261102T065756083Z/tests",
+    "tree": "5ae0d3b05663af6f953d6d4f001723955d0e5311"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh586-audit-policy-split.test.ts": "c733a10478f805b2facea4df5fb34e7c479b4109"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh586-audit-policy-split.test.ts": "c733a10478f805b2facea4df5fb34e7c479b4109"
+  }
+}

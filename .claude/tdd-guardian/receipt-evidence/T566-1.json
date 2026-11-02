@@ -1,0 +1,87 @@
+{
+  "id": "T566-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T03:47:12.003Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"discards an unsettled RED with a poisoned cache present\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"judges an unsettled receipt through the engine with an empty HOME\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"leaves an inherited parent record and its evidence alone while settling a branch RED\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 107
+      },
+      "message": "AssertionError: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"never probes the plugin cache directories\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: \n[red-receipt] The installed tdd-guardian receipt.js was not found.\n: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"never runs a poisoned Claude or Codex cache, and stamps evidence with the vendored version\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: \n[red-receipt] Record refused: missing is not a counted RED for this selection. Use discard for stale evidence.\n: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the entry needs no plugin cache\",\"records, verifies, checks and replays a frontend RED with an empty HOME\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: \n[red-receipt] The installed tdd-guardian receipt.js was not found.\n: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-no-cache.test.ts\",\"T566-1 the rust lane needs no plugin cache\",\"records and verifies a rust RED with a poisoned HOME\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-no-cache.test.ts",
+        "line": 142
+      },
+      "message": "AssertionError: \n[red-receipt] Record refused: missing is not a counted RED for this selection. Use discard for stale evidence.\n: expected 64 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T566-1/20261031T034712003Z/tests",
+    "tree": "d89433b2012d9346b606967ceb8f6194a13c872b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t566-no-cache.test.ts": "722b7354873a80a74f49458f3d39917daf2a9429"
+  },
+  "settled_blobs": {
+    "tests/tooling/t566-no-cache.test.ts": "722b7354873a80a74f49458f3d39917daf2a9429"
+  }
+}

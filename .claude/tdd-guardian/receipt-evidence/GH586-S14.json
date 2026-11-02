@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:47:42.297Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 fix 1: the merged verdict records <P>\",\"records the policy blob on the Protocol line, and both auditors' echo of <B> and <P>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 452
+      },
+      "message": "AssertionError: expected '- Protocol: master `<M>`, dimensions …' to contain 'policy blob `<P>` when the pinned fil…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S14/20261102T064742297Z/tests",
+    "tree": "c932ffba5b56691798cf1c0c66e5a817db4483dc"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "d04363ffaf702e1560412a79c1e8db217021946a"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "d04363ffaf702e1560412a79c1e8db217021946a"
+  }
+}

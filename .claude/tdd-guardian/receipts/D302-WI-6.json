@@ -1,0 +1,84 @@
+{
+  "id": "D302-WI-6",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T06:46:48.159Z",
+  "head_sha": "57ea75e59b8d66dfb7ca77ef5b08f238605b88e4",
+  "dirty_source": [
+    "package.json",
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs",
+    "scripts/ci/verify-inventory.mjs",
+    "scripts/lint/d302-sync-exceptions.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/d302-owner-descendant.test.ts": {
+      "state": "ok",
+      "sha": "4313e6c8af49c7f6b9624a640c9d2aff7df14dee8cf0cb8263fa441b0ee7e158",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1ddd0c5deb717ae9",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "b5d1281922ee9abb",
+        "51b6e4fe760ea6a7",
+        "4e8fac9860158841",
+        "cd0e73ee7ed8a08e",
+        "93a833dd84a2b7ca",
+        "e6530fb43bdef8cf",
+        "cf9dc0ce657f4b8d",
+        "39461e4e31b55202",
+        "aaeb3de57f7223f4",
+        "28988adb5ecfa546",
+        "22806a75f4b57dfb",
+        "db615597846fab96",
+        "3652dbafdcbd7af5",
+        "dbfa1aff7145038c",
+        "29576b54e255e3c9",
+        "1bc9759418176690",
+        "46b3a836ca4dbfb6",
+        "e934338d9649083f",
+        "6f1befde16775f3b",
+        "3d8d82224c9cd6dd",
+        "d10b36aa74a59bcf",
+        "df3982fd61017359",
+        "03d9aba6351173e5",
+        "4ddf86270c608de7",
+        "9dcf31fa672c87c7",
+        "baa54fae046207b2",
+        "0f0c88ea014ea5f1",
+        "1d4d0d8cea091199",
+        "3af4eb7835818bf9",
+        "6392b90465349af3",
+        "557b0fb266ec314c",
+        "4a3aec21c4c3f45a",
+        "6efa0c28654f8f35",
+        "83b07cef61a625f5",
+        "1d4d0d8cea091199",
+        "ffe213c6e4fda855",
+        "c2795ca974f83599",
+        "c007b2d490cdfcd4",
+        "2ffe2f8243e49c3e",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T06:48:08.693Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "6 non-test file(s) were already modified when the red was recorded (package.json, scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs, scripts/ci/verify-inventory.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "id": "T566-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T03:47:24.730Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses check-pending, verify, discard and replay without lib/verification.js\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 65
+      },
+      "message": "AssertionError: \n[red-receipt] Record refused: missing is not a counted RED for this selection. Use discard for stale evidence.\n: expected 64 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when lib/config.js does not load\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 74
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when receipt.js does not compile, before the lane runs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when the CommonJS shim is deleted\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 96
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when the CommonJS shim is set to ESM\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 96
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record when the vendored directory is gone\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 49
+      },
+      "message": "AssertionError: expected '\\n[red-receipt] Record refused: missi…' to contain '/private/var/folders/yc/pj8fy0nj7vs0s…'"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 a missing or broken vendored engine fails closed\",\"refuses to record without receipt.js, before the lane runs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 49
+      },
+      "message": "AssertionError: expected '\\n[red-receipt] Record refused: missi…' to contain '/private/var/folders/yc/pj8fy0nj7vs0s…'"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fail-closed.test.ts\",\"T566-3 the rust lane fails closed\",\"refuses to record a rust RED without receipt.js\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fail-closed.test.ts",
+        "line": 49
+      },
+      "message": "AssertionError: expected '\\n[red-receipt] Record refused: missi…' to contain '/private/var/folders/yc/pj8fy0nj7vs0s…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T566-3/20261031T034724730Z/tests",
+    "tree": "d89433b2012d9346b606967ceb8f6194a13c872b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t566-fail-closed.test.ts": "51e9607d2ffdbcab90f1ffb6e22600e4dfa69a91"
+  },
+  "settled_blobs": {
+    "tests/tooling/t566-fail-closed.test.ts": "51e9607d2ffdbcab90f1ffb6e22600e4dfa69a91"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/T566-3.json",
+    "digest": "597fb189155f01ae855089de79530fcf3764a5133a5eb9a64c4ecceed8eda00f",
+    "result": "passed",
+    "base": "dbe26389715455965e540a439c0e5271d01bf7c3",
+    "head": "d2e82c7acf6fb4454ee696cdf65e7f75b4ae81fd"
+  }
+}

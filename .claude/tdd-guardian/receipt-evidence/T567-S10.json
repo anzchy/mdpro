@@ -1,0 +1,33 @@
+{
+  "id": "T567-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:46:30.463Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"bounds the attack, demands a counter-proof for a rejected gap, and stops for the delegator\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected { …(3) } to deeply equal { Object (tokens, counterProof, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S10/20261031T144630463Z/tests",
+    "tree": "d58f88105d27845ee02d9d6b14dfbb5f2c89b1e9"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "0550cdbda90197d611bb452825aa601bad6a466e"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "0550cdbda90197d611bb452825aa601bad6a466e"
+  }
+}

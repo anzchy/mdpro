@@ -1,0 +1,68 @@
+{
+  "id": "M1b-F1-2b",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T05:02:40.564Z",
+  "head_sha": "489a2952ea7342ca5e0e150d2b0dd9bccca5d128",
+  "dirty_source": [
+    "docs/feature-ledger.md",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/services/binding_conflicts_owners.rs",
+    "src/commands/appliedKeymap.ts",
+    "src/commands/inventory/codemirrorRows.ts",
+    "src/commands/rows/editRows.ts",
+    "src/commands/rows/paragraphRows.ts",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/hooks/editorMenuActionTable.ts",
+    "src/plugins/codemirror/sourceTableArrowKeymap.ts",
+    "src/plugins/milkdown/commonmarkPreset.ts",
+    "src/plugins/milkdown/wysiwygKeymapEntries.ts",
+    "src/utils/editorMenuSourceCommands.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/m1b-fix1-released-u.test.tsx": {
+      "state": "ok",
+      "sha": "97375b7695b75b4ce1660960e12a622d2e00202c781cf242711fa30fdd1a142f",
+      "lines": [
+        "07f350e862940412",
+        "6a373afd72d0a198",
+        "8dee95726aae2042",
+        "0acef81955c8b4ff",
+        "785bbac14bf699e2",
+        "ce67acb42d1276f2",
+        "258d55401e7169af",
+        "263ceb772b2c21aa",
+        "b10fadb9cdf87b5b",
+        "db42d7ee780f7627",
+        "7e2e4763338780b8",
+        "355ea5bd75b21e5f",
+        "8ec42d73ea9dc312",
+        "ed9335dc6230e0fe",
+        "d60d08c668689a15",
+        "324e62601f6e6928",
+        "674029bfd5d584b9",
+        "3ba5f5d8dafe5dda",
+        "348a35cf1154654d",
+        "a9bc118a5e93c8bf",
+        "6cf6469d856b730a",
+        "dbcdbaa16da03c47",
+        "37ed46d5b313aa96",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T05:03:16.414Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "13 non-test file(s) were already modified when the red was recorded (docs/feature-ledger.md, src-tauri/src/menu_layout.json, src-tauri/src/services/binding_conflicts_owners.rs, src/commands/appliedKeymap.ts, src/commands/inventory/codemirrorRows.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

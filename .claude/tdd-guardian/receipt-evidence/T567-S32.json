@@ -1,0 +1,33 @@
+{
+  "id": "T567-S32",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T15:02:20.840Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 enabled-plugin readers\",\"resolves Claude's enabled state across user, project and local settings: the last scope that sets the key wins\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 287
+      },
+      "message": "AssertionError: expected { projectOff: false, …(6) } to deeply equal { projectOff: false, …(6) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S32/20261031T150220840Z/tests",
+    "tree": "e12dd073ec4cb3b8ecdad03372e06b630d3cf2ed"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "5cb4719f71b6581236caab7c566366406e73f0b4"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "5cb4719f71b6581236caab7c566366406e73f0b4"
+  }
+}

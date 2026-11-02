@@ -1,0 +1,100 @@
+{
+  "id": "D337-FIX1-OUTER",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:02:17.848Z",
+  "head_sha": "8722b51c81077c0e228f3921fcc043c0a226ae19",
+  "dirty_source": [
+    ".tokenize/ledger/28105.ndjson",
+    ".tokenize/ledger/71749.ndjson"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-outer.test.ts": {
+      "state": "ok",
+      "sha": "d7784b5423046e58349d8450eac32fae5ce3655f92703e2b685c10f61a6a8620",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "3cee8aab18bb4a2b",
+        "8d8c81baf3d0786a",
+        "b9611e1516f45b11",
+        "92ba57222ce4c5b2",
+        "aadeffc0f1c56c29",
+        "eac32c0dcf63fe76",
+        "b35bfe50fc40c1d5",
+        "ed9623369ff082ab",
+        "ad7364b69ca8c1ef",
+        "54bb85537d667d1a",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "323f24a37742b20d",
+        "303431d5e7d36c21",
+        "e162f4a089dd7802",
+        "14ba9bc23d11123a",
+        "b545181d9002388a",
+        "dc950cca4bd8e51d",
+        "2d26e13a9e782caa",
+        "8be84baa52494319",
+        "c72121d9bb9aff28",
+        "4b0a0bd5ca2000e4",
+        "b3db9e698a043548",
+        "2dca5ac204485848",
+        "f182e64cfaeed715",
+        "ddd7f30b1eff15db",
+        "f9be879c57de25d4",
+        "bb4f8032959e4b15",
+        "8e2285e1be16fd28",
+        "4a3ba9cad8a325b2",
+        "34395b6f71f82e5c",
+        "22d8babb040a0a6f",
+        "3d7f1feac44a37c5",
+        "ab907ece54363ae5",
+        "244cbdff893929b5",
+        "3cf602c5c9e67c8a",
+        "03d9aba6351173e5",
+        "c55b93c919532a26",
+        "400825f254ebeb4e",
+        "9c1ee5e919bebff4",
+        "77f9f0876e01941b",
+        "96fc3ab8ca89770d",
+        "866c9bdf57769d20",
+        "29576b54e255e3c9",
+        "a3f9072b2f88d6c3",
+        "551d736b266ba16d",
+        "421bdbc5b1f89c7f",
+        "83b07cef61a625f5",
+        "d8447467220b1625",
+        "160275e1c7fd7730",
+        "d10b36aa74a59bcf",
+        "e4c5bb1807cdd71a",
+        "e06e6fd30eefb0f5",
+        "9ec4cea258580169",
+        "d4aff1a92de91679",
+        "15a7067a826b7532",
+        "81cb4521b8e7128a",
+        "7f48d3da5e7388c3",
+        "5e9a61e538c1259c",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-31T04:13:30.953Z",
+  "verdict": "SEPARATION-BROKEN",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.tokenize/ledger/28105.ndjson, .tokenize/ledger/71749.ndjson). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "high",
+      "code": "spec-changed-under-green",
+      "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/tooling/windows-driver-d337-fix1-outer.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+    }
+  ]
+}

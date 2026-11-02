@@ -1,0 +1,33 @@
+{
+  "id": "T567-S22",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:54:56.601Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"rejects a 1.3.0 cache as too old, naming the version\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 26
+      },
+      "message": "AssertionError: expected { ok: true, version: '1.3.0', …(1) } to deeply equal { ok: false, version: '1.3.0', …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S22/20261031T145456601Z/tests",
+    "tree": "555a5fb3f620d0fc1077cb6b0a0634f271a6b970"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "6f6072eb5b21d46162ba615c3a625e6c84e5bd3b"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "6f6072eb5b21d46162ba615c3a625e6c84e5bd3b"
+  }
+}

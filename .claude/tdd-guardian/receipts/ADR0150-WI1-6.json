@@ -1,0 +1,67 @@
+{
+  "id": "ADR0150-WI1-6",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T01:46:46.573Z",
+  "head_sha": "76b1e33be6d9360bf765209075b1ffdb6f0c63bd",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json",
+    "scripts/heavy-lock.sh",
+    "scripts/load-guard/guard.py"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 5 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/vitest-workers.test.ts": {
+      "state": "ok",
+      "sha": "73ec719b47c1362ef1006bbcc5dc3de71cefb5d5974b13dbb0ed1a5bb110aad1",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9c94784f8cfa14e6",
+        "11153b5a5ee7022f",
+        "8abc8ad7241c6ad5",
+        "58a043adc1d3853b",
+        "45c5da3ac5bfa48b",
+        "29576b54e255e3c9",
+        "77cbb4d2fe7bd180",
+        "363c6b9fa7e077ca",
+        "29576b54e255e3c9",
+        "904771f7212088db",
+        "b158c7b9e20db86e",
+        "bdf286c95bf3d4b5",
+        "29576b54e255e3c9",
+        "5df15b97524a5244",
+        "d499180112d45682",
+        "643a4ff4fb28dbde",
+        "e5dbd0f890483f3e",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "de2c64e2bf8a4485",
+        "a6a73aab426e13c2",
+        "9761901472233b1d",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T01:47:04.489Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "11 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

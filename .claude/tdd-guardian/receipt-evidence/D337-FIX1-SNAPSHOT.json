@@ -1,0 +1,33 @@
+{
+  "id": "D337-FIX1-SNAPSHOT",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:02:40.109Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-snapshot.test.ts\",\"D337 fix 1 Snapshot survives one member's identity read throwing\",\"reports every live member and raises nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected { …(2) } to deeply equal { error: '', pids: [ 95496, 95497 ] }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D337-FIX1-SNAPSHOT/20261031T040240109Z/tests",
+    "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts": "614a5abd88e8820b9c307c636dfbf04feb99274b"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-snapshot.test.ts": "614a5abd88e8820b9c307c636dfbf04feb99274b"
+  }
+}

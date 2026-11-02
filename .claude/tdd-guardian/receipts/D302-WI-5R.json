@@ -1,0 +1,63 @@
+{
+  "id": "D302-WI-5R",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T08:53:16.671Z",
+  "head_sha": "b290e402df8d6c687e6d833372e7a23641fb17a9",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 5 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/unit-red-phase-chain.test.ts": {
+      "state": "ok",
+      "sha": "afae125ef1ecde5b727079e547944c736f20317209d77d75e32bc85c3bc15b51",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "b3e7120b9d8e38ea",
+        "e05fabb2b0d7bcbc",
+        "2dd42f124779333e",
+        "d5dbb991a39a63fa",
+        "373d36612a8ab17f",
+        "ff198c47b29f30c2",
+        "cc0875649af25c74",
+        "db7aff77d73bbdb6",
+        "a5c6e12b4005c103",
+        "87a76c6afa179f84",
+        "d47bf2e70f1fb96e",
+        "30a8b8bac0106159",
+        "ec36c35d842074dc",
+        "82609913e1eaf949",
+        "70e856088680eba1",
+        "68c1c487909c87c2",
+        "d10b36aa74a59bcf",
+        "be7077e0ac86d115",
+        "1de8c3fc644cca9f",
+        "47c35f07c2622fc5",
+        "a95564ccb1c3084c",
+        "03d9aba6351173e5",
+        "304001510dd4cf79",
+        "5b0faeeb927e1c64",
+        "6f438c4fb9edf067",
+        "358bd4d5a721657a",
+        "29576b54e255e3c9",
+        "c7e4335050eacd5d",
+        "35472986fdfff157",
+        "5b0faeeb927e1c64",
+        "7f36c98ca3f39ad2",
+        "29576b54e255e3c9",
+        "8d69c69e79c998a2",
+        "35472986fdfff157",
+        "af7c73624ed8834d",
+        "4cafd8c6f0022d29",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T08:53:26.483Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

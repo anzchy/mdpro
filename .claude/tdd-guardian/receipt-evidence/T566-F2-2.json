@@ -1,0 +1,78 @@
+{
+  "id": "T566-F2-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T09:05:34.534Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"defines the gate as 'not a GitHub runner', and takes the version and engine from t566Engine\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 115
+      },
+      "message": "AssertionError: expected '/**\\n * Purpose: Shared pieces of the…' to match /^export const receiptSuites = !proce…/m"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"hands bare_record its receipt.js instead of finding one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 124
+      },
+      "message": "AssertionError: expected 'import { existsSync, mkdtempSync, mkd…' not to match /readdirSync|[\"'`]vendor[\"'`]/"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"names a plugin cache only in the poison builder and two literal-only files\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 92
+      },
+      "message": "AssertionError: expected [ Array(24) ] to deeply equal [ 'tests/support/t566Engine.ts', …(2) ]"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 no test reaches a plugin cache or the vendor tree on its own\",\"reads no HOME in any receipt suite (bar digest-text's subject), and gates each on receiptSuites, pluginVersion or rustfmt\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 106
+      },
+      "message": "AssertionError: tests/tooling/adr0149e-rust-lane.test.ts: expected [ …(3) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 receipt suites skip on GitHub runners\",\"skips every plugin-tagged test with RUNNER_OS=Linux, and the ubuntu comparator passes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: \n: expected [ Array(261) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"T566-F2-1 receipt suites skip on GitHub runners\",\"skips every plugin-tagged test with RUNNER_OS=macOS, and the macos comparator passes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: \n: expected [ Array(261) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T566-F2-2/20261031T090534534Z/tests",
+    "tree": "07273ee1543d510f074caa68aca8524a07f1f762"
+  },
+  "spec_blobs": {
+    "tests/tooling/t566-fix2-ci-shape.test.ts": "c37b5d19b4ca28ae9313aeff5f5c187cd5318974"
+  },
+  "settled_blobs": {
+    "tests/tooling/t566-fix2-ci-shape.test.ts": "c37b5d19b4ca28ae9313aeff5f5c187cd5318974"
+  }
+}

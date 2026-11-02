@@ -1,0 +1,84 @@
+{
+  "id": "M4-WI-5-R1",
+  "lane": "rust",
+  "recorded_at": "2026-10-22T06:58:14.597Z",
+  "head_sha": "6b61c73124bdf90e1f7c1caf13544789fde7a67b",
+  "dirty_source": [
+    "CHANGELOG.md",
+    "docs/feature-ledger.md",
+    "docs/guide/keyboard-shortcuts.md",
+    "src-tauri/src/commands/menu.rs",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_edit.rs",
+    "src-tauri/src/menu_format.rs",
+    "src-tauri/src/menu_from_layout.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/menu_paragraph.rs",
+    "src-tauri/src/menu_recent.rs",
+    "src-tauri/src/menu_submenus.rs",
+    "src/App.tsx",
+    "src/commands/rows/appRows.ts",
+    "src/commands/rows/editRows.ts",
+    "src/commands/rows/fileRows.ts",
+    "src/commands/rows/formatRows.ts",
+    "src/commands/rows/paragraphRows.ts",
+    "src/commands/rows/viewRows.ts",
+    "src/components/AppDialogs.tsx",
+    "src/components/common/SettingsDialog.tsx",
+    "src/hooks/menuActionTable.ts",
+    "src/hooks/useRecentFilesMenuRefresh.ts",
+    "src/services/recentFilesMenuService.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1957 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/menu_from_layout_unavailable_tests.rs": {
+      "state": "ok",
+      "sha": "3419c8831925a467c04cde63e22c03bb7b17feb77a623dd85f1b95da2cc4dcfb",
+      "lines": [
+        "3e69ed487e00dc7c",
+        "df1fb510b21459d3",
+        "672a04842f10a9f9",
+        "fa446a9ff7394384",
+        "77be8a8135e7d0c9",
+        "a27bcd7e34955455",
+        "ce71a2e90e9bcc30",
+        "ca3be9ebf3d1cae2",
+        "c595f964eb03bdc7",
+        "348ca23e725724e3",
+        "d67154f04fcb912d",
+        "42c8d89e4daa8010",
+        "9832e7d62484356c",
+        "25487ae3598c48e8",
+        "00d97267f460f663",
+        "e592190b159f29d6",
+        "dde401b0cfe1e903",
+        "aa11044474945028",
+        "6b8f961ebaa8c616",
+        "7ce4048f79a4fd72",
+        "5420a1b39e253d2c",
+        "b32551e9b7f4fc6f",
+        "e52a1813c4604951",
+        "9d8b2b5670d18da8",
+        "bf98ee362ba027c8",
+        "34f87a706a44cc36",
+        "d10b36aa74a59bcf",
+        "ad02963321edb23a",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-22T07:00:12.974Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "24 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.md, docs/guide/keyboard-shortcuts.md, src-tauri/src/commands/menu.rs, src-tauri/src/menu.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

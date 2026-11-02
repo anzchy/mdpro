@@ -1,0 +1,65 @@
+{
+  "id": "D255-WI-3c-WI-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T08:06:43.426Z",
+  "head_sha": "c9216e4850f0e0579d4a718e8875b32c30aae89a",
+  "dirty_source": [
+    "src/plugins/milkdown/find/findModel.ts",
+    "src/plugins/milkdown/find/findPlugin.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/d255-wi3c-find-lifecycle.test.tsx": {
+      "state": "ok",
+      "sha": "d9f1331498cf6f386a5f30070cd37cd4bc40a3f6755e66045f6b0b7a53ca4066",
+      "lines": [
+        "8b1ae9defffb6e73",
+        "09e8c10715e15d47",
+        "ff77af064fdaef2b",
+        "aa9fbcf7bd59c15b",
+        "1bb8dba1b7f82e3b",
+        "009fc42d484c3cd8",
+        "4480fa916431fbe6",
+        "992b22426554fd2c",
+        "0fd2c1c881ae397a",
+        "c00c92fbc2c7504c",
+        "476064d300e1c55f",
+        "0676d42368759f54",
+        "c252ffaeb5b171de",
+        "9b0df4fa49b2b132",
+        "3beada2993a913f3",
+        "b5ae77ff5e37f2a4",
+        "7ba03a33b957bad6",
+        "29576b54e255e3c9",
+        "139d4db4dac4d815",
+        "559f00c56242269f",
+        "b75649587855e77b",
+        "4a3bce314b870174",
+        "6d3f996a99ecf51a",
+        "6e192a663cc5d568",
+        "841df92a0788a03b",
+        "4c9b948bb565f924",
+        "835ed45b1e94fa4c",
+        "e1e394877b44bcda",
+        "e193c410e0ed2c1d",
+        "3d81149ac1ff1e54",
+        "00bed0ec1e69f283",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T08:09:42.865Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (src/plugins/milkdown/find/findModel.ts, src/plugins/milkdown/find/findPlugin.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

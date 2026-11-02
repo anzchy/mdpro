@@ -1,0 +1,65 @@
+{
+  "id": "M1b-F1-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T04:52:54.866Z",
+  "head_sha": "489a2952ea7342ca5e0e150d2b0dd9bccca5d128",
+  "dirty_source": [
+    "src-tauri/src/menu_layout.json",
+    "src/commands/appliedKeymap.ts",
+    "src/commands/inventory/codemirrorRows.ts",
+    "src/commands/rows/editRows.ts",
+    "src/commands/rows/paragraphRows.ts",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/hooks/editorMenuActionTable.ts",
+    "src/plugins/codemirror/sourceTableArrowKeymap.ts",
+    "src/plugins/milkdown/wysiwygKeymapEntries.ts",
+    "src/utils/editorMenuSourceCommands.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/m1b-fix1-downgrade.test.tsx": {
+      "state": "ok",
+      "sha": "c7a6ff3b18c5fb9d9aa852bc756774edf759542bf6409d73fe06a46be1e327b4",
+      "lines": [
+        "b4dd67bea61ed17c",
+        "e6d29018739ba510",
+        "18a0f380a3736d80",
+        "dbdd9e4dfc2682c1",
+        "84d458320250fc62",
+        "bfda4a71490fcc98",
+        "7a4d841ed4b75de8",
+        "126d9efce5894b89",
+        "889ccb53e68d7993",
+        "a8468aa86f935d84",
+        "d88772e9eb1c432d",
+        "7db2758d9fd65f4e",
+        "1a42cf6071c363c1",
+        "4ab38237c2d5bf14",
+        "a809881b37a0b46d",
+        "3b8dc1f8121926d6",
+        "df3982fd61017359",
+        "6ae928ee36a30eed",
+        "b16f40241a7a54cf",
+        "81b8f4722e95d08b",
+        "b16f40241a7a54cf",
+        "3bff70f3e48b7f31",
+        "966774074b53de6a",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T04:53:06.842Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "10 non-test file(s) were already modified when the red was recorded (src-tauri/src/menu_layout.json, src/commands/appliedKeymap.ts, src/commands/inventory/codemirrorRows.ts, src/commands/rows/editRows.ts, src/commands/rows/paragraphRows.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

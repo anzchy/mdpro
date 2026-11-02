@@ -1,0 +1,33 @@
+{
+  "id": "D337-FIX1-EXIT",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:02:35.335Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-exit.test.ts\",\"D337 fix 1 a Windows-bounded timeout exits 1\",\"a stalled phase ends with exit 1, not 124\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-exit.test.ts",
+        "line": 15
+      },
+      "message": "AssertionError: phase:start discovery OUTCOME {\"completedSteps\":0,\"op\":\"clickat\",\"heldInput\":\"released\",\"status\":\"failed\",\"cleanup\":\"complete\",\"phase\":\"NATIVE_PHASE_TIMEOUT phase=discovery worker-phase=discovery\",\"elapsedMs\":2569,\"step\":1,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"inputOutcome\":\"none\"}: expected 124 to be 1 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D337-FIX1-EXIT/20261031T040235335Z/tests",
+    "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-exit.test.ts": "1d51b6ab94c4a411bae1d2ba23c2d3b881646aaf"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-exit.test.ts": "1d51b6ab94c4a411bae1d2ba23c2d3b881646aaf"
+  }
+}

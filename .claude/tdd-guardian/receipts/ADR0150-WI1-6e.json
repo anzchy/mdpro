@@ -1,0 +1,84 @@
+{
+  "id": "ADR0150-WI1-6e",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T03:12:27.231Z",
+  "head_sha": "848326ab149d02fed566f8f5fd7f70dab4418a2b",
+  "dirty_source": [
+    ".agents/skills/mdpro-delegator/scripts/gui-lock.sh",
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/rules/10-tdd.md",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json",
+    "docs/guide/load-guard.md",
+    "scripts/heavy-lock.sh",
+    "scripts/load-guard/backstop.py",
+    "scripts/load-guard/com.mdpro.load-guard.plist.in",
+    "scripts/load-guard/guard.py",
+    "scripts/load-guard/install.py",
+    "vitest.config.ts",
+    "vitest.workers.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 7 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/vitest-workers.test.ts": {
+      "state": "ok",
+      "sha": "1a47e892b5a8802de7e71841e5d427fec62b11ac9ade6994a1ef4aa50109e55d",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9c94784f8cfa14e6",
+        "11153b5a5ee7022f",
+        "8abc8ad7241c6ad5",
+        "58a043adc1d3853b",
+        "45c5da3ac5bfa48b",
+        "29576b54e255e3c9",
+        "2c9eeb56f5bfe051",
+        "8ad37b03afd824f7",
+        "29576b54e255e3c9",
+        "904771f7212088db",
+        "b158c7b9e20db86e",
+        "bdf286c95bf3d4b5",
+        "29576b54e255e3c9",
+        "5df15b97524a5244",
+        "d499180112d45682",
+        "a1b8dae100a7efd8",
+        "5077c1360ba39111",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "de2c64e2bf8a4485",
+        "a6a73aab426e13c2",
+        "9761901472233b1d",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "2db84224e7649c84",
+        "5ba60035f0e0fc83",
+        "8ad37b03afd824f7",
+        "29576b54e255e3c9",
+        "ec628944f5fd380e",
+        "71a2f3eb7ef6459b",
+        "cb7b1fdd23f0fd55",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T03:13:06.988Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "19 non-test file(s) were already modified when the red was recorded (.agents/skills/mdpro-delegator/scripts/gui-lock.sh, .claude/mind.mv2, .claude/mind.mv2.lock, .claude/rules/10-tdd.md, .claude/settings.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

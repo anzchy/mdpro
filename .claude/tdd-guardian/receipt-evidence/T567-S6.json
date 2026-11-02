@@ -1,0 +1,33 @@
+{
+  "id": "T567-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:43:57.263Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"gives the template every case class, an assertion and a test file column, and an effect-not-boolean assertion\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected { classes: [ 'success', …(5) ], …(2) } to deeply equal { Object (classes, columns, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S6/20261031T144357263Z/tests",
+    "tree": "b5fe6d7ed8e991e90d05b5877e7b1b91604f240b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "ce0b20569bc6fc8feccf8539b3e0a9052d628b6a"
+  }
+}

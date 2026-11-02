@@ -1,0 +1,79 @@
+{
+  "id": "M1b-WI-14-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T01:26:03.503Z",
+  "head_sha": "2e4dfeab9be0bf22bb51bd0179a8cda40e8ec15f",
+  "dirty_source": [
+    "docs/guide/keyboard-shortcuts.md",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_availability.rs",
+    "src-tauri/src/menu_construction_plan.rs",
+    "src-tauri/src/menu_format.rs",
+    "src-tauri/src/menu_from_layout.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/menu_paragraph.rs",
+    "src-tauri/src/menu_plan_builder.rs",
+    "src-tauri/src/models/keyboard_shortcut_defaults.rs",
+    "src-tauri/src/models/keyboard_shortcuts_version.rs",
+    "src-tauri/src/services/applied_shortcuts.rs",
+    "src-tauri/src/services/preferences_migration.rs",
+    "src/App.tsx",
+    "src/commands/appliedKeymap.ts",
+    "src/commands/rows/appRows.ts",
+    "src/commands/rows/formatRows.ts",
+    "src/components/AppDialogs.tsx",
+    "src/components/Editor/Editor.tsx",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/components/Editor/SplitView.tsx",
+    "src/components/Editor/TableInsertModal/index.tsx",
+    "src/components/Editor/extensions/search.ts",
+    "src/components/common/settings/shortcuts/ShortcutRow.tsx",
+    "src/components/common/settings/shortcuts/rowState.ts",
+    "src/components/common/settings/shortcuts/shortcutGroups.ts",
+    "src/hooks/useKeyboardShortcuts.ts",
+    "src/hooks/useKeyboardShortcuts.types.ts",
+    "src/plugins/codemirror/altGrGuard.ts",
+    "src/plugins/codemirror/headingPlugin.ts",
+    "src/plugins/codemirror/highlightPlugin.ts",
+    "src/plugins/codemirror/linkPlugin.ts",
+    "src/plugins/codemirror/sourceFormatPlugin.ts",
+    "src/plugins/codemirror/sourceTableArrowKeymap.ts",
+    "src/plugins/milkdown/commonmarkPreset.ts",
+    "src/plugins/milkdown/gfmPreset.ts",
+    "src/plugins/milkdown/typoraKeymapPlugin.ts",
+    "src/plugins/milkdown/wysiwygKeymapEntries.ts",
+    "src/services/preferencesService.ts",
+    "src/types/keyboardShortcuts.ts",
+    "src/types/preferences.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/m1b-inventory-removal.test.ts": {
+      "state": "ok",
+      "sha": "71eba74e81d63c9e726f9254d57d32904cb7f22dac4766cc3bf375acb77f8e5e",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "efb2893cf8a54a66",
+        "785bbac14bf699e2",
+        "4f799388c5905611",
+        "4914f291a37f3c44",
+        "737b6735670a48c6",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T01:26:16.356Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "41 non-test file(s) were already modified when the red was recorded (docs/guide/keyboard-shortcuts.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs, src-tauri/src/menu_construction_plan.rs, src-tauri/src/menu_format.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

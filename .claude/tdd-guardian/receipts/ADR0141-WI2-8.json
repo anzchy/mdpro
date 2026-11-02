@@ -1,0 +1,69 @@
+{
+  "id": "ADR0141-WI2-8",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-27T08:43:56.141Z",
+  "head_sha": "9f57f294a805d91e6078873a46871e7ad7fc4dc9",
+  "dirty_source": [
+    ".agents/skills/mdpro-delegator/references/guide.md",
+    ".agents/skills/mdpro-delegator/references/templates/device-brief-template.md",
+    ".agents/skills/mdpro-delegator/scripts/delegator-route.sh",
+    ".agents/skills/mdpro-delegator/scripts/gui-lock.sh",
+    ".agents/skills/mdpro-delegator/scripts/notify-settled.sh",
+    ".agents/skills/mdpro-delegator/scripts/prompt.sh",
+    ".agents/skills/mdpro-delegator/scripts/reset-codex.sh",
+    ".agents/skills/mdpro-delegator/scripts/watch-agent.sh",
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/adr0141-wi2-landing-stash.test.ts": {
+      "state": "ok",
+      "sha": "9f061595a99fd8d5f3380873d65efa618c83fd2410b010718ea0131809cc0f7f",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "822dbf10ec365f5f",
+        "ab3cfb5c847cebbc",
+        "11eb05ac45c08cf3",
+        "7d144e66627b7ba9",
+        "dfdbafe2f2be69c8",
+        "1f171beb9db7a7d2",
+        "54c29c0c9fc690d6",
+        "881a035322075804",
+        "44cda05880c813bd",
+        "159cdc905a14dcd7",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-27T08:45:58.824Z",
+  "verdict": "SEPARATION-BROKEN",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "16 non-test file(s) were already modified when the red was recorded (.agents/skills/mdpro-delegator/references/guide.md, .agents/skills/mdpro-delegator/references/templates/device-brief-template.md, .agents/skills/mdpro-delegator/scripts/delegator-route.sh, .agents/skills/mdpro-delegator/scripts/gui-lock.sh, .agents/skills/mdpro-delegator/scripts/notify-settled.sh, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "high",
+      "code": "spec-changed-under-green",
+      "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/tooling/adr0141-wi2-landing-stash.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+    }
+  ]
+}

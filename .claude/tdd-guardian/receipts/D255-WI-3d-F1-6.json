@@ -1,0 +1,91 @@
+{
+  "id": "D255-WI-3d-F1-6",
+  "lane": "rust",
+  "recorded_at": "2026-10-23T03:34:40.684Z",
+  "head_sha": "75751db6562beef9a4847da80dd8ea25d2bb89c7",
+  "dirty_source": [
+    "docs/feature-ledger.md",
+    "src-tauri/src/commands/draft_recover_watch.rs",
+    "src-tauri/src/commands/draft_recovery.rs",
+    "src-tauri/src/commands/file.rs",
+    "src-tauri/src/commands/mod.rs",
+    "src-tauri/src/commands/save_as_open_lock.rs",
+    "src-tauri/src/commands/save_as_target.rs",
+    "src-tauri/src/commands/save_as_transaction.rs",
+    "src-tauri/src/commands/save_as_watch.rs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 2013 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/commands/save_as_transaction_tests.rs": {
+      "state": "ok",
+      "sha": "6a543e6410a63c7aba3865e70db1b160a4b4ccb8dc93aa63756312687dbb8748",
+      "lines": [
+        "f2aab3bf09105e28",
+        "4c3a79096ac2de1c",
+        "c5389aa360b2c742",
+        "0c95f312da3ea950",
+        "dc8211d54a7b41fb",
+        "ac700c908aa769f1",
+        "0134719cf93caf9b",
+        "856ca9e279d6e8f7",
+        "0a704c8e689ea3ce",
+        "4e9d234014bc74a8",
+        "a727896b6b32f242",
+        "ecd762224cad984d",
+        "42cecdf6a2bb2a42",
+        "a20d999f1ee2a73a",
+        "131e9c5f8570b0f5",
+        "0b57bdacf8892752",
+        "13b3459f28935f87",
+        "eff296c5bdecd061",
+        "cd1630b7312fa71f",
+        "7e21e7996dc57654",
+        "8a3ca6ca60d142c5",
+        "1a095553167a259c",
+        "74db333e51b034cc",
+        "a0f02217caee9924",
+        "d9f41afabc0e1d80",
+        "80374c9e2cc0bb64",
+        "53dc0d7e75f51597",
+        "9e0c5726fc03f58b",
+        "d5b0622df7842330",
+        "c2ca70d8e093b300",
+        "4064dc47cbe21624",
+        "1dd781060cb032a8",
+        "e52a1813c4604951",
+        "52d2e098aaf1ba98",
+        "d14f72d5c7d0a267",
+        "22144fe1ff3f59c9",
+        "0650a19b5f64b163",
+        "e52a1813c4604951",
+        "ba5ec51d07a4ac0e",
+        "4233903d37e49b67",
+        "a38302f709b598e3",
+        "f867a3a0e2ccc7c0",
+        "97d8976bc47ffd83",
+        "9d8b2b5670d18da8",
+        "bca3a73afd882ffe",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T04:21:05.007Z",
+  "verdict": "SEPARATION-BROKEN",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "9 non-test file(s) were already modified when the red was recorded (docs/feature-ledger.md, src-tauri/src/commands/draft_recover_watch.rs, src-tauri/src/commands/draft_recovery.rs, src-tauri/src/commands/file.rs, src-tauri/src/commands/mod.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "high",
+      "code": "spec-changed-under-green",
+      "message": "1 specification file(s) had a recorded line changed or removed between red and green: src-tauri/src/commands/save_as_transaction_tests.rs. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+    }
+  ]
+}

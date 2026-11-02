@@ -1,0 +1,61 @@
+{
+  "id": "D190-WI-6-RS",
+  "lane": "rust",
+  "recorded_at": "2026-10-14T11:32:28.502Z",
+  "head_sha": "bff93239ae550fccd42d2d131d808c1580f91f55",
+  "dirty_source": [
+    "CHANGELOG.md",
+    "docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md",
+    "docs/feature-ledger.md",
+    "docs/plans/20260912-frontend-backend-sequencing-order.md",
+    "src-tauri/src/menu_submenus.rs",
+    "src/plugins/milkdown/typoraKeymapPlugin.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 1655 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/menu_submenus_wi6_tests.rs": {
+      "state": "ok",
+      "sha": "78c7cbc06e5c382160ba65a6977a69065f0bc0efce785f16c6e48f6f54a7b4e1",
+      "lines": [
+        "60ff0253c27e24dc",
+        "74fbfa78242976c3",
+        "5cf0ffb51ca01f11",
+        "baf9e4161202d5ff",
+        "322050fa474e4a66",
+        "fa446a9ff7394384",
+        "a10200e8b1f16553",
+        "119fe0b5b92fc3f6",
+        "c4cfe1b41a7d4118",
+        "cd48168d647ade72",
+        "9d8b2b5670d18da8",
+        "119fe0b5b92fc3f6",
+        "595ca30ff504a20c",
+        "05d0898a6792457c",
+        "9d8b2b5670d18da8",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "5d1da9d8475b22b3",
+        "d5e1d3b5606df9d9",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "095888731a90f93e",
+        "6b87b29beeb4c40a",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-14T11:37:46.190Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "6 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/adr/0096-on-windows-and-linux-ctrl-digits-are-headings-and-ctrl-slash-switches-the-view.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/menu_submenus.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:05:13.210Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 reviewed audit dimensions\",\"publishes the authorized fix 2 dimensions blob byte for byte\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 21
+      },
+      "message": "AssertionError: expected '69af47a9c367aa40a0640903fbe07c816ad03…' to be '7bbce83c79e79f81217e9523cb3db0be4050b…' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S1/20261102T060513210Z/tests",
+    "tree": "e6688fdacd5058d3f886a77bcbc89d2c53f97c67"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "4dddad663cc2b4f8fb1de812271d3363d9de5ca2"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "4dddad663cc2b4f8fb1de812271d3363d9de5ca2"
+  }
+}

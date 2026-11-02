@@ -1,0 +1,58 @@
+{
+  "id": "ADR0149E-F2M1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T16:26:16.688Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-lock-wait-bound.test.ts\",\"ADR0149E-F2M1 a contended heavy-lock admission does not time the run out\",\"a Rust replay whose recorded lane command starts with heavy-lock.sh passes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+        "line": 82
+      },
+      "message": "AssertionError: expected 'evidence: /var/folders/yc/pj8fy0nj7vs…' not to match /timed out/"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-lock-wait-bound.test.ts\",\"ADR0149E-F2M1 a contended heavy-lock admission does not time the run out\",\"a Vitest replay whose install, base and head runs each wait at heavy-lock passes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+        "line": 62
+      },
+      "message": "AssertionError: expected '\\n[red-receipt] pnpm install for the …' not to match /timed out|pnpm install for the base l…/"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-lock-wait-bound.test.ts\",\"ADR0149E-F2M1 the replay run bound covers heavy-lock's wait\",\"adds heavy-lock's admission wait to a wrapped run, and the launcher covers three of them\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-lock-wait-bound.test.ts",
+        "line": 21
+      },
+      "message": "AssertionError: expected undefined to be type of 'function'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F2M1/20261029T162616688Z/tests",
+    "tree": "c5e640fb6ba857a1753a10548d93a8bf9991aff9"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-lock-wait-bound.test.ts": "e32148b1b2abb61722ccbccc61086b2b388c9633"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-lock-wait-bound.test.ts": "e32148b1b2abb61722ccbccc61086b2b388c9633"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F2M1.json",
+    "digest": "ce1b2d2a89d14f678e3e41af1da9b6ae07031b57f1b25f01819da0c8dc91600d",
+    "result": "passed",
+    "base": "2c0bd49657e392405f6b8b797c9d5ee1eacbc8a5",
+    "head": "0ae098c07c9c32582f8d429ef334811a2caf15d8"
+  }
+}

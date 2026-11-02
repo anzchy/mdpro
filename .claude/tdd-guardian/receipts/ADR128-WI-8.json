@@ -1,0 +1,89 @@
+{
+  "id": "ADR128-WI-8",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T07:59:42.985Z",
+  "head_sha": "fcdf35e0f54d679d3117615f087f9731c85ab489",
+  "dirty_source": [
+    ".github/workflows/ci.yml",
+    "package.json",
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs",
+    "scripts/ci/verify-inventory.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 4 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/adr128-parity.test.ts": {
+      "state": "ok",
+      "sha": "4517f841661e1ed9092d8df0f36b34e8d79d246586dbca27c5f1afec01fd41e8",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1ddd0c5deb717ae9",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "ba1d5e5e043b05ff",
+        "ab084e0f471ca158",
+        "20a05358d03e4515",
+        "a218024b8b4d8f52",
+        "e2cce857c33a7216",
+        "370b4541722e7cf6",
+        "3ca9de45d6b88196",
+        "957ca112d61d86d4",
+        "fbf8d1bc23356f10",
+        "393c40333db8c660",
+        "0478c8b467738456",
+        "d804f38446f1c0b2",
+        "7cee14bf4181c855",
+        "096b86231101e8f3",
+        "f28418e93618581a",
+        "9f49b7cadcfa572f",
+        "45e2a53a8dd648af",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "d10b36aa74a59bcf",
+        "74216f8a3907828f",
+        "708fd69bc4625d20",
+        "2b40681dcabecdca",
+        "bc3dd61b8e906574",
+        "c84806c76d0a4f9a",
+        "4044485a650fff35",
+        "062ffba67454628a",
+        "88eeb141050b2542",
+        "29576b54e255e3c9",
+        "324cebd4f5160589",
+        "4a845b4addd9a0c3",
+        "db311f8024bbd69e",
+        "c86dcc05611761a9",
+        "062ffba67454628a",
+        "88eeb141050b2542",
+        "29576b54e255e3c9",
+        "1481ecf3b2868273",
+        "9fdf25a49a320d6a",
+        "9e05c1405dc2c0f3",
+        "2dbb46854595fcee",
+        "29576b54e255e3c9",
+        "6fda538f91648eca",
+        "783c38f835e96f38",
+        "bf7d3b9d8c09df4b",
+        "2dbb46854595fcee",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T08:00:02.477Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "6 non-test file(s) were already modified when the red was recorded (.github/workflows/ci.yml, package.json, scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

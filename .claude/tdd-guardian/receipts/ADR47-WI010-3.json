@@ -1,0 +1,78 @@
+{
+  "id": "ADR47-WI010-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-27T03:05:47.882Z",
+  "head_sha": "8501affd95f2ad5ba794347b31244d9b424ee4a5",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/control-probes-readonly.test.ts": {
+      "state": "ok",
+      "sha": "139a9fae8bf89f229c70b27ef2e83fa99916c081dddbc028a980d9fed53e05e0",
+      "lines": [
+        "7571c7236d81e917",
+        "bb91cd051b955e93",
+        "9c94784f8cfa14e6",
+        "fb59f53b5a9cb0c1",
+        "42cc71d20f26dda7",
+        "470a3e5cdddcf697",
+        "339d82ad9bd09f18",
+        "f537c8026f559539",
+        "d10b36aa74a59bcf",
+        "556fe594c9a90673",
+        "a15e288440b39c42",
+        "e3ed04b3ca8ff405",
+        "b96ac7a12297e3c8",
+        "7f909bc9fbe4188e",
+        "d0871e1697f52e43",
+        "08ddea312917ee95",
+        "71752fb0797f42b0",
+        "f187d7ad89a4fb72",
+        "e1fe6d6708d11698",
+        "518e25144ed83196",
+        "56840ed5843d26fc",
+        "a4be9b07bf76c09c",
+        "29576b54e255e3c9",
+        "317096fc4e8dfea4",
+        "0a634f7ececbc977",
+        "d0ca9a46f42ec7b0",
+        "375134e521602f6a",
+        "68d43f7d38dde1e6",
+        "e20ead478a8347be",
+        "14192cc6226ba596",
+        "e20ead478a8347be",
+        "f05f379670dcdb20",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-27T03:51:25.308Z",
+  "verdict": "SEPARATION-BROKEN",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "8 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .tokenize/catalog.json, .tokenize/conflicts.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "high",
+      "code": "spec-changed-under-green",
+      "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/control-probes-readonly.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+    }
+  ]
+}

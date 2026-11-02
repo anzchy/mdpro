@@ -1,0 +1,33 @@
+{
+  "id": "T567-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:43:29.962Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"names its matrix template, which exists as a file of the skill\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 81
+      },
+      "message": "AssertionError: expected { named: false, present: false } to deeply equal { named: true, present: true }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S5/20261031T144329962Z/tests",
+    "tree": "3b947e074cdb48cf03bc6eecdfb723cd70047fec"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "01a21c73cb5d8ca8baac5e55f48b050122d46d0b"
+  }
+}

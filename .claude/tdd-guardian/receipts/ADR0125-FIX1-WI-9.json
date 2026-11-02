@@ -1,0 +1,89 @@
+{
+  "id": "ADR0125-FIX1-WI-9",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-20T15:58:28.635Z",
+  "head_sha": "e2f41d9db28656dff19ad10ceb9f872af4647733",
+  "dirty_source": [
+    "scripts/tdd/red-receipt.mjs",
+    "scripts/tdd/unit-red-lane.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/red-receipt-flock.test.ts": {
+      "state": "ok",
+      "sha": "c398b76101c875db673f2ffb30defbf57ec8ac422dfe4296e31a0b792f40929c",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "fb1b0b3d774a160a",
+        "695d43c3a134d402",
+        "794f06d2195b9a0e",
+        "d5dbb991a39a63fa",
+        "ecd69e3d98e0fda6",
+        "e5d3126656ba054a",
+        "cc0875649af25c74",
+        "c6eec8f8d3b1ea64",
+        "db7aff77d73bbdb6",
+        "fee3716cd6d7492e",
+        "9dc35900507c4f4d",
+        "330ba69b632eb49f",
+        "acc4afb046497c62",
+        "6701f7edbc8d899a",
+        "43e19b20dfe851a5",
+        "d660eba09ee4a15b",
+        "8732bf9ad9984493",
+        "f2b9189332f159fe",
+        "7632808fdc8b5515",
+        "d0de7536b2f9d04c",
+        "96464b3737ee299b",
+        "46efe0aadec41f5a",
+        "b3b280a8271e28d5",
+        "abd3c7cc8287c9ce",
+        "4342df4bd0811c13",
+        "70e856088680eba1",
+        "9dead5ea760a1290",
+        "d10b36aa74a59bcf",
+        "1e294a38588971ed",
+        "645bfd7a50ef05c2",
+        "08f195e4481db050",
+        "c49922464657f807",
+        "c10792a5faa292e2",
+        "29576b54e255e3c9",
+        "d10b36aa74a59bcf",
+        "70ced9d533ef2959",
+        "3d05fc6d183d52c9",
+        "0ce8d61a52645363",
+        "00f215edfb399a7b",
+        "74202fdeda095ae1",
+        "03e41c1f96d17c4d",
+        "8bb1e9ca4b50eafc",
+        "d28644a198be99ef",
+        "6db5043a3d041af3",
+        "63f277684bc0b142",
+        "a5ef78bd3b3ef105",
+        "aafb35e346da7426",
+        "29576b54e255e3c9",
+        "987eee21a46ce67e",
+        "1c9258c8dcdf87cf",
+        "6eee7c4a97d70b69",
+        "8c3182d782e1f038",
+        "837626a76d86a57d",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-20T15:59:30.268Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (scripts/tdd/red-receipt.mjs, scripts/tdd/unit-red-lane.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

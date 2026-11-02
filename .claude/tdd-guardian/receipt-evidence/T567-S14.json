@@ -1,0 +1,33 @@
+{
+  "id": "T567-S14",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:48:43.079Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"checks a test runs to its assertion before its RED, counts a one-test fix as one cycle, and sends a big refactor out as a prefactor\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 163
+      },
+      "message": "AssertionError: expected { runsToAssertion: false, …(2) } to deeply equal { runsToAssertion: true, …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S14/20261031T144843079Z/tests",
+    "tree": "cd3ed18e0073dbd3b2d575a6380aab764f8ef028"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "4a44aeb25f1a221999d77048448afe066b362597"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "4a44aeb25f1a221999d77048448afe066b362597"
+  }
+}

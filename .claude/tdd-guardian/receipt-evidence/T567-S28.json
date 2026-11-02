@@ -1,0 +1,33 @@
+{
+  "id": "T567-S28",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:58:27.051Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"reports an unreadable cache root without throwing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 159
+      },
+      "message": "AssertionError: expected { Object (threw) } to deeply equal { ok: false, version: null, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S28/20261031T145827051Z/tests",
+    "tree": "febaf8d1935ef6fc566f4859fa3ff677afa2907a"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "8a615783b5bce50c72d58af285621490e07c1281"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "8a615783b5bce50c72d58af285621490e07c1281"
+  }
+}

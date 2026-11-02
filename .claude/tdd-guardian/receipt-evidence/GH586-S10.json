@@ -1,0 +1,41 @@
+{
+  "id": "GH586-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:17:50.084Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 reviewed audit dimensions\",\"GH586: the routing paragraph also names <P> for a gate-sensitive entry's plan review\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 42
+      },
+      "message": "AssertionError: expected '**Policy routing.** A PR range changi…' to contain 'as does a gate-sensitive entry\\'s pla…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S10/20261102T061750084Z/tests",
+    "tree": "28000b9f72a35a3109170dcba0eadf5e85ff22d1"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "0393bda72c73b8747a6e5dd66fe562bdedbbb787"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "d80e66de84135e3cfe4d44ab75cdaa31c91931a1"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH586-S10.json",
+    "digest": "64319f9bf81ccb92a9986bf0024cf72e75c4ff63e0c6fde4fae20865e5207cae",
+    "result": "failed",
+    "base": "db04d826d8154c62e883ea7a7d0cfeac12879974",
+    "head": "21e4d6d697e7208c86face486db4c18956915273"
+  }
+}

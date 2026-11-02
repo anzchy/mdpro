@@ -1,0 +1,258 @@
+{
+  "id": "ADR0162-WI4-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:55:13.577Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-auditor: in-pane check refuses under a profile that drops the toolchain, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: auditor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-jOG7nH/Documents/mac-app/mdpro-wt/gpt-auditor/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-imple-2: in-pane check refuses under a cargo-only decoy ahead of the toolchain, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-pv0hNt/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-imple-2: in-pane check refuses under a pane PATH with cargo only, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-voCkAT/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-imple-2: in-pane check refuses under a pane PATH with rustfmt only, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-Mcml8E/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-imple-2: in-pane check refuses under a profile that drops the toolchain, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-M7qNlJ/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-imple-2: in-pane check refuses under a profile that puts a decoy toolchain first, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-Mjo7KN/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"gpt-imple-2: in-pane check refuses under a rustfmt-only decoy ahead of the toolchain, closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-kfAkHp/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"ignores the override outside test mode and refuses on the missing default toolchain\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac1-refusal.test.ts",
+        "line": 59
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses a test-mode toolchain override that is empty\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses a test-mode toolchain override that is outside tmpdir\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses a test-mode toolchain override that is relative\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses a test-mode toolchain override that is the tmpdir itself\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses an override symlinked from tmpdir to a toolchain outside it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-auditor device with cargo=absent rustfmt=absent before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-auditor device with cargo=exec rustfmt=absent before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=absent rustfmt=absent before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=absent rustfmt=exec before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=dir rustfmt=exec before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=exec rustfmt=absent before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=exec rustfmt=dir before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=exec rustfmt=noexec before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses gpt-imple-2 implementor with cargo=noexec rustfmt=exec before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses opus-imple-1 implementor with cargo=absent rustfmt=absent before install or any pane action\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses when cargo and rustfmt resolve only from a decoy earlier on the PATH\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 160
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"refuses when the new pane's shell stays busy on every pane run\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac1-refusal.test.ts",
+        "line": 85
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-kZJsam/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac1-refusal.test.ts\",\"ADR0162 WI4 AC-1: implementor and device refuse without cargo or rustfmt (requires macos zsh)\",\"with no old pane, an in-pane failure closes only the new pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-harness.ts",
+        "line": 170
+      },
+      "message": "AssertionError: implementor: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/adr0162-wi4-rlKeyp/Documents/mac-app/mdpro-wt/gpt-imple-2/.codex/rules/mdpro-role.rules\nNEW w1:p8 gpt-6-sol high · Context 0% used\n: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0162-WI4-1/20261031T145513577Z/tests",
+    "tree": "1ce53f56f09dc5f216f00807385549ea46933e0a"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0162-wi4-ac1-refusal.test.ts": "897852fa5e7306f407387524a3c888f59401e23d"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0162-wi4-ac1-refusal.test.ts": "897852fa5e7306f407387524a3c888f59401e23d"
+  }
+}

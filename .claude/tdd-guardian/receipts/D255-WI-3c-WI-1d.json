@@ -1,0 +1,88 @@
+{
+  "id": "D255-WI-3c-WI-1d",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T08:03:42.230Z",
+  "head_sha": "c9216e4850f0e0579d4a718e8875b32c30aae89a",
+  "dirty_source": [
+    "src/plugins/milkdown/find/findModel.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/d255-wi3c-find-plugin.test.ts": {
+      "state": "ok",
+      "sha": "e367ad4ef4da9281e01d26e3c5fe7c7d87d69a52df7e3cd24218b6b1c1ef6273",
+      "lines": [
+        "9c94784f8cfa14e6",
+        "8f379497deb567bb",
+        "b7245709cf6bc79b",
+        "f7489ad86c1e3852",
+        "a99f32e01a726247",
+        "1408dd08c64839a5",
+        "29576b54e255e3c9",
+        "42b85d9d73f24012",
+        "a50f9ca999c30741",
+        "d5245cc95f6b382c",
+        "c9c1a6021e389666",
+        "eff6656bacc4a74a",
+        "21d1431c20a6a015",
+        "646a6682fe830b93",
+        "b7ea567f53cb415a",
+        "44a5258696928d15",
+        "91cbe382ab831d93",
+        "ba06cde0821d4453",
+        "da5a2768b2a92e8d",
+        "aa9ce7a851221d28",
+        "fac70aa0248dfceb",
+        "a5f9308d0de13f76",
+        "a35df27759e00180",
+        "6fcc8e46fd20dd2e",
+        "141814e85ab28085",
+        "6fcc8e46fd20dd2e",
+        "b7f55738ea3beb33",
+        "c975c25e059a1ce8",
+        "9985446852db01bd",
+        "160f8242134f530e",
+        "9b582ea5d5f8642e",
+        "fea92fe7b7fa687c",
+        "29576b54e255e3c9",
+        "7446b9d2e34e586f",
+        "c9c1a6021e389666",
+        "eff6656bacc4a74a",
+        "21d1431c20a6a015",
+        "646a6682fe830b93",
+        "b7ea567f53cb415a",
+        "44a5258696928d15",
+        "7188a2e1e4f8724f",
+        "ba06cde0821d4453",
+        "da5a2768b2a92e8d",
+        "fac70aa0248dfceb",
+        "d7868831e2ee696d",
+        "8f452702c4836ba0",
+        "db45edc2f465a263",
+        "12d1848acaa892aa",
+        "fea92fe7b7fa687c",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T08:05:00.596Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (src/plugins/milkdown/find/findModel.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/d255-wi3c-find-plugin.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

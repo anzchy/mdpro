@@ -1,0 +1,102 @@
+{
+  "id": "ADR0150-WI1-fix2-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T06:28:31.448Z",
+  "head_sha": "18cc4ab3e32cbbb48740bc5877399e2d3050c567",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-fix2-registration.test.ts": {
+      "state": "ok",
+      "sha": "1210f3f34ee989288fdb3c69b66ce1017bcd08d61f08d1101460f33e5d79510f",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "ad7364b69ca8c1ef",
+        "e2f5f3fa37f29add",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "a6197fb23ab1f002",
+        "77b3e7ff4cbf8f05",
+        "7d46e104e2da9089",
+        "50ea80313df75c52",
+        "4d3068a9d82e1a22",
+        "539e7eba8992d5e3",
+        "83c3d1b05b43b386",
+        "03d9aba6351173e5",
+        "e66f948d90a47f94",
+        "4a9c9cba1d985c84",
+        "b5d8acba27ee01ab",
+        "2b20650c441041f2",
+        "f64f00e4e7333bf9",
+        "2a71aeedc43221cf",
+        "145c2ee80e2a75fb",
+        "7714e17240e46592",
+        "d3e1ac68c1528535",
+        "444582300da86bc8",
+        "2f2473c4a063cbbc",
+        "9c5c4efb0dc9a2ba",
+        "9e1b07f6a527319c",
+        "2443c6034ca3b561",
+        "31e8f68ee88084eb",
+        "97503742c0094e91",
+        "2be905b6e8075f94",
+        "58c258623ab30afe",
+        "d5f3f43c431c8799",
+        "02050f655b44bbda",
+        "7f521beda0b27888",
+        "2d59307c8a6831cb",
+        "5a6342756dc00266",
+        "3e9bb9a96fae46d5",
+        "1b25d5917d47ecd7",
+        "e4dbbdd664f51b18",
+        "ed3137ead6b5e875",
+        "c0f411a24030201d",
+        "1928fe8b43608046",
+        "efce239661ba9d60",
+        "16c252bfe7fd8c20",
+        "323e1b6387611427",
+        "fe595edf82348ebe",
+        "580bdedb84bdbb99",
+        "a55efa0111c47a70",
+        "d5f3f43c431c8799",
+        "74adf1a3d5270c62",
+        "83b07cef61a625f5",
+        "429e9c7cce2d3fb7",
+        "c447c3ad80778d9a",
+        "ab52cda69148dd62",
+        "d10b36aa74a59bcf",
+        "ac5507a0dee97ea8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T06:33:14.720Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/load-guard-fix2-registration.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

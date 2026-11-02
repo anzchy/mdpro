@@ -1,0 +1,33 @@
+{
+  "id": "T567-S45",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:48:27.956Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R3 refuses a record mode with no test path, a valueless one or an empty one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 162
+      },
+      "message": "AssertionError: expected { …(4) } to deeply equal { …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S45/20261101T044827956Z/tests",
+    "tree": "3b2301d202b5e9cf8e0c434391945934266b973c"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "343aca35a9e7926773b08503e047f8c5ac1c54f8"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "343aca35a9e7926773b08503e047f8c5ac1c54f8"
+  }
+}

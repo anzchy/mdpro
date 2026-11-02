@@ -1,0 +1,85 @@
+{
+  "id": "D301-WI-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T02:15:39.640Z",
+  "head_sha": "7c97166f88ecd30c29349a786bf441ea577d3a67",
+  "dirty_source": [
+    "scripts/tdd/phase-runner-source.mjs",
+    "scripts/tdd/red-receipt.mjs",
+    "scripts/tdd/unit-red-lane.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "4 of 7 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/unit-red-phase-async-attempts.test.ts": {
+      "state": "ok",
+      "sha": "1c8a1b6e4108f96b77c5cc70cc2c0f10c2e288a90ca6fe43ec4eeb2e75db39e1",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "b8cbd764da70a65b",
+        "2dd42f124779333e",
+        "e05fabb2b0d7bcbc",
+        "d5dbb991a39a63fa",
+        "096b44f386db1877",
+        "ff198c47b29f30c2",
+        "cc0875649af25c74",
+        "db7aff77d73bbdb6",
+        "d59c8ae7da2fd796",
+        "e142b1ab99222f21",
+        "80f04e9c33126b31",
+        "796a2997ee0e1ef2",
+        "7bdb8ba12853f982",
+        "d10b36aa74a59bcf",
+        "34d5e0ae92e402f7",
+        "7295475871c82406",
+        "bad0a5ed6046312c",
+        "85ae62680e91d15c",
+        "9bbccc366024f982",
+        "b4c7c02a0afad047",
+        "4921019b6fb88b7b",
+        "6c66f7ed7480422d",
+        "cb33d6f0433d94a4",
+        "764d0dc51ce8cb93",
+        "30b9f033c04472fb",
+        "985045f1c0578a8d",
+        "764d0dc51ce8cb93",
+        "59d38f70dadd32cf",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "2bf305876f80c385",
+        "208a9045f961575e",
+        "7865fcae4438d964",
+        "29576b54e255e3c9",
+        "19b37b28633a8a01",
+        "9b7343a248aa4f4f",
+        "7865fcae4438d964",
+        "29576b54e255e3c9",
+        "a67c0636ad09fa26",
+        "c9591680a5effb64",
+        "85ae62680e91d15c",
+        "080403bc2517d0ca",
+        "725c90b297af6de6",
+        "bface457748cc90d",
+        "29576b54e255e3c9",
+        "4babc3b2d0533664",
+        "17a4a37da3cd85eb",
+        "7865fcae4438d964",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T02:16:43.773Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "3 non-test file(s) were already modified when the red was recorded (scripts/tdd/phase-runner-source.mjs, scripts/tdd/red-receipt.mjs, scripts/tdd/unit-red-lane.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

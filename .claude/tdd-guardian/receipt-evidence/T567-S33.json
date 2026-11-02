@@ -1,0 +1,33 @@
+{
+  "id": "T567-S33",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T15:02:52.320Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 enabled-plugin readers\",\"reads Claude's install record for the plugin, preferring the user-scope entry and refusing bad fields\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 311
+      },
+      "message": "AssertionError: expected { user: null, userSecond: null, …(9) } to deeply equal { …(11) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S33/20261031T150252320Z/tests",
+    "tree": "1ccefe3235cf944503de3643e3d0aad0566cd49a"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "fe7d2d9eef1c46f5adf09ca77e1522bd304aeb77"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "fe7d2d9eef1c46f5adf09ca77e1522bd304aeb77"
+  }
+}

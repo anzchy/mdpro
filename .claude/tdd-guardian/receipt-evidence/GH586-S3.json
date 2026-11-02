@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:07:02.344Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator templates\",\"GH586: names <P> only when § Which set routes the range to the policy set\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 133
+      },
+      "message": "AssertionError: audit-request: git rev-parse <M>:docs/agents/audit-policy-set.md: expected '# Request: <ID> PR #<n> audit, round …' to contain 'git rev-parse <M>:docs/agents/audit-p…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S3/20261102T060702344Z/tests",
+    "tree": "2a75efe77f712f6eb52572866ba74b7b7532a63f"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "dbc9cb086242eae1376763e0d406376ced476302"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "dbc9cb086242eae1376763e0d406376ced476302"
+  }
+}

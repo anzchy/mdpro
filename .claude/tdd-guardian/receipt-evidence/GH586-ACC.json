@@ -1,0 +1,105 @@
+{
+  "id": "GH586-ACC",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:04:43.240Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"excludes the receipt folders from the split count\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 150
+      },
+      "message": "AssertionError: expected '### Split recommendation A range with…' to contain '`receipts.json`, `.claude/tdd-guardia…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"fits the 13,000 B allowance and leaves every non-policy section byte-identical to the base\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 95
+      },
+      "message": "AssertionError: expected 17601 to be less than or equal to 13000"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"holds no copy of the moved policy text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 140
+      },
+      "message": "AssertionError: expected '# Audit dimensions\\n\\n**What both aud…' not to contain '## policy (cc-suite NL)'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"keeps each changed line's non-policy obligation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 111
+      },
+      "message": "AssertionError: never: expected '## How this file is read - Every requ…' to contain 'never'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"routes a PR range by every base path group, and names no <P> otherwise\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 131
+      },
+      "message": "AssertionError: `.claude/rules/`: expected '' to contain '`.claude/rules/`'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-dimensions after the split\",\"states the pin rules for <P>, including the two ruled transitions\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 121
+      },
+      "message": "AssertionError: expected '## How this file is read - Every requ…' to contain 'names `<P>`, the blob of `docs/agents…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-policy-set\",\"carries the moved routing paragraphs, with the policy file on the gate-tooling list\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 174
+      },
+      "message": "AssertionError: A plan review has no ADR-0121 tier; a gate-sensitive entry is High in effect, so its policy set runs at Full.: expected '' to contain 'A plan review has no ADR-0121 tier; a…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-policy-set\",\"carries § policy with its source pin, severity rule and D355 link\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 197
+      },
+      "message": "AssertionError: The set is cc-suite 2.5.0's NL auditors, used as they are: expected '' to contain 'The set is cc-suite 2.5.0\\'s NL audit…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586-ACC audit-policy-set\",\"is pinned like the dimensions file and changes only through a High-tier PR\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 157
+      },
+      "message": "AssertionError: expected '' to contain 'only when the request names `<P>`'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-ACC/20261102T060443240Z/tests",
+    "tree": "8deb3932026d6be556e3b977db35b3cfeca2b721"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh586-audit-policy-split.test.ts": "da66c1562874d8aff38097912b6c80a8ae0daeed"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh586-audit-policy-split.test.ts": "da66c1562874d8aff38097912b6c80a8ae0daeed"
+  }
+}

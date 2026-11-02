@@ -1,0 +1,50 @@
+{
+  "id": "D337-FIX1-OUTER",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:02:17.848Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-outer.test.ts\",\"D337 fix 1 the Mac's wait outlasts a Windows run that uses its whole deadline\",\"a transaction-deadline stall reaches the caller as the phase-named outcome, with the latch written\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-outer.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: {\"runId\": \"17e9e295227c41b0b2aba80b57aa5d30\", \"phase\": \"native-transport\", \"status\": \"timeout\", \"inputOutcome\": \"unknown\", \"heldInput\": \"uncertain\", \"cleanup\": \"unproved\", \"replay\": false}\n: expected { named: false, latched: false } to deeply equal { named: true, latched: true }"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-outer.test.ts\",\"D337 fix 1 the Mac's wait outlasts a Windows run that uses its whole deadline\",\"ui-run.ps1 bounds its own run by -TimeoutSec when the deadline it was given lies beyond it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-outer.test.ts",
+        "line": 64
+      },
+      "message": "AssertionError: expected 1793419355589 to be less than 1793419350589"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D337-FIX1-OUTER/20261031T040217848Z/tests",
+    "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-outer.test.ts": "6e814a9b9c0ded31faabee8d1805096bdb439b25"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-outer.test.ts": "b86e5a9bda5b0f42e52bb0667b99507ed26677fa"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D337-FIX1-OUTER.json",
+    "digest": "c3eff44a01fe032d442e0c1937c60abe48c71f29638efef229ebf853a0ec6f35",
+    "result": "failed",
+    "base": "376c7e184e904927965311fd0f492f3bd1c003fb",
+    "head": "4d1dda9a2d3ff125220b04b641b4df955a539038"
+  }
+}

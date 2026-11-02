@@ -1,0 +1,60 @@
+{
+  "id": "M1b-F1-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T04:50:14.114Z",
+  "head_sha": "489a2952ea7342ca5e0e150d2b0dd9bccca5d128",
+  "dirty_source": [
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/plugins/milkdown/wysiwygKeymapEntries.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/m1b-fix1-owners.test.tsx": {
+      "state": "ok",
+      "sha": "3494caa3d3ab8a8a9492365a6ea2f0ffc90257370408d1f6db3078f445e94451",
+      "lines": [
+        "897dfccc0fd35b8f",
+        "6a373afd72d0a198",
+        "8dee95726aae2042",
+        "0acef81955c8b4ff",
+        "785bbac14bf699e2",
+        "ce67acb42d1276f2",
+        "258d55401e7169af",
+        "263ceb772b2c21aa",
+        "b10fadb9cdf87b5b",
+        "320e178c89cbd9ed",
+        "c3730389d73575d5",
+        "b03e19fda161f07f",
+        "b79ac336c3010b5a",
+        "d2f49a1bc925abe2",
+        "8ec42d73ea9dc312",
+        "dc80732f69af53d6",
+        "d60d08c668689a15",
+        "6285390c69b0ea0f",
+        "674029bfd5d584b9",
+        "3ba5f5d8dafe5dda",
+        "d25d0470668638d9",
+        "a9bc118a5e93c8bf",
+        "a7ec190ab5c09403",
+        "18adcd234730a2a0",
+        "37ed46d5b313aa96",
+        "e52a1813c4604951",
+        "9d8b2b5670d18da8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T04:50:39.552Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (src/components/Editor/MilkdownEditor.tsx, src/plugins/milkdown/wysiwygKeymapEntries.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

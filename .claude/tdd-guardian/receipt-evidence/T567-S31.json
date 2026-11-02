@@ -1,0 +1,33 @@
+{
+  "id": "T567-S31",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T15:01:52.557Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 enabled-plugin readers\",\"reads Codex's config: true only when the plugin's own table sets enabled = true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 267
+      },
+      "message": "AssertionError: expected { spaced: false, tight: false, …(10) } to deeply equal { spaced: true, tight: true, …(10) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S31/20261031T150152557Z/tests",
+    "tree": "d6b6b71607edbe32a4e43b99779fdda80b046ed3"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "598df811e0029235e622ff33134468ff4e50cc2d"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "598df811e0029235e622ff33134468ff4e50cc2d"
+  }
+}

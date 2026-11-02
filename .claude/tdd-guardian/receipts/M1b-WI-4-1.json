@@ -1,0 +1,57 @@
+{
+  "id": "M1b-WI-4-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T00:50:59.289Z",
+  "head_sha": "2e4dfeab9be0bf22bb51bd0179a8cda40e8ec15f",
+  "dirty_source": [
+    "docs/guide/keyboard-shortcuts.md",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_availability.rs",
+    "src-tauri/src/menu_construction_plan.rs",
+    "src-tauri/src/menu_format.rs",
+    "src-tauri/src/menu_from_layout.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/menu_paragraph.rs",
+    "src-tauri/src/menu_plan_builder.rs",
+    "src-tauri/src/models/keyboard_shortcut_defaults.rs",
+    "src-tauri/src/models/keyboard_shortcuts_version.rs",
+    "src-tauri/src/services/preferences_migration.rs",
+    "src/commands/rows/appRows.ts",
+    "src/commands/rows/formatRows.ts",
+    "src/services/preferencesService.ts",
+    "src/types/preferences.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/m1b-applied-wysiwyg.test.ts": {
+      "state": "ok",
+      "sha": "36bd75a1510726e5685d14fe970ce6b0414f4e278d88678b23ed3a04c0d973da",
+      "lines": [
+        "efb2893cf8a54a66",
+        "1678929526141f78",
+        "f55b3b7b6b0a3cb0",
+        "e61430178b952e52",
+        "62297d95645c1c81",
+        "5e9eeb9e377db5b0",
+        "5d94fba7cea3915d",
+        "047159d6c4eafd0e",
+        "18dc3c2bf6bb23ea",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T00:52:35.077Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "16 non-test file(s) were already modified when the red was recorded (docs/guide/keyboard-shortcuts.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs, src-tauri/src/menu_construction_plan.rs, src-tauri/src/menu_format.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

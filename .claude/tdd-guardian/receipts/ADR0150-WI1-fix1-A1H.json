@@ -1,0 +1,60 @@
+{
+  "id": "ADR0150-WI1-fix1-A1H",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T05:13:31.340Z",
+  "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json",
+    "docs/guide/load-guard.md",
+    "scripts/heavy-lock.sh",
+    "scripts/load-guard/backstop.py",
+    "scripts/load-guard/guard.py",
+    "scripts/load-guard/policy.py"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-helper-resolved.test.ts": {
+      "state": "ok",
+      "sha": "aa5ec95030d47464c22c454d2e27d6afdf9311695c8ddf601ebcde8a84ca510d",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "69f2ffe9e2d6f214",
+        "dbdb3df29658d125",
+        "6424f998006e7076",
+        "04187afad87db03a",
+        "1483a472650246a7",
+        "afb599717a3a5085",
+        "eeabf519ab4a0cb3",
+        "a54c11e9d9912b5d",
+        "bc9d2af9691ade7d",
+        "3513adcf0c8a6dd5",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T05:15:25.378Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

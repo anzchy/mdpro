@@ -1,0 +1,33 @@
+{
+  "id": "T567-S50",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:55:18.136Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: an interrupt is passed on to the receipt command\",\"W16 SIGINT is passed on as itself, through the guard and directly\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 308
+      },
+      "message": "AssertionError: expected { status: null, …(2) } to deeply equal { Object (status, atClose, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S50/20261101T045518136Z/tests",
+    "tree": "9fd4236f1eba2b87f5534724fca5257a027fcf0a"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "602c52e4ca6114a3ce238ec7cc215c6d468c5c9b"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "602c52e4ca6114a3ce238ec7cc215c6d468c5c9b"
+  }
+}

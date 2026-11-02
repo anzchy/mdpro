@@ -1,0 +1,103 @@
+{
+  "id": "D337-WI-1-RUN-OWNED",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T06:00:19.208Z",
+  "head_sha": "129a30f54b115d4f26c917395dd463f972b87911",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/mac/deploy.sh",
+    ".agents/skills/remote-windows-device-test/scripts/mac/ui-transaction.py",
+    ".agents/skills/remote-windows-device-test/scripts/mac/ui.sh",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-build.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-input.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-job.cs",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-job.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-ops.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-platform.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-runtime.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-validation.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-window.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui-run.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui.cmd",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui.ps1",
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-run-owned.test.ts": {
+      "state": "ok",
+      "sha": "8e7ffd6a7c3f4e79da91e848cbf07a5992aa6d75f2c23b6e1f3bd16778e77e23",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "ad7364b69ca8c1ef",
+        "cbc5a753d2850234",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "6bdea215d4ebe517",
+        "43e7fbbdc453d9ef",
+        "7a4f02b5a758b1fa",
+        "84f25d8b308e2862",
+        "beebe5bba86ba537",
+        "612896fbc757ba04",
+        "640df27f74b1c40e",
+        "bb184eb9e4d04eb8",
+        "83d386dbbe37c4eb",
+        "d7868a83344bcd2e",
+        "014a7a401181e968",
+        "6efa52cf0a1e3bbf",
+        "a760c8aca1145795",
+        "c4def673a7423914",
+        "5ef59bc3280053ba",
+        "7d17c118a32eb412",
+        "e004164b7a702c58",
+        "aa52d15259626091",
+        "6e47fe0039758382",
+        "173fe7f09df5d767",
+        "2bdadc8f03c2b9f3",
+        "2a6e859f28e2b620",
+        "29576b54e255e3c9",
+        "93b1b510d021d00c",
+        "a3215c7ced1c178f",
+        "c75608be54d4d0fd",
+        "29576b54e255e3c9",
+        "70e856088680eba1",
+        "c9263aea7e62a3f4",
+        "f95e9a23ab2eedcd",
+        "d087d13ddc3d7b3b",
+        "89a173e5f8edf204",
+        "abf15534289bc0b7",
+        "ff33bc672b1d2f33",
+        "ac5507a0dee97ea8",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-30T07:24:22.573Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "26 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/mac/deploy.sh, .agents/skills/remote-windows-device-test/scripts/mac/ui-transaction.py, .agents/skills/remote-windows-device-test/scripts/mac/ui.sh, .agents/skills/remote-windows-device-test/scripts/windows/native-build.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-input.ps1, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/windows-driver-d337-run-owned.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

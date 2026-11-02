@@ -1,0 +1,33 @@
+{
+  "id": "T567-S46",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:49:13.788Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R4 refuses a test path on a verify mode\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 169
+      },
+      "message": "AssertionError: expected { …(4) } to deeply equal { …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S46/20261101T044913788Z/tests",
+    "tree": "338b50ae40ebc06f885f009db81da3fac5c624d5"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "60a0b858af8f394b43c7d2f4c458c2da444d9669"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "60a0b858af8f394b43c7d2f4c458c2da444d9669"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "id": "D190-WI-7-RS",
+  "lane": "rust",
+  "recorded_at": "2026-10-14T11:56:58.782Z",
+  "head_sha": "bff93239ae550fccd42d2d131d808c1580f91f55",
+  "dirty_source": [
+    "src-tauri/src/commands/export.rs",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_quit.rs",
+    "src/components/BottomTabs/BottomTabs.tsx",
+    "src/components/common/RecoveryDialog.tsx",
+    "src/components/common/settings/AdvancedSettings.tsx",
+    "src/components/common/settings/KeyboardShortcutsSettings.tsx",
+    "src/utils/platformLabels.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "4 of 1660 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/menu_app_items_wi7_tests.rs": {
+      "state": "ok",
+      "sha": "4f25deebd2235fbd19869a15c3d383b45c1c9970656b000dcbfd75ecbdcc5af4",
+      "lines": [
+        "9fc9e76620bf6491",
+        "cd88335089297327",
+        "e5760fd5c16b3759",
+        "a33ed90e79327b14",
+        "5f41021547eff475",
+        "fa446a9ff7394384",
+        "39dd13388691bb91",
+        "10b23e852afebead",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "e817cdaffda3fd7d",
+        "0704a6ef0ca56465",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "bc5ab8d542c435b2",
+        "a7fd9af5d49edf45",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    },
+    "src-tauri/src/commands/export_file_name_wi7_tests.rs": {
+      "state": "ok",
+      "sha": "be238e953ff33fd8a8364202e363fd2c5e72df19258135366965544a1fc29b4c",
+      "lines": [
+        "8ff163991e6f5e44",
+        "ee49e1698eef9952",
+        "9db612028cf3ad24",
+        "3fd0a0c76fe66dc9",
+        "fa446a9ff7394384",
+        "8a4dcb3bdb61acc1",
+        "01fab49ac3790439",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "9b65bad356d45bcd",
+        "ec7ccf043f67890b",
+        "cbc4b3c5bee87f17",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "b59d52fc1ef46375",
+        "b2e4437c1a28e717",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "2bd631e64313b06e",
+        "1700c62dc53a2419",
+        "6ed65f49ef8d405c",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "668d5c3fbc5b7829",
+        "568aff4002ac92a6",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-14T12:08:57.895Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "8 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/export.rs, src-tauri/src/menu.rs, src-tauri/src/menu_quit.rs, src/components/BottomTabs/BottomTabs.tsx, src/components/common/RecoveryDialog.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

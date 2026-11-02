@@ -1,0 +1,33 @@
+{
+  "id": "T567-S25",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:56:44.244Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"reports a malformed cache, naming the folder, for every bad name or manifest\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected [ { ok: true, …(2) }, …(7) ] to deeply equal [ { ok: false, …(2) }, …(7) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S25/20261031T145644244Z/tests",
+    "tree": "ef308de211779fafaf22e86056e8ccbfd8b6b3ec"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "dcd9e5354e93389c6132ae2d8cc023310c2af3a9"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "dcd9e5354e93389c6132ae2d8cc023310c2af3a9"
+  }
+}

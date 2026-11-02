@@ -1,0 +1,33 @@
+{
+  "id": "T567-S51",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:57:21.321Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: an interrupt is passed on to the receipt command\",\"W18 SIGHUP is passed on as SIGTERM, the one the guard traps, so the guard still drains its job\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 317
+      },
+      "message": "AssertionError: expected { status: null, …(2) } to deeply equal { Object (status, atClose, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S51/20261101T045721321Z/tests",
+    "tree": "c7ceebc09f639de6a90c25bc8da17495d0c17131"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "c1ad3d12b8616047ac8835fcfb3d994bf34e26a1"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "c1ad3d12b8616047ac8835fcfb3d994bf34e26a1"
+  }
+}

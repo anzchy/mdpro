@@ -1,0 +1,109 @@
+{
+  "id": "D262-WI-1",
+  "lane": "unit",
+  "recorded_at": "2026-10-16T06:48:07.177Z",
+  "head_sha": "712d945233c45e145bd1aa9c23af9cbee1880668",
+  "dirty_source": [
+    "scripts/redesign/snapshot.js",
+    "src/components/common/SettingsDialog.tsx",
+    "src/components/common/settings/SettingsRailIcon.tsx",
+    "src/styles/sections/settings-pages.css",
+    "src/styles/sections/settings-shell.css"
+  ],
+  "red": {
+    "red": true,
+    "kind": "opaque-failure",
+    "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+  },
+  "test_files": {
+    "tests/d262-settings-rail-scroll.test.ts": {
+      "state": "ok",
+      "sha": "1345a9b13606181fa171c452c33ba80036f1e362ee3883bed35b0ffb78e93672",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "a10f3f59a6b2782b",
+        "dedb9fb72c504a34",
+        "f4bc5e57477c8a28",
+        "ad1306e862a9ce9a",
+        "684888c0ebb17f37",
+        "0dc2df997b2e9a08",
+        "3a4c698992abd9cb",
+        "ea74d31dfcc39fe1",
+        "aec8236eaa46a2ac",
+        "684888c0ebb17f37",
+        "0438e5a744c23bd3",
+        "e139f4d8c3ea8c49",
+        "9bdcbdf73a7bf7e9",
+        "ed9623369ff082ab",
+        "e200df9f0a988497",
+        "f84a38b0fd7dfc39",
+        "9c94784f8cfa14e6",
+        "5cb359d17a435523",
+        "07071da0cc124ac1",
+        "0e3eb9351bd6a91d",
+        "758461180774ff3a",
+        "aa94cb597ffc4572",
+        "6aae3d981dca080a",
+        "3f9eac8c712cfac8",
+        "ab1753ec7027962f",
+        "f741bb159a5be810",
+        "ef42559a0287b367",
+        "8e882fb17d5e02b3",
+        "b820d19a8872edff",
+        "06654b62302fe5b4",
+        "c5000d558a9f4538",
+        "ed7b8fba0e7b2837",
+        "82a458851ea60b77",
+        "b283e404715a36fd",
+        "29576b54e255e3c9",
+        "5c5ffe0876b9c19a",
+        "8431e66b7eee2b1d",
+        "7a5a437abee2e504",
+        "465805463e715579",
+        "dee1671b48bcc2ee",
+        "d099f33342bf856c",
+        "5e4445e84f8fe2ce",
+        "e193c24ce2f2d76c",
+        "29576b54e255e3c9",
+        "8b230f90911c1754",
+        "74cae702283c41e9",
+        "5e4d2ce0fe622917",
+        "d9422f44bc27be82",
+        "ceddd9a205170025",
+        "53a5c8b20191a858",
+        "29576b54e255e3c9",
+        "5edf361aa2f7479c",
+        "6539fff135dc51a5",
+        "0ffe53d35f6e1a75",
+        "e6ecc5cfe97d54d9",
+        "346592c74261c06a",
+        "9d8b2b5670d18da8",
+        "c3674a5afe3feb16",
+        "b66752730a93c98f",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-16T12:02:56.838Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "weak-red",
+      "message": "The red for 'D262-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+    },
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "5 non-test file(s) were already modified when the red was recorded (scripts/redesign/snapshot.js, src/components/common/SettingsDialog.tsx, src/components/common/settings/SettingsRailIcon.tsx, src/styles/sections/settings-pages.css, src/styles/sections/settings-shell.css). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/d262-settings-rail-scroll.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

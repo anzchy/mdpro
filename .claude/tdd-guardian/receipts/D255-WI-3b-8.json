@@ -1,0 +1,68 @@
+{
+  "id": "D255-WI-3b-8",
+  "lane": "rust",
+  "recorded_at": "2026-10-22T06:52:31.713Z",
+  "head_sha": "38af737306e8b6d1b997f9c35c34c96b154cb2de",
+  "dirty_source": [
+    "src-tauri/src/commands/image_pick.rs",
+    "src-tauri/src/commands/mod.rs",
+    "src/commands/editorOwnedChords.ts",
+    "src/commands/inventory/codemirrorRows.ts",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/plugins/codemirror/sourceFormatCommands.ts",
+    "src/plugins/codemirror/sourceFormatPlugin.ts",
+    "src/plugins/milkdown/underlineMarkPlugin.ts",
+    "src/plugins/milkdown/wysiwygFormatCommands.ts",
+    "src/services/imageService.ts",
+    "src/utils/editorImageInsert.ts",
+    "src/utils/editorMenuCommands.ts",
+    "src/utils/editorMenuSourceCommands.ts"
+  ],
+  "red": {
+    "red": false,
+    "kind": "environment",
+    "reason": "Status 'runner-error' is an environment failure, not a failing test. A broken runner is not a red test — fix the runner, then record the red again."
+  },
+  "test_files": {
+    "src-tauri/src/commands/image_pick.rs": {
+      "state": "ok",
+      "sha": "491a75bc336178d0e800e7c07a4040013aa514a0bf41acb094863ede668dd983",
+      "lines": [
+        "388b1fe81e9f83f9",
+        "ed01d965c4c3bb82",
+        "ce1e2aa1ea16fd33",
+        "821f2506103a63e8",
+        "dc937b59892604f5",
+        "d10b36aa74a59bcf",
+        "d7048428d0c383ba",
+        "94edf57832c984c7",
+        "25c35973e60080cd",
+        "d10b36aa74a59bcf",
+        "3ba26fb40505d5e6",
+        "15095e6982f525af",
+        "f28c6de4a37ea99b",
+        "ed01d965c4c3bb82",
+        "fa446a9ff7394384",
+        "111e381670cc17f5",
+        "119fe0b5b92fc3f6",
+        "b7d7e7035985058d",
+        "5322a345142f41e1",
+        "9d8b2b5670d18da8",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "dc9c9aa4082fa7e0",
+        "812371b91a7c12de",
+        "119fe0b5b92fc3f6",
+        "6f6196cc92b5b245",
+        "b4c706777d060744",
+        "9d8b2b5670d18da8",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": null,
+  "verdict": null,
+  "findings": []
+}

@@ -1,0 +1,33 @@
+{
+  "id": "T567-S27",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:57:43.537Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"ignores regular files and dot-entries beside a valid version folder\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 113
+      },
+      "message": "AssertionError: expected [ …(4) ] to deeply equal [ …(4) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S27/20261031T145743537Z/tests",
+    "tree": "95c70c237b760cb81f95ccb9aa5443ad770da072"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "8ad2bbf53fb3cd533271f43bed8c1a7236646df8"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "8ad2bbf53fb3cd533271f43bed8c1a7236646df8"
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "id": "M1b-WI-12-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-23T01:14:52.464Z",
+  "head_sha": "2e4dfeab9be0bf22bb51bd0179a8cda40e8ec15f",
+  "dirty_source": [
+    "docs/guide/keyboard-shortcuts.md",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_availability.rs",
+    "src-tauri/src/menu_construction_plan.rs",
+    "src-tauri/src/menu_format.rs",
+    "src-tauri/src/menu_from_layout.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/menu_paragraph.rs",
+    "src-tauri/src/menu_plan_builder.rs",
+    "src-tauri/src/models/keyboard_shortcut_defaults.rs",
+    "src-tauri/src/models/keyboard_shortcuts_version.rs",
+    "src-tauri/src/services/preferences_migration.rs",
+    "src/App.tsx",
+    "src/commands/appliedKeymap.ts",
+    "src/commands/rows/appRows.ts",
+    "src/commands/rows/formatRows.ts",
+    "src/components/Editor/Editor.tsx",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/components/Editor/SplitView.tsx",
+    "src/components/Editor/extensions/search.ts",
+    "src/hooks/useKeyboardShortcuts.ts",
+    "src/hooks/useKeyboardShortcuts.types.ts",
+    "src/plugins/codemirror/altGrGuard.ts",
+    "src/plugins/codemirror/headingPlugin.ts",
+    "src/plugins/codemirror/highlightPlugin.ts",
+    "src/plugins/codemirror/linkPlugin.ts",
+    "src/plugins/codemirror/sourceFormatPlugin.ts",
+    "src/plugins/milkdown/commonmarkPreset.ts",
+    "src/plugins/milkdown/gfmPreset.ts",
+    "src/plugins/milkdown/typoraKeymapPlugin.ts",
+    "src/plugins/milkdown/wysiwygKeymapEntries.ts",
+    "src/services/preferencesService.ts",
+    "src/types/preferences.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/m1b-source-table-keys.test.tsx": {
+      "state": "ok",
+      "sha": "41f97391e129a3f6b892fb754bcc9b4d3e3d528a6bee41a08b05a7fb02634d8e",
+      "lines": [
+        "ae537fcd252bc2af",
+        "6a373afd72d0a198",
+        "0b69a853595c00c4",
+        "0fa46d89169cf20d",
+        "29576b54e255e3c9",
+        "d94baffe87ecf23c",
+        "98b48dc16360ae23",
+        "26366419f262e09d",
+        "b10fadb9cdf87b5b",
+        "8d5d57bb1ce889f2",
+        "185af1b898ae7ec3",
+        "ca91bfe04bcb82f1",
+        "cc31394e4c1c3898",
+        "275f8b07b77cc7b6",
+        "d8f80e078e7625b1",
+        "19982b3d3bb66e91",
+        "5c2271ea819fda90",
+        "42e0feae465e3b9b",
+        "58ce759139efae9e",
+        "14e63070190337ba",
+        "5bcd17bf4a5a6b1b",
+        "001961dc9eb881ac",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T01:15:29.941Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "33 non-test file(s) were already modified when the red was recorded (docs/guide/keyboard-shortcuts.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs, src-tauri/src/menu_construction_plan.rs, src-tauri/src/menu_format.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

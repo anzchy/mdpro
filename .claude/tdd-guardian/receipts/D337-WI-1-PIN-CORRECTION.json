@@ -1,0 +1,75 @@
+{
+  "id": "D337-WI-1-PIN-CORRECTION",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T02:11:32.611Z",
+  "head_sha": "129a30f54b115d4f26c917395dd463f972b87911",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/mac/deploy.sh",
+    ".agents/skills/remote-windows-device-test/scripts/mac/ui-transaction.py",
+    ".agents/skills/remote-windows-device-test/scripts/mac/ui.sh",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-build.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-input.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-job.cs",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-job.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-ops.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-platform.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-runtime.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-window.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui-run.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui.cmd",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui.ps1",
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-cleanup.test.ts": {
+      "state": "ok",
+      "sha": "cb86308391cf132211f60b2b01d36626d2d94d9e6b668467dfaa5b7aa1a71229",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9c94784f8cfa14e6",
+        "9a0d16283bbf003d",
+        "365d2fd9bffb8b5f",
+        "6dd1aa4ace1ae4cf",
+        "9c3a5ebeff5e0049",
+        "9caff6e9734c9520",
+        "4cd005b4b7d85654",
+        "2069d5a3d0f1ca8b",
+        "f76b6c6c6f548194",
+        "d4711283aad8139c",
+        "95c8d60f5f5fc72c",
+        "614249c2e802c776",
+        "9caff6e9734c9520",
+        "b4b112696c4c4bab",
+        "bf516e9a992df737",
+        "7d7e9b192bdf49d3",
+        "d4711283aad8139c",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-30T02:13:04.531Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "25 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/mac/deploy.sh, .agents/skills/remote-windows-device-test/scripts/mac/ui-transaction.py, .agents/skills/remote-windows-device-test/scripts/mac/ui.sh, .agents/skills/remote-windows-device-test/scripts/windows/native-build.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-input.ps1, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

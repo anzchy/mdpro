@@ -1,0 +1,92 @@
+{
+  "id": "D255-WI-3b-9",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-22T07:03:46.818Z",
+  "head_sha": "38af737306e8b6d1b997f9c35c34c96b154cb2de",
+  "dirty_source": [
+    "src-tauri/src/commands/image_pick.rs",
+    "src-tauri/src/commands/mod.rs",
+    "src/commands/editorOwnedChords.ts",
+    "src/commands/inventory/codemirrorRows.ts",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/plugins/codemirror/sourceFormatCommands.ts",
+    "src/plugins/codemirror/sourceFormatPlugin.ts",
+    "src/plugins/milkdown/underlineMarkPlugin.ts",
+    "src/plugins/milkdown/wysiwygFormatCommands.ts",
+    "src/services/imageService.ts",
+    "src/utils/editorImageInsert.ts",
+    "src/utils/editorMenuCommands.ts",
+    "src/utils/editorMenuSourceCommands.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "7 of 14 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/d255-wi3b-source-exact.test.ts": {
+      "state": "ok",
+      "sha": "d0ef3e102507b5b107e537ccf47f3af04aa1de9a9e10d11ce2bc110f490de9c9",
+      "lines": [
+        "b4dd67bea61ed17c",
+        "1aeb77de84c477da",
+        "c0525fead30a75ab",
+        "968955ec840b3700",
+        "aeffed47baef0a09",
+        "9ed716b15366523d",
+        "268aa48a4ddc8911",
+        "53f8422927c9e449",
+        "25f0c409446c798f",
+        "559c8533936bd33b",
+        "d10b36aa74a59bcf",
+        "37d9a300c7b532bb",
+        "20e63f83fe2e9fa4",
+        "3e6d0836e73e5e39",
+        "c20018fcbed2e683",
+        "87467481e33aca6b",
+        "29576b54e255e3c9",
+        "9fc68c87f070ae32",
+        "cd4a25183c98c3a1",
+        "6ea30d59cdeee9bb",
+        "8c5fe444ac8da22a",
+        "353c43cdad2eca74",
+        "15f464117127c42b",
+        "16fbc7e7dd22b766",
+        "e38be3768a8cae66",
+        "0ae655a1bba998ae",
+        "35f3fe1dc6c437ad",
+        "64b8a1092efdca4f",
+        "1e36f875aaa4b36e",
+        "18ea66bd719861d2",
+        "c2252d635af7c1e4",
+        "687519798f3f257c",
+        "79e7bb5fa4f73256",
+        "65f3acda1cd82b1f",
+        "f0a92af874ff5687",
+        "7f2e9d14fbeba365",
+        "29576b54e255e3c9",
+        "9fc68c87f070ae32",
+        "3072d7d94cd6327b",
+        "f327271ad9522141",
+        "2153bbbd8d43730a",
+        "687519798f3f257c",
+        "8b3745e3eb63a371",
+        "79e7bb5fa4f73256",
+        "7321000575c52cfc",
+        "d8961c5b9bd04438",
+        "be5ac18acf35f831",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-22T07:04:18.250Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "13 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/image_pick.rs, src-tauri/src/commands/mod.rs, src/commands/editorOwnedChords.ts, src/commands/inventory/codemirrorRows.ts, src/components/Editor/MilkdownEditor.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

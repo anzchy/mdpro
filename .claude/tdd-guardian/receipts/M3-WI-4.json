@@ -1,0 +1,73 @@
+{
+  "id": "M3-WI-4",
+  "lane": "rust",
+  "recorded_at": "2026-10-18T14:59:43.371Z",
+  "head_sha": "10806dcaca15906ff2e95460923489d1aa2f4c94",
+  "dirty_source": [
+    ".codex/rules/mdpro.rules",
+    "AGENTS.md",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_availability.rs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "4 of 1889 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/menu_availability_tests.rs": {
+      "state": "ok",
+      "sha": "4394ba1d88bcb2fdb047f25979c7a5993dcdd4aeda0e41f04727f24e76482b2a",
+      "lines": [
+        "a3c9624c0d2560cd",
+        "fa446a9ff7394384",
+        "a09d5c3d05ca8148",
+        "c99ec3ce1dd3a617",
+        "8092c33d413625a7",
+        "6e1a3e012341ace6",
+        "be170eb1eadcce6b",
+        "f0583c4e3b1b39be",
+        "f538e7f9f0d6dbcc",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "cc65ebd1446592f3",
+        "c99ec3ce1dd3a617",
+        "8092c33d413625a7",
+        "5464ec9c147f7eb7",
+        "2835441e4711dd3d",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "812e627513957850",
+        "c99ec3ce1dd3a617",
+        "8092c33d413625a7",
+        "b4a4002e8525baed",
+        "10e1ea138a5363fe",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "d162f27c306f236e",
+        "c99ec3ce1dd3a617",
+        "8092c33d413625a7",
+        "6e1a3e012341ace6",
+        "be170eb1eadcce6b",
+        "6e1a3e012341ace6",
+        "be170eb1eadcce6b",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-18T15:20:36.786Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (.codex/rules/mdpro.rules, AGENTS.md, src-tauri/src/menu.rs, src-tauri/src/menu_availability.rs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/menu_availability_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

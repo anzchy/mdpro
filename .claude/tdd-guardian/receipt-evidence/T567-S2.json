@@ -1,0 +1,33 @@
+{
+  "id": "T567-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:41:24.389Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow skill files\",\"is reached from .claude/skills by a relative symlink to the canonical directory\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 24
+      },
+      "message": "AssertionError: expected null to deeply equal { …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S2/20261031T144124389Z/tests",
+    "tree": "0d795d31eeaea9486c880f52f69f24bac2c1ad0b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "cc123597a75a7ebbdc96ca177777a25d2db7383f"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "cc123597a75a7ebbdc96ca177777a25d2db7383f"
+  }
+}

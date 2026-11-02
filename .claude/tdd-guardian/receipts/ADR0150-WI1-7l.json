@@ -1,0 +1,67 @@
+{
+  "id": "ADR0150-WI1-7l",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T04:05:05.064Z",
+  "head_sha": "848326ab149d02fed566f8f5fd7f70dab4418a2b",
+  "dirty_source": [
+    ".agents/skills/mdpro-delegator/scripts/gui-lock.sh",
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/rules/10-tdd.md",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json",
+    "docs/guide/load-guard.md",
+    "docs/plans/20260912-frontend-backend-sequencing-order.md",
+    "scripts/heavy-lock.sh",
+    "scripts/load-guard/backstop.py",
+    "scripts/load-guard/com.mdpro.load-guard.plist.in",
+    "scripts/load-guard/guard.py",
+    "scripts/load-guard/install.py",
+    "scripts/load-guard/runtime.sh",
+    "vitest.config.ts",
+    "vitest.workers.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-redaction.test.ts": {
+      "state": "ok",
+      "sha": "f0388cc92d72fb7045f2faabfae979dd1c0e08ce4a8ae18bf2208c38804884f5",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "ad7364b69ca8c1ef",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "f5ce0a6dcc29ad20",
+        "595ccb580572d75b",
+        "884138780512b12e",
+        "1c336f6effb04b24",
+        "11dd7ac22e2b6669",
+        "8f914e4adc26ac32",
+        "bec47f92c518a14d",
+        "f2f44ec4d1a4836a",
+        "29576b54e255e3c9",
+        "8960f33ff993936c",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T04:05:20.479Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "21 non-test file(s) were already modified when the red was recorded (.agents/skills/mdpro-delegator/scripts/gui-lock.sh, .claude/mind.mv2, .claude/mind.mv2.lock, .claude/rules/10-tdd.md, .claude/settings.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

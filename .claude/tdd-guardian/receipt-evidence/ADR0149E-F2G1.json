@@ -1,0 +1,95 @@
+{
+  "id": "ADR0149E-F2G1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T16:20:33.156Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a changed base message changes the digest, and the normalised message is in the digest input\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 84
+      },
+      "message": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a failed replay's reasons are bound: a different explanation gives a different digest\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 118
+      },
+      "message": "TypeError: Cannot read properties of undefined (reading 'join')"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a failed replay's reasons are normalised: volatile text in them keeps the digest\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 129
+      },
+      "message": "TypeError: Cannot read properties of undefined (reading 'join')"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"a pre-entry base run's error is bound: a timeout and a heavy-lock refusal digest apart\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 152
+      },
+      "message": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"messages that differ only after their first line digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected '96f669032c983ac225748e8530a09efaf3de0…' not to be '96f669032c983ac225748e8530a09efaf3de0…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the digest binds the text\",\"the replay worktree, a temp path, duration, pid or timestamp in the message keeps the digest; the evidence keeps the raw text\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 107
+      },
+      "message": "TypeError: .toMatch() expects to receive a string, but got undefined"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F2G1 the normalisation rules\",\"rewrites each volatile kind to its placeholder and keeps everything else\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 58
+      },
+      "message": "AssertionError: expected undefined to be type of 'function'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F2G1/20261029T162033156Z/tests",
+    "tree": "69f3b211964b056c52f877f6b689f5db96b23120"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "d5c84233edde8a3400e971da23ef9d77cf42fccb"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "1db29b3d0843fd341de9a1c47d7c796ad4a2b34f"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F2G1.json",
+    "digest": "f3182cf563174943e32c942336bcc317120c63d272b1e1ab1fedadbd9986a162",
+    "result": "failed",
+    "base": "2c0bd49657e392405f6b8b797c9d5ee1eacbc8a5",
+    "head": "0ae098c07c9c32582f8d429ef334811a2caf15d8"
+  }
+}

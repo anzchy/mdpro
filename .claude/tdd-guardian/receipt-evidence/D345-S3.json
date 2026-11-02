@@ -1,0 +1,33 @@
+{
+  "id": "D345-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:24:31.174Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D3 says there was no output when a killed run printed nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+        "line": 143
+      },
+      "message": "AssertionError: expected 'status null' to contain 'no output'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D345-S3/20261101T042431174Z/tests",
+    "tree": "bbc765f6d51bdb188cfd6c9e16d40a0364009379"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "dfa5bb97b31d3fe47baec88b9d8f02fbe1b4e63d"
+  }
+}

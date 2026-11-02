@@ -1,0 +1,33 @@
+{
+  "id": "T567-S13",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:47:56.110Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"allows one intended assertion and one --test file per record, never a batch, replacing all REDs first\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 154
+      },
+      "message": "AssertionError: expected [ 'one intended assertion', …(3) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S13/20261031T144756110Z/tests",
+    "tree": "50b58efeae28bd0f2070096be07dc36db0845ab7"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "94ae54d91e7d06687deb383d794ca4b6c6c58a63"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "94ae54d91e7d06687deb383d794ca4b6c6c58a63"
+  }
+}

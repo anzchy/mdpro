@@ -1,0 +1,92 @@
+{
+  "id": "ADR128-WI-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T05:18:14.711Z",
+  "head_sha": "57ea75e59b8d66dfb7ca77ef5b08f238605b88e4",
+  "dirty_source": [
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "8 of 8 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/adr128-verifier-comparator.test.ts": {
+      "state": "ok",
+      "sha": "fb34b37c4808ae17a9a50db870a1a884f9b7442f71aa9b3556e619374f1baaa4",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "ba1d5e5e043b05ff",
+        "38e29c85ed918060",
+        "a218024b8b4d8f52",
+        "a3c2354066c3c233",
+        "530a571c0f1d5b2a",
+        "ae7d95bd424a99a2",
+        "5a6aa38c45e570c6",
+        "ff948b22961b343f",
+        "16ff1d51df801c40",
+        "a2530ab2b6d41867",
+        "e1e69423bcdd34a5",
+        "c182e2e2c2b84089",
+        "18bea23dc067c0fb",
+        "e7837c4c143ef73f",
+        "35f302c291ce9895",
+        "d10b36aa74a59bcf",
+        "4625b7590ab21e3f",
+        "194a1e26aec9b7b0",
+        "58b9ea2fdec447cd",
+        "e8ba1da963f3fe4b",
+        "29576b54e255e3c9",
+        "ccd9a74284fb5cd1",
+        "8ab37e597bb0755d",
+        "935d90357c283e55",
+        "8f487f1c1887a84b",
+        "915a6d83647161ac",
+        "29576b54e255e3c9",
+        "e822c38dbe092886",
+        "1cc1f6433715f4bb",
+        "ec742d25ef219f51",
+        "29576b54e255e3c9",
+        "5cdec40e35dc0de8",
+        "58b9ea2fdec447cd",
+        "9233d39d5017e3ce",
+        "8f487f1c1887a84b",
+        "29576b54e255e3c9",
+        "834348842e04409f",
+        "58b9ea2fdec447cd",
+        "a3e3a12992337c7f",
+        "64a5c87e54bfc61b",
+        "29576b54e255e3c9",
+        "92aafab7b0d68507",
+        "58b9ea2fdec447cd",
+        "309f959d574f847f",
+        "73bcd4b565f807f9",
+        "8f487f1c1887a84b",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T07:51:38.365Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "3 non-test file(s) were already modified when the red was recorded (scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/tooling/adr128-verifier-comparator.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "T567-S35",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T15:03:43.622Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 live-case wiring\",\"runs the live case only on macOS outside CI\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 343
+      },
+      "message": "AssertionError: expected [ false, false, false, false, false ] to deeply equal [ false, false, false, false, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S35/20261031T150343622Z/tests",
+    "tree": "4d251c3c4e06e264423113157c79cc3ae9046019"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "b2d8c58b48c2516e9ce195a837ebaa7d8291dc5c"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "b2d8c58b48c2516e9ce195a837ebaa7d8291dc5c"
+  }
+}

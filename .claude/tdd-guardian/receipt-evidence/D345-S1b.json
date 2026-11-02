@@ -1,0 +1,33 @@
+{
+  "id": "D345-S1b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:22:57.291Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"D345 — P3's failure message names the run's phase\",\"D1 carries the decoded log and the status when stderr is empty, as CI's scheduler-start timeout was\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+        "line": 130
+      },
+      "message": "AssertionError: expected '' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D345-S1b/20261101T042257291Z/tests",
+    "tree": "0c5ed54126afee8b405ba0bd404b8608b86aafbc"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "ad0843de4fb30c08eef219e3ed7ee679aae91f08"
+  }
+}

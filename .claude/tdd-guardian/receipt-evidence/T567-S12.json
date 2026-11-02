@@ -1,0 +1,33 @@
+{
+  "id": "T567-S12",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:47:25.441Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"orders a cycle as RED receipt <ID>-S<n>, minimal change, verify, then refactor, with no refactor before verify\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 150
+      },
+      "message": "AssertionError: expected { found: false, …(1) } to deeply equal { found: true, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S12/20261031T144725441Z/tests",
+    "tree": "dfb9e72fdbd4fbad11415e2b516adcaa867b1e68"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "6771ffaaf47842e0bee1e51b417161b02f2c7dc5"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "6771ffaaf47842e0bee1e51b417161b02f2c7dc5"
+  }
+}

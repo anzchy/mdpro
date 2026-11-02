@@ -1,0 +1,33 @@
+{
+  "id": "T567-S30",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T15:01:16.363Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 enabled-plugin readers\",\"reads Claude's enabledPlugins: true only for the exact key set to true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 246
+      },
+      "message": "AssertionError: expected { enabled: false, …(7) } to deeply equal { Object (enabled, disabled, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S30/20261031T150116363Z/tests",
+    "tree": "1de19111c9fe63e991f6a68b1395370d20eba6ce"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "0cd23af9e4d95d999ff3f0f6c3992733c409df72"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "0cd23af9e4d95d999ff3f0f6c3992733c409df72"
+  }
+}

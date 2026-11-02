@@ -1,0 +1,68 @@
+{
+  "id": "D255-WI-3b-7d",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-22T07:39:36.710Z",
+  "head_sha": "38af737306e8b6d1b997f9c35c34c96b154cb2de",
+  "dirty_source": [
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "docs/feature-ledger.md",
+    "docs/plans/20260912-frontend-backend-sequencing-order.md",
+    "src-tauri/src/commands/image_pick.rs",
+    "src-tauri/src/commands/mod.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/models/keyboard_shortcut_defaults.rs",
+    "src/commands/editorOwnedChords.ts",
+    "src/commands/inventory/codemirrorRows.ts",
+    "src/commands/inventory/milkdownRows.ts",
+    "src/commands/rows/editRows.ts",
+    "src/commands/rows/formatRows.ts",
+    "src/commands/rows/paragraphRows.ts",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/plugins/codemirror/sourceFormatCommands.ts",
+    "src/plugins/codemirror/sourceFormatPlugin.ts",
+    "src/plugins/milkdown/typoraKeymapPlugin.ts",
+    "src/plugins/milkdown/underlineMarkPlugin.ts",
+    "src/plugins/milkdown/wysiwygFormatCommands.ts",
+    "src/plugins/milkdown/wysiwygKeymapEntries.ts",
+    "src/services/imageService.ts",
+    "src/utils/editorImageInsert.ts",
+    "src/utils/editorMenuCommands.ts",
+    "src/utils/editorMenuSourceCommands.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "4 of 6 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/d255-wi3b-legacy-image-shortcut.test.ts": {
+      "state": "ok",
+      "sha": "f4d9a2b8b654e294d895f37d6c2fb25bde3241063a69240de97e0aa4281a2c21",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "efb2893cf8a54a66",
+        "8d610e2366fec1e8",
+        "785bbac14bf699e2",
+        "9a1a59e2c8a6e5c6",
+        "a77f461b8ffb1f5f",
+        "071aaeb517c36dfc",
+        "8f1ba58b57470f14",
+        "3c5ace8433ff8260",
+        "89ec91fccc1396ef",
+        "d4f1fd4aa9b9de2e",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-22T07:41:20.301Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "25 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, CLAUDE.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/src/commands/image_pick.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

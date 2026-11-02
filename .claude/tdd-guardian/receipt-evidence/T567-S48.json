@@ -1,0 +1,33 @@
+{
+  "id": "T567-S48",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:51:04.033Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: the repository is its cwd's git top level\",\"P3 run from a subdirectory, it still runs the top's entry in the top\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 197
+      },
+      "message": "AssertionError: expected { calls: [], script: undefined, …(1) } to deeply equal { calls: [ …(3) ], …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S48/20261101T045104033Z/tests",
+    "tree": "ac0f7ef15b33debf98a3bccd8385f50ae5021efe"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "554b125d278003a18ca8e4e15246c4e8e906954a"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "554b125d278003a18ca8e4e15246c4e8e906954a"
+  }
+}

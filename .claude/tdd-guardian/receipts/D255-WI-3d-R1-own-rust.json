@@ -1,0 +1,84 @@
+{
+  "id": "D255-WI-3d-R1-own-rust",
+  "lane": "rust",
+  "recorded_at": "2026-10-23T01:51:41.593Z",
+  "head_sha": "eca56b9947915d488abda434306c7e1b8692c02c",
+  "dirty_source": [
+    "CHANGELOG.md",
+    "docs/feature-ledger.md",
+    "docs/plans/20260912-frontend-backend-sequencing-order.md",
+    "src-tauri/capabilities/default.json",
+    "src-tauri/src/commands/file.rs",
+    "src-tauri/src/commands/menu.rs",
+    "src-tauri/src/commands/save_as_checked_seam.rs",
+    "src-tauri/src/commands/save_as_target.rs",
+    "src-tauri/src/commands/save_as_watch.rs",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_availability.rs",
+    "src-tauri/src/menu_construction_plan.rs",
+    "src-tauri/src/menu_from_layout.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/menu_recent.rs",
+    "src-tauri/src/menu_submenus.rs",
+    "src/App.tsx",
+    "src/commands/rows/fileRows.ts",
+    "src/commands/rows/viewRows.ts",
+    "src/hooks/menuActionTable.ts",
+    "src/hooks/switchDocuments.ts",
+    "src/hooks/useDocument.ts",
+    "src/hooks/useKeyboardShortcuts.ts",
+    "src/hooks/useKeyboardShortcuts.types.ts",
+    "src/hooks/useRecentFilesMenuRefresh.ts",
+    "src/services/documentSave.ts",
+    "src/services/fileService.ts",
+    "src/services/recentFilesMenuService.ts",
+    "src/services/windowService.ts",
+    "src/stores/tabMru.ts",
+    "src/stores/tabStore.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 2000 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/commands/save_as_target_tests.rs": {
+      "state": "ok",
+      "sha": "886f9373eb0ded3fbec97261f65feadaae260c3d9e8a2e5db7652b46ff17c24c",
+      "lines": [
+        "afccff4b7acd71e5",
+        "0217b5442c652864",
+        "4c3a79096ac2de1c",
+        "c5389aa360b2c742",
+        "0134719cf93caf9b",
+        "fa446a9ff7394384",
+        "2befdcdfd4ee788c",
+        "02dfcd32196f8935",
+        "3bda48ffd9477b95",
+        "88441a256d4e6693",
+        "1c73d5b3dbe049b2",
+        "6f552324ccdc46d1",
+        "d8165e871402b0c2",
+        "e607190e116771e3",
+        "025985f6c0c1eecd",
+        "1f59d17fe6de1d70",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-23T02:23:08.169Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "31 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.md, docs/plans/20260912-frontend-backend-sequencing-order.md, src-tauri/capabilities/default.json, src-tauri/src/commands/file.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/commands/save_as_target_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

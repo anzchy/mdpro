@@ -1,0 +1,69 @@
+{
+  "id": "D302-WI-8",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T07:15:52.473Z",
+  "head_sha": "57ea75e59b8d66dfb7ca77ef5b08f238605b88e4",
+  "dirty_source": [
+    "docs/plans/20260912-frontend-backend-sequencing-order.md",
+    "package.json",
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs",
+    "scripts/ci/verify-inventory.mjs",
+    "scripts/lint/d302-sync-exceptions.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/d302-async-worker-gate.test.ts": {
+      "state": "ok",
+      "sha": "1a273a6bf43dd4bf4b2a8c7d9e9b566f0a0545ae391504148df629abf6bd2634",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "c110ad21c643bc95",
+        "9c94784f8cfa14e6",
+        "8fd11ac1497ce2c3",
+        "5696a2ee93bd93f7",
+        "7629d2ba5d04d43c",
+        "b089f4e1443010f2",
+        "bdd4a8de10d27a40",
+        "eda86351754c31ba",
+        "8cf905a08456a855",
+        "2a564073b1518e7e",
+        "358ba3f2223784d8",
+        "64ed2edf38069615",
+        "4129ee6c634d70b8",
+        "3a906617a1908a83",
+        "ea2e73678cc0f7f7",
+        "ae297e7861d124ca",
+        "15c7d07edd291d95",
+        "d10b36aa74a59bcf",
+        "16f3e2df524361e9",
+        "df3982fd61017359",
+        "d5833291c076ad37",
+        "882101dd8697a52e",
+        "d10b36aa74a59bcf",
+        "9d1f17dc4286933a",
+        "ab1ee69b4aa80edb",
+        "d56683738128615f",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T07:17:05.994Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "7 non-test file(s) were already modified when the red was recorded (docs/plans/20260912-frontend-backend-sequencing-order.md, package.json, scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

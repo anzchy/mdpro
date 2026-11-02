@@ -1,0 +1,56 @@
+{
+  "id": "ADR47-WI010-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-27T03:05:48.988Z",
+  "head_sha": "8501affd95f2ad5ba794347b31244d9b424ee4a5",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/bottom-tabs-aria.test.tsx": {
+      "state": "ok",
+      "sha": "832d8ecd80a7d356b00ec96f9661dc200d39b3d396e7660b9dc64dab345a26c5",
+      "lines": [
+        "1cb3e7a826db122b",
+        "b8cbd764da70a65b",
+        "636b0747549d98d9",
+        "95bbf047270ec747",
+        "40181e384ed36215",
+        "8870cf498fd9d5f0",
+        "d9b94445aaee737b",
+        "e1f365b69f394c70",
+        "918bc738fdecc355",
+        "4d69f662d665bb43",
+        "059d0fe499123c9f",
+        "2571d6b3f16d810b",
+        "bf1b7f5809cd9654",
+        "ddc64a44c520624e",
+        "7778e93fa77e0788",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-27T03:51:32.774Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "8 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .tokenize/catalog.json, .tokenize/conflicts.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

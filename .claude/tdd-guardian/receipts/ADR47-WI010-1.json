@@ -1,0 +1,69 @@
+{
+  "id": "ADR47-WI010-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-27T03:05:42.976Z",
+  "head_sha": "8501affd95f2ad5ba794347b31244d9b424ee4a5",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/control-probes-version.test.ts": {
+      "state": "ok",
+      "sha": "8a331d1dd37c4a66a16eddb44c5ecd27b5f65cd8015249b1edbd451636d1c023",
+      "lines": [
+        "7571c7236d81e917",
+        "bb91cd051b955e93",
+        "9c94784f8cfa14e6",
+        "fb59f53b5a9cb0c1",
+        "8889dc364107d356",
+        "470a3e5cdddcf697",
+        "339d82ad9bd09f18",
+        "62d4c1f070161a76",
+        "d10b36aa74a59bcf",
+        "013142b283ee9516",
+        "fba6fe101101cde0",
+        "5835bcc61783622e",
+        "7a63310e4b99d3ba",
+        "ebf7653dd9c86d5f",
+        "353440120f0946cc",
+        "a39b55d3ffa56e10",
+        "0f218e81e36e4f05",
+        "29576b54e255e3c9",
+        "9f6b498136d43f50",
+        "2113dbeabac5d621",
+        "acb4acba936cf4a4",
+        "9af1784901a6fb44",
+        "861a9a7470aaeefa",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-27T03:51:20.777Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "8 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .tokenize/catalog.json, .tokenize/conflicts.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/control-probes-version.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

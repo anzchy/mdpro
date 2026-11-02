@@ -1,0 +1,51 @@
+{
+  "id": "GH586-S13",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:47:07.577Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it\",\"adds one dated Status line to ADR-0147 and leaves the rest of the record byte-identical\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 233
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it\",\"lists the rule, ADR and template files fix 1 edits under changes:\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 223
+      },
+      "message": "AssertionError: .claude/rules/70-multi-session-coordination.md: expected '`docs/agents/audit-dimensions.md`, `d…' to contain '`.claude/rules/70-multi-session-coord…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-0147 links it\",\"names ADR-0147 decision 5's allowance and single auditor cap under supersedes:\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+        "line": 210
+      },
+      "message": "AssertionError: expected '# 2026-11-02: The policy set moves in…' to match /\\n- \\*\\*supersedes:\\*\\* (?!none)/"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S13/20261102T064707577Z/tests",
+    "tree": "ee9a12ee108d62f00701f476d914c1f1e0576977"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh586-audit-policy-split.test.ts": "61dd57d4d16df93b799e881baea127815bd3f72b"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh586-audit-policy-split.test.ts": "61dd57d4d16df93b799e881baea127815bd3f72b"
+  }
+}

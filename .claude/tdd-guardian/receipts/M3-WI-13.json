@@ -1,0 +1,78 @@
+{
+  "id": "M3-WI-13",
+  "lane": "unit",
+  "recorded_at": "2026-10-20T05:09:30.655Z",
+  "head_sha": "216886fa35a5bec416eca49469c09cef17a12c0e",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "opaque-failure",
+    "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+  },
+  "test_files": {
+    "tests/menu-availability.test.ts": {
+      "state": "ok",
+      "sha": "2356735ba38dcbeb747bd787fd13a64539879e6809bbd6816fc29bc6e01e1ba4",
+      "lines": [
+        "4075e62d3282ce89",
+        "4a20e5e9ab8aff00",
+        "1eda12d06c7321ff",
+        "d4083a4a05f75582",
+        "c1952c759096bb60",
+        "7eb6b6275cdf5c28",
+        "5afe8aa33b5c6a18",
+        "6df2df97f529ec89",
+        "4480fa916431fbe6",
+        "d1b6da6419f34a79",
+        "248e4e70817f6867",
+        "de1dcc29fddd4e62",
+        "9b0df4fa49b2b132",
+        "bba8d1c3e633a711",
+        "e3fa44b0b3bf3a4b",
+        "b5ae77ff5e37f2a4",
+        "29576b54e255e3c9",
+        "85b354dbbb034e01",
+        "56678307e53ee6b0",
+        "8226ad668ce9bcf3",
+        "c137a289f1333cd3",
+        "379be382e0a48dc6",
+        "6df9106142b90c3c",
+        "816025e265a11ff4",
+        "466e746dc6ccfafe",
+        "621d0c47c7ec22af",
+        "9dc1ecfb7b751a25",
+        "379be382e0a48dc6",
+        "d10b36aa74a59bcf",
+        "3b3dd031647ae980",
+        "37ed46d5b313aa96",
+        "29576b54e255e3c9",
+        "5cdf6b813558233e",
+        "d32561ed237cb36a",
+        "f998a4699e125670",
+        "c137a289f1333cd3",
+        "379be382e0a48dc6",
+        "22b26d6fc6d031f5",
+        "9b89158e79f05e67",
+        "379be382e0a48dc6",
+        "7529878f4fe422e1",
+        "37ed46d5b313aa96",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-20T06:03:27.593Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "weak-red",
+      "message": "The red for 'M3-WI-13' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: tests/menu-availability.test.ts. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "D345-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:25:58.699Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-exit-codes.test.ts\",\"N1 — the PowerShell side reports failure\",\"P3 ui-run.ps1 prints the log whatever happened, then exits with the run's status\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-exit-codes.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected '1793507164502' to be '1793507179502' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D345-S4/20261101T042558699Z/tests",
+    "tree": "aeb2aa062caf850c000cdf40419be128db546e3e"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-exit-codes.test.ts": "578f4abbdd5dc3dab50601f1439d964c13634ae6"
+  }
+}

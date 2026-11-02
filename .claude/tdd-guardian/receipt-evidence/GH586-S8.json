@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S8",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:09:11.781Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"GH586 docs-only landing excludes the policy set file\",\"names docs/agents/audit-policy-set.md beside the dimensions file wherever direct docs-only landing is described\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 350
+      },
+      "message": "AssertionError: expected '8. **Land** when verifier PASS, merge…' to contain 'never for `docs/agents/audit-dimensio…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S8/20261102T060911781Z/tests",
+    "tree": "2fb6c3770ad53944863ed41bb7bfaf3263a49e27"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "2caddba80ce36bf76f8da2fa3f86cd2dbed49dec"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "2caddba80ce36bf76f8da2fa3f86cd2dbed49dec"
+  }
+}

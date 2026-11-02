@@ -1,0 +1,50 @@
+{
+  "id": "ADR0149E-F4-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T05:58:43.996Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 217
+      },
+      "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-2: messages that differ only in a pid, 'pid 1' against 'pid 2', digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 224
+      },
+      "message": "AssertionError: expected 'AssertionError: worker pid <pid> exit…' to match /^AssertionError: worker pid 1 exited: /"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F4-2/20261030T055843996Z/tests",
+    "tree": "1d6998c82c83985581bbe2d38c14b923e242e807"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "1299e1261752632be74bdc2a0d979604c7a90269"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-2.json",
+    "digest": "035d5a9bd0ea5e6afd0d48c72d092e6adee31adac961059cd3a086aa4a45ccbd",
+    "result": "passed",
+    "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+    "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+  }
+}

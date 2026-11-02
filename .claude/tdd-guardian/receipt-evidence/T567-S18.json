@@ -1,0 +1,33 @@
+{
+  "id": "T567-S18",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:51:07.789Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"uses the GLOSSARY's four TDD terms and points at GLOSSARY.md\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 194
+      },
+      "message": "AssertionError: expected [ Array(3) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S18/20261031T145107789Z/tests",
+    "tree": "ef66059b8204a8551cf97826b8360e1ffa19947b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "836f6eaa58cda7c6d310894990d1f1a3c106e032"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "836f6eaa58cda7c6d310894990d1f1a3c106e032"
+  }
+}

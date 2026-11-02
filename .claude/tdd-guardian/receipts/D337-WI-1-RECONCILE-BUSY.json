@@ -1,0 +1,93 @@
+{
+  "id": "D337-WI-1-RECONCILE-BUSY",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T16:10:55.648Z",
+  "head_sha": "129a30f54b115d4f26c917395dd463f972b87911",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/mac/deploy.sh",
+    ".agents/skills/remote-windows-device-test/scripts/mac/ui-transaction.py",
+    ".agents/skills/remote-windows-device-test/scripts/mac/ui.sh",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-build.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-input.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-job.cs",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-job.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-ops.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-platform.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-reconcile.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-runtime.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-validation.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-window.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui-run.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui.cmd",
+    ".agents/skills/remote-windows-device-test/scripts/windows/ui.ps1",
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/ledger/5488.ndjson",
+    ".tokenize/ledger/5533.ndjson",
+    ".tokenize/ledger/6612.ndjson",
+    ".tokenize/ledger/68230.ndjson",
+    ".tokenize/ledger/68317.ndjson",
+    ".tokenize/ledger/68867.ndjson",
+    ".tokenize/ledger/68896.ndjson",
+    ".tokenize/ledger/6976.ndjson",
+    ".tokenize/ledger/78742.ndjson",
+    ".tokenize/ledger/79560.ndjson",
+    ".tokenize/ledger/79600.ndjson",
+    ".tokenize/ledger/79755.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-reconcile-busy.test.ts": {
+      "state": "ok",
+      "sha": "f6cccfed8d374638a44291f695a7d3152f79ceb77d8a073b9c28c3ceb235a4b3",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "ad7364b69ca8c1ef",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "5ae9f40a0313164c",
+        "7744785f68a8259f",
+        "0261e51c75b5cd41",
+        "19fd47e42c7b3bfa",
+        "2823e34e48197da9",
+        "e53b402d4ecab169",
+        "6c21c4a739d5670a",
+        "1ec130469d5f2daf",
+        "03d9aba6351173e5",
+        "e3538cc871561d50",
+        "16d70fe36230be0f",
+        "66f412ec4b5658f7",
+        "5c829ae5431854d6",
+        "c6dab69a41cebb61",
+        "9eedb940f733ae89",
+        "74022a1aa61f50b7",
+        "034f02ef9d3b4df1",
+        "ac5507a0dee97ea8",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-30T16:11:13.154Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "39 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/mac/deploy.sh, .agents/skills/remote-windows-device-test/scripts/mac/ui-transaction.py, .agents/skills/remote-windows-device-test/scripts/mac/ui.sh, .agents/skills/remote-windows-device-test/scripts/windows/native-build.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-input.ps1, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

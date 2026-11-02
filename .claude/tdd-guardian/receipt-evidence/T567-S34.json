@@ -1,0 +1,33 @@
+{
+  "id": "T567-S34",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T15:03:18.991Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 live-case wiring\",\"names each runtime's cache root under a home directory, and refuses any other runtime\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 328
+      },
+      "message": "AssertionError: expected [ '', '', '', '' ] to deeply equal [ …(4) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S34/20261031T150318991Z/tests",
+    "tree": "750d5f779864a904426a1b6dabfda17a09d7b797"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "554cad55d4b08e3fca6334e7510f837798d0da4f"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "554cad55d4b08e3fca6334e7510f837798d0da4f"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "ADR0150-WI1-fix1-A2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T05:13:03.738Z",
+  "head_sha": "ad5e12a80bdc6a688a3224d3d72f19106433ff5b",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json",
+    "docs/guide/load-guard.md",
+    "scripts/heavy-lock.sh",
+    "scripts/load-guard/backstop.py",
+    "scripts/load-guard/guard.py",
+    "scripts/load-guard/policy.py"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-xcrun-bare.test.ts": {
+      "state": "ok",
+      "sha": "e2f69d9d8d23eb17eaa406be25299ae9918c2726367fff6c5aca78384d66de9d",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "69f2ffe9e2d6f214",
+        "56f2cc48fa90db94",
+        "ae28fb38ec3915c7",
+        "03d9aba6351173e5",
+        "e5d286797f4d3b9e",
+        "caa1a2b1d35a6cc6",
+        "584e24e485844fd2",
+        "1f083804dc3ee865",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T05:15:23.826Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "14 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "ADR0149E-F4-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T05:57:12.855Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-digest-text.test.ts\",\"ADR0149E-F4 a temp path, pid or timestamp in an assertion is bound\",\"F4-1: messages that differ only in a temp path, '/tmp/a.md' against '/tmp/b.md', digest apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-digest-text.test.ts",
+        "line": 217
+      },
+      "message": "AssertionError: expected 'AssertionError: expected \\'<tmp>\\' to…' to match /^AssertionError: expected '\\/tmp\\…/tmp\\"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F4-1/20261030T055712855Z/tests",
+    "tree": "c3471334044f82186ac73a374e42366492a00cc3"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "e9afeff9b3d8184810c4b03860e9e012b4600ab1"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-digest-text.test.ts": "4f7a22eaae8efe07850e79c30b0d3bb3a65f5522"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F4-1.json",
+    "digest": "1f8e1a4594f7e880d24fef9a9dcc35c0758fb7175eec1796d7140579df742af6",
+    "result": "passed",
+    "base": "ce374d02cf0bbaa5891ed793b029ef30bb200530",
+    "head": "8f3b5d50c2d45d308275a1c13c455b7f283410aa"
+  }
+}

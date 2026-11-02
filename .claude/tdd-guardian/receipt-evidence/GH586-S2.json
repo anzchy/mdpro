@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:06:05.161Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 reviewed audit dimensions\",\"publishes the GH586 policy set blob byte for byte\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 32
+      },
+      "message": "AssertionError: expected 'e3b0c44298fc1c149afbf4c8996fb92427ae4…' to be 'f045a7efd9cd6d0457ed33c964781e92153a6…' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S2/20261102T060605161Z/tests",
+    "tree": "87bfc8d14c83ecb5b891ba9dd86a91a24a4b5564"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "b712714f1bc695671dd0d7067be947ea1e3e8881"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "b712714f1bc695671dd0d7067be947ea1e3e8881"
+  }
+}

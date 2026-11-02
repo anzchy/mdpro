@@ -1,0 +1,91 @@
+{
+  "id": "D253-WI-1",
+  "lane": "unit",
+  "recorded_at": "2026-10-16T13:31:47.192Z",
+  "head_sha": "e6ce879fc5ad51e9c711fb2cb376ecaa08a03f30",
+  "dirty_source": [
+    "src/utils/lastTabClose.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "opaque-failure",
+    "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+  },
+  "test_files": {
+    "tests/d253-last-tab-close-decision.test.ts": {
+      "state": "ok",
+      "sha": "a60dd73bdca6d6b3e5ac286e45c2dd00e5c973428a710893a9355343cdcb2e2e",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "b294df2370ff9249",
+        "684888c0ebb17f37",
+        "431e9f31701405e2",
+        "f935df4a6347eead",
+        "db1eed9dfe6b14ec",
+        "c4fbeca76cc72461",
+        "11130ae46fed507d",
+        "684888c0ebb17f37",
+        "bfc137b6ab326d49",
+        "ed9623369ff082ab",
+        "9c94784f8cfa14e6",
+        "42375c720cea95ef",
+        "6f110699e4b348f1",
+        "4566a679adea0f8e",
+        "2d3c048a3771e526",
+        "54036166c03b2b46",
+        "2281d5bfcbb55ae6",
+        "0aa01d7215141ff3",
+        "0c17b008a77c73b5",
+        "cf50bf8fa963f776",
+        "e1ffebd53b839fdf",
+        "749034ea977812e8",
+        "402a9e6efdfc0c60",
+        "e7df8f8d7660464f",
+        "8235766d61565a7d",
+        "9e6415245119df1a",
+        "bb01c44bd646ab29",
+        "9d8b2b5670d18da8",
+        "7249824a21193e1f",
+        "4d106a7634b2dcb7",
+        "31c09bba8bab5c10",
+        "29576b54e255e3c9",
+        "07780c9bc1a24d00",
+        "0a5562b9c876cb00",
+        "d60459005f73f5f8",
+        "19c1008131c552f4",
+        "e52a1813c4604951",
+        "9d8b2b5670d18da8",
+        "d19d85e16045fb9b",
+        "2f99715912553d7c",
+        "c6bac3366a53c686",
+        "259e63d8a68154d4",
+        "79215b564eff1401",
+        "29576b54e255e3c9",
+        "99f1ea61fe2e1e82",
+        "e199e6fee44508b5",
+        "4f044102c711190a",
+        "cbba56cc733f1fa6",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-16T14:15:08.914Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "weak-red",
+      "message": "The red for 'D253-WI-1' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+    },
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (src/utils/lastTabClose.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

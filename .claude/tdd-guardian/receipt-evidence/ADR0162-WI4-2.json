@@ -1,0 +1,96 @@
+{
+  "id": "ADR0162-WI4-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:55:31.751Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"gpt-auditor auditor: split carries PATH=<toolchain>:<script PATH>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"gpt-auditor device: split carries PATH=<toolchain>:<script PATH>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"gpt-imple-2 implementor: split carries PATH=<toolchain>:<script PATH>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"implementor with toolchain dir it's/bin: one PATH argv element and a passing in-pane check\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 46
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"implementor with toolchain dir tool chain 工具/bin: one PATH argv element and a passing in-pane check\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 46
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"puts the toolchain ahead of a decoy cargo already on the script PATH\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"retries pane run once when the new shell is busy, then starts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 62
+      },
+      "message": "AssertionError: expected [] to have a length of 2 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/adr0162-wi4-ac2-split-path.test.ts\",\"ADR0162 WI4 AC-2: the split carries the toolchain PATH (requires macos zsh)\",\"uses the HOME rustup toolchain when the test override is unset\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0162-wi4-ac2-split-path.test.ts",
+        "line": 37
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0162-WI4-2/20261031T145531751Z/tests",
+    "tree": "1ce53f56f09dc5f216f00807385549ea46933e0a"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0162-wi4-ac2-split-path.test.ts": "7ffb658e2bdd437ef51a4434fee14abe039946bf"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0162-wi4-ac2-split-path.test.ts": "7ffb658e2bdd437ef51a4434fee14abe039946bf"
+  }
+}

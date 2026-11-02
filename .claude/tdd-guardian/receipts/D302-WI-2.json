@@ -1,0 +1,73 @@
+{
+  "id": "D302-WI-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T05:50:41.874Z",
+  "head_sha": "57ea75e59b8d66dfb7ca77ef5b08f238605b88e4",
+  "dirty_source": [
+    "package.json",
+    "scripts/ci/check-critical-coverage.mjs",
+    "scripts/ci/compare-report.mjs",
+    "scripts/ci/runner-profile.mjs",
+    "scripts/ci/verify-inventory.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/d302-sync-child-lint.test.ts": {
+      "state": "ok",
+      "sha": "a03f307e080c70a2e790cc8c7330fbccf67c7f8ed7ee47a9bfedab0826a937a8",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1ddd0c5deb717ae9",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "ba1d5e5e043b05ff",
+        "d2e4561a7cdfa231",
+        "d97ab94e378627e7",
+        "a218024b8b4d8f52",
+        "63b7a0b1ac44d438",
+        "06551b0799602ec0",
+        "8859705b55b14109",
+        "ded9173a0e9cb57b",
+        "04295ca5859c21ff",
+        "6c15a71a1859e4f3",
+        "f47871918f4d31eb",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "d10b36aa74a59bcf",
+        "59633126b495488b",
+        "963a3c62bfad873f",
+        "28e29ecb15ae2328",
+        "2dbb46854595fcee",
+        "b530190a1a2ba60b",
+        "29576b54e255e3c9",
+        "60241e68c8582e45",
+        "a6983b463d38cffb",
+        "3fb22fc9ab37e995",
+        "2dbb46854595fcee",
+        "92907b4a15742d2a",
+        "29576b54e255e3c9",
+        "f145080a60711c2b",
+        "e3945faedd057647",
+        "c1baf0601ee225d7",
+        "062ffba67454628a",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T05:51:46.918Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "5 non-test file(s) were already modified when the red was recorded (package.json, scripts/ci/check-critical-coverage.mjs, scripts/ci/compare-report.mjs, scripts/ci/runner-profile.mjs, scripts/ci/verify-inventory.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

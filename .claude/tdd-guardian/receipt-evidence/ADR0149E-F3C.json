@@ -1,0 +1,67 @@
+{
+  "id": "ADR0149E-F3C",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-30T01:40:04.845Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"keeps an assertion value next to a timing span and normalises the span\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected 'AssertionError: expected \\'<duration>…' to be 'AssertionError: expected \\'10ms\\' to …' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"keeps apart what differs outside a span and merges what differs only inside one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+        "line": 59
+      },
+      "message": "AssertionError: expected 2ms to be 3ms | expected 4ms to be 3ms: expected 'expected <duration> to be <duration>' not to be 'expected <duration> to be <duration>' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"leaves every duration or clock outside a span raw\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+        "line": 50
+      },
+      "message": "AssertionError: expected 'took <duration>, then <duration>, the…' to be 'took 1234 ms, then 2.5s, then 40ns' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-normalise-law.test.ts\",\"ADR0149E-F3C durations are normalised only inside the runner's timing spans\",\"rewrites each named span\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-normalise-law.test.ts",
+        "line": 42
+      },
+      "message": "AssertionError: expected '   Start at  09:32:01' to be '   Start at  <timestamp>' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F3C/20261030T014004845Z/tests",
+    "tree": "a3b9d3caec9e3a42aaad8c094f188b472319d360"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-normalise-law.test.ts": "87eaac5998a4d13361676219aa4e5b525ac9e875"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-normalise-law.test.ts": "87eaac5998a4d13361676219aa4e5b525ac9e875"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F3C.json",
+    "digest": "77f5bee8c4643d718edf6484d506bc1fa276fc5726e7419b5f4afbd051d4ec13",
+    "result": "passed",
+    "base": "7d9611e3a0b12ec6119f3052ad8ab4b60a6c47b8",
+    "head": "8915a0afff71d53e11836c1cc194fe71cf930bd6"
+  }
+}

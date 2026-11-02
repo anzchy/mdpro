@@ -1,0 +1,33 @@
+{
+  "id": "T567-S49",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:53:30.014Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: an interrupt is passed on to the receipt command\",\"W15 on SIGTERM the receipt command drains before the wrapper exits, and nothing runs late\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 299
+      },
+      "message": "AssertionError: expected { status: null, …(2) } to deeply equal { Object (status, atClose, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S49/20261101T045330014Z/tests",
+    "tree": "b09ade5843e9f4bf3c5583da967c0b02068d212b"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "c820554556fecf4143af8ac9992f06a2e8cc7d9a"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "c820554556fecf4143af8ac9992f06a2e8cc7d9a"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "id": "ADR0150-WI1-7",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T01:51:32.969Z",
+  "head_sha": "76b1e33be6d9360bf765209075b1ffdb6f0c63bd",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json",
+    "scripts/heavy-lock.sh",
+    "scripts/load-guard/guard.py",
+    "vitest.config.ts",
+    "vitest.workers.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-backstop.test.ts": {
+      "state": "ok",
+      "sha": "bbb26d4216170045601e240e6ffd38384e8fe576b2206ac687c4ee431bc2b6e9",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "ecd69e3d98e0fda6",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "66e7045ebef6a594",
+        "ecabb9f586a87545",
+        "263ae8c7463d0c73",
+        "8460a57119a04197",
+        "03d9aba6351173e5",
+        "c815da01b0de1bc6",
+        "ca059c497ebc0ac0",
+        "3e0150119403554e",
+        "17b19642b9c831f6",
+        "4a1a38cca143d8ec",
+        "18847c085d493a30",
+        "88621cd4de8241eb",
+        "cadaf2cd59b98c14",
+        "6229a11df43b7537",
+        "37a1937fb4ac4b58",
+        "f14124d7ba84de50",
+        "a85c597408a78b57",
+        "d2d11bebb088d558",
+        "ed6419a559d5851f",
+        "904512f25a5b6013",
+        "e311a5886de26f55",
+        "75a35aecb15ae4bd",
+        "6c9ebd888b3088c7",
+        "d6c00e17aef00c5b",
+        "1243754e7aa96e68",
+        "97618abb53751603",
+        "83b07cef61a625f5",
+        "8a318d51aaf6ea1a",
+        "2df7b9a3d5951130",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T01:54:08.721Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "13 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "id": "M4-WI-7",
+  "lane": "rust",
+  "recorded_at": "2026-10-22T06:44:51.076Z",
+  "head_sha": "6b61c73124bdf90e1f7c1caf13544789fde7a67b",
+  "dirty_source": [
+    "docs/guide/keyboard-shortcuts.md",
+    "src-tauri/src/commands/menu.rs",
+    "src-tauri/src/menu.rs",
+    "src-tauri/src/menu_edit.rs",
+    "src-tauri/src/menu_format.rs",
+    "src-tauri/src/menu_from_layout.rs",
+    "src-tauri/src/menu_layout.json",
+    "src-tauri/src/menu_paragraph.rs",
+    "src-tauri/src/menu_recent.rs",
+    "src-tauri/src/menu_submenus.rs",
+    "src/App.tsx",
+    "src/commands/rows/appRows.ts",
+    "src/commands/rows/editRows.ts",
+    "src/commands/rows/fileRows.ts",
+    "src/commands/rows/formatRows.ts",
+    "src/commands/rows/paragraphRows.ts",
+    "src/commands/rows/viewRows.ts",
+    "src/components/AppDialogs.tsx",
+    "src/components/common/SettingsDialog.tsx",
+    "src/hooks/menuActionTable.ts",
+    "src/hooks/useRecentFilesMenuRefresh.ts",
+    "src/services/recentFilesMenuService.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1956 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/menu_from_layout_logging_tests.rs": {
+      "state": "ok",
+      "sha": "8399c93945dcdcd77d9ce0aa4db7b25c23da1d0bc2be2a724d582b5fe6396e3b",
+      "lines": [
+        "fb95346b7bc78cd1",
+        "df1fb510b21459d3",
+        "672a04842f10a9f9",
+        "f106b291b333c839",
+        "03412af7e4880384",
+        "115f03b44d20bdf8",
+        "fa446a9ff7394384",
+        "159607d81c83ca75",
+        "94d4804a43858eae",
+        "4ac43980821ce743",
+        "e6b9dfbed90af1fe",
+        "6c5aa683e16978df",
+        "22d10dcf00603c6f",
+        "29576b54e255e3c9",
+        "3c4e0bd9467f1e52",
+        "8faef4ef99ea5de1",
+        "ddac79e827bbbc12",
+        "15e3712b134ed3d0",
+        "df3982fd61017359",
+        "57b6507d40c453f3",
+        "03d5e3425788c996",
+        "01434ce1cd8d7f69",
+        "043c98f889191e85",
+        "4433222c9177a24e",
+        "cf14eeea360539b4",
+        "b67f9b842f524947",
+        "373d3c3a87431d18",
+        "6ad46c9cebf81307",
+        "1644694139279465",
+        "119fe0b5b92fc3f6",
+        "0d16c905defaf620",
+        "50fb4245395aafe5",
+        "9d8b2b5670d18da8",
+        "3dbbdab9b21c96d0",
+        "c3e03dfac5a9ac22",
+        "dfcbb35640a5f763",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-22T06:50:53.914Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "22 non-test file(s) were already modified when the red was recorded (docs/guide/keyboard-shortcuts.md, src-tauri/src/commands/menu.rs, src-tauri/src/menu.rs, src-tauri/src/menu_edit.rs, src-tauri/src/menu_format.rs, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "info",
+      "code": "spec-extended",
+      "message": "1 specification file(s) gained lines with every recorded line intact: src-tauri/src/menu_from_layout_logging_tests.rs. Additions are healthy; only edits to recorded lines are a finding."
+    }
+  ]
+}

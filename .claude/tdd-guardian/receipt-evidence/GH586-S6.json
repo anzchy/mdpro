@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:08:16.469Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 Opus auditor procedure\",\"GH586: reads the policy pin <P> only when the request is policy-routed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 82
+      },
+      "message": "AssertionError: expected '' to contain 'only when § Which set routes the requ…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S6/20261102T060816469Z/tests",
+    "tree": "98fd44c1e9e88f721bd0c39407be04e9e0a2acf0"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "f86d87dc8b4a3a6fd759593d906b47d5d8d7c5d7"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "f86d87dc8b4a3a6fd759593d906b47d5d8d7c5d7"
+  }
+}

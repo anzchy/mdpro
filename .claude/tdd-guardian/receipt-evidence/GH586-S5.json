@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:07:47.793Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator templates\",\"GH586: a plan review names <P> for a decision-log entry, never for an ADR\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 155
+      },
+      "message": "AssertionError: expected 'for a decision-log entry. ' to contain '`<P>`'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S5/20261102T060747793Z/tests",
+    "tree": "274956252177fe98b581d28d12e352f6d6bf1266"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "be78d289f8ee1d0a3eaa2a54c25939d7ad94a11a"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "be78d289f8ee1d0a3eaa2a54c25939d7ad94a11a"
+  }
+}

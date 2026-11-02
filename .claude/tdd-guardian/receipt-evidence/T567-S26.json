@@ -1,0 +1,33 @@
+{
+  "id": "T567-S26",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:57:13.054Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-mattpocock-version.test.ts\",\"T567 checkMattPocockVersion on fixture caches\",\"judges the numerically highest of several version folders\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-mattpocock-version.test.ts",
+        "line": 100
+      },
+      "message": "AssertionError: expected [ '1.3.0', '1.10.0', '1.10.0', …(1) ] to deeply equal [ '1.3.2', '1.10.0', '1.10.0', …(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S26/20261031T145713054Z/tests",
+    "tree": "9e53cd73e72fb8f1842ad75ca5ba129baaa192b2"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "4a94a6f77705df3dbff543f101d0f9de764a25af"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-mattpocock-version.test.ts": "4a94a6f77705df3dbff543f101d0f9de764a25af"
+  }
+}

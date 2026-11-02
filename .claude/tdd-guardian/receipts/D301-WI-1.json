@@ -1,0 +1,60 @@
+{
+  "id": "D301-WI-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-21T02:00:10.766Z",
+  "head_sha": "7c97166f88ecd30c29349a786bf441ea577d3a67",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "6 of 7 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/unit-red-phase-async-provenance.test.ts": {
+      "state": "ok",
+      "sha": "87542f1878df3acdac196d6e9a89523e59c071e3e718d40a41076f3d4ee78502",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "b8cbd764da70a65b",
+        "2dd42f124779333e",
+        "e05fabb2b0d7bcbc",
+        "d5dbb991a39a63fa",
+        "096b44f386db1877",
+        "ff198c47b29f30c2",
+        "cc0875649af25c74",
+        "db7aff77d73bbdb6",
+        "83d3d10e620c2d1c",
+        "e142b1ab99222f21",
+        "80f04e9c33126b31",
+        "796a2997ee0e1ef2",
+        "b4d87550936b7131",
+        "d10b36aa74a59bcf",
+        "54462244369add94",
+        "45e04102d0955015",
+        "85e092acaf01f3fd",
+        "85ae62680e91d15c",
+        "080403bc2517d0ca",
+        "29576b54e255e3c9",
+        "3c18ac4cde327b0f",
+        "d96d4add25d55558",
+        "85ae62680e91d15c",
+        "080403bc2517d0ca",
+        "29576b54e255e3c9",
+        "f5d966d93e5d7f35",
+        "adc327c064b20759",
+        "85ae62680e91d15c",
+        "29576b54e255e3c9",
+        "c3b6fc37080b52c0",
+        "c7b273b285043413",
+        "85ae62680e91d15c",
+        "080403bc2517d0ca",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-21T02:01:47.459Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

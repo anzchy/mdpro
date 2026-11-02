@@ -1,0 +1,96 @@
+{
+  "id": "WI43B-8",
+  "lane": "unit",
+  "recorded_at": "2026-10-20T02:50:12.239Z",
+  "head_sha": "6e92438ec6f3ed877b4650318b84bdfc07b4be16",
+  "dirty_source": [
+    "CHANGELOG.md",
+    "docs/feature-ledger.html",
+    "docs/feature-ledger.md",
+    "docs/plans/20260911-ui-redesign/stage-4a-components.md"
+  ],
+  "red": {
+    "red": true,
+    "kind": "opaque-failure",
+    "reason": "The suite exited as a test failure but no test counts could be parsed, so it cannot be shown that assertions ran rather than the runner falling over in a way exec.js does not recognise. Weaker evidence than a counted failure."
+  },
+  "test_files": {
+    "tests/wi43b-cross-window.test.tsx": {
+      "state": "ok",
+      "sha": "af6cee8f8e3520be10412cc075e2aef9524929bc8b3a4219d6777f32a28f064a",
+      "lines": [
+        "6a373afd72d0a198",
+        "2b8313eb7c7cf67d",
+        "2a443e77e7f1429a",
+        "db19f91abbc6afaf",
+        "dbb30362671f1b46",
+        "054b4d41c2d64393",
+        "f3b56c56ce20af4d",
+        "2834606cf149f691",
+        "dc883a1e348c316b",
+        "519fce844132aa16",
+        "2ac5046c789e78f3",
+        "1828b669c32e6f39",
+        "2ac5046c789e78f3",
+        "21eb4dcdcce581a3",
+        "9bb0754b1222b28f",
+        "f805a79f5f451470",
+        "e1e90cdd3c938cb2",
+        "11cdda64107139d4",
+        "2cdb9a76deb4da0b",
+        "af163ce9311a4d0c",
+        "ea2aeffd1452fe02",
+        "b3bc9b9e5d7092a5",
+        "b25d5d346c10f9d7",
+        "797bd3ca71b01454",
+        "e0c702855f57095a",
+        "3450a443145fdc1f",
+        "985045f1c0578a8d",
+        "e0c702855f57095a",
+        "d10b36aa74a59bcf",
+        "e986e4eda53cd3f2",
+        "df3982fd61017359",
+        "181a791d59936c62",
+        "91921efc106c96cf",
+        "4f90ab5043746e0a",
+        "1052acce9c2a8242",
+        "48d21562b1523416",
+        "7a236ab8274123b6",
+        "5eba35adb7d83009",
+        "5b830fab1c303f1c",
+        "a8d5afc828900c61",
+        "f55339587c810776",
+        "c85cca83559e09f1",
+        "5e222412cf0822c3",
+        "3fedd3472dc3dc62",
+        "2628ce2e1ab7bcae",
+        "1f1e46e4b7d2d1f8",
+        "a3d113e5e28509fd",
+        "29576b54e255e3c9",
+        "1288f54c4d5ce354",
+        "4106654fb40c868e",
+        "03c585852eb7d15f",
+        "dea0827040b1c4a1",
+        "397a943a5f9a5ce3",
+        "1a54d9731b416126",
+        "2624c15ae31a0f62",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-20T03:03:15.990Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "weak-red",
+      "message": "The red for 'WI43B-8' was recorded without parseable test counts, so it is not established that assertions ran rather than the runner failing in an unrecognised way. The receipt stands on weaker evidence than a counted failure."
+    },
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, docs/feature-ledger.html, docs/feature-ledger.md, docs/plans/20260911-ui-redesign/stage-4a-components.md). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

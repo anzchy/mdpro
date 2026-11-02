@@ -1,0 +1,33 @@
+{
+  "id": "GH586-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-02T06:07:25.413Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0146-audit-dimensions.test.ts\",\"ADR-0146 delegator templates\",\"GH586: confirm and challenge carry ruling 1's two <P> transitions\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0146-audit-dimensions.test.ts",
+        "line": 144
+      },
+      "message": "AssertionError: confirm-request: expected '# Request: <ID> PR #<n> confirm, roun…' to contain 'A confirm whose fix adds a policy-rou…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH586-S4/20261102T060725413Z/tests",
+    "tree": "18ef73b5f5ce011dc8a75958d6079d36929092ce"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "c219b99271a2e8cbaa20ebe482c1930d8dca8158"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0146-audit-dimensions.test.ts": "c219b99271a2e8cbaa20ebe482c1930d8dca8158"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "T567-S9",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T14:45:41.991Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow method text\",\"says who attacks the matrix on each runtime and what the attacker is given\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 130
+      },
+      "message": "AssertionError: expected [ 'fresh', 'never a fork', …(5) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S9/20261031T144541991Z/tests",
+    "tree": "2f7d461debf7b987ac7f74beded891e9fb79edaa"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "12f6ebb80d5f960fd119d361d5aaed37549dafd3"
+  }
+}

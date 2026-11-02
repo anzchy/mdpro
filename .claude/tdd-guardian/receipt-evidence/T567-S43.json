@@ -1,0 +1,33 @@
+{
+  "id": "T567-S43",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T04:46:46.959Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 receipt wrapper: refusals call nothing\",\"R1 refuses an unknown or missing mode with exit 2 and names the four modes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 146
+      },
+      "message": "AssertionError: expected { …(3) } to deeply equal { …(3) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S43/20261101T044646959Z/tests",
+    "tree": "6826d97a7178e27b3226dc89891eec4f1ac13420"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "caea7622cfbb1532be9a4e3137c651dc93f45ba0"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "caea7622cfbb1532be9a4e3137c651dc93f45ba0"
+  }
+}

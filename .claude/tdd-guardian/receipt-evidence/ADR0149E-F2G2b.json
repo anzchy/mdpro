@@ -1,0 +1,67 @@
+{
+  "id": "ADR0149E-F2G2b",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T16:24:16.858Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a replay removes only its own worktree\",\"a foreign worktree registered at the replay's own path just before its add survives the entry and the launcher\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "line": 88
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a replay removes only its own worktree\",\"two checkouts replaying the same id and head at once: the first one's worktree survives the second\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "line": 69
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a stale marker removes nothing\",\"replay of that id leaves a foreign worktree named by a stale marker alone\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "line": 112
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/adr0149e-worktree-owner.test.ts\",\"ADR0149E-F2G2b a stale marker removes nothing\",\"verify of that id leaves a foreign worktree named by a stale marker alone\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0149e-worktree-owner.test.ts",
+        "line": 112
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/ADR0149E-F2G2b/20261029T162416858Z/tests",
+    "tree": "c5e640fb6ba857a1753a10548d93a8bf9991aff9"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0149e-worktree-owner.test.ts": "d82f5c43ad2181101eecd6973b20d72e1df93cca"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0149e-worktree-owner.test.ts": "d82f5c43ad2181101eecd6973b20d72e1df93cca"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/ADR0149E-F2G2b.json",
+    "digest": "8ce2ad1985da3555cad137414ceaa0390da9201951b9240f526079f3facaa141",
+    "result": "passed",
+    "base": "2c0bd49657e392405f6b8b797c9d5ee1eacbc8a5",
+    "head": "0ae098c07c9c32582f8d429ef334811a2caf15d8"
+  }
+}

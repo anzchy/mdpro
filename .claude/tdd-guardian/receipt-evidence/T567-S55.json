@@ -1,0 +1,33 @@
+{
+  "id": "T567-S55",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-01T05:17:20.514Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper.test.ts\",\"T567 r5 SKILL.md routes receipts through the wrapper\",\"R6b outside a git repository it says so in one line and exits 1, with no stack trace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper.test.ts",
+        "line": 435
+      },
+      "message": "AssertionError: expected { status: 1, …(2) } to deeply equal { status: 1, …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S55/20261101T051720514Z/tests",
+    "tree": "7ac59541c926f39343e125f7ac01f8b8264f17f2"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper.test.ts": "67d9ebd316093df99262b1df7597e0a7fab692f7"
+  }
+}

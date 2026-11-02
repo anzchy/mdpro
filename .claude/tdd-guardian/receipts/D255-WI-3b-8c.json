@@ -1,0 +1,61 @@
+{
+  "id": "D255-WI-3b-8c",
+  "lane": "rust",
+  "recorded_at": "2026-10-22T07:01:26.445Z",
+  "head_sha": "38af737306e8b6d1b997f9c35c34c96b154cb2de",
+  "dirty_source": [
+    "src-tauri/src/commands/image_pick.rs",
+    "src-tauri/src/commands/mod.rs",
+    "src/commands/editorOwnedChords.ts",
+    "src/commands/inventory/codemirrorRows.ts",
+    "src/components/Editor/MilkdownEditor.tsx",
+    "src/plugins/codemirror/sourceFormatCommands.ts",
+    "src/plugins/codemirror/sourceFormatPlugin.ts",
+    "src/plugins/milkdown/underlineMarkPlugin.ts",
+    "src/plugins/milkdown/wysiwygFormatCommands.ts",
+    "src/services/imageService.ts",
+    "src/utils/editorImageInsert.ts",
+    "src/utils/editorMenuCommands.ts",
+    "src/utils/editorMenuSourceCommands.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 1941 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "src-tauri/src/commands/image_pick_tests.rs": {
+      "state": "ok",
+      "sha": "1633d01b897f8a85384e8a4a2f0d146271ac48ae3499440f9fc9afa1a0caabbe",
+      "lines": [
+        "f28c6de4a37ea99b",
+        "ed01d965c4c3bb82",
+        "fa446a9ff7394384",
+        "111e381670cc17f5",
+        "119fe0b5b92fc3f6",
+        "b7d7e7035985058d",
+        "5322a345142f41e1",
+        "9d8b2b5670d18da8",
+        "d10b36aa74a59bcf",
+        "fa446a9ff7394384",
+        "dc9c9aa4082fa7e0",
+        "812371b91a7c12de",
+        "119fe0b5b92fc3f6",
+        "6f6196cc92b5b245",
+        "b4c706777d060744",
+        "9d8b2b5670d18da8",
+        "d10b36aa74a59bcf"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-22T07:02:58.503Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "13 non-test file(s) were already modified when the red was recorded (src-tauri/src/commands/image_pick.rs, src-tauri/src/commands/mod.rs, src/commands/editorOwnedChords.ts, src/commands/inventory/codemirrorRows.ts, src/components/Editor/MilkdownEditor.tsx, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

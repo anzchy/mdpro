@@ -1,0 +1,42 @@
+{
+  "id": "D336-FIX1-SETTEXT",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-31T04:02:28.378Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d336-fix1-settext.test.ts\",\"D336 fix 1 a failed path write is never submitted\",\"WM_SETTEXT returning FALSE stops before Enter\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d336-fix1-settext.test.ts",
+        "line": 22
+      },
+      "message": "AssertionError: expected [ …(4) ] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d336-fix1-settext.test.ts\",\"D336 fix 1 a failed path write is never submitted\",\"a read-back that differs from the path stops before Enter\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d336-fix1-settext.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: expected [ …(4) ] to deeply equal [ Array(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D336-FIX1-SETTEXT/20261031T040228378Z/tests",
+    "tree": "05e8e1ea70300174fc24ae6f163eac3aa57b50f3"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d336-fix1-settext.test.ts": "500df96fbcf1fd2e4c37837228d56ede97fd30ac"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d336-fix1-settext.test.ts": "500df96fbcf1fd2e4c37837228d56ede97fd30ac"
+  }
+}

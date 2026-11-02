@@ -1,0 +1,62 @@
+{
+  "id": "ADR0150-WI1-fix2-M1",
+  "lane": "unit-red",
+  "recorded_at": "2026-10-29T06:28:58.321Z",
+  "head_sha": "18cc4ab3e32cbbb48740bc5877399e2d3050c567",
+  "dirty_source": [
+    ".claude/mind.mv2",
+    ".claude/mind.mv2.lock",
+    ".claude/settings.json",
+    ".codex/rules/.started-at",
+    ".tokenize/catalog.json",
+    ".tokenize/conflicts.json",
+    ".tokenize/consumer-profile.json",
+    ".tokenize/ledger/39485.ndjson",
+    ".tokenize/session.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/load-guard-fix2-log-mode.test.ts": {
+      "state": "ok",
+      "sha": "6cbc0cfe8ad6a99c0be511ced4e379289e58a24fa483bf4e5da1786e04b14a82",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "69f2ffe9e2d6f214",
+        "027deb87e24672f5",
+        "2fae5609cd7dc24c",
+        "03d9aba6351173e5",
+        "0c8985921a3849ee",
+        "592fe6725144efdd",
+        "7e15cbe8c730f74a",
+        "07b08d2aa5c50ad6",
+        "a9017a4cc427f57b",
+        "8a05c1adbd1ecae8",
+        "9eaad40bdfdea701",
+        "c56916cb9edd31a0",
+        "b4a2edd8ea71a1db",
+        "2ad51d3d25df011c",
+        "2d33134a8ec3b410",
+        "d10b36aa74a59bcf",
+        "1f083804dc3ee865",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-10-29T06:33:19.947Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "9 non-test file(s) were already modified when the red was recorded (.claude/mind.mv2, .claude/mind.mv2.lock, .claude/settings.json, .codex/rules/.started-at, .tokenize/catalog.json, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
