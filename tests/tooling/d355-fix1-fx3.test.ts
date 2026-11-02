@@ -2,7 +2,7 @@
 // D355 fix 1, fx3: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, exists, rawSection, normalise, sentences, R70, R71, SKILL,
+  read, exists, rawSection, normalise, sentences, R70, R71,
 } from "./d355-fix1-lib";
 describe("FX-3: AGENTS.md binds rules 70 and 71 and maps each role to its files (ruling 1 R3)", () => {
   const text = () => read("AGENTS.md");

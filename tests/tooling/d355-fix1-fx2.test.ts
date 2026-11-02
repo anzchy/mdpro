@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  root, read, flat, count, show, BASE, CANDIDATE, sha, ISSUE_570, rawSection, section, sentences, LA, R71, R12, IMPL, SKILL, PROMPT, FOLD_IN, BRIEF_T, ADR, anchorExists,
+  root, read, flat, show, BASE, CANDIDATE, sha, ISSUE_570, rawSection, section, sentences, LA, R71, R12, IMPL, SKILL, PROMPT, FOLD_IN, BRIEF_T, ADR, anchorExists,
 } from "./d355-fix1-lib";
 describe("FX-2: the pre-go-live TDD law (ruling 1 R1)", () => {
   const impl = () => rawSection(read(IMPL), "Matrix and attack");

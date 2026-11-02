@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  root, read, exists, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hits, hitsIn, headings, anchorExists, withoutCurrentText, currentText,
+  root, read, exists, flat, count, show, BASE, CANDIDATE, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, PROMPT, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, headings, anchorExists, withoutCurrentText, currentText,
 } from "./d355-fix1-lib";
 describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   it("D1: codex-panes.md links AGENTS.md's renamed section", () => {
