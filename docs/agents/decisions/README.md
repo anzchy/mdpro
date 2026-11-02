@@ -32,8 +32,8 @@ An entry is gate-sensitive when it changes:
 - a control that protects user data.
 
 Both auditors plan-review a gate-sensitive entry and its rule edit before they land, through the delegator's
-plan-review request. The delegator classifies, and doubt means review. `docs/agents/audit-dimensions.md` keeps
-ADR-0146's route.
+plan-review request. The delegator classifies, and doubt means review. `docs/agents/audit-dimensions.md` and
+`docs/agents/audit-policy-set.md` keep ADR-0146's route.
 
 ## Every other entry
 

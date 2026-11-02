@@ -2899,6 +2899,66 @@
         "tests/tooling/adr0146-audit-dimensions.test.ts": "be10bea2f58858fffa422dd8f0ff9a1ad76b7c8b"
       }
     },
+    "GH586-S12": {
+      "id": "GH586-S12",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:56:19.356Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry states two auditor route caps with sourced arithmetic\",\"adds up live figures to totals under each cap, with the shared set labelled planned and auditor.md a budget\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 280
+          },
+          "message": "AssertionError: expected undefined to be 29431 // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry states two auditor route caps with sourced arithmetic\",\"gives each route its own cap in the Decision field, quoting the ruling in Decided\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 251
+          },
+          "message": "AssertionError: expected '2026-11-02, by the user: 「Fable\\'s sp…' to contain '「Separate cap 56,000 (Recommended)」'"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry states two auditor route caps with sourced arithmetic\",\"keeps no clause that ties 50,000 B to anything but the ordinary route or the superseded cap\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 267
+          },
+          "message": "AssertionError:  the 50,000 B auditor route cap is unchanged: expected false to be true // Object.is equality"
+        },
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the entry states two auditor route caps with sourced arithmetic\",\"says who enforces the caps, what the older projection gives, and the unnumbered follow-up\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 302
+          },
+          "message": "AssertionError: expected '# 2026-11-02: The policy set moves in…' to contain 'enforced by D355\\'s budget test on it…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S12/20261102T065619356Z/tests",
+        "tree": "d0f48b7f09ea0868bb26d80df472f8e97686128d"
+      },
+      "spec_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "9fa840fa4adb7a290338c651c12392e00356b6fa"
+      },
+      "settled_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "9fa840fa4adb7a290338c651c12392e00356b6fa"
+      }
+    },
     "GH586-S13": {
       "id": "GH586-S13",
       "lane": "unit-red",
@@ -2981,6 +3041,39 @@
       },
       "settled_blobs": {
         "tests/tooling/adr0146-audit-dimensions.test.ts": "d04363ffaf702e1560412a79c1e8db217021946a"
+      }
+    },
+    "GH586-S15": {
+      "id": "GH586-S15",
+      "lane": "unit-red",
+      "recorded_at": "2026-11-02T06:57:56.083Z",
+      "plugin_version": "0.10.2",
+      "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+      "env": {
+        "LANG": "C.UTF-8",
+        "node": "v22.22.3",
+        "platform": "darwin"
+      },
+      "failures": [
+        {
+          "id": "[\"tests/tooling/gh586-audit-policy-split.test.ts\",\"GH586 fix 1: the decision log keeps both audit files on ADR-0146's route\",\"names the policy set file beside the dimensions file in § Gate-sensitive entries\"]",
+          "kind": "assertion",
+          "location": {
+            "file": "tests/tooling/gh586-audit-policy-split.test.ts",
+            "line": 322
+          },
+          "message": "AssertionError: expected '## Gate-sensitive entries An entry is…' to contain '`docs/agents/audit-dimensions.md` and…'"
+        }
+      ],
+      "tests_tree": {
+        "ref": "refs/receipts/GH586-S15/20261102T065756083Z/tests",
+        "tree": "5ae0d3b05663af6f953d6d4f001723955d0e5311"
+      },
+      "spec_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "c733a10478f805b2facea4df5fb34e7c479b4109"
+      },
+      "settled_blobs": {
+        "tests/tooling/gh586-audit-policy-split.test.ts": "c733a10478f805b2facea4df5fb34e7c479b4109"
       }
     },
     "GH586-S2": {

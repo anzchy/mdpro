@@ -237,3 +237,90 @@ describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-
     expect(sha(status.replace(`\n\n${line}`, ""))).toBe("b4474f9576af0672dacb2a03b4503e3227469d36bd29ca1d07a41e1b6a0b72db");
   });
 });
+
+describe("GH586 fix 1: the entry states two auditor route caps with sourced arithmetic", () => {
+  const entry = () => read("docs/agents/decisions/20261102-audit-policy-set-split.md");
+  const field = (name: string) => flat(entry().split(`\n- **${name}:**`)[1]?.split("\n- **")[0] ?? "");
+  const clauses = (text: string) => text.split(/[.;](?=\s|$)/);
+  const num = (s: string) => Number(s.replace(/,/g, ""));
+  const size = (rel: string) => Buffer.byteLength(read(rel));
+  const templates = ["audit", "confirm", "challenge", "plan-review"].map(kind =>
+    size(`.agents/skills/mdpro-delegator/references/templates/${kind}-request-template.md`));
+
+  it("gives each route its own cap in the Decision field, quoting the ruling in Decided", () => {
+    expect(field("Decided")).toContain("「Separate cap 56,000 (Recommended)」");
+    const decision = field("Decision");
+    expect(decision.split(/(?<=[.])\s+(?=[A-Z*`])/).length).toBeLessThanOrEqual(3);
+    const ordinary = decision.match(/ordinary auditor route([^.;]*?)50,000 B/);
+    const routed = decision.match(/policy-routed auditor route \(`<P>` loaded\)([^.;]*?)56,000 B/);
+    expect(ordinary).not.toBeNull();
+    expect(routed).not.toBeNull();
+    for (const between of [ordinary?.[1] ?? "", routed?.[1] ?? ""]) expect(between).not.toMatch(/\d{1,3},\d{3} B/);
+    expect(decision).not.toMatch(/ordinary auditor route[^.;]*?56,000/);
+    expect(routed?.[1] ?? "").not.toMatch(/\bPRs?\b/);
+    expect(routed?.[1] ?? "").toContain("plan review");
+  });
+
+  it("keeps no clause that ties 50,000 B to anything but the ordinary route or the superseded cap", () => {
+    const text = flat(entry());
+    for (const clause of clauses(text).filter(c => c.includes("50,000 B"))) {
+      expect(clause.includes("ordinary auditor route") || clause.includes("single 50,000 B auditor cap"), clause).toBe(true);
+    }
+    for (const clause of clauses(text).filter(c => c.includes("policy-routed auditor route"))) {
+      expect(clause.slice(clause.indexOf("policy-routed auditor route")).match(/\d{1,3},\d{3} B/)?.[0], clause).toBe("56,000 B");
+    }
+    expect(text).not.toMatch(/50,000 B[^.;]*\b(unchanged|stays|is kept)\b/);
+    expect(text).not.toContain("route cap is unchanged");
+  });
+
+  it("adds up live figures to totals under each cap, with the shared set labelled planned and auditor.md a budget", () => {
+    const caps = flat(field("Caps"));
+    const terms = [...caps.matchAll(/(\d{1,3},\d{3}) B/g)].map(m => num(m[1]));
+    const [shared, dimsB, request, auditor, ordinaryTotal, policyB, routedTotal] = terms;
+    expect(shared).toBe(29_431);
+    expect(dimsB).toBe(size("docs/agents/audit-dimensions.md"));
+    expect(request).toBe(Math.max(...templates));
+    expect(auditor).toBe(3_500);
+    expect(policyB).toBe(size("docs/agents/audit-policy-set.md"));
+    expect(ordinaryTotal).toBe(shared + dimsB + request + auditor);
+    expect(routedTotal).toBe(ordinaryTotal + policyB);
+    expect(ordinaryTotal).toBeLessThanOrEqual(50_000);
+    expect(routedTotal).toBeLessThanOrEqual(56_000);
+    const beforeShared = caps.slice(0, caps.indexOf("29,431 B"));
+    expect(beforeShared.slice(Math.max(beforeShared.lastIndexOf(":"), beforeShared.lastIndexOf("+")))).toContain("D355's planned shared set");
+    expect(caps).toContain("D355-trim-plan § 3, approved 2026-11-02");
+    expect(caps).toContain("`always-on-budget.test.ts` measures the real value");
+    const auditorTerm = caps.slice(caps.indexOf("3,500 B"), caps.indexOf("=", caps.indexOf("3,500 B")));
+    expect(auditorTerm).toContain("budget");
+    for (const clause of clauses(flat(entry())).filter(c => c.includes("29,431"))) {
+      expect(clause, clause).not.toMatch(/\bmeasur(ed|ement)\b/);
+    }
+  });
+
+  it("says who enforces the caps, what the older projection gives, and the unnumbered follow-up", () => {
+    const text = flat(entry());
+    expect(text).toContain("enforced by D355's budget test on its fixtures, not by this PR");
+    const older = clauses(text).find(c => c.includes("34,719 B"));
+    expect(older).toBeDefined();
+    const clause = older ?? "";
+    expect(clause.indexOf("34,719 B")).toBeLessThan(clause.indexOf("60,132 B"));
+    expect(clause).toContain("ADR-0147");
+    expect(clause).toContain("policy-routed");
+    expect(clause).not.toMatch(/\b(within|fits|under)\b|≤/);
+    const caps = [...flat(field("Caps")).matchAll(/(\d{1,3},\d{3}) B/g)].map(m => num(m[1]));
+    expect(num("60,132")).toBe(34_719 + caps[1] + caps[2] + caps[3] + caps[5]);
+    expect(text).toContain("`claudeMdExcludes`");
+    expect(text).toContain("follow-up");
+    for (const [ref] of text.matchAll(/#\d+/g)) expect(["#586", "#587"], ref).toContain(ref);
+  });
+});
+
+describe("GH586 fix 1: the decision log keeps both audit files on ADR-0146's route", () => {
+  it("names the policy set file beside the dimensions file in § Gate-sensitive entries", () => {
+    const readme = read("docs/agents/decisions/README.md");
+    const gate = flat(readme.slice(readme.indexOf("## Gate-sensitive entries"), readme.indexOf("## Every other entry")));
+    expect(gate).toContain("`docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md` keep ADR-0146's route");
+    expect(gate).not.toContain("`docs/agents/audit-dimensions.md` keeps ADR-0146's route");
+    expect(flat(section(readme, "Entries"))).toContain("20261102-audit-policy-set-split.md");
+  });
+});
