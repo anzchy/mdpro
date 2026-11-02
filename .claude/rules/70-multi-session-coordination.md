@@ -83,7 +83,7 @@ the delegator and the user's own sessions run unchanged.
 
 The delegator has three subagents of its own:
 `mdpro-landing-verifier` re-checks a handoff (ancestry, scope, that
-`receipts.json` keeps every record of the parent, the named lanes in a
+`receipt-store.mjs keep-check` finds every receipt and evidence file of the parent kept, the named lanes in a
 detached `verify-<sha7>` worktree) before `git merge --ff-only`;
 `mdpro-fable-auditor` is the second auditor of item 4, beside the Codex
 audit; and `mdpro-number-registrar` finds the next free ADR and D numbers.
@@ -405,8 +405,9 @@ worktree half of the confirmation above; branches still need it.
   it holds before handing out another. Then it announces the reservation to all sessions.
 - **D numbers** work the same way (see above).
 - **tdd-guardian receipt ids carry the work's prefix** (`D32-WI-6`,
-  `ADR47-WI003-2`), never a bare `WI-n`. Receipts are keyed by id, so two
-  efforts that both record `WI-4` overwrite each other; on 2026-10-10 a merge
+  `ADR47-WI003-2`), never a bare `WI-n`. Receipts are keyed by id, one file
+  per id, so two efforts that both record `WI-4` meet as an add/add conflict on
+  `receipts/WI-4.json`; on 2026-10-10, under the single-file store, a merge
   carried six redesign receipts away this way.
 
 ## Session rotation

@@ -16,8 +16,15 @@ import { calls, CLAUDE_WRAPPER_REL, cleanEnv, ROOT, runWrapper, stubRepo, until,
 
 const made: string[] = [];
 /** G3: this worktree's own receipt store, hashed before any case runs. */
-const STORE = [".claude/tdd-guardian/receipts.json", ".claude/tdd-guardian/evidence.json"];
-const storeHash = () => STORE.map((f) => createHash("sha256").update(fs.readFileSync(path.join(ROOT, f))).digest("hex"));
+// RC5: the store is one file per id under receipts/ and receipt-evidence/; the legacy files are hashed while they exist.
+const STORE = [".claude/tdd-guardian/receipts", ".claude/tdd-guardian/receipt-evidence", ".claude/tdd-guardian/receipts.json", ".claude/tdd-guardian/evidence.json"];
+const storeHash = () => STORE.map((f) => {
+  const full = path.join(ROOT, f), hash = createHash("sha256");
+  if (!fs.existsSync(full)) return "absent";
+  if (fs.statSync(full).isDirectory()) for (const name of fs.readdirSync(full).sort()) hash.update(`${name}\0`).update(fs.readFileSync(path.join(full, name))).update("\0");
+  else hash.update(fs.readFileSync(full));
+  return hash.digest("hex");
+});
 const STORE_BEFORE = storeHash();
 afterAll(() => { for (const dir of made) fs.rmSync(dir, { recursive: true, force: true }); });
 

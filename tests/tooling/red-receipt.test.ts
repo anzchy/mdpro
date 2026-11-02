@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createOwnerChildRunner } from "./d302Child";
@@ -25,8 +25,18 @@ async function command(...args: string[]) {
   return (await run(process.execPath, [entry, ...args, "--cwd", root]));
 }
 
+// RC5: receipts are one file per id under receipts/, read here in id order; receipts.json is the engine's view.
+const items = () => join(root, ".claude/tdd-guardian/receipts");
+const item = (id: string) => join(items(), `${id}.json`);
+const view = () => join(root, ".claude/tdd-guardian/receipts.json");
+/** Every item file's bytes and the view's, to prove an operation wrote nothing. */
+function bytes() {
+  const names = existsSync(items()) ? readdirSync(items()).sort() : [];
+  return JSON.stringify([names.map((name) => [name, readFileSync(join(items(), name), "utf8")]), existsSync(view()) ? readFileSync(view(), "utf8") : null]);
+}
 function store() {
-  return JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).receipts as Array<{
+  const names = existsSync(items()) ? readdirSync(items()).sort() : [];
+  return names.map((name) => JSON.parse(readFileSync(join(items(), name), "utf8"))) as Array<{
     id: string; lane: string; verdict?: string; red: { kind: string; testCounts?: { failed: number } }; test_files: Record<string, unknown>
     dirty_source?: string[];
   }>;
@@ -52,7 +62,6 @@ beforeEach(async (context) => {
   config.lanes = config.lanes.filter((lane: { name: string }) => lane.name !== "unit-red");
   config.lanes.push({ name: "unit-red", command: "node scripts/tdd/unit-red-lane.mjs", gateOn: ["manual"], coverage: "none", timeoutMs: 60000 });
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), JSON.stringify(config));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   (await run("git", ["init", "-q", "-b", "master"]));
   (await run("git", ["config", "user.email", "test@example.com"]));
   (await run("git", ["config", "user.name", "Test"]));
@@ -82,9 +91,9 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
     const spellings = ["./tests/good.test.ts", "tests//good.test.ts", "tests/./good.test.ts", "tests\\good.test.ts", "tests/good.test.ts/", "tests/GOOD.test.ts", "tests-x/a.test.ts", "testsx/a.test.ts", "Tests/a.test.ts", "tests/a\nb.test.ts", "tests/setup.ts", "tests/x.perf.ts"];
     writeFileSync(join(root, "tests/setup.ts"), "");
     for (const file of spellings) {
-      const before = readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8");
+      const before = bytes();
       expect((await command("record", "--id", "A", "--test", file)).status, file).toBe(64);
-      expect(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).toBe(before);
+      expect(bytes()).toBe(before);
     }
     for (const args of [["record", "--test", good], ["record", "--id", "a b", "--test", good], ["record", "--id", "../x", "--test", good], ["record", "--id", "A", "--lane", "unit", "--test", good], ["record", "--id", "A", "--files", good]]) {
       expect((await command(...args)).status, args.join(" ")).toBe(64);
@@ -160,7 +169,7 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
         const file = fixture(`count${index}${ansi}`, `import { it } from "vitest"; ${ansi ? 'process.stdout.write("\\x1b[31mTests 999 passed (999)\\x1b[0m");' : 'process.stdout.write("Tests 999 passed (999)");'} ${source}`);
         const result = (await command("record", "--id", `C${index}${ansi}`, "--test", file));
         expect(result.status).toBe(0);
-        expect(store().at(-1)?.red.kind).toBe("assertion-failure");
+        expect(store().find((r) => r.id === `C${index}${ansi}`)?.red.kind).toBe("assertion-failure");
       }
     }
     const file = "tests/count0false.test.ts";
@@ -182,10 +191,10 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
     writeFileSync(join(root, "tests/state.txt"), "green");
     expect((await command("verify", "--id", "A")).status).toBe(0);
     expect((await command("discard", "--id", "A")).status).toBe(64);
-    const saved = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8"));
-    saved.receipts[0].verdict = null;
-    writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify(saved));
-    (await run("git", ["add", ".claude/tdd-guardian/receipts.json"]));
+    const saved = JSON.parse(readFileSync(item("A"), "utf8"));
+    saved.verdict = null;
+    writeFileSync(item("A"), `${JSON.stringify(saved, null, 2)}\n`);
+    (await run("git", ["add", ".claude/tdd-guardian/receipts"]));
     (await run("git", ["commit", "-qm", "master receipt"]));
     (await run("git", ["branch", "-f", "master", "HEAD"]));
     expect((await command("discard", "--id", "A")).status).toBe(64);
@@ -194,10 +203,10 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
   it("refuses settled or master ids at record, and edited genuine REDs at discard", async () => {
     const a = fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
     expect((await command("record", "--id", "A", "--test", a)).status).toBe(0);
-    const before = readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8");
+    const before = bytes();
     fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("changed"); });');
     expect((await command("discard", "--id", "A")).status).toBe(64);
-    expect(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).toBe(before);
+    expect(bytes()).toBe(before);
     fixture("a", 'import { it } from "vitest"; it("a", () => {});');
     expect((await command("verify", "--id", "A")).status).not.toBe(0);
     expect((await command("record", "--id", "A", "--test", a)).status).toBe(64);
@@ -223,17 +232,18 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
     fixture("b", 'import { it } from "vitest"; it("b", () => {});');
     (await run(process.execPath, [guardian, "verify", "--cwd", root], leaked));
     expect(store().map((receipt) => receipt.verdict)).toEqual([null, null]);
+    expect(JSON.parse(readFileSync(view(), "utf8")).receipts.map((receipt: { verdict: string | null }) => receipt.verdict)).toEqual([null, null]);
   });
 
   it("refuses a master id at record and a missing master ref at discard", async () => {
     const a = fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
     expect((await command("record", "--id", "A", "--test", a)).status).toBe(0);
-    (await run("git", ["add", ".claude/tdd-guardian/receipts.json"]));
+    (await run("git", ["add", ".claude/tdd-guardian/receipts"]));
     (await run("git", ["commit", "-qm", "receipt"]));
     (await run("git", ["branch", "-f", "master", "HEAD"]));
-    const before = readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8");
+    const before = bytes();
     expect((await command("record", "--id", "A", "--test", a)).status).toBe(64);
-    expect(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).toBe(before);
+    expect(bytes()).toBe(before);
     (await run("git", ["branch", "-m", "master", "main"]));
     expect((await command("discard", "--id", "A")).status).toBe(64);
   });
@@ -241,16 +251,21 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
   it("rejects branch receipts with weak REDs or nonfinal verdicts at handoff", async () => {
     const a = fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
     expect((await command("record", "--id", "A", "--test", a)).status).toBe(0);
-    const file = join(root, ".claude/tdd-guardian/receipts.json");
+    const file = item("A");
     const saved = JSON.parse(readFileSync(file, "utf8"));
-    for (const verdict of ["PENDING", "SEPARATION-BROKEN", "x"]) {
-      saved.receipts[0].verdict = verdict;
-      writeFileSync(file, JSON.stringify(saved));
-      expect((await command("check-pending")).status).toBe(1);
+    // RC5 (ruling 1, opus M3): the strict load runs the engine's validateReceipts on every item, so a
+    // verdict the engine would not persist (PENDING, an unknown word) is refused outright, naming the
+    // file; a decided non-final verdict still reaches review and exits 1.
+    for (const [verdict, status] of [["PENDING", 64], ["SEPARATION-BROKEN", 1], ["x", 64]] as const) {
+      saved.verdict = verdict;
+      writeFileSync(file, `${JSON.stringify(saved, null, 2)}\n`);
+      const result = await command("check-pending");
+      expect(result.status, verdict).toBe(status);
+      if (status === 64) expect(result.output).toContain("receipts/A.json");
     }
-    saved.receipts[0].verdict = "SEPARATION-HELD";
-    saved.receipts[0].red.kind = "opaque-failure";
-    writeFileSync(file, JSON.stringify(saved));
+    saved.verdict = "SEPARATION-HELD";
+    saved.red.kind = "opaque-failure";
+    writeFileSync(file, `${JSON.stringify(saved, null, 2)}\n`);
     expect((await command("check-pending")).status).toBe(1);
   });
 
@@ -267,22 +282,23 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
   });
   it("rejects Unicode spelling drift and a symlinked parent", async () => {
     fixture("café", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
-    const before = readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8");
+    const before = bytes();
     expect((await command("record", "--id", "A", "--test", "tests/cafe\u0301.test.ts")).status).toBe(64);
     writeFileSync(join(root, "scripts/x.test.ts"), ""); symlinkSync("../scripts", join(root, "tests/ext"));
     expect((await command("record", "--id", "A", "--test", "tests/ext/x.test.ts")).status).toBe(64);
-    expect(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).toBe(before);
+    expect(bytes()).toBe(before);
     expect((await command("record", "--id", "A", "--test", "tests/café.test.ts")).status).toBe(0);
   });
+  // Title kept for the CI inventory id. RC5 (R-e): discard reads and writes only its own id's files, so an entry the plugin would drop
+  // can no longer be lost by a rewrite; discard succeeds and leaves that file byte-identical.
   it("refuses discard when the store has an entry the plugin would drop", async () => {
     const a = fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
     expect((await command("record", "--id", "A", "--test", a)).status).toBe(0);
-    const file = join(root, ".claude/tdd-guardian/receipts.json");
-    const saved = JSON.parse(readFileSync(file, "utf8"));
-    saved.receipts.push({ id: "bad", red: { kind: "green" }, test_files: { [a]: {} } });
-    writeFileSync(file, JSON.stringify(saved));
-    const before = readFileSync(file, "utf8"); expect((await command("discard", "--id", "A")).status).toBe(64);
+    const file = item("bad");
+    writeFileSync(file, `${JSON.stringify({ id: "bad", red: { kind: "green" }, test_files: { [a]: {} } }, null, 2)}\n`);
+    const before = readFileSync(file, "utf8"); expect((await command("discard", "--id", "A")).status).toBe(0);
     expect(readFileSync(file, "utf8")).toBe(before);
+    expect(existsSync(item("A"))).toBe(false);
   });
   it("keeps logs outside tracked source and a second RED clean", async () => {
     const a = fixture("a", 'import { it } from "vitest"; it("a", () => { throw Error("red"); });');
@@ -292,7 +308,7 @@ describe.skipIf(!receiptSuites)("red-receipt entry", () => {
     expect(first.status).toBe(0);
     const log = first.output.match(/\[red-receipt\] log: ([^\n]+)/)?.[1]; expect(log).toBeTruthy();
     expect(readFileSync(log!, "utf8")).toContain("failed");
-    expect((await command("record", "--id", "B", "--test", b)).status).toBe(0); expect(store().at(-1)?.dirty_source).toEqual([]);
+    expect((await command("record", "--id", "B", "--test", b)).status).toBe(0); expect(store().find((r) => r.id === "B")?.dirty_source).toEqual([]);
     expect((await run("git", ["status", "--porcelain"])).output).not.toContain("scripts/tdd");
   });
 });

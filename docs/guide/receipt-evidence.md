@@ -4,7 +4,16 @@
 together with enough evidence to explain it later and to replay it against the PR base.** The rules
 come from [ADR-0145](../adr/0145-a-broken-red-receipt-carries-its-own-evidence-and-the-auditors-rule-on-it.md)
 as amended by [ADR-0149](../adr/0149-a-broken-receipt-is-judged-by-a-base-tree-fail-to-pass-replay.md).
-The plugin's `receipts.json` is untouched: it never gains a field, and nothing here changes a verdict.
+The engine's receipt is untouched: it never gains a field, and nothing here changes a verdict.
+
+**Receipts and evidence are one file per id** ([decision log](../agents/decisions/20261102-receipts-per-item-files.md)):
+`.claude/tdd-guardian/receipts/<ID>.json` and `.claude/tdd-guardian/receipt-evidence/<ID>.json`, each the object as
+`JSON.stringify(value, null, 2)` plus a newline. The vendored engine still reads one `receipts.json`; that file is a
+generated view, gitignored, which the entry builds from the item files before a `record` and reads its own id back from.
+verify, discard and replay read and write only their own id's two files; record and check-pending load every file
+strictly and refuse, naming the file, anything they cannot read back exactly. The landing verifier checks a head with
+`node scripts/tdd/receipt-store.mjs keep-check --parent <P> --head <H>`. A branch cut before the migration resolves its
+modify/delete conflict on `receipts.json` with `node scripts/tdd/receipt-store.mjs migrate --import <branch tip>`.
 
 **The engine the entry runs is vendored**, at `scripts/tdd/vendor/tdd-guardian-0.10.2/`: tdd-guardian's `receipt.js`
 and its `lib/` closure, byte-identical to the 0.10.2 plugin, with its ISC licence and a README that pins each file's
@@ -20,7 +29,7 @@ directory, landed through the normal audit, never a side effect of a plugin upda
 | `node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts` | Frontend RED on the `unit-red` lane, up to four files. |
 | `node scripts/tdd/red-receipt.mjs record --id <ID> --lane rust --test src-tauri/<file>.rs` | Rust RED on the `rust` lane. It refuses any file that is not `rustfmt`-clean at the crate's edition, before the lane runs. |
 | `node scripts/tdd/red-receipt.mjs verify --id <ID>` | Settles the receipt on its own lane. It also exits non-zero with **evidence required** when the plugin holds but a spec file's bytes changed since RED: an inserted `return`, a blank line, anything. |
-| `node scripts/tdd/red-receipt.mjs discard --id <ID>` | Drops an unsettled branch receipt and its sidecar entry. Its pin ref stays for the sweep. |
+| `node scripts/tdd/red-receipt.mjs discard --id <ID>` | Drops an unsettled branch receipt's two files, evidence first. Its pin ref stays for the sweep. |
 | `node scripts/tdd/red-receipt.mjs check-pending` | Judges every branch receipt on every lane and names each one that needs review, with its reason. It runs the vendored engine, so a CI runner needs no plugin; an incomplete vendored engine fails closed with its path named. |
 | `node scripts/tdd/red-receipt.mjs replay --id <ID> [--base <rev>] [--expect-digest <hex>]` | Prints the diffs, replays the RED against the PR base, and digests the result. |
 
@@ -41,7 +50,7 @@ It writes nothing until the plugin's own record has succeeded. It then writes, i
      never touched.
    - The ref is local: every worktree shares the object store, and nothing pushes `refs/receipts`.
    - If the test tree changes while the lane runs, the record refuses.
-2. **The sidecar entry** in `.claude/tdd-guardian/evidence.json`, a tracked file. It is written
+2. **The evidence file** `.claude/tdd-guardian/receipt-evidence/<ID>.json`, tracked. It is written
    under the repo-wide lock `.claude/tdd-guardian/.evidence.lock` and holds:
    - `failures`: each failing id, with its kind, location and message. The id is
      `["file", …describe titles, "title"]` for Vitest and `<target>::<name>` for libtest. The kind
@@ -53,7 +62,7 @@ It writes nothing until the plugin's own record has succeeded. It then writes, i
    - Later, `settled_blobs`, `evidence_required` and `replay`.
 
 **Stale entries.** An entry whose `recorded_at`, lane or plugin version differs from the receipt's
-reads as **no evidence**. A malformed sidecar refuses the record and is left as it is.
+reads as **no evidence**. A malformed evidence file for the id refuses the record, naming the file, and is left as it is.
 
 ## The replay
 
@@ -192,7 +201,7 @@ rule, so a lone `\r` also starts a line. Colour codes never reach these rules: t
 stripped of them before a message is built (`scripts/tdd/receipt-failures.mjs`). A `Duration` line's
 rewrite also stops at `: expected `.
 
-**Pre-entry receipts** have no current sidecar entry (ADR-0149 d4). The replay runs the head's
+**Pre-entry receipts** have no current evidence file (ADR-0149 d4). The replay runs the head's
 spec files over base production and lists the cases that pass there as `passing_at_base`. It
 writes `mode: "pre-entry"` with `user_ruling_required: true` and always exits non-zero.
 
@@ -222,5 +231,6 @@ receipt that `check-pending` names. It reports each digest.
 
 A pin ref is kept for 30 days after its work lands on `master`, then deleted
 (`git update-ref -d refs/receipts/<id>/<stamp>/tests`). The landing date is the first `master`
-commit whose `receipts.json` holds the id. A pin is never deleted before landing. `discard` leaves
+commit that tracks `.claude/tdd-guardian/receipts/<id>.json` (before the migration, the first whose
+`receipts.json` held the id). A pin is never deleted before landing. `discard` leaves
 its ref in place for this sweep. The sweep itself is not automated yet; the delegator runs it.

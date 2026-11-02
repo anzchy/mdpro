@@ -153,6 +153,7 @@ describe("role-guard: implementor", () => {
     ["git reset --soft HEAD~1", feature],
     ["git add src/a.ts tests/a.test.ts", feature],
     ["git add .claude/tdd-guardian/receipts.json", feature],
+    ["git add .claude/tdd-guardian/receipts/ .claude/tdd-guardian/receipt-evidence/", feature], // RC5 item dirs, ruling 1
     ["git status && git log --oneline -5", redesign],
     ["git diff-tree --no-ext-diff --stat -r HEAD~1 HEAD", redesign],
     ["echo git push", feature],

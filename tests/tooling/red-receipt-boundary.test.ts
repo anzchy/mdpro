@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, watch, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -20,10 +20,9 @@ function fixture() {
   writeFileSync(join(root, "package.json"), JSON.stringify({ type: "module" }));
   writeFileSync(join(root, "vitest.config.mjs"), 'export default {test:{include:["tests/**/*.test.ts"],maxWorkers:2}};\n');
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   const git = (args: string[]) => { const result = spawnSync("git", args, { cwd: root, encoding: "utf8" }); expect(result.status, result.stderr).toBe(0); };
   git(["init", "-q", "-b", "master"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
-  git(["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"]);
+  git(["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", "scripts/tdd/unit-red-lane.mjs"]);
   git(["commit", "-qm", "fixture"]); git(["switch", "-qc", "feature"]);
   writeFileSync(join(root, "tests/case.test.ts"), 'import { it, expect } from "vitest"; it("case",()=>{if(process.env.BODY_FAIL!=="0") expect(1).toBe(2); else expect(1).toBe(1)});\n');
   return root;
@@ -31,8 +30,18 @@ function fixture() {
 function command(root: string, args: string[], env: Record<string, string> = {}) {
   return spawnSync(process.execPath, [entry, ...args, "--cwd", root], { cwd: root, env: { ...process.env, ...env }, encoding: "utf8", timeout: 30_000 });
 }
-function store(root: string) { return JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")); }
-function save(root: string, value: unknown) { writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify(value)); }
+// RC5: the store is one canonical file per id under receipts/; these read and write it in the old
+// { schemaVersion, receipts } shape, id order, so the cases below keep their store-level oracle.
+const itemsDir = (root: string) => join(root, ".claude/tdd-guardian/receipts");
+function store(root: string) {
+  const dir = itemsDir(root), names = existsSync(dir) ? readdirSync(dir).sort() : [];
+  return { schemaVersion: 2, receipts: names.map((name) => JSON.parse(readFileSync(join(dir, name), "utf8"))) };
+}
+function save(root: string, value: { schemaVersion?: number; receipts: Array<{ id: string }> }) {
+  const dir = itemsDir(root); mkdirSync(dir, { recursive: true });
+  for (const name of readdirSync(dir)) if (!value.receipts.some((receipt) => `${receipt.id}.json` === name)) rmSync(join(dir, name));
+  for (const receipt of value.receipts) writeFileSync(join(dir, `${receipt.id}.json`), `${JSON.stringify(receipt, null, 2)}\n`);
+}
 function start(root: string, args: string[], gate: string, env: Record<string, string> = {}) {
   const proc = spawn(process.execPath, [entry, ...args, "--cwd", root], { cwd: root, env: { ...process.env, ...env, MDPRO_UNIT_RED_BARRIER_DIR: gate }, stdio: ["ignore", "pipe", "pipe"] });
   let output = ""; proc.stdout.on("data", chunk => { output += chunk; }); proc.stderr.on("data", chunk => { output += chunk; });
@@ -54,7 +63,6 @@ describe.skipIf(!receiptSuites)("fix1 boundary regressions", () => {
   it("record reads a newly settled A only after its operation lock releases", async () => {
     const root = fixture();
     expect(command(root, ["record", "--id", "A", "--test", "tests/case.test.ts"]).status).toBe(0);
-    const file = join(root, ".claude/tdd-guardian/receipts.json");
     const settled = store(root).receipts[0]; settled.verdict = "SEPARATION-HELD";
     save(root, { schemaVersion: 2, receipts: [] });
     const lock = join(root, ".claude/tdd-guardian/.unit-red-A.lock"); mkdirSync(lock);
@@ -62,7 +70,7 @@ describe.skipIf(!receiptSuites)("fix1 boundary regressions", () => {
     const barrier = gate(root);
     const pending = start(root, ["record", "--id", "A", "--test", "tests/case.test.ts"], barrier);
     await waitMarker(barrier, "operation-wait");
-    writeFileSync(file, JSON.stringify({ schemaVersion: 2, receipts: [settled] }));
+    save(root, { schemaVersion: 2, receipts: [settled] });
     rmSync(lock, { recursive: true });
     const result = await pending.done;
     expect(result.code).toBe(64);
@@ -70,15 +78,17 @@ describe.skipIf(!receiptSuites)("fix1 boundary regressions", () => {
     expect(store(root).receipts).toEqual([settled]);
   });
 
+  // Title kept for the CI inventory id. RC5: discard writes only A's own files and never the engine's view, so it no longer waits on
+  // the engine lock: it completes while that lock is held, and A is gone.
   it("successfully discards unchanged A after a real plugin lock wait", async () => {
     const root = fixture(); expect(command(root, ["record", "--id", "A", "--test", "tests/case.test.ts"]).status).toBe(0);
     const lock = join(root, ".claude/tdd-guardian/.receipts.lock"); mkdirSync(lock);
     const barrier = gate(root), pending = start(root, ["discard", "--id", "A"], barrier);
     await waitMarker(barrier, "discard-preflight"); release(barrier, "discard-preflight");
     await waitMarker(barrier, "discard-lock-entry");
-    expect(pending.proc.exitCode).toBeNull();
-    rmSync(lock, { recursive: true });
     expect((await pending.done).code).toBe(0);
+    expect(existsSync(lock)).toBe(true);
+    rmSync(lock, { recursive: true });
     expect(store(root).receipts).toEqual([]);
   });
 

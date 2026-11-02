@@ -51,26 +51,28 @@ describe.skipIf(!pluginVersion)("ADR0149E-1b record evidence", () => {
     expect(await repo.refs()).toEqual([]);
   });
 
+  // RC5: the sidecar is now one evidence file per id; a malformed one (another id's) still stops
+  // record before the lane, names the file, and keeps its bytes.
   it("refuses a malformed sidecar before running the lane and leaves its bytes alone", async () => {
     repo.write("tests/a.test.ts", spec);
-    for (const bad of ["{not json", JSON.stringify({ schemaVersion: 9, entries: {} })]) {
-      repo.write(".claude/tdd-guardian/evidence.json", bad);
+    const file = ".claude/tdd-guardian/receipt-evidence/Z.json";
+    for (const bad of ["{not json", `${JSON.stringify({ schemaVersion: 9, entries: {} }, null, 2)}\n`]) {
+      repo.write(file, bad);
       const result = await repo.entry("record", "--id", "A", "--test", "tests/a.test.ts");
       expect(result.status, result.output).toBe(64);
-      expect(repo.read(".claude/tdd-guardian/evidence.json")).toBe(bad);
+      expect(result.stderr).toContain("receipt-evidence/Z.json");
+      expect(repo.read(file)).toBe(bad);
       expect(repo.store()).toEqual([]);
     }
   });
 
   it("takes the repo-wide evidence lock before the lane, and fails closed with nothing written while another owner holds it", async () => {
     repo.write("tests/a.test.ts", spec);
-    const sidecar = JSON.stringify({ schemaVersion: 1, entries: {} });
-    repo.write(".claude/tdd-guardian/evidence.json", sidecar);
     const release = repo.holdEvidenceLock();
     const blocked = await repo.run(process.execPath, [entryScript, "record", "--id", "A", "--test", "tests/a.test.ts", "--cwd", repo.root], { MDPRO_EVIDENCE_LOCK_WAIT_MS: "1500" });
     expect(blocked.status).not.toBe(0);
     expect(blocked.output).toMatch(/evidence lock/i);
-    expect(repo.read(".claude/tdd-guardian/evidence.json")).toBe(sidecar);
+    expect(repo.evidence().entries).toEqual({});
     release();
     expect(repo.store()).toEqual([]);
     expect(await repo.refs()).toEqual([]);
@@ -78,7 +80,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-1b record evidence", () => {
 
   it("records the rust lane's command and its libtest failures, and the lane never sees the new entry", async () => {
     repo.write("src-tauri/src/x_tests.rs", "#[test]\nfn eq_fails() {\n    assert_eq!(1, 2);\n}\n");
-    repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify({ schemaVersion: 1, entries: {} }));
+    repo.forgetEvidence();
     repo.cargoOutput(
       "\nrunning 1 test\ntest x_tests::eq_fails ... FAILED\n\nfailures:\n\n---- x_tests::eq_fails stdout ----\n\nthread 'x_tests::eq_fails' (3) panicked at src/x_tests.rs:3:5:\nassertion `left == right` failed\n  left: 1\n right: 2\n\nfailures:\n    x_tests::eq_fails\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n",
       "     Running unittests src/lib.rs (target/debug/deps/tauri_app_lib-0123456789abcdef)\n",

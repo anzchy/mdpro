@@ -191,7 +191,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1b a pre-entry base run's error is 
     await repo.commit("spec");
     expect((await repo.entry("record", "--id", "A", "--test", "tests/a.test.ts")).status).toBe(0);
     repo.write("src/calc.mjs", "export const v = () => 2;\n");
-    repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify({ schemaVersion: 1, entries: {} }));
+    repo.forgetEvidence();
     await repo.commit("fix");
     repo.write("scripts/heavy-lock.sh", "#!/bin/sh\nexec \"$@\"\n");
     chmodSync(join(repo.root, "scripts/heavy-lock.sh"), 0o644);

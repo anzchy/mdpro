@@ -33,10 +33,8 @@ describe.skipIf(!pluginVersion)("ADR0149E-6 holes", () => {
     expect(entry.settled_blobs).toEqual({ "tests/a.test.ts": (await repo.git("hash-object", "tests/a.test.ts")).stdout.trim() });
     expect(entry.evidence_required).toBeUndefined();
     expect((await pending()).status).toBe(0);
-    const file = ".claude/tdd-guardian/receipts.json";
-    const store = JSON.parse(repo.read(file));
-    for (const [id, lane] of [["U", "unit"], ["S", "slow"], ["R", "rust"]]) store.receipts.push({ ...store.receipts[0], id, lane });
-    repo.write(file, JSON.stringify(store));
+    const [held] = repo.store();
+    for (const [id, lane] of [["U", "unit"], ["S", "slow"], ["R", "rust"]]) repo.writeReceipt({ ...held, id, lane });
     const flagged = await pending();
     expect(flagged.status).toBe(1);
     for (const id of ["U (unit)", "S (slow)", "R (rust)"]) expect(flagged.output).toContain(`${id}: no evidence`);

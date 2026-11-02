@@ -21,7 +21,7 @@ async function replay(env: Record<string, string> = {}) {
   const path = /^evidence: (.+)$/m.exec(result.output)?.[1] ?? "";
   return { ...result, evidence: existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null };
 }
-const forgetEntries = () => repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify({ schemaVersion: 1, entries: {} }));
+const forgetEntries = () => repo.forgetEvidence();
 
 function expectIncomplete(result: Awaited<ReturnType<typeof replay>>, cause: RegExp) {
   expect(result.status).not.toBe(0);

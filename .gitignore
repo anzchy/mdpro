@@ -36,7 +36,14 @@ coverage/
 # than ignoring the directory, so `config.json` (the tracked input) and any new
 # kind of file stay visible instead of disappearing silently.
 .claude/tdd-guardian/state.json
+# receipts.json is the engine's generated view of receipts/<ID>.json (RC5); evidence.json is the
+# retired sidecar; .receipts.view is the view's stamp, .receipts.store.lock the store lock, and
+# .tmp/ holds item-file temps before their rename.
 .claude/tdd-guardian/receipts.json
+.claude/tdd-guardian/evidence.json
+.claude/tdd-guardian/.receipts.view
+.claude/tdd-guardian/.receipts.store.lock
+.claude/tdd-guardian/.tmp/
 .claude/tdd-guardian/coverage-*.md
 .claude/tdd-guardian/plan-*.md
 .claude/tdd-guardian/tests-*.md

@@ -3,10 +3,14 @@
  * verify and discard tdd-guardian RED receipts on the `unit-red` and `rust` lanes, check a
  * branch's receipts on every lane, and replay a broken one against the PR base.
  * Pipeline: parse → OS flock (receipt-locks) → per-id lock → action.
- * Key decisions: the plugin's receipts.json never gains a field; the entry's evidence
- * lives in the sidecar (receipt-evidence) and the pinned test tree (receipt-tree), written
- * only after the plugin's record succeeded (receipt-capture). The plugin is the vendored
- * engine under vendor/ (#566), never a plugin cache; its version stamps the evidence.
+ * Key decisions: receipts and evidence are one file per id (receipt-store, RC5); the
+ * engine's receipts.json is a gitignored view the entry builds from the item files, only
+ * for record, and reads its own id back from. verify, discard and replay read and write
+ * only their own id's files; record and check-pending load the whole store strictly. The
+ * engine's receipt never gains a field; the entry's evidence lives in
+ * `receipt-evidence/<ID>.json` and the pinned test tree (receipt-tree), written only after
+ * the plugin's record succeeded (receipt-capture). The plugin is the vendored engine under
+ * vendor/ (#566), never a plugin cache; its version stamps the evidence.
  * @coordinates-with scripts/tdd/unit-red-lane.mjs, scripts/cargo-test-lane.mjs, scripts/tdd/receipt-engine.mjs, .claude/agents/mdpro-landing-verifier.md
  */
 import { existsSync, fstatSync, mkdtempSync, readFileSync, rmSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
@@ -16,11 +20,11 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { usageError, validateFiles, validateId } from "./unit-red-lane.mjs";
-const RECEIPTS = ".claude/tdd-guardian/receipts.json";
+import { VIEW, buildView, checkId, collision, loadStore, masterIds, readItem, removeItem, writeItem } from "./receipt-store.mjs";
 import { barrier, guardianBoundMs, laneTimeoutMs, withOperationLock, withOsLock } from "./receipt-locks.mjs";
 import { validateRustFiles, requireRustfmtClean } from "./receipt-rust.mjs";
 import { capture, prepare } from "./receipt-capture.mjs";
-import { entryFor, readEvidence, removeEntry, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
+import { entryFor, readEntry, removeEntry, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
 import { replay } from "./receipt-replay.mjs";
 import { loadEngine } from "./receipt-engine.mjs";
 const LANES = new Set(["unit-red", "rust"]);
@@ -50,7 +54,7 @@ function parse(argv) {
       args[single[flag]] = value;
     }
   }
-  if (action !== "check-pending") validateId(args.id);
+  if (action !== "check-pending") checkId(validateId(args.id));
   else if (args.id || args.tests.length) throw usageError("check-pending takes no id or test selector.");
   if (["discard", "replay"].includes(action) && args.tests.length) throw usageError(`${action} takes no test selector.`);
   if (args.lane !== undefined && (!LANES.has(args.lane) || !["record", "verify", "discard"].includes(action))) throw usageError("--lane is unit-red or rust, for record, verify or discard.");
@@ -60,33 +64,16 @@ function parse(argv) {
   return args;
 }
 function git(cwd, args) { return spawnSync("git", args, { cwd, encoding: "utf8", timeout: 15000, maxBuffer: 64 * 1024 * 1024 }); }
-function masterReceipts(cwd) {
-  if (git(cwd, ["rev-parse", "--verify", "refs/heads/master^{commit}"]).status !== 0) {
-    throw usageError("master ref is missing; receipt ownership cannot be checked.");
-  }
-  const listing = git(cwd, ["ls-tree", "-r", "--name-only", "master", "--", RECEIPTS]);
-  if (listing.status !== 0) throw usageError("Cannot inspect master receipts.");
-  if (!listing.stdout.trim()) return [];
-  const shown = git(cwd, ["show", `master:${RECEIPTS}`]);
-  if (shown.status !== 0) throw usageError("Cannot read master receipts.");
-  return parseStore(shown.stdout).receipts;
+const readReceipt = (cwd, id) => readItem(cwd, "receipt", id);
+/** The engine's view: every item receipt, sorted, written through the engine's own lock. */
+function writeView(cwd, receipts) {
+  engine("verification").updateReceipts(cwd, () => JSON.parse(buildView(receipts)));
 }
-function parseStore(raw) {
-  let store;
-  try { store = JSON.parse(raw); }
-  catch { throw usageError("receipts.json is not valid JSON."); }
-  if (store?.schemaVersion !== 2 || !Array.isArray(store.receipts) ||
-      store.receipts.some((receipt) => !receipt || typeof receipt.id !== "string" || !receipt.lane || !receipt.red || !receipt.test_files) ||
-      new Set(store.receipts.map((receipt) => receipt.id)).size !== store.receipts.length) {
-    throw usageError("receipts.json contains malformed or duplicate records.");
-  }
-  return store;
+/** This id's record as the engine left it in the view, or null. */
+function viewRecord(cwd, id) {
+  try { return JSON.parse(readFileSync(join(cwd, VIEW), "utf8")).receipts.find((receipt) => receipt.id === id) ?? null; }
+  catch { return null; }
 }
-function currentStore(cwd) {
-  const file = join(cwd, RECEIPTS);
-  return existsSync(file) ? parseStore(readFileSync(file, "utf8")) : { schemaVersion: 2, receipts: [] };
-}
-function find(store, id) { return store.receipts.find((receipt) => receipt.id === id); }
 function withSelection(cwd, files, callback, expectedReceipt = null) {
   const folder = mkdtempSync(join(tmpdir(), "mdpro-unit-red-marker-"));
   const marker = join(folder, "selection.json");
@@ -152,10 +139,11 @@ function runGuardedVerification(cwd, env, name = "unit-red") {
 }
 function record(args) {
   const lane = args.lane ?? "unit-red";
-  const before = currentStore(args.cwd);
-  const master = masterReceipts(args.cwd);
-  if (master.some((receipt) => receipt.id === args.id)) throw usageError("Receipt id is already on master.");
-  const existing = find(before, args.id);
+  const { receipts } = loadStore(args.cwd);
+  const variant = collision(args.cwd, args.id);
+  if (variant) throw usageError(`--id ${args.id} differs only in case from ${variant}; file names would collide.`);
+  if (masterIds(args.cwd).has(args.id)) throw usageError("Receipt id is already on master.");
+  const existing = receipts.get(args.id);
   if (existing?.verdict || existing?.red?.kind === "assertion-failure") {
     throw usageError("Receipt id already has valid or settled evidence.");
   }
@@ -166,11 +154,14 @@ function record(args) {
   const pluginArgs = ["record", "--id", args.id, "--lane", lane, "--files", args.tests.join(",")];
   let status;
   try {
+    writeView(args.cwd, receipts);
     status = lane === "unit-red"
       ? withSelection(args.cwd, args.tests, (env) => callGuardian(args.cwd, pluginArgs, { ...env, MDPRO_RED_EVIDENCE_DIR: prepared.dir }))
       : callGuardian(args.cwd, pluginArgs, { ...process.env, MDPRO_RED_EVIDENCE_DIR: prepared.dir });
   } catch (error) { rmSync(prepared.dir, { recursive: true, force: true }); throw error; }
-  const receipt = find(currentStore(args.cwd), args.id);
+  // Write back on every engine return: a refused RED stays visible and discardable (R-a).
+  const receipt = viewRecord(args.cwd, args.id);
+  if (receipt) writeItem(args.cwd, "receipt", args.id, receipt);
   if (status !== 0 || !receipt || receipt.lane !== lane ||
       JSON.stringify(Object.keys(receipt.test_files)) !== JSON.stringify(args.tests) ||
       Date.parse(receipt.recorded_at) < started || !redOk(lane, receipt.red?.kind)) {
@@ -184,7 +175,7 @@ function specBlobs(cwd, files) {
   return Object.fromEntries(files.map((file) => [file, git(cwd, ["hash-object", "--", file]).stdout.trim()]));
 }
 function verify(args) {
-  const receipt = find(currentStore(args.cwd), args.id);
+  const receipt = readReceipt(args.cwd, args.id);
   const lane = args.lane ?? receipt?.lane;
   if (!receipt || !LANES.has(receipt.lane) || lane !== receipt.lane) throw usageError(`No ${args.lane ?? "unit-red or rust"} receipt has that id.`);
   if (receipt.verdict) throw usageError("Receipt is already settled.");
@@ -193,7 +184,7 @@ function verify(args) {
   if (args.tests.length && JSON.stringify(validateFor(lane, args.cwd, args.tests)) !== JSON.stringify(files)) {
     throw usageError("Verify selector differs from the recorded selection.");
   }
-  const entry = entryFor(withEvidenceLock(args.cwd, () => readEvidence(args.cwd)), receipt, pluginVersion());
+  const entry = entryFor(withEvidenceLock(args.cwd, () => readEntry(args.cwd, args.id)), receipt, pluginVersion());
   const current = specBlobs(args.cwd, files);
   const changed = entry ? JSON.stringify(current) !== JSON.stringify(entry.spec_blobs) : false;
   const identity = JSON.stringify(receipt);
@@ -204,14 +195,11 @@ function verify(args) {
   const judged = verification.verifyAll({ schemaVersion: 2, receipts: [receipt] }, args.cwd, {
     greenLanes: new Set([lane]),
   }).store.receipts[0];
-  verification.updateReceipts(args.cwd, (fresh) => {
-    if (fresh.error || fresh.problems.length) throw usageError("Receipt store changed or is malformed.");
-    const target = find(fresh.store, args.id);
-    if (!target || JSON.stringify(target) !== identity) throw usageError("Receipt incarnation changed during verification.");
-    return verification.upsertReceipt(fresh.store, judged);
-  });
+  const target = readReceipt(args.cwd, args.id);
+  if (!target || JSON.stringify(target) !== identity) throw usageError("Receipt incarnation changed during verification.");
+  writeItem(args.cwd, "receipt", args.id, judged);
   if (entry) withEvidenceLock(args.cwd, () => updateEntry(args.cwd, args.id, changed ? { settled_blobs: current, evidence_required: true } : { settled_blobs: current }));
-  const after = find(currentStore(args.cwd), args.id);
+  const after = readReceipt(args.cwd, args.id);
   if (!after || after.verdict !== "SEPARATION-HELD") {
     throw usageError(`Verification did not hold: ${after.verdict || "PENDING"}. Run red-receipt.mjs replay --id ${args.id} for the evidence.`);
   }
@@ -223,11 +211,9 @@ function discard(args) {
   if (branch.status !== 0 || !branch.stdout.trim() || branch.stdout.trim() === "master") {
     throw usageError("Discard requires a current non-master branch.");
   }
-  if (masterReceipts(args.cwd).some((receipt) => receipt.id === args.id)) throw usageError("Cannot discard a receipt inherited from master.");
+  if (masterIds(args.cwd).has(args.id)) throw usageError("Cannot discard a receipt inherited from master.");
   const verification = engine("verification");
-  const loaded = verification.loadReceipts(args.cwd);
-  if (loaded.error || loaded.problems.length) throw usageError("Receipt store is malformed; discard refused.");
-  const receipt = find(loaded.store, args.id);
+  const receipt = readReceipt(args.cwd, args.id);
   if (!receipt || !LANES.has(receipt.lane) || (args.lane && args.lane !== receipt.lane) || receipt.verdict) throw usageError("Discard requires an unsettled branch unit-red or rust receipt.");
   if (receipt.red?.kind === "assertion-failure") {
     const now = verification.fingerprintFiles(Object.keys(receipt.test_files), args.cwd);
@@ -239,30 +225,28 @@ function discard(args) {
   const identity = JSON.stringify(receipt);
   barrier("discard-preflight");
   barrier("discard-lock-entry", false);
-  verification.updateReceipts(args.cwd, (fresh) => {
-    if (fresh.error || fresh.problems.length) throw usageError("Receipt store changed or is malformed.");
-    const target = find(fresh.store, args.id);
-    if (!target || JSON.stringify(target) !== identity || target.verdict || target.lane !== receipt.lane) throw usageError("Receipt changed before discard.");
-    if (target.red?.kind === "assertion-failure") {
-      const now = verification.fingerprintFiles(Object.keys(target.test_files), args.cwd);
-      const diff = verification.diffFingerprints(target.test_files, now);
-      if (diff.modified.length || diff.removed.length || diff.unknown.length) throw usageError("Recorded test lines changed; discard refused.");
-    }
-    return { ...fresh.store, receipts: fresh.store.receipts.filter((item) => item.id !== args.id) };
-  });
+  const target = readReceipt(args.cwd, args.id);
+  if (!target || JSON.stringify(target) !== identity || target.verdict || target.lane !== receipt.lane) throw usageError("Receipt changed before discard.");
+  if (target.red?.kind === "assertion-failure") {
+    const now = verification.fingerprintFiles(Object.keys(target.test_files), args.cwd);
+    const diff = verification.diffFingerprints(target.test_files, now);
+    if (diff.modified.length || diff.removed.length || diff.unknown.length) throw usageError("Recorded test lines changed; discard refused.");
+  }
+  // Evidence first, so a stop between the two never leaves evidence without its receipt.
   // The pin ref stays for the 30-day sweep (brief: no ref is deleted by hand).
   withEvidenceLock(args.cwd, () => removeEntry(args.cwd, args.id));
+  removeItem(args.cwd, "receipt", args.id);
   process.stdout.write(`Discarded ${args.id} (${receipt.lane}, unsettled).\n`);
 }
 function checkPending(args) {
-  const master = new Set(masterReceipts(args.cwd).map((receipt) => receipt.id));
-  const evidence = withEvidenceLock(args.cwd, () => readEvidence(args.cwd));
+  const master = masterIds(args.cwd);
+  const { receipts, evidence } = withEvidenceLock(args.cwd, () => loadStore(args.cwd));
   const problems = [];
-  for (const receipt of currentStore(args.cwd).receipts.filter((item) => !master.has(item.id))) {
+  for (const receipt of [...receipts.values()].filter((item) => !master.has(item.id))) {
     const reasons = [];
     if (!redOk(receipt.lane, receipt.red?.kind)) reasons.push(`RED kind ${receipt.red?.kind || "missing"}`);
     if (receipt.verdict !== "SEPARATION-HELD") reasons.push(`verdict ${receipt.verdict || "unsettled"}`);
-    const entry = entryFor(evidence, receipt, pluginVersion());
+    const entry = entryFor(evidence.get(receipt.id) ?? null, receipt, pluginVersion());
     if (!entry) reasons.push("no evidence");
     else if (entry.evidence_required) reasons.push("evidence required (spec bytes changed since RED)");
     else if (receipt.verdict === "SEPARATION-HELD") {
@@ -286,7 +270,7 @@ try {
   else if (args.action === "record") withOperationLock(args.cwd, args.id, () => record(args));
   else if (args.action === "verify") withOperationLock(args.cwd, args.id, () => verify(args));
   else if (args.action === "discard") withOperationLock(args.cwd, args.id, () => discard(args));
-  else if (args.action === "replay") withOperationLock(args.cwd, args.id, () => { process.exitCode = replay({ ...args, receipt: find(currentStore(args.cwd), args.id), pluginVersion: pluginVersion(), laneConfig: (name) => laneConfig(args.cwd, name) }); });
+  else if (args.action === "replay") withOperationLock(args.cwd, args.id, () => { process.exitCode = replay({ ...args, receipt: readReceipt(args.cwd, args.id), pluginVersion: pluginVersion(), laneConfig: (name) => laneConfig(args.cwd, name) }); });
   else checkPending(args);
 } catch (error) {
   process.stderr.write(`[red-receipt] ${error.message}\n`);

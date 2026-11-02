@@ -1,16 +1,19 @@
-// Stands in for the `cargo` process only. Every run touches fake-cargo/ran and, when the
-// receipt sidecar exists, copies it to fake-cargo/seen.json (what a lane could read mid-run).
+// Stands in for the `cargo` process only. Every run touches fake-cargo/ran and writes the
+// evidence items it can see, as { entries: { id: entry } }, to fake-cargo/seen.json (what a
+// lane could read mid-run; RC5: one evidence file per id under receipt-evidence/).
 // With fake-cargo/judge.json it derives libtest text from the real bytes of the Rust files
 // it names: a case whose file lacks `testMarker` is not compiled in; one whose file holds
 // `prodMarker` passes; otherwise it fails at `file:line` (or at the line holding `assertText`)
 // with `message`. Without judge.json
 // it prints fake-cargo/stdout.txt and stderr.txt and exits with fake-cargo/code.
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 const read = (name) => (existsSync(`fake-cargo/${name}`) ? readFileSync(`fake-cargo/${name}`, "utf8") : "");
 writeFileSync("fake-cargo/ran", "ran");
 // FAKE_CARGO_SLEEP_MS stands in for a cold build that outlives the replay's run timeout.
 if (process.env.FAKE_CARGO_SLEEP_MS) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(process.env.FAKE_CARGO_SLEEP_MS));
-if (existsSync(".claude/tdd-guardian/evidence.json")) copyFileSync(".claude/tdd-guardian/evidence.json", "fake-cargo/seen.json");
+const evidenceDir = ".claude/tdd-guardian/receipt-evidence";
+const seen = existsSync(evidenceDir) ? Object.fromEntries(readdirSync(evidenceDir).map((name) => [name.slice(0, -".json".length), JSON.parse(readFileSync(`${evidenceDir}/${name}`, "utf8"))])) : {};
+writeFileSync("fake-cargo/seen.json", JSON.stringify({ entries: seen }));
 if (existsSync("fake-cargo/judge.json")) {
   const cases = JSON.parse(read("judge.json"));
   const targets = [...new Set(cases.map((c) => c.target))];

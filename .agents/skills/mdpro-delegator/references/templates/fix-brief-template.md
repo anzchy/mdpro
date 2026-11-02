@@ -14,7 +14,7 @@ fixture allowance (brief § 2).
 
 ## Acceptance criteria
 - **AC-F1 (finding <id>).** <the fix>, and its regression: <the exact sequence the auditor traced>, RED first
-  (`<ID>-F<n>-1`; a fresh id, never one already in `receipts.json`). Must fail on `<sha>`.
+  (`<ID>-F<n>-1`; a fresh id, never one that already has a `.claude/tdd-guardian/receipts/<ID>.json`). Must fail on `<sha>`.
 - **AC-Fk.** Every existing AC still passes unchanged.
 Matrix attack: <required (a missed case) | skipped: this brief fully specifies the fix and its regression>.
 

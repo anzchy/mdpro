@@ -161,7 +161,7 @@ force-push anything but a PR branch with `--force-with-lease`.
 | `git push … $S:refs/…` pushed a garbled ref | zsh `:r` modifier on `$S:r…` | use `node scripts/codex-rules/push-guard.mjs <sha> <branch>` on Codex; quote the refspec on Claude |
 | `echo ====` errored | zsh `=` expansion | quote it |
 | Full lane failed only in `tests/tooling/d187-receipt-rustfmt-guard.test.ts` | `rustfmt` not on the pane's PATH | `reset-codex.sh` now puts the stable toolchain bin dir on every new pane's PATH and refuses an implementor or device pane without `cargo` and `rustfmt` there (ADR-0162 d4); never edit that test |
-| Receipt id in my fix brief replaced an existing record | the id was already taken | check `receipts.json` for the id before briefing; restore byte-for-byte and re-home under a new id |
+| Receipt id in my fix brief replaced an existing record | the id was already taken | check that `.claude/tdd-guardian/receipts/<ID>.json` does not exist (on master and in the worktree, any case) before briefing; restore byte-for-byte and re-home under a new id |
 | `git merge --ff-only` would clobber my dirty docs edit | the PR touched the same path | from the repo root, `node .agents/skills/mdpro-delegator/scripts/landing-stash.mjs save -- <paths>`; record its OID; after landing, `node .agents/skills/mdpro-delegator/scripts/landing-stash.mjs apply <oid>`; retain the entry and OID for later coordinated cleanup (landing checklist) |
 | A device run tested v0.3.5, not the verify build | launched by bundle id | launch by exact path; check the process path and `releaseId` |
 | picsee drove the GUI during mdpro's lock | picsee did not know the lock | agreed shared lock; re-run steps inside the overlap window |

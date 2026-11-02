@@ -76,11 +76,10 @@ function setup() {
   writeFileSync(join(root, "package.json"), JSON.stringify({ type: "module" }));
   writeFileSync(join(root, "vitest.config.mjs"), 'export default { test: { include: ["tests/**/*.test.ts"], maxWorkers: 2 } };\n');
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   git(["init", "-q", "-b", "master"]);
   git(["config", "user.email", "test@example.com"]);
   git(["config", "user.name", "Test"]);
-  git(["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"]);
+  git(["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", "scripts/tdd/unit-red-lane.mjs"]);
   git(["commit", "-qm", "fixture"]);
   git(["switch", "-qc", "feature"]);
   writeFileSync(join(root, "tests/case.test.ts"), sourceFor());
@@ -92,7 +91,8 @@ function invoke(action, flags) {
   const args = action === "record" ? [entry, "record", "--id", "D301CASE", "--test", "tests/case.test.ts", "--cwd", root]
     : [entry, "verify", "--id", "D301CASE", "--cwd", root];
   const run = spawnSync(process.execPath, args, { cwd: root, env, encoding: "utf8", timeout: 60_000 });
-  const stored = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8")).receipts[0];
+  const itemPath = join(root, ".claude/tdd-guardian/receipts/D301CASE.json");
+  const stored = existsSync(itemPath) ? JSON.parse(readFileSync(itemPath, "utf8")) : undefined;
   const output = `${run.stdout || ""}\n${run.stderr || ""}`;
   const logPath = output.match(/\[red-receipt\] log: ([^\n]+)/)?.[1];
   const reportPath = logPath ? join(dirname(logPath), "vitest.json") : null;

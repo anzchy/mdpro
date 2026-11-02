@@ -7,7 +7,10 @@ const [scenario, repo, receiptScript] = process.argv.slice(2);
 const root = mkdtempSync(join(tmpdir(), "mdpro-unit-red-scenario-"));
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
 const lane = join(repo, "scripts/tdd/unit-red-lane.mjs");
-const receiptsPath = join(root, ".claude/tdd-guardian/receipts.json");
+// RC5: one receipt file per id; receipts.json is only the engine's generated view.
+const itemsPath = join(root, ".claude/tdd-guardian/receipts");
+const viewPath = join(root, ".claude/tdd-guardian/receipts.json");
+const itemPath = (id) => join(itemsPath, `${id}.json`);
 const configPath = join(root, ".claude/tdd-guardian/config.json");
 
 function cleanEnv(extra = {}) {
@@ -48,7 +51,6 @@ function setup({ feature = true } = {}) {
   writeFileSync(join(root, "package.json"), JSON.stringify({ type: "module" }));
   writeFileSync(join(root, "vitest.config.mjs"), 'export default {test:{include:["tests/**/*.test.{ts,tsx}"],maxWorkers:2}};\n');
   writeFileSync(configPath, readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(receiptsPath, JSON.stringify({ schemaVersion: 2, receipts: [] }));
   git(["init", "-q", "-b", "master"]);
   git(["config", "user.email", "test@example.com"]);
   git(["config", "user.name", "Test"]);
@@ -67,9 +69,18 @@ function stateSpec(name) {
   return spec(name, 'import { it, expect } from "vitest"; import { readFileSync } from "node:fs"; it("state", () => { console.log("Tests 7 failed | 0 passed (7)"); expect(readFileSync(new URL("./state.txt", import.meta.url), "utf8")).toBe("green"); });');
 }
 
+// The scenarios use only ids A and B, so the store is read by name, never by listing a directory.
+const IDS = ["A", "B"];
 function store() {
-  return JSON.parse(readFileSync(receiptsPath, "utf8"));
+  return { receipts: IDS.filter((id) => existsSync(itemPath(id))).map((id) => JSON.parse(readFileSync(itemPath(id), "utf8"))) };
 }
+
+/** Every item file's bytes and the view's, to prove an operation wrote nothing. */
+function bytes() {
+  return JSON.stringify([IDS.map((id) => [id, existsSync(itemPath(id)) ? readFileSync(itemPath(id), "utf8") : null]), existsSync(viewPath) ? readFileSync(viewPath, "utf8") : null]);
+}
+
+function save(receipt) { writeFileSync(itemPath(receipt.id), `${JSON.stringify(receipt, null, 2)}\n`); }
 
 function setLane(commandText) {
   const config = JSON.parse(readFileSync(configPath, "utf8"));
@@ -90,14 +101,14 @@ async function runScenario() {
   setup();
   if (scenario === "invalid_paths") {
     const a = spec("a");
-    const before = readFileSync(receiptsPath, "utf8");
+    const before = bytes();
     writeFileSync(join(root, "scripts/tdd/mark.mjs"), 'import { writeFileSync } from "node:fs"; writeFileSync("ran", "yes");');
     setLane("node scripts/tdd/mark.mjs");
     mkdirSync(join(root, "tests/support")); mkdirSync(join(root, "tests/fixtures"));
     writeFileSync(join(root, "tests/setup.ts"), ""); writeFileSync(join(root, "tests/support/x.ts"), ""); writeFileSync(join(root, "tests/fixtures/x.json"), "{}"); writeFileSync(join(root, "tests/x.perf.ts"), "");
     const bad = [["--test", ""], ["--test", "/tmp/a.test.ts"], ["--test", "tests/../tests/a.test.ts"], ["--test", `${a},${a}`], ["--test", a, "--test", a], ...["tests/setup.ts", "tests/support/x.ts", "tests/fixtures/x.json", "tests/x.perf.ts"].map((file) => ["--test", file])];
     const statuses = bad.map((args) => command(["record", "--id", "A", ...args]).status);
-    return { statuses, unchanged: readFileSync(receiptsPath, "utf8") === before, ran: existsSync(join(root, "ran")) };
+    return { statuses, unchanged: bytes() === before, ran: existsSync(join(root, "ran")) };
   }
   if (scenario === "multi_cycle") {
     const a = stateSpec("a"); const b = stateSpec("b");
@@ -112,33 +123,35 @@ async function runScenario() {
     const a = spec("a"); const b = spec("b");
     const first = command(["record", "--id", "A", "--test", a]);
     const second = command(["record", "--id", "B", "--test", b]);
-    const saved = store(); saved.receipts[0].lane = "slow"; writeFileSync(receiptsPath, JSON.stringify(saved));
+    const saved = store().receipts.find((r) => r.id === "A"); saved.lane = "slow"; save(saved);
     return { first: first.status, second: second.status, verify: command(["verify", "--id", "A"]).status, discard: command(["discard", "--id", "A"]).status, other: store().receipts.find((r) => r.id === "B")?.verdict };
   }
   if (scenario === "existing_bad_retry") {
     const a = spec("a");
     const first = command(["record", "--id", "A", "--test", a]);
-    const before = readFileSync(receiptsPath, "utf8");
+    const before = bytes();
     setLane("sh -c 'echo failed; exit 1'");
     const retry = command(["record", "--id", "A", "--test", a]);
-    return { first: first.status, retry: retry.status, unchanged: readFileSync(receiptsPath, "utf8") === before };
+    return { first: first.status, retry: retry.status, unchanged: bytes() === before };
   }
   if (scenario === "settled_record") {
     const a = stateSpec("a"); writeFileSync(join(root, "tests/state.txt"), "red");
     const red = command(["record", "--id", "A", "--test", a]);
     writeFileSync(join(root, "tests/state.txt"), "green");
     const green = command(["verify", "--id", "A"]);
-    const before = readFileSync(receiptsPath, "utf8");
+    const before = bytes();
     const retry = command(["record", "--id", "A", "--test", a]);
-    return { red: red.status, green: green.status, retry: retry.status, unchanged: readFileSync(receiptsPath, "utf8") === before };
+    return { red: red.status, green: green.status, retry: retry.status, unchanged: bytes() === before };
   }
   if (scenario === "pending_store") {
     const a = spec("a"); const b = spec("b");
     command(["record", "--id", "A", "--test", a]); command(["record", "--id", "B", "--test", b]);
-    const saved = store(); saved.receipts.find((r) => r.id === "B").verdict = "PENDING"; writeFileSync(receiptsPath, JSON.stringify(saved));
-    const before = readFileSync(receiptsPath, "utf8");
+    // R-e: discard loads only its own id, so another id's PENDING record no longer blocks it; the
+    // engine-rewrite hazard it guarded is gone, and B's file must come out byte-identical.
+    const saved = store().receipts.find((r) => r.id === "B"); saved.verdict = "PENDING"; save(saved);
+    const before = readFileSync(itemPath("B"), "utf8");
     const discarded = command(["discard", "--id", "A"]);
-    return { discard: discarded.status, unchanged: readFileSync(receiptsPath, "utf8") === before };
+    return { discard: discarded.status, unchanged: readFileSync(itemPath("B"), "utf8") === before, removed: !existsSync(itemPath("A")) };
   }
   if (scenario === "bare_record") {
     const a = spec("a");
@@ -147,7 +160,7 @@ async function runScenario() {
     writeFileSync(configPath, JSON.stringify(config));
     if (!receiptScript) throw Error("bare_record needs the receipt.js to run as its third argument");
     const result = spawnSync(process.execPath, [receiptScript, "record", "--id", "A", "--files", a, "--cwd", root], { cwd: root, encoding: "utf8", env: cleanEnv() });
-    return { status: result.status, lane: store().receipts[0]?.lane };
+    return { status: result.status, lane: existsSync(viewPath) ? JSON.parse(readFileSync(viewPath, "utf8")).receipts[0]?.lane : undefined };
   }
   if (scenario === "module_message") {
     const a = spec("a", 'import { it, expect } from "vitest"; it("fails", () => { expect(() => { throw Error("Cannot find module x"); }).not.toThrow(); });');
@@ -157,9 +170,9 @@ async function runScenario() {
   if (scenario === "inherited_pending") {
     const a = spec("a");
     const recorded = command(["record", "--id", "A", "--test", a]);
-    git(["add", ".claude/tdd-guardian/receipts.json"]); git(["commit", "-qm", "receipt"]); git(["branch", "-f", "master", "HEAD"]);
+    git(["add", ".claude/tdd-guardian/receipts"]); git(["commit", "-qm", "receipt"]); git(["branch", "-f", "master", "HEAD"]);
     const inherited = command(["check-pending"]);
-    writeFileSync(receiptsPath, "{bad");
+    writeFileSync(itemPath("A"), "{bad");
     return { recorded: recorded.status, inherited: inherited.status, malformed: command(["check-pending"]).status };
   }
   if (scenario === "concurrent_records") {
@@ -189,11 +202,13 @@ async function runScenario() {
     const a = spec("a"); const b = spec("b");
     const first = command(["record", "--id", "A", "--test", a]);
     const lock = join(root, ".claude/tdd-guardian/.receipts.lock"); mkdirSync(lock);
-    let discardDone = false;
-    const discard = asyncCommand(["discard", "--id", "A"]).then((result) => { discardDone = true; return result; });
-    const recordB = asyncCommand(["record", "--id", "B", "--test", b]);
+    // RC5: discard writes only A's files and takes no repo-wide lock; record B still waits on the
+    // engine lock it takes for the view, so `blocked` names record B.
+    let recordDone = false;
+    const discard = asyncCommand(["discard", "--id", "A"]);
+    const recordB = asyncCommand(["record", "--id", "B", "--test", b]).then((result) => { recordDone = true; return result; });
     await new Promise((resolve) => setTimeout(resolve, 300));
-    const blocked = !discardDone;
+    const blocked = !recordDone;
     rmdirSync(lock);
     const [removed, added] = await Promise.all([discard, recordB]);
     return { first: first.status, blocked, discard: removed.status, recordB: added.status, ids: store().receipts.map((r) => r.id) };

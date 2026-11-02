@@ -41,7 +41,8 @@ afterEach(async () => {
 });
 
 const entry = (...args: string[]) => repo.run(process.execPath, [join(tree, "scripts/tdd/red-receipt.mjs"), ...args, "--cwd", repo.root], homeEnv(home.home));
-const storeBytes = () => readFileSync(join(repo.root, ".claude/tdd-guardian/receipts.json"), "utf8");
+// RC5: the store is the receipt and evidence item files (plus the generated view, when present).
+const storeBytes = () => JSON.stringify([repo.store(), repo.evidence(), existsSync(join(repo.root, ".claude/tdd-guardian/receipts.json")) ? readFileSync(join(repo.root, ".claude/tdd-guardian/receipts.json"), "utf8") : null]);
 
 /** The entry refused, named the vendored directory (and `file`), ran no cache, and left the store as it was. */
 async function expectClosed(result: { status: number | null; output: string }, before: string, file?: string) {
@@ -73,7 +74,7 @@ describe("T566-3 a missing or broken vendored engine fails closed", () => {
   it("refuses check-pending on a branch with no receipts of its own, so the load is never skipped", async () => {
     rmSync(join(engine, "lib/verification.js"), { force: true });
     const before = storeBytes();
-    expect(JSON.parse(before).receipts).toEqual([]);
+    expect(repo.store()).toEqual([]);
     const result = await entry("check-pending");
     expect(result.status, result.output).toBe(64);
     expect(result.stderr).toContain(`[red-receipt] The vendored receipt engine at ${engine} is unusable: lib/verification.js is missing.`);
@@ -92,7 +93,7 @@ describe("T566-3 a missing or broken vendored engine fails closed", () => {
     writeFileSync(join(engine, "receipt.js"), "#!/usr/bin/env node\nconst broken = ;\n");
     await expectClosed(await record(), storeBytes(), "receipt.js");
     expect(await repo.refs()).toEqual([]);
-    expect(existsSync(join(repo.root, ".claude/tdd-guardian/evidence.json"))).toBe(false);
+    expect(repo.evidence().entries).toEqual({});
   });
 
   it("refuses to record when the vendored directory is gone", async () => {
@@ -116,7 +117,7 @@ describe("T566-3 a missing or broken vendored engine fails closed", () => {
     const result = await entry("record", "--id", "bad id", "--test", "tests/calc.test.ts");
     expect(result.status, result.output).not.toBe(0);
     expect(existsSync(home.marker)).toBe(false);
-    expect(JSON.parse(storeBytes()).receipts).toEqual([]);
+    expect(repo.store()).toEqual([]);
   });
 });
 

@@ -36,7 +36,7 @@ async function mixed(bValueAtBase = "1") {
 describe.skipIf(!pluginVersion)("ADR0149E-7 pre-entry receipts", () => {
   it("lists exactly the cases that pass at base and requires a user ruling", async () => {
     await mixed();
-    repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify({ schemaVersion: 1, entries: {} }));
+    repo.forgetEvidence();
     const result = await replay();
     expect(result.status).not.toBe(0);
     expect(result.evidence).toMatchObject({ mode: "pre-entry", user_ruling_required: true, passing_at_base: [id("a")] });
@@ -46,7 +46,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-7 pre-entry receipts", () => {
     await mixed();
     const store = repo.evidence();
     store.entries.A.recorded_at = "2020-01-01T00:00:00.000Z";
-    repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify(store));
+    repo.writeEvidence("A", store.entries.A);
     const result = await replay();
     expect(result.evidence.mode).toBe("pre-entry");
     expect(result.evidence.test_diff).toBeUndefined();
@@ -61,7 +61,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-7 pre-entry receipts", () => {
     await repo.commit("spec");
     expect((await repo.entry("record", "--id", "A", "--test", "tests/new.test.ts")).status).toBe(0);
     repo.write("src/calc.mjs", "export const v = () => 2;\n");
-    repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify({ schemaVersion: 1, entries: {} }));
+    repo.forgetEvidence();
     await repo.commit("head");
     expect((await replay()).evidence).toMatchObject({ mode: "pre-entry", user_ruling_required: true, passing_at_base: [] });
   });

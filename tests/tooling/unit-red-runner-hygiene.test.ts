@@ -6,6 +6,12 @@ import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { receiptSuites } from "../support/t566Engine";
 
+// RC5: receipts are one canonical file per id under receipts/; read them in the old { receipts } shape.
+function itemStore(root: string) {
+  const dir = join(root, ".claude/tdd-guardian/receipts"), names = existsSync(dir) ? readdirSync(dir).sort() : [];
+  return { schemaVersion: 2, receipts: names.map((name) => JSON.parse(readFileSync(join(dir, name), "utf8"))) };
+}
+
 vi.setConfig({ testTimeout: 30_000 });
 const repo = resolve(import.meta.dirname, "../..");
 const entry = join(repo, "scripts/tdd/red-receipt.mjs");
@@ -21,13 +27,12 @@ function project(config = true) {
   writeFileSync(join(root, "package.json"), JSON.stringify({ type: "module" }));
   if (config) writeFileSync(join(root, "vitest.config.mjs"), 'export default {test:{include:["tests/**/*.test.ts"],maxWorkers:2}};\n');
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   const git = (args: string[]) => {
     const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   };
   git(["init", "-q", "-b", "master"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
-  const files = ["package.json", ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"];
+  const files = ["package.json", ".claude/tdd-guardian/config.json", "scripts/tdd/unit-red-lane.mjs"];
   if (config) files.push("vitest.config.mjs");
   git(["add", ...files]); git(["commit", "-qm", "fixture"]); git(["switch", "-qc", "feature"]);
   writeFileSync(join(root, "tests/case.test.ts"), 'import { it, expect } from "vitest"; it("case",()=>expect(1).toBe(2));\n');
@@ -66,7 +71,7 @@ describe.skipIf(!receiptSuites)("fix1 runner artifacts", () => {
     writeFileSync(join(gate, "record-preflight.go"), "go");
     try { await waitMarker(gate, "runner-created"); } catch { throw Error(output); }
     expect(record(root, "B").status).toBe(0);
-    const store = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8"));
+    const store = itemStore(root);
     const b = store.receipts.find((item: { id: string }) => item.id === "B");
     expect(JSON.stringify(b.dirty_source)).not.toContain(".mdpro-unit-red-");
     writeFileSync(join(gate, "runner-created.go"), "go");

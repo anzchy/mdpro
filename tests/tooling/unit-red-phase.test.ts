@@ -1,12 +1,18 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { createOwnerChildRunner } from "./d302Child";
 import { collectionCases } from "../support/collectionCases";
 import { receiptSuites } from "../support/t566Engine";
+
+// RC5: receipts are one canonical file per id under receipts/; read them in the old { receipts } shape.
+function itemStore(root: string) {
+  const dir = join(root, ".claude/tdd-guardian/receipts"), names = existsSync(dir) ? readdirSync(dir).sort() : [];
+  return { schemaVersion: 2, receipts: names.map((name) => JSON.parse(readFileSync(join(dir, name), "utf8"))) };
+}
 
 declare global {
   namespace NodeJS {
@@ -50,11 +56,10 @@ async function project(source: string, setup?: string, configTs = false) {
   writeFileSync(join(root, configName), testConfig);
   if (setup) writeFileSync(join(root, "tests/setup.ts"), setup);
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   await git(root, ["init", "-q", "-b", "master"]);
   await git(root, ["config", "user.email", "test@example.com"]);
   await git(root, ["config", "user.name", "Test"]);
-  await git(root, ["add", "package.json", configName, ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"]);
+  await git(root, ["add", "package.json", configName, ".claude/tdd-guardian/config.json", "scripts/tdd/unit-red-lane.mjs"]);
   await git(root, ["commit", "-qm", "fixture"]);
   await git(root, ["switch", "-qc", "feature"]);
   writeFileSync(join(root, "tests/case.test.ts"), source);
@@ -73,7 +78,7 @@ async function invoke(root: string, action: "record" | "verify", flags: Record<s
   const args = action === "record" ? [entry, "record", "--id", "FIX1", "--test", "tests/case.test.ts", "--cwd", root]
     : [entry, "verify", "--id", "FIX1", "--cwd", root];
   const result = await run(process.execPath, args, { cwd: root, env, timeout: 60_000 });
-  const store = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8"));
+  const store = itemStore(root);
   return { status: result.status, output: `${result.stdout || ""}\n${result.stderr || ""}`, receipt: store.receipts.find((item: { id: string }) => item.id === "FIX1") };
 }
 
@@ -155,7 +160,7 @@ describe.skipIf(!receiptSuites)("fix1 WI-1 phase evidence through the real entry
       const files = reverse ? ["tests/other.test.ts", "tests/case.test.ts"] : ["tests/case.test.ts", "tests/other.test.ts"];
       const args = [entry, "record", "--id", "PAIR", ...files.flatMap(file => ["--test", file]), "--cwd", root];
       const result = await run(process.execPath, args, { cwd: root, env: { ...process.env, PHASE_FAIL: "1", BODY_FAIL: "1" }, timeout: 60_000 });
-      const store = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8"));
+      const store = itemStore(root);
       expect(result.status).toBe(64);
       expect(store.receipts.find((item: { id: string }) => item.id === "PAIR")?.red.kind).not.toBe("assertion-failure");
     }

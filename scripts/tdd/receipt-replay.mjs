@@ -4,9 +4,9 @@
  * production diff, replay the recorded ids against the PR base, digest the packet, and
  * write it all to `.claude/tdd-guardian/evidence/<id>.json`. The verdict never changes.
  *
- * Pipeline: sidecar entry (current, pin ref intact) or pre-entry → base = merge-base of
+ * Pipeline: evidence item (current, pin ref intact) or pre-entry → base = merge-base of
  * `--base` (default origin/master, else master) and HEAD → worktree: restore, base run,
- * head run → judge → diffs → digest → evidence file and sidecar `replay` field.
+ * head run → judge → diffs → digest → evidence file and the evidence item's `replay` field.
  *
  * Key decisions:
  * - Every recorded id must have been an assertion at RED, fail at base as an assertion at
@@ -43,7 +43,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { usageError } from "./unit-red-lane.mjs";
 import { git, resolveRef } from "./receipt-tree.mjs";
-import { entryFor, readEvidence, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
+import { entryFor, readEntry, updateEntry, withEvidenceLock } from "./receipt-evidence.mjs";
 import { classifyAt, ensureDir, isPureTest, linkDependencies, restoreHead, restoreToBase, runTests, treeOf, withWorktree } from "./replay-worktree.mjs";
 
 export const canonical = (value) => (Array.isArray(value)
@@ -218,7 +218,7 @@ function preEntry({ id, receipt, files, base, head, headCls, baseRun, path, work
 
 export function replay({ cwd, id, base: baseArg, expectDigest, receipt, pluginVersion, laneConfig }) {
   if (!receipt) throw usageError("No receipt has that id.");
-  const entry = entryFor(withEvidenceLock(cwd, () => readEvidence(cwd)), receipt, pluginVersion);
+  const entry = entryFor(withEvidenceLock(cwd, () => readEntry(cwd, id)), receipt, pluginVersion);
   if (entry && resolveRef(cwd, entry.tests_tree.ref) !== entry.tests_tree.tree) throw usageError(`The pin ref ${entry.tests_tree.ref} is missing or moved; the evidence cannot be trusted.`);
   const head = git(cwd, ["rev-parse", "HEAD"]).stdout.trim();
   const baseRef = baseArg ?? (resolveRef(cwd, "refs/remotes/origin/master") ? "origin/master" : "master");

@@ -142,7 +142,7 @@ describe.skipIf(!pluginVersion)("ADR0149E-F2G1 the digest binds the text", () =>
     await repo.commit("spec");
     expect((await repo.entry("record", "--id", "A", "--test", "tests/a.test.ts")).status).toBe(0);
     repo.write("src/calc.mjs", "export const v = () => 2;\n");
-    repo.write(".claude/tdd-guardian/evidence.json", JSON.stringify({ schemaVersion: 1, entries: {} }));
+    repo.forgetEvidence();
     await repo.commit("fix");
     writeFileSync(flag, "block");
     const timedOut = await replay({ MDPRO_REPLAY_TIMEOUT_MS: "1500" });

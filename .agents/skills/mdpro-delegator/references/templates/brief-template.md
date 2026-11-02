@@ -46,7 +46,7 @@ caller with its default arguments, and is not the ADR-0144 card.
    or the round-one audit request. The tester role runs it after round one's code report; the implementor supplies
    the verify-build command in the handoff.
 2. **AC-2.** …
-(Receipt ids carry the item prefix; check `receipts.json` that the id is free before naming it.)
+(Receipt ids carry the item prefix; check that no `.claude/tdd-guardian/receipts/<ID>.json` exists, in any case, before naming it.)
 
 ## 4. Out of scope
 <what, and which later item does it>.

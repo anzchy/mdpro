@@ -31,11 +31,10 @@ function fixture() {
   writeFileSync(join(root, "package.json"), JSON.stringify({ type: "module" }));
   writeFileSync(join(root, "vitest.config.mjs"), 'export default {test:{include:["tests/**/*.test.ts"],maxWorkers:2}};\n');
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   git(root, ["init", "-q", "-b", "master"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test"]);
-  git(root, ["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"]);
+  git(root, ["add", "package.json", "vitest.config.mjs", ".claude/tdd-guardian/config.json", "scripts/tdd/unit-red-lane.mjs"]);
   git(root, ["commit", "-qm", "fixture"]);
   git(root, ["switch", "-qc", "feature"]);
   writeFileSync(join(root, "tests/case.test.ts"), 'import { it, expect } from "vitest"; it("case",()=>{if(process.env.BODY_FAIL!=="0") expect(1).toBe(2); else expect(1).toBe(1)});\n');
@@ -43,7 +42,10 @@ function fixture() {
   return root;
 }
 
-function receiptBytes(root: string) { return readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8"); }
+// RC5: A's receipt is its own canonical file; the store-level oracle becomes that file's bytes.
+const receiptFile = (root: string) => join(root, ".claude/tdd-guardian/receipts/A.json");
+function receiptBytes(root: string) { return readFileSync(receiptFile(root), "utf8"); }
+function writeReceipt(root: string, receipt: unknown) { writeFileSync(receiptFile(root), `${JSON.stringify(receipt, null, 2)}\n`); }
 
 function child(root: string, args: string[], barrierDir?: string, env: Record<string, string> = {}) {
   const proc = spawn(process.execPath, [entry, ...args, "--cwd", root], { cwd: root, env: { ...process.env, ...env, MDPRO_UNIT_RED_BARRIER_DIR: barrierDir || "" }, stdio: ["ignore", "pipe", "pipe"] });
@@ -133,10 +135,9 @@ describe.skipIf(!receiptSuites)("fix1 WI-2 receipt mutation races", () => {
     const pending = child(root, ["discard", "--id", "A"], gate);
     await waitMarker(gate, "discard-preflight");
     expect(pending.proc.exitCode).toBeNull();
-    const file = join(root, ".claude/tdd-guardian/receipts.json");
     const store = JSON.parse(receiptBytes(root));
-    store.receipts[0].recorded_at = "2030-01-01T00:00:00.000Z";
-    writeFileSync(file, JSON.stringify(store));
+    store.recorded_at = "2030-01-01T00:00:00.000Z";
+    writeReceipt(root, store);
     const replacement = receiptBytes(root);
     release(gate, "discard-preflight");
     rmSync(lock, { recursive: true });
@@ -152,15 +153,14 @@ describe.skipIf(!receiptSuites)("fix1 WI-2 receipt mutation races", () => {
     await waitMarker(gate, "verify-preflight");
     release(gate, "verify-preflight");
     await waitMarker(gate, "lane-after-read");
-    const file = join(root, ".claude/tdd-guardian/receipts.json");
     const store = JSON.parse(receiptBytes(root));
-    store.receipts[0].recorded_at = "2030-01-01T00:00:00.000Z";
-    writeFileSync(file, JSON.stringify(store));
-    const replacement = store.receipts[0];
+    store.recorded_at = "2030-01-01T00:00:00.000Z";
+    writeReceipt(root, store);
+    const replacement = store;
     release(gate, "lane-after-read");
     const result = await pending.done;
     expect(result.code).toBe(64);
-    expect(JSON.parse(receiptBytes(root)).receipts[0]).toEqual(replacement);
+    expect(JSON.parse(receiptBytes(root))).toEqual(replacement);
   });
 
   it("rechecks a settled receipt after waiting for the same-id operation lock", async () => {
@@ -171,10 +171,9 @@ describe.skipIf(!receiptSuites)("fix1 WI-2 receipt mutation races", () => {
     const gate = marker(root);
     const pending = child(root, ["discard", "--id", "A"], gate);
     await waitMarker(gate, "operation-wait");
-    const file = join(root, ".claude/tdd-guardian/receipts.json");
     const store = JSON.parse(receiptBytes(root));
-    store.receipts[0].verdict = "SEPARATION-HELD";
-    writeFileSync(file, JSON.stringify(store));
+    store.verdict = "SEPARATION-HELD";
+    writeReceipt(root, store);
     const settled = receiptBytes(root);
     rmSync(lock, { recursive: true });
     const result = await pending.done;
@@ -213,6 +212,8 @@ describe.skipIf(!receiptSuites)("fix1 WI-2 receipt mutation races", () => {
     expect(existsSync(lock)).toBe(false);
   });
 
+  // Title kept for the CI inventory id. RC5: discard no longer waits on the engine lock, so the last window before its recheck is the
+  // preflight pause; an edit made there, with the engine lock held, still stops the discard.
   it("rechecks the fingerprint after reaching the plugin lock", async () => {
     const root = fixture();
     const lock = join(root, ".claude/tdd-guardian/.receipts.lock");
@@ -220,12 +221,11 @@ describe.skipIf(!receiptSuites)("fix1 WI-2 receipt mutation races", () => {
     const gate = marker(root);
     const pending = child(root, ["discard", "--id", "A"], gate);
     await waitMarker(gate, "discard-preflight");
-    release(gate, "discard-preflight");
-    await waitMarker(gate, "discard-lock-entry");
     const before = receiptBytes(root);
     writeFileSync(join(root, "tests/case.test.ts"), 'import { it, expect } from "vitest"; it("case",()=>expect(2).toBe(3));\n');
-    rmSync(lock, { recursive: true });
+    release(gate, "discard-preflight");
     expect((await pending.done).code).toBe(64);
+    rmSync(lock, { recursive: true });
     expect(receiptBytes(root)).toBe(before);
   });
 

@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -26,9 +26,8 @@ function setup(source, tsConfig = false) {
   writeFileSync(join(root, configName), config);
   if (tsConfig) writeFileSync(join(root, "tests/setup.ts"), 'import { afterEach } from "vitest"; import { writeFileSync } from "node:fs"; globalThis.__phaseSetup = true; writeFileSync("setup-reached", "yes"); afterEach(() => { if (process.env.PHASE_FAIL === "1") throw Error("red"); });\n');
   writeFileSync(join(root, ".claude/tdd-guardian/config.json"), readFileSync(join(repo, ".claude/tdd-guardian/config.json")));
-  writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
   git(["init", "-q", "-b", "master"]); git(["config", "user.email", "test@example.com"]); git(["config", "user.name", "Test"]);
-  const paths = ["package.json", configName, ".claude/tdd-guardian/config.json", ".claude/tdd-guardian/receipts.json", "scripts/tdd/unit-red-lane.mjs"];
+  const paths = ["package.json", configName, ".claude/tdd-guardian/config.json", "scripts/tdd/unit-red-lane.mjs"];
   if (tsConfig) paths.push("tests/setup.ts");
   git(["add", ...paths]); git(["commit", "-qm", "fixture"]); git(["switch", "-qc", "feature"]);
   writeFileSync(join(root, "tests/case.test.ts"), source);
@@ -40,8 +39,9 @@ function invoke(action, flags = {}) {
   const args = action === "record" ? [entry, "record", "--id", "ADV", "--test", "tests/case.test.ts", "--cwd", root]
     : [entry, "verify", "--id", "ADV", "--cwd", root];
   const result = spawnSync(process.execPath, args, { cwd: root, env, encoding: "utf8", timeout: 60_000 });
-  const store = JSON.parse(readFileSync(join(root, ".claude/tdd-guardian/receipts.json"), "utf8"));
-  return { status: result.status, kind: store.receipts[0]?.red.kind || null, verdict: store.receipts[0]?.verdict || null, output: `${result.stdout || ""}\n${result.stderr || ""}` };
+  const itemPath = join(root, ".claude/tdd-guardian/receipts/ADV.json");
+  const stored = existsSync(itemPath) ? JSON.parse(readFileSync(itemPath, "utf8")) : undefined;
+  return { status: result.status, kind: stored?.red.kind || null, verdict: stored?.verdict || null, output: `${result.stdout || ""}\n${result.stderr || ""}` };
 }
 
 function sourceFor(which) {

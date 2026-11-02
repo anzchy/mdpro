@@ -250,7 +250,6 @@ describe("unit-red lane child", () => {
     const configPath = join(root, ".claude/tdd-guardian/config.json");
     const config = JSON.parse(readFileSync(join(repo, ".claude/tdd-guardian/config.json"), "utf8"));
     writeFileSync(configPath, JSON.stringify(config));
-    writeFileSync(join(root, ".claude/tdd-guardian/receipts.json"), JSON.stringify({ schemaVersion: 2, receipts: [] }));
     const spec = fixture("a", 'import { readFileSync } from "node:fs"; it("state", () => { expect(readFileSync(new URL("./state.txt", import.meta.url), "utf8")).toBe("green"); });');
     fixture("b", 'it("other", () => {});');
     writeFileSync(join(root, "tests/state.txt"), "red");
@@ -261,7 +260,7 @@ describe("unit-red lane child", () => {
     const invoke = async (...args: string[]) => (await runCommand(process.execPath, [entry, ...args, "--cwd", root], { cwd: root, encoding: "utf8" }));
     expect((await invoke("record", "--id", "A", "--test", spec)).status).toBe(0);
     writeFileSync(join(root, "tests/state.txt"), "green");
-    const wrapper = 'import { readFileSync, writeFileSync } from "node:fs"; import { spawnSync } from "node:child_process"; const p = ".claude/tdd-guardian/receipts.json"; const s = JSON.parse(readFileSync(p, "utf8")); s.receipts[0].test_files["tests/b.test.ts"] = s.receipts[0].test_files["tests/a.test.ts"]; writeFileSync(p, JSON.stringify(s)); const r = spawnSync(process.execPath, ["scripts/tdd/unit-red-lane.mjs"], { stdio: "inherit", env: process.env }); process.exit(r.status ?? 64);';
+    const wrapper = 'import { readFileSync, writeFileSync } from "node:fs"; import { spawnSync } from "node:child_process"; const p = ".claude/tdd-guardian/receipts/A.json"; const s = JSON.parse(readFileSync(p, "utf8")); s.test_files["tests/b.test.ts"] = s.test_files["tests/a.test.ts"]; writeFileSync(p, JSON.stringify(s)); const r = spawnSync(process.execPath, ["scripts/tdd/unit-red-lane.mjs"], { stdio: "inherit", env: process.env }); process.exit(r.status ?? 64);';
     writeFileSync(join(root, "scripts/tdd/verify-wrapper.mjs"), wrapper);
     config.lanes.find((item: { name: string }) => item.name === "unit-red").command = "node scripts/tdd/verify-wrapper.mjs";
     writeFileSync(configPath, JSON.stringify(config));
@@ -276,7 +275,7 @@ describe("unit-red lane child", () => {
     expect((await scenario("wrong_lane"))).toMatchObject({ first: 0, second: 0, verify: 64, discard: 64, other: null });
     expect((await scenario("master_discard"))).toMatchObject({ discard: 64 });
     expect((await scenario("existing_bad_retry"))).toMatchObject({ first: 0, retry: 64, unchanged: true });
-    expect((await scenario("settled_record"))).toMatchObject({ red: 0, green: 0, retry: 64, unchanged: true }); expect((await scenario("pending_store"))).toMatchObject({ discard: 64, unchanged: true });
+    expect((await scenario("settled_record"))).toMatchObject({ red: 0, green: 0, retry: 64, unchanged: true }); expect((await scenario("pending_store"))).toMatchObject({ discard: 0, unchanged: true, removed: true });
   });
   it.skipIf(!receiptSuites)("ignores inherited pending receipts but refuses malformed stores", async () => {
     expect((await scenario("inherited_pending"))).toMatchObject({ recorded: 0, inherited: 0, malformed: 64 });

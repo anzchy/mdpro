@@ -82,7 +82,9 @@ selection guard and is a residual risk, so it is not a supported frontend path.
 **The entry keeps evidence for both lanes** (ADR-0145 as amended by ADR-0149):
 - the failing ids, each with its kind, location and message;
 - the RED-time test tree, pinned under `refs/receipts/`;
-- a sidecar, `.claude/tdd-guardian/evidence.json`.
+- an evidence file per id, `.claude/tdd-guardian/receipt-evidence/<ID>.json`, beside the receipt's
+  own `.claude/tdd-guardian/receipts/<ID>.json`; `receipts.json` is a generated, gitignored view
+  ([decision log](../../docs/agents/decisions/20261102-receipts-per-item-files.md)).
 
 `verify` routes any byte change of a spec file since RED to evidence, even when the plugin holds,
 and `check-pending` judges every lane. `node scripts/tdd/red-receipt.mjs replay --id <ID>` prints

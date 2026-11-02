@@ -43,6 +43,8 @@ High tier there.
 
 ## Entries
 
+- [20261102-receipts-per-item-files.md](20261102-receipts-per-item-files.md): each receipt and evidence entry is
+  one file per id; `receipts.json` is a generated view, and `receipt-store.mjs keep-check` is the verifier's check.
 - [20261102-audit-policy-set-split.md](20261102-audit-policy-set-split.md): the policy set moves, unchanged, into
   its own pinned file `<P>`, read only on policy-routed requests; the dimension allowance is 13,000 B.
 - [20261102-changing-an-unfolded-process-adr-clause.md](20261102-changing-an-unfolded-process-adr-clause.md): a

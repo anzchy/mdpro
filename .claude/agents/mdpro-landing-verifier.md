@@ -46,20 +46,23 @@ your worktree is a replay's own: its evidence file inside your checkout, and its
    `git diff-tree --no-ext-diff --name-only -r <parent> <SHA>`. Never use plain `git diff`; the
    external diff wrapper garbles it. Flag every path not in the claimed list, and any staged
    `.claude/tdd-guardian/state.json`.
-4. Receipts: load `.claude/tdd-guardian/receipts.json` at both commits with
-   `git show <rev>:.claude/tdd-guardian/receipts.json`. For each record of the parent, find the
-   record with the same `id` at the SHA and compare `json.dumps(record, sort_keys=True)`. Flag:
-   - a parent record that is missing at the SHA
-   - a parent record whose content changed (an id collision: the peer reused an id; on
-     2026-10-10 merge a930097 lost 6 records this way)
-   - any `id` that appears more than once at the SHA
-   Use a short `python3` script for this; print the failing ids.
+4. Receipts: each receipt is `.claude/tdd-guardian/receipts/<ID>.json` and its evidence
+   `.claude/tdd-guardian/receipt-evidence/<ID>.json` (decision log 20261102-receipts-per-item-files).
+   Run `node scripts/tdd/receipt-store.mjs keep-check --parent <parent> --head <SHA>`. It reads both
+   trees only, never the working tree, and prints one line per problem, then
+   `kept <k> of <n>; added <a>`. A non-zero exit is ISSUES; report every line it printed. It flags:
+   - a parent receipt or evidence file deleted or changed at the SHA (an id collision: the peer
+     reused an id; on 2026-10-10 merge a930097 lost 6 records this way);
+   - a head file that is malformed, misnamed, non-canonical, an orphan evidence file, or equal to
+     another ignoring case;
+   - a tracked legacy `receipts.json` or `evidence.json` at the SHA, except when the parent and the
+     SHA are both on the legacy layout, where it compares record by record.
    Run `node scripts/tdd/red-receipt.mjs check-pending --cwd .` in the detached
    checkout. It judges every branch receipt on every lane (ADR-0145 d5) and names each one with its
    reason:
    - a RED kind that is not a counted RED;
    - a verdict other than `SEPARATION-HELD`;
-   - `no evidence`: no current sidecar entry, so the receipt predates the entry or its entry is stale;
+   - `no evidence`: no current evidence file, so the receipt predates the entry or its entry is stale;
    - `evidence required`: the spec bytes changed between RED and verify, insertions included;
    - `spec changed after settlement`: the blob ids at this SHA differ from `settled_blobs`.
 

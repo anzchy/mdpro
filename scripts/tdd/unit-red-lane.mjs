@@ -118,8 +118,9 @@ function checkReceiptSelection(marker, cwd) {
   if (!marker.receipt) return;
   let stored;
   try {
-    const store = JSON.parse(readFileSync(join(cwd, ".claude/tdd-guardian/receipts.json"), "utf8"));
-    stored = store.receipts.find((receipt) => receipt.id === marker.receipt.id);
+    // The item file, never the generated receipts.json view (RC5).
+    stored = JSON.parse(readFileSync(join(cwd, ".claude/tdd-guardian/receipts", `${marker.receipt.id}.json`), "utf8"));
+    if (stored?.id !== marker.receipt.id) stored = null;
   } catch {
     throw usageError("The receipt store changed during the focused run.");
   }

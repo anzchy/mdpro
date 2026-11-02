@@ -1,9 +1,9 @@
 /**
  * Purpose: The entry's evidence at RED (ADR-0145 d1 and d6, as amended by ADR-0149 d1).
  * `prepare` runs before the plugin records; `capture` runs only after the plugin's record
- * succeeded and writes the pin ref, then the sidecar entry.
+ * succeeded and writes the pin ref, then `receipt-evidence/<ID>.json`.
  *
- * Pipeline: prepare (ref name check, sidecar readable under the lock, test tree hashed,
+ * Pipeline: prepare (ref name check, this id's evidence file readable under the lock, test tree hashed,
  * fresh evidence dir) → lane runs with MDPRO_RED_EVIDENCE_DIR → capture (tree unchanged,
  * failing ids parsed from the lane's own output, ref created, entry written).
  *
@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { usageError } from "./unit-red-lane.mjs";
 import { failuresOf, libtestOutcomes, vitestOutcomes } from "./receipt-failures.mjs";
 import { buildTree, git, pinRef, refFor, testPaths } from "./receipt-tree.mjs";
-import { readEvidence, withEvidenceLock, writeEntry } from "./receipt-evidence.mjs";
+import { readEntry, withEvidenceLock, writeEntry } from "./receipt-evidence.mjs";
 
 const ENV_KEYS = ["CARGO_TARGET_DIR", "CI", "LANG", "NODE_ENV", "RUSTFLAGS", "RUST_BACKTRACE", "TZ", "VITEST_MAX_WORKERS"];
 
@@ -30,7 +30,7 @@ function pinPaths(cwd, specFiles) { return [...new Set([...testPaths(cwd), ...sp
 /** Checks that need nothing from the lane; returns the RED-time tree and the evidence dir. */
 export function prepare(cwd, id, specFiles) {
   refFor(cwd, id, new Date().toISOString());
-  withEvidenceLock(cwd, () => readEvidence(cwd));
+  withEvidenceLock(cwd, () => readEntry(cwd, id));
   return { tree: buildTree(cwd, pinPaths(cwd, specFiles)), dir: mkdtempSync(join(tmpdir(), "mdpro-red-evidence-")) };
 }
 
@@ -51,7 +51,7 @@ export function envSnapshot() {
   return { ...Object.fromEntries(ENV_KEYS.filter((key) => process.env[key] !== undefined).map((key) => [key, process.env[key]])), node: process.version, platform: process.platform };
 }
 
-/** After the plugin recorded `receipt`: pin the tree and write the sidecar entry. */
+/** After the plugin recorded `receipt`: pin the tree and write its evidence file. */
 export function capture(cwd, { receipt, laneCommand, pluginVersion, prepared, specFiles }) {
   try {
     const tree = buildTree(cwd, pinPaths(cwd, specFiles));
