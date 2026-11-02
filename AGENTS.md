@@ -3,8 +3,7 @@
 ## Every session (Codex)
 
 Codex loads only this file, and it does not follow links by itself. The files in this block bind every session; open
-each one when the session starts, and then the role file your brief or request names (`docs/agents/implementor.md`,
-`auditor.md` or `device-tester.md`). Rules 70 and 71 bind you when your request lists them or you hold herdr-delegator.
+each one at session start, and then the files in your role's row below. Rules 70 and 71 bind every herdr session.
 
 <!-- read-every-session:begin -->
 - [CLAUDE.md](CLAUDE.md)
@@ -13,7 +12,16 @@ each one when the session starts, and then the role file your brief or request n
 - [.claude/rules/60-review-checklist.md](.claude/rules/60-review-checklist.md)
 <!-- read-every-session:end -->
 
-**Path-triggered rules.** Claude Code loads these from each rule's `paths:` frontmatter; Codex opens them by hand when
+| Role | Also open at session start |
+|---|---|
+| implementor | `docs/agents/implementor.md`, `.claude/rules/70-multi-session-coordination.md`, `.claude/rules/71-herdr-mixed-roster.md` |
+| auditor | `docs/agents/auditor.md`, `.claude/rules/70-multi-session-coordination.md`, `.claude/rules/71-herdr-mixed-roster.md` |
+| device tester | `docs/agents/device-tester.md`, `.claude/rules/70-multi-session-coordination.md`, `.claude/rules/71-herdr-mixed-roster.md` |
+| herdr-delegator | `.agents/skills/mdpro-delegator/SKILL.md`, `.claude/rules/70-multi-session-coordination.md`, `.claude/rules/71-herdr-mixed-roster.md` |
+
+## Path-triggered rules
+
+Claude Code loads these from each rule's `paths:` frontmatter; Codex opens them by hand when
 it is about to edit a matching path:
 
 | Path you are about to edit | Rule that binds it |
@@ -27,7 +35,9 @@ it is about to edit a matching path:
 | `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` | `.claude/rules/40-version-bump.md` |
 | `src-tauri/src/menu.rs`, `src/types/preferences.ts`, `src/hooks/useKeyboardShortcuts.ts`, `src/components/common/settings/KeyboardShortcutsSettings.tsx`, `docs/guide/keyboard-shortcuts.md` | `.claude/rules/41-keyboard-shortcuts.md` |
 
-**Command guards.** `.codex/rules/mdpro.rules` binds every Codex role. A per-worktree, gitignored
+## Command guards (Codex)
+
+`.codex/rules/mdpro.rules` binds every Codex role. A per-worktree, gitignored
 `.codex/rules/mdpro-role.rules` adds its role limits. Only the delegator pushes and lands, through
 `node scripts/codex-rules/push-guard.mjs` and `node scripts/codex-rules/land-guard.mjs`. It replaces
 `.claude/hooks/role-guard.sh`, which Codex does not run. A forbidden command means *ask*. Any other spelling is evasion:
@@ -39,7 +49,7 @@ it is about to edit a matching path:
 |---|---|
 | `AskUserQuestion`, or `SendMessage` to the delegator | Stop and put the question in your final message. Never ask the user directly. |
 | A rule-25 confirmation | Same: stop and name the exact command and what it could lose. |
-| A skill (`jack-tdd-workflow`, `code-review`) | Use your installed copy; the brief names the version. |
+| A skill (`jack-tdd-workflow`, `code-review`) | Use your installed copy; the brief names the skill and its version: `$tdd-guardian:tdd-guardian-workflow` until T-02's go-live, `jack-tdd-workflow` from it. |
 | `Agent` subagents | Run rule 10's lanes yourself, through `scripts/heavy-lock.sh`, and report each command and its result. |
 | Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
 | A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path. |

@@ -2,7 +2,7 @@
 #
 # Shared command guards; role-specific limits live in mdpro-role.rules.
 # Instruction-only rules (10, 20, 22, 30-34, 40, 41, 50, 60) cannot be expressed
-# as command prefixes; AGENTS.md § "Rules Codex must read" routes Codex to them.
+# as command prefixes; AGENTS.md § "Path-triggered rules" routes Codex to them.
 #
 # Loaded only when this project's .codex/ layer is trusted
 # (https://learn.chatgpt.com/docs/agent-configuration/rules).
