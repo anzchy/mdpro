@@ -36,17 +36,15 @@ function exec(file: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string
 }
 
 let cache: string | null = null;
-/** The scripts under test and the fake herdr, written once per run: each harness links the scripts and finds herdr on PATH here. */
+/**
+ * One tree per run: the fake herdr, and the repo copy every harness resets and reuses. macOS scans an executable the
+ * first time it runs at a new path (~0.45 s, even through a hard link), so the executables keep one path for the run.
+ */
 function exeCache(): string {
   if (cache) return cache;
   cache = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-exe-"));
-  for (const file of COPIED) {
-    const source = path.join(SK, file);
-    if (!fs.existsSync(source)) continue;
-    fs.copyFileSync(source, path.join(cache, file));
-    fs.chmodSync(path.join(cache, file), 0o755);
-  }
-  fs.writeFileSync(path.join(cache, "herdr"), `#!/usr/bin/env node
+  fs.mkdirSync(path.join(cache, "bin"));
+  fs.writeFileSync(path.join(cache, "bin/herdr"), `#!/usr/bin/env node
 const fs = require("node:fs");
 const args = process.argv.slice(2), op = args.slice(2);
 fs.appendFileSync(process.env.FAKE_HERDR_LOG, JSON.stringify(op) + "\\n");
@@ -59,19 +57,35 @@ if (op[0] === "agent" && op[1] === "get") {
   process.stdout.write(JSON.stringify({ result: { agent } }));
 }
 `);
-  fs.chmodSync(path.join(cache, "herdr"), 0o755);
+  fs.chmodSync(path.join(cache, "bin/herdr"), 0o755);
   return cache;
+}
+
+/** The shared repo copy, reset to the checkout's scripts and rules: only an executable whose bytes changed is rewritten. */
+function freshRepo(): string {
+  const repo = path.join(exeCache(), "repo"), scripts = path.join(repo, SK);
+  fs.mkdirSync(scripts, { recursive: true });
+  for (const entry of fs.readdirSync(repo)) if (entry !== ".agents") fs.rmSync(path.join(repo, entry), { recursive: true, force: true });
+  for (const entry of fs.readdirSync(scripts)) if (!COPIED.includes(entry)) fs.rmSync(path.join(scripts, entry), { recursive: true, force: true });
+  for (const file of COPIED) {
+    const source = path.join(SK, file), copy = path.join(scripts, file);
+    if (!fs.existsSync(source)) { fs.rmSync(copy, { force: true }); continue; }
+    // Untouched, not even chmod: a ctime change makes macOS scan the file again.
+    if (fs.existsSync(copy) && (fs.statSync(copy).mode & 0o777) === 0o755 && fs.readFileSync(copy).equals(fs.readFileSync(source))) continue;
+    fs.rmSync(copy, { force: true });
+    fs.copyFileSync(source, copy);
+    fs.chmodSync(copy, 0o755);
+  }
+  return repo;
 }
 
 function harness(opts: Opts = {}) {
   const name = opts.name ?? "gpt-imple-2", kind = opts.kind ?? "codex", role = opts.role ?? "implementor";
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-"));
   dirs.push(root);
-  const repo = path.join(root, "repo"), scripts = path.join(repo, SK), rules = path.join(repo, ".claude/rules");
+  const repo = freshRepo(), scripts = path.join(repo, SK), rules = path.join(repo, ".claude/rules");
   const target = path.join(root, "Documents/mac-app/mdpro-wt", name), bin = path.join(root, "bin"), main = path.join(root, "main");
   for (const dir of [scripts, rules, bin, path.join(target, ".codex/rules"), path.join(main, ".codex/rules")]) fs.mkdirSync(dir, { recursive: true });
-  // Hard links to one per-run copy: macOS scans each newly written executable on its first run (~0.5 s), not each link.
-  for (const file of COPIED) if (fs.existsSync(path.join(exeCache(), file))) fs.linkSync(path.join(exeCache(), file), path.join(scripts, file));
   for (const file of RULES) fs.copyFileSync(path.join(".claude/rules", file), path.join(rules, file));
   for (const dir of TOP) fs.mkdirSync(path.join(repo, dir), { recursive: true });
   fs.writeFileSync(path.join(repo, "CHANGELOG.md"), "# Changelog\n");
@@ -83,7 +97,7 @@ function harness(opts: Opts = {}) {
   fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
   const log = path.join(root, "calls.jsonl");
   const env: NodeJS.ProcessEnv = {
-    ...process.env, HOME: root, PATH: `${bin}:${exeCache()}:${process.env.PATH ?? ""}`, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: main,
+    ...process.env, HOME: root, PATH: `${bin}:${path.join(exeCache(), "bin")}:${process.env.PATH ?? ""}`, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: main,
     FAKE_DELEGATOR_KIND: opts.delegator ?? "claude", FAKE_TARGET_KIND: kind, FAKE_MAIN: main, FAKE_TARGET: target,
     FAKE_HERDR_LOG: log, FAKE_SHAPE: opts.shape ?? "top",
   };
@@ -116,6 +130,18 @@ function grant(scope: string, field: string | null, extra = ""): string {
   const fieldText = field === null ? "" : `**Rules for paths in scope.** ${field}. Before editing any matching path, open each rule\nnamed for that path in AGENTS.md. Issue 592 checks it.\n\n`;
   return `# X1: a test item (2026-11-03, herdr-delegator)\n\n**Tier: Low** (test). **Difficulty: routine** (test).\n\n${fieldText}## 1. Background\n- **The issue.** none.\n\n## 2. Scope\n- Worktree \`mdpro-wt/gpt-imple-2\`; branch \`chore/x1-test\` from \`origin/master\` (\`abc1234\`).\n${scope}\n- Anything else: stop and ask.\n\n${extra}`;
 }
+
+/** Captured once from prompt.sh at base a3e9b7ec in this harness (<ROOT> is the harness root); never read from git. */
+const PRE_CHANGE: Record<string, { stdout: string; stderr: string; calls: string[][] }> = {
+  "claude auditor-request": {"stdout": "Herdr completion: gpt-auditor is idle. Read the gpt-auditor handoff or pane\n", "stderr": "", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "gpt-auditor"], ["agent", "prompt", "gpt-auditor", "herdr-delegator: read /Users/jack/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md, then the request <ROOT>/req.md. Do what it describes, write the report to the path it names, then stop.", "--wait", "--timeout", "1000"], ["agent", "get", "gpt-auditor"], ["agent", "get", "herdr-delegator"]]},
+  "claude device-brief": {"stdout": "Herdr completion: gpt-auditor is idle. Read the gpt-auditor handoff or pane\n", "stderr": "", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "gpt-auditor"], ["agent", "prompt", "gpt-auditor", "herdr-delegator: read <ROOT>/.mdpro-redesign/device/b-brief.md and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.", "--wait", "--timeout", "1000"], ["agent", "get", "gpt-auditor"], ["agent", "get", "herdr-delegator"]]},
+  "claude claude-brief": {"stdout": "Herdr completion: opus-imple-1 is idle. Read the opus-imple-1 handoff or pane\n", "stderr": "", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "opus-imple-1"], ["agent", "prompt", "opus-imple-1", "herdr-delegator: read <ROOT>/brief.md and everything it names, then do it by rule 71 § Briefs for Claude: design the test matrix yourself, have a fresh independent subagent attack it with .agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md (ATTACK-NOT-RUN if it cannot run), and record each RED with the rule 10 receipt CLI, node scripts/tdd/red-receipt.mjs. Write the handoff it names and stop.", "--wait", "--timeout", "1000"], ["agent", "get", "opus-imple-1"], ["agent", "get", "herdr-delegator"]]},
+  "claude codex-impl-report": {"stdout": "Herdr completion: gpt-imple-2 is idle. Report missing: /var/folders/x/report.md; inspect the gpt-imple-2 pane\n", "stderr": "", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "gpt-imple-2"], ["agent", "prompt", "gpt-imple-2", "herdr-delegator: read <ROOT>/brief.md and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.", "--wait", "--timeout", "1000"], ["agent", "get", "gpt-imple-2"], ["agent", "get", "herdr-delegator"]]},
+  "codex auditor-request": {"stdout": "", "stderr": "WARN: Codex completion route skipped delegator overlay check\nWARN: Codex completion route skipped delegator overlay check\n", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "gpt-auditor"], ["agent", "prompt", "gpt-auditor", "herdr-delegator: read /Users/jack/.mdpro-redesign/herdr-spike/gpt-auditor/BRIEF.md, then the request <ROOT>/req.md. Do what it describes, write the report to the path it names, then stop.", "--wait", "--timeout", "1000"], ["agent", "get", "gpt-auditor"], ["agent", "get", "herdr-delegator"], ["notification", "show", "mdpro: gpt-auditor idle", "--body", "Read the gpt-auditor handoff or pane", "--sound", "done"], ["agent", "get", "herdr-delegator"], ["agent", "get", "herdr-delegator"], ["agent", "prompt", "herdr-delegator", "Herdr completion: gpt-auditor is idle. Read the gpt-auditor handoff or pane Read its handoff or pane, update heartbeat, and continue the delegator queue."]]},
+  "codex device-brief": {"stdout": "", "stderr": "WARN: Codex completion route skipped delegator overlay check\nWARN: Codex completion route skipped delegator overlay check\n", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "gpt-auditor"], ["agent", "prompt", "gpt-auditor", "herdr-delegator: read <ROOT>/.mdpro-redesign/device/b-brief.md and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.", "--wait", "--timeout", "1000"], ["agent", "get", "gpt-auditor"], ["agent", "get", "herdr-delegator"], ["notification", "show", "mdpro: gpt-auditor idle", "--body", "Read the gpt-auditor handoff or pane", "--sound", "done"], ["agent", "get", "herdr-delegator"], ["agent", "get", "herdr-delegator"], ["agent", "prompt", "herdr-delegator", "Herdr completion: gpt-auditor is idle. Read the gpt-auditor handoff or pane Read its handoff or pane, update heartbeat, and continue the delegator queue."]]},
+  "codex claude-brief": {"stdout": "", "stderr": "WARN: Codex completion route skipped delegator overlay check\nWARN: Codex completion route skipped delegator overlay check\n", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "opus-imple-1"], ["agent", "prompt", "opus-imple-1", "herdr-delegator: read <ROOT>/brief.md and everything it names, then do it by rule 71 § Briefs for Claude: design the test matrix yourself, have a fresh independent subagent attack it with .agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md (ATTACK-NOT-RUN if it cannot run), and record each RED with the rule 10 receipt CLI, node scripts/tdd/red-receipt.mjs. Write the handoff it names and stop.", "--wait", "--timeout", "1000"], ["agent", "get", "opus-imple-1"], ["agent", "get", "herdr-delegator"], ["notification", "show", "mdpro: opus-imple-1 idle", "--body", "Read the opus-imple-1 handoff or pane", "--sound", "done"], ["agent", "get", "herdr-delegator"], ["agent", "get", "herdr-delegator"], ["agent", "prompt", "herdr-delegator", "Herdr completion: opus-imple-1 is idle. Read the opus-imple-1 handoff or pane Read its handoff or pane, update heartbeat, and continue the delegator queue."]]},
+  "codex codex-impl-report": {"stdout": "", "stderr": "WARN: Codex completion route skipped delegator overlay check\nWARN: Codex completion route skipped delegator overlay check\n", "calls": [["agent", "get", "herdr-delegator"], ["agent", "get", "gpt-imple-2"], ["agent", "prompt", "gpt-imple-2", "herdr-delegator: read <ROOT>/brief.md and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.", "--wait", "--timeout", "1000"], ["agent", "get", "gpt-imple-2"], ["agent", "get", "herdr-delegator"], ["notification", "show", "mdpro: gpt-imple-2 idle", "--body", "Report missing: /var/folders/x/report.md; inspect the gpt-imple-2 pane", "--sound", "done"], ["agent", "get", "herdr-delegator"], ["agent", "get", "herdr-delegator"], ["agent", "prompt", "herdr-delegator", "Herdr completion: gpt-imple-2 is idle. Report missing: /var/folders/x/report.md; inspect the gpt-imple-2 pane Read its handoff or pane, update heartbeat, and continue the delegator queue."]]},
+};
 
 afterEach(() => { for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
 afterAll(() => { if (cache) fs.rmSync(cache, { recursive: true, force: true }); cache = null; });
@@ -263,6 +289,168 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const h = harness();
     const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
     h.expectRefused(result, /REFUSED:.*scope path not backticked: '(src\/a\.ts|scripts\/new\.mjs)'/);
+  });
+  // ---- AC-4: exempt targets keep the pre-change sequence (raw-green by design: they pin what must not change) ----
+  type Exempt = "auditor-request" | "device-brief" | "claude-brief";
+  const EXEMPT: Record<Exempt, { opts: Opts; verb: string; file: string }> = {
+    "auditor-request": { opts: { name: "gpt-auditor", role: "auditor" }, verb: "request", file: "req.md" },
+    "device-brief": { opts: { name: "gpt-auditor", role: "auditor" }, verb: "brief", file: ".mdpro-redesign/device/b-brief.md" },
+    "claude-brief": { opts: { name: "opus-imple-1", kind: "claude" }, verb: "brief", file: "brief.md" },
+  };
+  const exemptHarness = (label: Exempt, delegator: "claude" | "codex") => {
+    const h = harness({ ...EXEMPT[label].opts, delegator });
+    if (label === "device-brief") {
+      fs.writeFileSync(path.join(h.target, ".codex/rules/.started-at"), "w1:p7 mode=device\n");
+      fs.mkdirSync(path.join(h.root, ".mdpro-redesign/device"), { recursive: true });
+    }
+    return h;
+  };
+  const expectPreChange = (h: ReturnType<typeof harness>, result: Result, key: string) => {
+    const strip = (text: string) => text.split(h.root).join("<ROOT>");
+    expect(result.code, result.stderr).toBe(0);
+    expect({ stdout: strip(result.stdout), stderr: strip(result.stderr), calls: h.calls().map((call) => call.map(strip)) }).toEqual(PRE_CHANGE[key]);
+  };
+  const SEQUENCES: Array<["claude" | "codex", Exempt | "codex-impl-report"]> = [];
+  for (const delegator of ["claude", "codex"] as const) for (const label of ["auditor-request", "device-brief", "claude-brief", "codex-impl-report"] as const) SEQUENCES.push([delegator, label]);
+  it.each(SEQUENCES)("C57/C18/C23-C26 AC-4: under a %s delegator, %s keeps the full pre-change herdr sequence and output", async (delegator, label) => {
+    const h = label === "codex-impl-report" ? harness({ delegator }) : exemptHarness(label, delegator);
+    const spec = label === "codex-impl-report" ? { verb: "brief", file: "brief.md" } : EXEMPT[label];
+    const brief = h.write(grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50"), spec.file);
+    const more = label === "codex-impl-report" ? ["/var/folders/x/report.md"] : [];
+    expectPreChange(h, await h.send(brief, spec.verb, more), `${delegator} ${label}`);
+  });
+
+  it.each(Object.keys(EXEMPT) as Exempt[])("C48/C74h AC-4: %s ignores a broken rule, an unreadable file, bad tokens and an unknown label", async (label) => {
+    const variants: Array<[string, (h: ReturnType<typeof harness>, f: string) => void, string]> = [
+      ["no rule 22 file", (h) => fs.rmSync(h.rule(22)), grant("- **May edit:** `src/a.ts`.", null)],
+      ["unreadable file", (_h, f) => fs.chmodSync(f, 0o000), grant("- **May edit:** `src/a.ts`.", null)],
+      ["bad tokens", () => undefined, grant("- **May edit:** `tooling/x.test.ts`.\n- **May create:** `components/New.tsx`.", null)],
+      ["unknown label", () => undefined, grant("- **May edit:** `docs/x.md`.\n**May create or edit:** `src/components/New.tsx`.", "rule 22, rule 50")],
+    ];
+    for (const [name, breakIt, text] of variants) {
+      const h = exemptHarness(label, "claude");
+      const brief = h.write(text, EXEMPT[label].file);
+      breakIt(h, brief);
+      const result = await h.send(brief, EXEMPT[label].verb);
+      expect(name && result.code, result.stderr).toBe(0);
+      expectPreChange(h, result, `claude ${label}`);
+    }
+  });
+
+  it("C27 AC-4: the pre-existing implementor refusals keep their message and come first", async () => {
+    const h = harness();
+    const bad = grant("- **May edit:** `src/a.ts`.", null);
+    h.expectRefused(await h.send(h.write(bad), "request"), /^REFUSED: implementor cannot take device or audit request\n$/);
+    fs.mkdirSync(path.join(h.root, ".mdpro-redesign/device"), { recursive: true });
+    h.expectRefused(await h.send(h.write(bad, ".mdpro-redesign/device/x-brief.md")), /^REFUSED: implementor cannot take device or audit request\n$/);
+  });
+
+  // ---- AC-5: fail closed ----
+  it("C28 AC-5: an unreadable brief to a Codex implementor refuses", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50"));
+    fs.chmodSync(brief, 0o000);
+    h.expectRefused(await h.send(brief), /REFUSED: cannot read brief .*brief\.md[\s\S]*REFUSED: brief rules check failed for gpt-imple-2/);
+  });
+
+  it("C32 AC-5: a missing or crashing helper refuses", async () => {
+    const h = harness();
+    const helper = path.join(h.repo, SK, "brief-rules-check.py");
+    const brief = h.write(grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50"));
+    fs.unlinkSync(helper);
+    h.expectRefused(await h.send(brief), /REFUSED: brief rules check failed for gpt-imple-2/);
+    fs.writeFileSync(helper, "raise RuntimeError('boom')\n");
+    h.expectRefused(await h.send(brief), /REFUSED: brief rules check failed for gpt-imple-2/);
+  });
+
+  it("C34 AC-5: the helper reads no environment, and prompt.sh reads no variable beyond its pre-change set", () => {
+    const helper = fs.readFileSync(path.join(SK, "brief-rules-check.py"), "utf8");
+    expect(helper).not.toMatch(/os\.environ|getenv|environ\b/);
+    const vars = new Set([...fs.readFileSync(path.join(SK, "prompt.sh"), "utf8").matchAll(/\$\{?([A-Za-z_][A-Za-z0-9_]*)/g)].map((m) => m[1]));
+    const PRE = ["tdd", "a", "mode", "f", "target_record", "target_kind", "target_cwd", "actual_wt", "expected_wt", "MDPRO_WORKTREE_OVERRIDE", "HOME",
+      "is_device", "verb", "overlay", "first", "expected", "target_pane", "pane_mode", "marker", "marker_expected", "pre", "text", "to", "report"];
+    expect([...vars].filter((name) => !PRE.includes(name))).toEqual([]);
+  });
+
+  it("C35 AC-5: bypass-looking variables do not open the check", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `src/a.ts`.", "rule 22"));
+    h.expectRefused(await h.send(brief, "brief", [], { MDPRO_SKIP_BRIEF_RULES: "1", MDPRO_BRIEF_RULES: "off", MDPRO_GUARD_TEST: "1" }), /REFUSED:.*rule 50/);
+  });
+
+  it.each(["gpt-imple-1", "opus-imple-1", "opus-imple-2", "gpt-imple-3"])("C17 AC-2: Codex implementor %s is checked by role, not by a name list", async (name) => {
+    const h = harness({ name });
+    h.expectRefused(await h.send(h.write(grant("- **May edit:** `src/a.ts`.", "rule 22"))), /REFUSED:.*rule 50/);
+  });
+
+  it("C54 AC-2: a target record that carries its runtime in agent_session is still checked", async () => {
+    const h = harness({ shape: "session" });
+    h.expectRefused(await h.send(h.write(grant("- **May edit:** `src/a.ts`.", "rule 22"))), /REFUSED:.*rule 50/);
+    expect(h.calls().filter((call) => call[1] === "get" && call[2] === h.name)).toHaveLength(1);
+  });
+
+  it("C14/C52 AC-2: lookalike and plural rule names do not count", async () => {
+    const h = harness();
+    for (const field of ["rule 220, rule 2, rule 502", "rules 22 and 50", "22-comment-maintenancex, 50-codebase"]) {
+      h.reset();
+      const result = await h.send(h.write(grant("- **May edit:** `src/a.ts`.", field)));
+      h.expectRefused(result, /needs rule 22 [\s\S]*needs rule 50 /);
+    }
+  });
+
+  it("C43 AC-5: two field paragraphs refuse", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `src/a.ts`.", "rule 22, rule 50", "**Rules for paths in scope.** rule 22, rule 50.\n"));
+    h.expectRefused(await h.send(brief), /exactly one \*\*Rules for paths in scope\.\*\* field, found 2/);
+  });
+
+  const BROKEN: Array<[string, (text: string) => string]> = [
+    ["no frontmatter block", (text) => text.replace(/^---\n[\s\S]*?\n---\n/, "")],
+    ["no paths: key", (text) => text.replace(/^paths:\n(?:  - .*\n)+/m, "")],
+    ["an empty list", (text) => text.replace(/^paths:\n(?:  - .*\n)+/m, "paths: []\n")],
+    ["a flow list", (text) => text.replace(/^paths:\n(?:  - .*\n)+/m, "paths: [\"src/**\"]\n")],
+    ["an unterminated block", (text) => text.replace(/^(---\n[\s\S]*?)\n---\n/, "$1\n")],
+    ["an unquoted item", (text) => text.replace(/^(paths:\n)/m, "$1  - src/**\n")],
+    ["a comment inside the list", (text) => text.replace(/^(paths:\n)/m, "$1  # note\n")],
+  ];
+  it.each([22, 50] as const)("C31a/C31b/C46 AC-5: broken rule %s frontmatter refuses naming the file, even with both rules named", async (n) => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50"));
+    const original = fs.readFileSync(h.rule(n), "utf8");
+    for (const [label, edit] of BROKEN) {
+      h.reset();
+      fs.writeFileSync(h.rule(n), edit(original));
+      const result = await h.send(brief);
+      h.expectRefused(result, new RegExp(`REFUSED: rule ${n}: .*${n}-[a-z-]+\\.md`));
+      expect(label && edit(original)).not.toBe(original);
+    }
+    fs.writeFileSync(h.rule(n), original);
+    h.reset();
+    fs.rmSync(h.rule(n));
+    h.expectRefused(await h.send(brief), new RegExp(`REFUSED: rule ${n}: expected one .claude/rules/${n}-\\*\\.md, found 0`));
+    fs.writeFileSync(h.rule(n), original);
+    fs.writeFileSync(path.join(h.rules, `${n}-copy.md`), original);
+    h.reset();
+    h.expectRefused(await h.send(brief), new RegExp(`REFUSED: rule ${n}: expected one .claude/rules/${n}-\\*\\.md, found 2`));
+  });
+
+  it("C53a/C53b AC-1: only the script's own rules count, not decoys in the cwd, the test main or the target", async () => {
+    const spawnCwd = () => { const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-cwd-")); dirs.push(dir); return dir; };
+    const decoys = (h: ReturnType<typeof harness>, cwd: string, globs: string[]) => {
+      for (const base of [cwd, path.join(h.root, "main"), h.target]) {
+        fs.mkdirSync(path.join(base, ".claude/rules"), { recursive: true });
+        for (const file of RULES) fs.writeFileSync(path.join(base, ".claude/rules", file), `---\npaths:\n${globs.map((g) => `  - "${g}"`).join("\n")}\n---\n`);
+      }
+    };
+    const strictCwd = spawnCwd(), strict = harness({ cwd: strictCwd });
+    decoys(strict, strictCwd, ["nothing/**"]);
+    strict.expectRefused(await strict.send(strict.write(grant("- **May edit:** `src/a.ts`.", "rule 22"))), /REFUSED:.*rule 50/);
+    const lenientCwd = spawnCwd(), lenient = harness({ cwd: lenientCwd });
+    lenient.setPaths(22, ["nothing/**"]);
+    lenient.setPaths(50, ["nothing/**"]);
+    decoys(lenient, lenientCwd, ["src/**"]);
+    const brief = lenient.write(grant("- **May edit:** `src/a.ts`.", "none"));
+    lenient.expectSent(await lenient.send(brief), brief);
   });
   // next-case
 });
