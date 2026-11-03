@@ -158,4 +158,18 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check, ruling 
     }
     await sentAs(h, grant("- **May edit:** `docs/x.md`, 100% of it (50%2 of the lines).", "none"));
   });
+
+  it("F3r AC-F3 (code review, added in cycle F1-5): a lookalike of a phrase-only letter (s, S, h, g) is folded too", async () => {
+    const h = harness();
+    for (const form of ["- Ѕame paths as the grant.", "- Same pathѕ as the grant.", "- Same patһs as the grant.", "- Same paths as the ɡrant."]) {
+      await refusedAt(h, grant(`${form}\n- **May create:** \`scripts/new.mjs\`.`, "rule 22, rule 50"), /copy the grant's \*\*May edit:\*\*/);
+    }
+    for (const scope of ["- **May edit:** `scripts/x.mjs`, their teѕts.", "- **May edit:** `scripts/x.mjs`, tһeir tests."]) {
+      h.reset();
+      const result = await h.send(h.write(grant(scope, "rule 22")));
+      needs(result, [50]);
+      expect(result.stderr).toContain("tests/** (their tests)");
+      expect(h.prompts()).toEqual([]);
+    }
+  });
 });

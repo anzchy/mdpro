@@ -30,9 +30,9 @@ SLASHES = dict.fromkeys(map(ord, "\u2215\u2044\u29f8\u2571\uff0f"), "/")
 REF_DEF = re.compile(r"^ {0,3}\[([^\]]+)\]:")
 REF_USE = re.compile(r"\[([^\]]+)\](?:\[([^\]]*)\])?(?!\()")
 STRUCK = re.compile(r"~~.*?~~|~[^~]*?~", re.S)
-# Ruling 6 Q1 / ruling 7: Latin lookalikes (Cyrillic, Greek, `ɑ`, `ı`) fold to Latin for labels and phrases; CJK is
-# never folded.
-FOLD = str.maketrans("МмаеорсухіткнвԁАЕОРСХТКНВΜαεορτκνΑΕΟΡΤΚΝɑı", "MmaeopcyxitkhbdAEOPCXTKHBMaeoptkvAEOPTKNai")
+# Ruling 6 Q1 / ruling 7: Latin lookalikes (Cyrillic, Greek, `ɑ`, `ı`, `ɡ`) fold to Latin for labels and phrases,
+# including the phrase-only letters s, S and h (F1-5); CJK is never folded.
+FOLD = str.maketrans("МмаеорсухіткнвԁАЕОРСХТКНВΜαεορτκνΑΕΟΡΤΚΝɑıѕЅһɡ", "MmaeopcyxitkhbdAEOPCXTKHBMaeoptkvAEOPTKNaisShg")
 # An opening emphasis run (left-flanking: not after a word or another marker, and not followed by a space).
 EMPHASISED_MAY = re.compile(r"(?<![\w*_])[*_]{1,3}(may)\b(?=\s+[^\W\d_]|\s*[:*_]|\s*$)", re.I)
 EMPHASIS_RUN = re.compile(r"(\*{1,3}|_{1,3})(?=\S)(.+?)(?<=\S)\1")
@@ -59,8 +59,8 @@ def label_key(label):
 
 
 def rendered_prose(text):
-    """Scope text as a reader sees it, for the not-backticked check: percent-decoded (a link destination such as
-    `src%2Fa.ts`, ruling 7), NFKC, slash lookalikes and `a\\b` become `/`."""
+    """Scope text as a reader sees it, for the not-backticked check: all of it percent-decoded once (so a link
+    destination such as `src%2Fa.ts` shows its path, ruling 7), NFKC, slash lookalikes and `a\\b` become `/`."""
     text = unicodedata.normalize("NFKC", urllib.parse.unquote(text)).translate(SLASHES)
     return re.sub(r"(?<=\w)\\(?=\w)", "/", text)
 
@@ -79,7 +79,7 @@ def label_name(rest):
 def phrase_view(text):
     """Text as a reader sees a phrase in it: escapes dropped, NFKC, lookalikes folded (ruling 7), emphasis and strike
     markers removed, whitespace collapsed."""
-    return " ".join(re.sub(r"[*_~]", "", unicodedata.normalize("NFKC", ESCAPE.sub(r"\1", text)).translate(FOLD)).split())
+    return " ".join(re.sub(r"[*_~]", "", label_view(text)).split())
 
 
 def indent_of(line):

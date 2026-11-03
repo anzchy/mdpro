@@ -1,0 +1,33 @@
+{
+  "id": "GH592-F1-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T14:56:34.768Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"F3r AC-F3 (code review, added in cycle F1-5): a lookalike of a phrase-only letter (s, S, h, g) is folded too\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-F1-5/20261103T145634768Z/tests",
+    "tree": "a8ed8c61ff795489d480854904299dadc2b9cfb3"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check-fold.test.ts": "28c024274c8f16a81d53658f69c78e00805eb4a7"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check-fold.test.ts": "28c024274c8f16a81d53658f69c78e00805eb4a7"
+  }
+}
