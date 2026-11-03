@@ -35,6 +35,8 @@ const spec = (sleep = 0) => [
   'import { v } from "../src/x.mjs";',
   `it("v is two", async () => { await new Promise((r) => setTimeout(r, ${sleep})); expect(v).toBe(2); }, 120000);`,
 ].join("\n");
+/** A failing spec that leaves `ignored/ran.log` when the lane loads it. */
+const marked = (target: string) => { repo.write(target, `import { appendFileSync, mkdirSync } from "node:fs";\nmkdirSync("ignored", { recursive: true }); appendFileSync("ignored/ran.log", "x\\n");\n${spec()}`); repo.write("src/x.mjs", "export const v = 1;\n"); };
 function failing(file: string, sleep = 0) { repo.write(file, spec(sleep)); repo.write("src/x.mjs", "export const v = 1;\n"); }
 const fix = () => repo.write("src/x.mjs", "export const v = 2;\n");
 const file = (id: string) => `tests/${id.toLowerCase()}.test.ts`;
@@ -111,5 +113,53 @@ describe.skipIf(!pluginVersion)("D357 RC5 view kill windows (L5)", () => {
     expect(next.stderr).not.toContain("changed outside");
     expect(ids()).toEqual(["A-1", "B-1", "C-1"]);
     expect(stamp()).toMatchObject({ phase: "idle", sha256: sha(repo.read(VIEW)) });
+  });
+
+  it("L5d: both named barriers, held then released, let the record finish with a matching idle stamp", async () => {
+    failing(file("A-1"));
+    const dir = barriers("record-view-written", "record-rebuilt");
+    const running = record("A-1", { MDPRO_UNIT_RED_BARRIER_DIR: dir });
+    for (const name of ["record-view-written", "record-rebuilt"]) { expect(await ready(dir, name), name).toBe(true); go(dir, name); }
+    const result = await running;
+    expect(result.status, result.output).toBe(0);
+    expect(stamp()).toMatchObject({ phase: "idle", sha256: sha(repo.read(VIEW)) });
+    expect(item("A-1").red.kind).toBe("assertion-failure");
+  });
+
+  it("L5e: SIGKILL at record-engine (view rebuilt, stamp engine, engine not called) leaves a store the next record accepts", async () => {
+    for (const id of ["B-1", "D-1"]) { failing(file(id)); expect((await record(id)).status).toBe(0); }
+    expect((await run(["discard", "--id", "D-1"])).status).toBe(0);
+    failing(file("A-1"));
+    const dir = barriers();
+    rmSync(join(dir, "record-engine.go"));
+    const running = record("A-1", { MDPRO_UNIT_RED_BARRIER_DIR: dir });
+    expect(await ready(dir, "record-engine")).toBe(true);
+    expect(repo.read(VIEW)).toBe(built(["B-1"]));
+    expect(stamp()).toMatchObject({ phase: "engine", sha256: sha(built(["B-1"])) });
+    await killHeld(stamp().pid);
+    killed(await running);
+    const next = await record("A-1");
+    expect(next.status, next.output).toBe(0);
+    expect(next.stderr).not.toContain("changed outside");
+    expect(ids()).toEqual(["A-1", "B-1"]);
+    expect(stamp()).toMatchObject({ phase: "idle", sha256: sha(repo.read(VIEW)) });
+  });
+
+  it("N4: an existing barrier with no .hold file still pauses (hold-on-request is only for the new barriers)", async () => {
+    marked(file("A-1"));
+    const dir = barriers();
+    rmSync(join(dir, "record-engine.go"));
+    const running = record("A-1", { MDPRO_UNIT_RED_BARRIER_DIR: dir });
+    expect(await ready(dir, "record-engine")).toBe(true);
+    await pause(500);
+    expect(alive(stamp().pid)).toBe(true);
+    expect(stamp().phase).toBe("engine");
+    expect(has(`${R}/A-1.json`)).toBe(false);
+    await pause(2500);
+    expect(has("ignored/ran.log")).toBe(false);
+    go(dir, "record-engine");
+    const result = await running;
+    expect(result.status, result.output).toBe(0);
+    expect(has("ignored/ran.log")).toBe(true);
   });
 });
