@@ -4,7 +4,9 @@
  * evidence.json into one file per id, proves the byte round trip before it touches the index, and
  * is a no-op once the index no longer tracks them; `migrate --import <rev>` brings a branch cut
  * before the migration across.
- * Matrix rows: M1 (on the real store at 22ffe5ea), M2, M3, M4, M5, M7, M8, K5 (index), R4, R4b (files), R5.
+ * Matrix rows: M1s (every real-store field, item bytes, the store loads), M1s-big (over 2 MiB), M2, M3, M4, M5, M7, M8,
+ * K5 (index), R4, R4b (files), R5. M1, the run on the real store at 22ffe5ea, read git history the shallow CI checkout
+ * lacks; it left the suite in RC5 fix 1 and was run once at that fix's head (no test reads the repository's history).
  */
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -13,9 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-const repoRoot = resolve(import.meta.dirname, "../..");
-const script = join(repoRoot, "scripts/tdd/receipt-store.mjs");
-const PINNED = "22ffe5eadf6abd9de0d234da2e80d8d501a93403";
+const script = resolve(import.meta.dirname, "../../scripts/tdd/receipt-store.mjs");
 const T = ".claude/tdd-guardian", R = `${T}/receipts`, E = `${T}/receipt-evidence`, VIEW = `${T}/receipts.json`, SIDECAR = `${T}/evidence.json`;
 let root: string;
 type Run = { status: number | null; stdout: string; stderr: string };
@@ -34,6 +34,33 @@ function receipt(id: string, verdict: string | null = null) {
   };
 }
 const entry = (id: string) => ({ id, lane: "unit-red", recorded_at: "2026-11-02T00:00:00.000Z", plugin_version: "0.10.2" });
+/** The field sets of the real store at 22ffe5ea (1020 receipts, 123 evidence entries), which M1s must carry. */
+const RECEIPT_FIELDS = ["id", "lane", "recorded_at", "head_sha", "dirty_source", "red", "test_files", "verified_at", "verdict", "findings", "accepted"];
+const EVIDENCE_FIELDS = ["id", "lane", "recorded_at", "plugin_version", "lane_command", "env", "failures", "tests_tree", "spec_blobs", "settled_blobs", "evidence_required", "replay"];
+const fieldUnion = (values: object[]) => [...new Set(values.flatMap((value) => Object.keys(value)))];
+/** A receipt shaped like the real store's: settled, a CJK test path with a space, escapes, nested findings, optionally `accepted`. */
+function richReceipt(id: string, verdict: string | null, accepted: boolean) {
+  return {
+    id, lane: "unit", recorded_at: "2026-10-08T08:36:59.630Z", head_sha: "a39d4b2635af8c877646072e38bc201533f6c32e",
+    dirty_source: ["scripts/control/doctor.mjs", "src-tauri/src/models/preferences.rs"],
+    red: { red: true, kind: "opaque-failure", reason: `${id}: "quoted" \\ back\nslash, 中文 and 🙂` },
+    test_files: {
+      "tests/中文 a.test.ts": { state: "ok", sha: "3720e2d7b2af413a5db3348b78f2f01ae662e5c8a5de1583a06db28e33a90744", lines: ["9c61af8e89480691", "1cc70bd54b855eca"], reason: "" },
+      "src-tauri/src/x_tests.rs": { state: "ok", sha: "c8eda8bb12047cd583b5fb2f6a0f4e712f875ebbcd3dc51ac052c5faf9469315", lines: ["e89bcc293adfc2b4"], reason: "" },
+    },
+    verified_at: verdict ? "2026-10-08T09:00:19.477Z" : null, verdict,
+    findings: verdict ? [{ severity: "medium", code: "weak-red", message: "无计数 (no counts) — weaker evidence" }] : [],
+    ...(accepted ? { accepted: { by: "user", at: "2026-10-08", file: "tests/support/launchHarness.ts", reason: "改为比较 { ...process.env }" } } : {}),
+  };
+}
+/** An evidence entry carrying every field of the real sidecar, nested. */
+const richEntry = (id: string) => ({
+  ...entry(id), lane_command: "node scripts/tdd/unit-red-lane.mjs", env: { LANG: "C.UTF-8", VITEST_MAX_WORKERS: "1", node: "v22.22.3", platform: "darwin" },
+  failures: [{ id: JSON.stringify(["tests/中文 a.test.ts", id, "case"]), kind: "assertion", location: { file: "tests/中文 a.test.ts", line: 19 }, message: "AssertionError: \"x\"\n: expected false to be true" }],
+  tests_tree: { ref: `refs/receipts/${id}/20261029T043045269Z/tests`, tree: "2bf80afce2dfd548f2d6299990b2821cdebf0ea9" },
+  spec_blobs: { "tests/中文 a.test.ts": "7bddf09a738e23bfeb548badff6eb0ce626566ae" }, settled_blobs: { "tests/中文 a.test.ts": "0785af9f9d49dbf328267268c1ad2823957f7487" },
+  evidence_required: true, replay: { path: `.claude/tdd-guardian/evidence/${id}.json`, digest: "bd2cf0ade96ca225c73fe212ddafd750c18d916abecaf9c878c568f3dc1078cd", result: "passed", base: "de0f65ee8fbb7495737df85b67e73a2e0c5674c8", head: "3acd63f9e342bdda31523f7efe705f4f1f798ea8" },
+});
 const git = (...args: string[]) => exec("git", args);
 const write = (path: string, text: string) => { mkdirSync(dirname(join(root, path)), { recursive: true }); writeFileSync(join(root, path), text); };
 const read = (path: string) => readFileSync(join(root, path), "utf8");
@@ -59,23 +86,38 @@ beforeEach(async () => {
 afterEach(() => { rmSync(root, { recursive: true, force: true }); });
 
 describe("RC5 migrate", () => {
-  it("M1, AC-8: the real store at the pinned base splits and round-trips byte for byte", async () => {
-    const raw = (await exec("git", ["show", `${PINNED}:${VIEW}`], { cwd: repoRoot })).stdout;
-    const evidence = (await exec("git", ["show", `${PINNED}:${SIDECAR}`], { cwd: repoRoot })).stdout;
-    write(VIEW, raw); write(SIDECAR, evidence); await git("add", "-f", VIEW, SIDECAR); await commit("legacy");
-    const records = JSON.parse(raw).receipts as Array<{ id: string }>;
+  it("M1s, AC-8: a store with every field the real store carries splits, each item file is its record's canonical bytes, and the store loads", async () => {
+    const records = [richReceipt("Z-2", "SEPARATION-BROKEN", true), richReceipt("A-1", null, false), richReceipt("D355-S20", "SEPARATION-HELD", false)];
+    const entries = { "A-1": richEntry("A-1"), "Z-2": richEntry("Z-2") };
+    expect(fieldUnion(records)).toEqual(expect.arrayContaining(RECEIPT_FIELDS));
+    expect(fieldUnion(Object.values(entries))).toEqual(expect.arrayContaining(EVIDENCE_FIELDS));
+    legacy(records, entries); const raw = read(VIEW), evidence = read(SIDECAR);
+    await git("add", "-f", VIEW, SIDECAR); await commit("legacy");
     const result = await store("migrate");
     expect(result.status, result.output).toBe(0);
     expect(result.stdout).toContain(`receipts.json sha256 ${sha(raw)} rebuilt ${sha(raw)}`);
     expect(result.stdout).toContain(`evidence.json sha256 ${sha(evidence)} rebuilt ${sha(evidence)}`);
+    expect(listing(R)).toEqual(["A-1.json", "D355-S20.json", "Z-2.json"]);
+    for (const record of records) expect(read(`${R}/${record.id}.json`), record.id).toBe(canonical(record));
+    expect(listing(E)).toEqual(["A-1.json", "Z-2.json"]);
+    for (const [id, value] of Object.entries(entries)) expect(read(`${E}/${id}.json`), id).toBe(canonical(value));
+    expect(canonical({ schemaVersion: 2, receipts: records.map((record) => JSON.parse(read(`${R}/${record.id}.json`))) })).toBe(raw);
+    await commit("migrate");
+    const keep = await store("keep-check", "--parent", "HEAD", "--head", "HEAD");
+    expect(keep.status, keep.output).toBe(0);
+    expect(keep.stdout).toContain("kept 3 of 3");
+  });
+  it("M1s-big, AC-8: a store over 2 MiB (CJK, so bytes differ from characters) is read from the index and round-trips", async () => {
+    const records = ["Q-3", "B-1", "K-2", "C-4"].map((id) => ({ ...receipt(id), red: { kind: "assertion-failure", red: true, reason: `${id} 失败的断言 ✓ `.repeat(40_000) } }));
+    legacy(records); const raw = read(VIEW);
+    expect(Buffer.byteLength(raw)).toBeGreaterThan(2 * 1024 * 1024);
+    expect(Buffer.byteLength(raw)).toBeGreaterThan(raw.length);
+    await git("add", "-f", VIEW, SIDECAR); await commit("legacy");
+    const result = await store("migrate");
+    expect(result.status, result.output).toBe(0);
+    expect(result.stdout).toContain(`receipts.json sha256 ${sha(raw)} rebuilt ${sha(raw)}`);
     expect(listing(R)?.length).toBe(records.length);
-    const rebuilt = canonical({ schemaVersion: 2, receipts: records.map((record) => JSON.parse(read(`${R}/${record.id}.json`))) });
-    expect(rebuilt === raw).toBe(true);
-    const entries = JSON.parse(evidence).entries as Record<string, unknown>;
-    const ids = listing(E)!.map((name) => name.slice(0, -5));
-    expect(ids).toEqual(Object.keys(entries).sort());
-    const back = canonical({ schemaVersion: 1, entries: Object.fromEntries(ids.map((id) => [id, JSON.parse(read(`${E}/${id}.json`))])) });
-    expect(back === evidence).toBe(true);
+    expect(canonical({ schemaVersion: 2, receipts: records.map((record) => JSON.parse(read(`${R}/${record.id}.json`))) })).toBe(raw);
   });
   it("M2, K5: a second run writes nothing, and the index holds config.json plus the item paths", async () => {
     legacy([receipt("A-1"), receipt("B-1")], { "A-1": entry("A-1") });
