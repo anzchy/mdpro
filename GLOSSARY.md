@@ -42,11 +42,12 @@ _Avoid_: policy
 A recorded, user-approved permission to land one change although a named landing condition is unmet.
 
 **Change scope**:
-CI's class for a pull request — prose, policy or code — set by the most demanding path it changes.
+The class of a changed path (prose, policy or code) that decides how it may land and which CI runs; a change takes the most
+demanding scope among its paths.
 _Avoid_: docs tier, CI tier (tier means the audit tier)
 
 **Gate input**:
-A file that is not code but that a test or gate script reads, so CI treats a change to it as policy.
+A file that is not code but that a test or gate script reads; its readers run before it lands, by any route.
 _Avoid_: executable doc, test fixture (for these files)
 
 ## TDD
