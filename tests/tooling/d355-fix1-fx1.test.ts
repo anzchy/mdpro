@@ -2,7 +2,7 @@
 // D355 fix 1, fx1: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, sha, rawSection, section, normalise, sentences, LA, RR, R70, R71, HISTORY, FOLD_IN, ADR, liveHomes, hits, anchorExists, withoutCurrentText, currentText, SUPERSEDED, CONDITIONAL,
+  read, flat, sha, rawSection, section, normalise, sentences, LA, RR, R70, R71, HISTORY, FOLD_IN, ADR, liveHomes, hits, anchorExists, withoutForwardLinks, currentText, addStatusParagraph, LATER_FOLD, SUPERSEDED, CONDITIONAL,
 } from "./d355-fix1-lib";
 describe("FX-1: the moved audit homes state ADR-0143", () => {
   it("A1: no live home keeps the superseded round cap or auditor routing", () => {
@@ -61,8 +61,10 @@ describe("FX-1: the moved audit homes state ADR-0143", () => {
     const rel = ADR("0143");
     expect(currentText(rel)).toContain("landing-and-audit.md#audit-merge");
     expect(anchorExists(LA, "audit-merge")).toBe(true);
-    // the accepted body is immutable: its bytes at 22ffe5ea (blob ce26122c), less the Current text line
-    expect(sha(withoutCurrentText(read(rel)))).toBe("b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3");
+    // the accepted body is immutable: its bytes at 22ffe5ea (blob ce26122c), less its permitted forward-link paragraphs
+    expect(sha(withoutForwardLinks(read(rel)))).toBe("b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3");
+    // #629: a later permitted Status paragraph does not count as a body change
+    expect(sha(withoutForwardLinks(addStatusParagraph(read(rel), LATER_FOLD)))).toBe("b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3");
   });
 
   it("A7: the old wording lives on in the history file", () => {

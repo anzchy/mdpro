@@ -1,4 +1,6 @@
-// Shared helpers for the D355 fix-1 tests (d355-fix1-*.test.ts).
+// Purpose: shared helpers for the D355 fix-1 tests (d355-fix1-*.test.ts) and the ADR readers: `adrFiles`/`findAdr`/`ADR`
+// read `NNNN-*.md` records only, and `withoutForwardLinks` strips the Status paragraphs docs/adr/README.md permits, so a
+// body hash holds the accepted record while folds add Status lines (#629; its own tests are adr-forward-links.test.ts).
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -65,8 +67,14 @@ export const HISTORY = "docs/reference/20261027-rules-70-71-history.md";
 export const FOLD_IN = "docs/agents/decisions/20261102-d355-rules-70-71-fold-in.md";
 export const BRIEF_T = `${REF}/templates/brief-template.md`;
 export const FIX_T = `${REF}/templates/fix-brief-template.md`;
+export const ADR_DIR = path.join(root, "docs/adr");
+/** The ADR record file names in `dir`, sorted: `NNNN-*.md` files only, so README.md or a directory is never read (#629). */
+export const adrFiles = (dir = ADR_DIR): string[] =>
+  fs.readdirSync(dir).filter((f) => /^\d{4}-.+\.md$/.test(f) && fs.statSync(path.join(dir, f)).isFile()).sort();
+/** The file name of ADR `n` in `dir`, or undefined when there is none. */
+export const findAdr = (dir: string, n: string): string | undefined => adrFiles(dir).find((f) => f.startsWith(`${n}-`));
 export const ADR = (n: string) => {
-  const name = fs.readdirSync(path.join(root, "docs/adr")).find((f) => f.startsWith(`${n}-`));
+  const name = findAdr(ADR_DIR, n);
   if (!name) throw new Error(`ADR-${n} missing`);
   return `docs/adr/${name}`;
 };
@@ -126,9 +134,26 @@ export function unresolvedSectionRefs(file: string, text: string): string[] {
   });
   return bad;
 }
-/** The ADR's text with its `Current text:` Status line removed. */
-// the Status line and the blank line the fold-in added after it (a GREEN-time test fix: without it A6 could never pass)
-export const withoutCurrentText = (text: string) => text.replace(/^\*\*Current text:.*\n\n/m, "");
+// A paragraph docs/adr/README.md lets an accepted ADR gain after acceptance: `Superseded by ADR-NNNN`, `partially
+// superseded: …`, `Current text: …; folded by ADR-0165`, `Current text: …; folded and changed by …`, and dated
+// `Drifted` / `False in practice` lines. An optional leading date, `**` or `Status note**:` prefix is allowed; the
+// `**Status**:` line itself and a backward `Supersedes …` paragraph are not forward links.
+const FORWARD_LINK =
+  /^(?:\*\*)?(?:status note\*\*:\s*)?(?:\(?\d{4}-\d{2}-\d{2}\)?[,:]?\s+)?(?:\*\*)?(?:current text: [^\n]*?; folded (?:and changed )?by\b|(?:partially )?superseded\b|drifted\b|false in practice\b)/i;
+/**
+ * The ADR's text with every permitted forward-link paragraph of its Status block removed (#629): the paragraphs before
+ * the first `## ` heading other than `## Status`. Everything else, the Status line and the body included, is kept
+ * byte for byte, so a hash of the result holds the accepted record while Status annotations are added.
+ */
+export function withoutForwardLinks(text: string): string {
+  const paras = text.split("\n\n");
+  const end = paras.findIndex((p) => /^## (?!Status\n|Status$)/.test(p));
+  return paras.filter((p, i) => (end >= 0 && i >= end) || !FORWARD_LINK.test(p)).join("\n\n");
+}
+/** `text` with `para` added as the last paragraph before `## Context`: a Status annotation, as a fold would add it. */
+export const addStatusParagraph = (text: string, para: string) => text.replace("\n\n## Context\n", `\n\n${para}\n\n## Context\n`);
+/** A permitted forward-link paragraph a later fold could add; the pins below must still pass with it. */
+export const LATER_FOLD = "**Current text: `docs/guide/load-guard.md#admission`; folded by ADR-0165**, 2026-11-04 (#629 fixture).";
 export const currentText = (rel: string) => read(rel).split("\n").find((l) => l.startsWith("**Current text:")) ?? "";
 
 export const SUPERSEDED = [

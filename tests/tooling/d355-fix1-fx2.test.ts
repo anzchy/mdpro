@@ -1,10 +1,8 @@
 // @vitest-environment node
 // D355 fix 1, fx2: see d355-fix1-lib.ts for the shared scanner.
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  root, read, flat, sha, ISSUE_570, rawSection, section, sentences, LA, R71, R12, IMPL, SKILL, PROMPT, FOLD_IN, BRIEF_T, ADR, anchorExists,
+  read, flat, sha, ISSUE_570, rawSection, section, sentences, LA, R71, R12, IMPL, SKILL, PROMPT, FOLD_IN, BRIEF_T, ADR, adrFiles, anchorExists,
 } from "./d355-fix1-lib";
 describe("FX-2: the pre-go-live TDD law (ruling 1 R1)", () => {
   const impl = () => rawSection(read(IMPL), "Matrix and attack");
@@ -70,8 +68,7 @@ describe("FX-2: the pre-go-live TDD law (ruling 1 R1)", () => {
 
   it("B6: the fold-in entry's ADR count matches the ADRs that link it, and 0161 says it waits for T-02", () => {
     const entry = read(FOLD_IN);
-    const linking = fs.readdirSync(path.join(root, "docs/adr"))
-      .filter((f) => read(`docs/adr/${f}`).includes("20261102-d355-rules-70-71-fold-in.md")).length;
+    const linking = adrFiles().filter((f) => read(`docs/adr/${f}`).includes("20261102-d355-rules-70-71-fold-in.md")).length;
     const rows = entry.split("\n").filter((l) => /^\| 0\d{3} \|/.test(l));
     expect(rows.filter((l) => !/no Status line until T-02/.test(l)).length).toBe(linking);
     expect(rows.find((l) => l.startsWith("| 0161 |"))).toMatch(/no Status line until T-02/);

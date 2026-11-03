@@ -2,7 +2,7 @@
 // D355 fix 1, shoulds: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutCurrentText, currentText,
+  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutForwardLinks, currentText, addStatusParagraph, LATER_FOLD,
 } from "./d355-fix1-lib";
 describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   it("D1: codex-panes.md links AGENTS.md's renamed section", () => {
@@ -77,12 +77,17 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     for (const a of ["device-tester.md#mac-mini", "roster-and-routing.md#roster", "codex-panes.md#restart", "device-batches.md#device-routing"]) {
       expect(l134, a).toContain(a);
     }
-    // the accepted bodies are immutable: their bytes at 22ffe5ea (blobs b58c7599, aa0f8aa4), less the Current text line
+    // the accepted records are immutable: their bytes at 22ffe5ea (blobs b58c7599, aa0f8aa4), less every permitted
+    // forward-link paragraph (#629 re-recorded both: each is the old pin's text less one dated "partially superseded")
     const bodies: Record<string, string> = {
-      "0085": "23c1faaab46b40ab2fcea0d04daf13eb78b3d02be45df4e57e2f34a649e807fa",
-      "0134": "efd568390b3e71affb8db11600f0630d327c8dbe4bf54158442138c4b45c3c42",
+      "0085": "e82b18283bc1d7295ff05028a7b31894994bfed61b53bbe7d83ed00a3afce251",
+      "0134": "2c73c259a2c7f948028bc4468887dad0faedec84ec609baa3f8c5cfcadd0c4f7",
     };
-    for (const n of ["0085", "0134"]) expect(sha(withoutCurrentText(read(ADR(n)))), n).toBe(bodies[n]);
+    for (const n of ["0085", "0134"]) {
+      expect(sha(withoutForwardLinks(read(ADR(n)))), n).toBe(bodies[n]);
+      // #629: a later permitted Status paragraph does not count as a body change
+      expect(sha(withoutForwardLinks(addStatusParagraph(read(ADR(n)), LATER_FOLD))), `${n} + later fold`).toBe(bodies[n]);
+    }
     const entry = read(FOLD_IN);
     expect(entry.split("\n").find((l) => l.startsWith("| 0085 |"))).toContain("70-multi-session-coordination.md#commits-and-branches");
     expect(entry.split("\n").find((l) => l.startsWith("| 0134 |"))).toContain("device-batches.md#device-routing");

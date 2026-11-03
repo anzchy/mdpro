@@ -64,7 +64,25 @@ describe("rule 70 and 71 citations resolve (live tree)", () => {
     expect(kinds.hooks).toBeGreaterThan(0);
     expect(kinds.agents).toBeGreaterThan(0);
     const adr = files.find((f) => f.startsWith("docs/adr/0146-"))!;
-    expect(found(adr).some((c) => c.line === 49 && c.label === "Commits" && c.item === 4)).toBe(true);
+    expect(cites0146(adr, readRel(root, adr))).toBe(true);
+  });
+
+  // #629: the citation is found by the decision-list line it sits on, not by its line number
+  const cites0146 = (file: string, text: string) => {
+    const lines = text.split("\n");
+    return findCitations(file, text).some((c) => c.label === "Commits" && c.item === 4
+      && lines[c.line - 1].startsWith("- **rule 70 Commits item 4**, four clauses:"));
+  };
+
+  it("#629: ADR-0146's citation is still found after a permitted Status paragraph is added above it", () => {
+    const adr = citationScanSet(root).find((f) => f.startsWith("docs/adr/0146-"))!;
+    const text = readRel(root, adr);
+    // a dated forward link added after the Accepted paragraph, which shifts the citation down by two lines
+    const later = "2026-11-04 partially superseded: decision 9's clause by [ADR-0999](0999-x.md) (fixture).";
+    const at = text.indexOf("\n\n", text.indexOf("## Status\n\n") + 11);
+    expect(cites0146(adr, `${text.slice(0, at)}\n\n${later}${text.slice(at)}`)).toBe(true);
+    // mutation guard: a body edit that breaks the citation is still caught
+    expect(cites0146(adr, text.replace("**rule 70 Commits item 4**", "**rule 70 Commits, item 4**"))).toBe(false);
   });
 
   it("rule 70 § Sessions still states the role limits role-guard.sh enforces (R28, ADR-0147 d4)", () => {

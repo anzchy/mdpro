@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { addStatusParagraph, LATER_FOLD, withoutForwardLinks } from "./d355-fix1-lib";
 
 const root = path.resolve(__dirname, "../..");
 const read = (rel: string) => {
@@ -224,22 +225,43 @@ describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-
     }
   });
 
-  it("adds one dated Status line to ADR-0147 and leaves the rest of the record byte-identical", () => {
-    const adr = read(adrPath);
+  // The pin as a predicate over the record's text, so the #629 cases below can feed it an annotated copy. It holds the
+  // body below Status by hash, the two fold lines by their links, and the rest of the Status block, less every permitted
+  // forward-link paragraph (docs/adr/README.md), by hash: #587's base, byte for byte. Later permitted lines may be added.
+  function adr0147Holds(adr: string): boolean {
     const cut = adr.indexOf("\n## Context");
-    expect(sha(adr.slice(cut))).toBe("7603795507f7b665bedd9d457a9439d5215a9c392d2334fd9a77ced7cc1bf3eb");
-    const status = adr.slice(0, cut);
-    // D355 adds its own fold-in Status line after this one; each entry's line is found by its link, and the Status
-    // block without both lines is still #587's base, byte for byte.
-    const lines = status.split("\n").filter(line => line.includes("folded and changed by"));
-    const d355 = lines.filter(line => line.includes("](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)"));
-    expect(d355).toHaveLength(1);
-    const ours = lines.filter(line => !d355.includes(line));
-    expect(ours).toHaveLength(1);
+    if (sha(adr.slice(cut)) !== "7603795507f7b665bedd9d457a9439d5215a9c392d2334fd9a77ced7cc1bf3eb") return false;
+    const lines = adr.slice(0, cut).split("\n");
+    const d355 = lines.filter(line => line.includes("folded and changed by")
+      && line.includes("](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)"));
+    const ours = lines.filter(line => line.includes("folded and changed by [`docs/agents/decisions/20261102-audit-policy-set-split.md`]"));
+    if (d355.length !== 1 || ours.length !== 1) return false;
     const line = ours[0];
-    expect(line).toMatch(/^\*\*Current text: `[^`]+`; folded and changed by \[`docs\/agents\/decisions\/20261102-audit-policy-set-split\.md`\]\(\.\.\/agents\/decisions\/20261102-audit-policy-set-split\.md\)\*\*, 2026-11-02/);
-    expect(line).toContain("decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap");
-    expect(sha(status.replace(`\n\n${d355[0]}`, "").replace(`\n\n${line}`, ""))).toBe("b4474f9576af0672dacb2a03b4503e3227469d36bd29ca1d07a41e1b6a0b72db");
+    if (!/^\*\*Current text: `[^`]+`; folded and changed by \[`docs\/agents\/decisions\/20261102-audit-policy-set-split\.md`\]\(\.\.\/agents\/decisions\/20261102-audit-policy-set-split\.md\)\*\*, 2026-11-02/.test(line)) return false;
+    if (!line.includes("decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap")) return false;
+    const rest = withoutForwardLinks(adr);
+    return sha(rest.slice(0, rest.indexOf("\n## Context"))) === "b4474f9576af0672dacb2a03b4503e3227469d36bd29ca1d07a41e1b6a0b72db";
+  }
+
+  it("adds one dated Status line to ADR-0147 and leaves the rest of the record byte-identical", () => {
+    expect(adr0147Holds(read(adrPath))).toBe(true);
+  });
+
+  it("#629: a later permitted forward-link paragraph does not break the pin", () => {
+    const adr = read(adrPath);
+    expect(adr0147Holds(addStatusParagraph(adr, LATER_FOLD))).toBe(true);
+    const changed = "**Current text: `docs/guide/load-guard.md#admission`; folded and changed by [`docs/agents/decisions/20261104-x.md`](../agents/decisions/20261104-x.md)**, 2026-11-04.";
+    expect(adr0147Holds(addStatusParagraph(adr, changed))).toBe(true);
+    expect(adr0147Holds(addStatusParagraph(adr, "2026-11-04 Drifted: see [evidence](../test/x.md)."))).toBe(true);
+  });
+
+  it("#629: a body byte, a non-permitted Status edit or a missing fold line still fails it (mutation guard)", () => {
+    const adr = read(adrPath);
+    expect(adr0147Holds(adr.replace("\n## Context\n", "\n## Context\n\n "))).toBe(false);
+    expect(adr0147Holds(adr.replace("Accepted, 2026-10-27", "Accepted, 2026-10-28"))).toBe(false);
+    expect(adr0147Holds(addStatusParagraph(adr, "An extra note."))).toBe(false);
+    const d355 = adr.split("\n").find(l => l.includes("](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)"))!;
+    expect(adr0147Holds(adr.replace(`\n\n${d355}`, ""))).toBe(false);
   });
 });
 
