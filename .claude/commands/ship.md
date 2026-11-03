@@ -146,7 +146,7 @@ If `master` moved in the meantime, rebase again, re-run the gates and resend.
 ## Step 8 — Sync Docs (if feature changes)
 
 If the change introduces new IPC commands, keyboard shortcuts, or user-facing behaviors:
-- Update CLAUDE.md IPC table
+- Update CLAUDE.md § Architecture's "Key commands:" list for a new IPC command, and the events table in `docs/guide/architecture.md#events` for a new event
 - Update `docs/guide/keyboard-shortcuts.md` if shortcuts changed (rule 41)
 - Update relevant `docs/guide/*.md` if behavior changed
 
