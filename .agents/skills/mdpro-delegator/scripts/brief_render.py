@@ -74,8 +74,9 @@ def label_name(rest):
 
 
 def phrase_view(text):
-    """Text as a reader sees a phrase in it: NFKC, emphasis and strike markers removed, whitespace collapsed."""
-    return " ".join(re.sub(r"[*_~]", "", unicodedata.normalize("NFKC", text)).split())
+    """Text as a reader sees a phrase in it: escapes dropped, NFKC, emphasis and strike markers removed, whitespace
+    collapsed. Lookalikes are not folded here (question 3)."""
+    return " ".join(re.sub(r"[*_~]", "", unicodedata.normalize("NFKC", ESCAPE.sub(r"\1", text))).split())
 
 
 def indent_of(line):

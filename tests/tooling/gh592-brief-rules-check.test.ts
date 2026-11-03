@@ -830,5 +830,11 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
       expect(h.prompts()).toEqual([]);
     }
   });
+  it("F3q AC-5 (code review, added in cycle F1-6): an escape inside \"Same paths as the grant\" is dropped as S5 renders it", async () => {
+    const h = harness();
+    for (const form of ["- Same paths as the gr\\_ant.", "- Same paths as the \\*grant\\*."]) {
+      await refusedAt(h, grant(`${form}\n- **May create:** \`scripts/new.mjs\`.`, "rule 22, rule 50"), /copy the grant's \*\*May edit:\*\*/);
+    }
+  });
   // next-case
 });
