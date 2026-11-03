@@ -452,5 +452,122 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = lenient.write(grant("- **May edit:** `src/a.ts`.", "none"));
     lenient.expectSent(await lenient.send(brief), brief);
   });
+  // ---- AC-2 / AC-3 / AC-5 controls (raw-green: they pin semantics the earlier cycles built) ----
+  const needs = (result: Result, rules: Array<22 | 50>) => {
+    expect(result.code, result.stderr).toBe(2);
+    for (const n of [22, 50] as const) {
+      if (rules.includes(n)) expect(result.stderr).toMatch(new RegExp(`needs rule ${n} `));
+      else expect(result.stderr).not.toMatch(new RegExp(`needs rule ${n} `));
+    }
+    expect(result.stderr).not.toMatch(/unresolvable|not backticked|not a plain/);
+  };
+  it("C9/C44/C45 AC-2: glob, folder and case-variant scopes require the rules their globs overlap", async () => {
+    const h = harness();
+    const cases: Array<[string, Array<22 | 50>]> = [
+      ["src/**/*.tsx", [22, 50]], ["tests/", [22, 50]], ["src", [22, 50]], ["./src/a.ts", [22, 50]], ["**/*.tsx", [22, 50]],
+      ["*/a.ts", [22, 50]], ["SRC/A.ts", [22, 50]], ["src/**/deep/a.ts", [22, 50]],
+      [".agents/skills/*/scripts/**", [22]], [".agents/**", [22]], [".agents/skills/scripts/x.sh", [22]],
+      [".agents/skills/a/b/scripts/x.sh", [22]], [".claude/hooks/x.sh", [22]], ["scripts/b.sh", [22]],
+    ];
+    for (const [token, rules] of cases) {
+      h.reset();
+      needs(await h.send(h.write(grant(`- **May edit:** \`${token}\`.`, "none"))), rules);
+      expect(h.prompts()).toEqual([]);
+    }
+  });
+
+  it("C10/C11 AC-2: near-miss prefixes require nothing, and a mixed scope takes the union", async () => {
+    const h = harness();
+    for (const dir of ["srcfoo", "my-scripts"]) fs.mkdirSync(path.join(h.repo, dir));
+    for (const token of ["srcfoo/a.ts", "my-scripts/x", ".agents/skills/x/SKILL.md", "tests.md", ".claude/hooksx/a"]) {
+      h.reset();
+      const brief = h.write(grant(`- **May edit:** \`${token}\`.`, "none"));
+      h.expectSent(await h.send(brief), brief);
+    }
+    h.reset();
+    needs(await h.send(h.write(grant("- **May edit:** `docs/a.md`, `scripts/b.sh`.", "none"))), [22]);
+  });
+
+  it("C40/C41/C42/C70 AC-3: paragraph extent for May edit, May create and the field", async () => {
+    const h = harness();
+    const cases: Array<[string, string, Array<22 | 50>]> = [
+      ["- **May edit:** `docs/x.md`,\n  `src/a.ts`.", "rule 22", [50]],
+      ["- **May edit:** `docs/x.md`.\n- **May edit:** `src/a.ts`.", "none", [22, 50]],
+      ["- **May edit:** `docs/x.md`.\n- **May create:**\n  - `src/a.ts`;", "rule 22", [50]],
+      ["- **May edit:** `docs/x.md`.\n- **May create:** `docs/y.md`,\n  `src/a.ts`.", "rule 22", [50]],
+      ["- **May edit:** `docs/x.md`.\n- **May create:** `docs/y.md`.\n- **May create:** `src/a.ts`.", "rule 22", [50]],
+      ["- **May edit:** `src/a.ts`.", "rule 22.\n\nrule 50", [50]],
+      ["- **May edit:** `src/a.ts`.", "rule 22.\n- rule 50", [50]],
+    ];
+    for (const [scope, field, rules] of cases) {
+      h.reset();
+      needs(await h.send(h.write(grant(scope, field))), rules);
+    }
+  });
+
+  it("C21/C56a AC-3: the GH592 brief's own shape: nested bullets, ended by the Anything else bullet", async () => {
+    const h = harness();
+    const scope = ["- **May edit:**", "  - `.agents/skills/mdpro-delegator/scripts/prompt.sh`;",
+      "  - a new helper `.agents/skills/mdpro-delegator/scripts/brief-rules-check.mjs` (or `.py`, matching the scripts' idiom), if",
+      "    the check outgrows prompt.sh's 300-line ceiling;", "  - `tests/tooling/gh592-brief-rules-check.test.ts`;",
+      "  - the two brief templates (only to document the refusal);",
+      "  - `.agents/skills/mdpro-delegator/SKILL.md` or `.agents/skills/mdpro-delegator/references/codex-panes.md` (one line on the refusal).",
+      "- **Anything else:** stop and ask; never `src/a.ts`."].join("\n");
+    const extra = "## 2a. Open questions, with defaults\n- **Q2. How are \"May edit\" paths found?** Default: the brief's `**May edit:**` paragraph in § 2.\n";
+    const brief = h.write(grant(scope, "rule 22, rule 50", extra));
+    h.expectSent(await h.send(brief), brief);
+    h.reset();
+    needs(await h.send(h.write(grant(scope, "rule 22", extra))), [50]);
+  });
+
+  it("C49a/C49b AC-2: the template's May edit wording; the fixture allowance is not scope", async () => {
+    const h = harness();
+    const lines = fs.readFileSync(".agents/skills/mdpro-delegator/references/templates/brief-template.md", "utf8").split("\n").slice(21, 25).join("\n");
+    expect(lines).toMatch(/^- \*\*May edit:\*\* <paths>, their tests/);
+    needs(await h.send(h.write(grant(lines.replace("<paths>", "`docs/x.md`").replace(/<ID>/g, "X1"), "none"))), [22, 50]);
+    h.reset();
+    const brief = h.write(grant(lines.replace("<paths>", "`docs/x.md`").replace(", their tests", "").replace(/<ID>/g, "X1"), "none"));
+    h.expectSent(await h.send(brief), brief);
+  });
+
+  it("C58 AC-5: a standalone May edit line followed by column-0 bullets is a missing scope (known limit, fail closed)", async () => {
+    const h = harness();
+    h.expectRefused(await h.send(h.write(grant("**May edit:**\n- `docs/x.md`", "rule 22, rule 50"))), /\*\*May edit:\*\* paragraph names no backticked path/);
+  });
+
+  it("C59 AC-2: known limit (ruling 2 gap 10): an unbackticked bare word is not scope", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `docs/a.md` and anything under src.", "none"));
+    h.expectSent(await h.send(brief), brief);
+  });
+
+  it("C61/C68/C73b/C73c AC-5: resolvable tokens and exempt single words are not called unresolvable", async () => {
+    const h = harness();
+    const sent: Array<[string, string]> = [["`tests/tooling/x.test.ts`", "rule 22, rule 50"], ["`[Unreleased]`", "none"], ["`CHANGELOG.md`", "none"],
+      ["`.py`", "none"], ["`*.md`", "none"], ["`src`", "rule 22, rule 50"], ["`nofile.md`", "none"]];
+    for (const [token, field] of sent) {
+      h.reset();
+      const brief = h.write(grant(`- **May edit:** \`docs/x.md\`, ${token}.`, field));
+      h.expectSent(await h.send(brief), brief);
+    }
+    h.reset();
+    needs(await h.send(h.write(grant("- **May edit:** `te*/x.test.ts`.", "none"))), [22, 50]);
+  });
+
+  it("C74g AC-5: prose May, a date and a quoted label are not scope labels", async () => {
+    const h = harness();
+    const extra = "## 3. Notes\nThe implementor may edit tests later.\nMay 3 notes: none.\nThe label `**May extend**` is not used.\n";
+    const brief = h.write(grant("- **May edit:** `docs/x.md`.", "none", extra));
+    h.expectSent(await h.send(brief), brief);
+  });
+
+  it("C20 AC-3: a CRLF, BOM and CJK brief is read like any other", async () => {
+    const h = harness();
+    const text = "﻿" + grant("- **May edit:** `src/a.ts`（中文说明）.", "规则：rule 22、rule 50").replace(/\n/g, "\r\n");
+    const brief = h.write(text);
+    h.expectSent(await h.send(brief), brief);
+    h.reset();
+    needs(await h.send(h.write("﻿" + grant("- **May edit:** `src/a.ts`.", "规则：rule 22").replace(/\n/g, "\r\n"))), [50]);
+  });
   // next-case
 });
