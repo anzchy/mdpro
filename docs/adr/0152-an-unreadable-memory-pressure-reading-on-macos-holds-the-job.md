@@ -9,6 +9,8 @@ proposal. The user's words: 「Split by OS (Recommended)」. **Partially superse
 load guard of [ADR-0150](0150-heavy-and-gui-runs-exclude-each-other-and-a-load-guard-stops-a-job-under-memory-or-cpu-overload.md)
 and [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md).
 
+**Current text: `docs/guide/load-guard.md#admission-and-runtime`; folded by ADR-0165**, 2026-11-04 (#629).
+
 ## Context
 
 - `kern.memorystatus_vm_pressure_level` returns the libdispatch constants NORMAL 1, WARN 2, CRITICAL 4 (SDK

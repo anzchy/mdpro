@@ -9,6 +9,8 @@
 and [ADR-0153](0153-admission-needs-the-jobs-own-budget-plus-one-gib-free.md) decision 1. Their budgets, the 1 GiB
 margin and the placeholders stand.
 
+**Current text: `docs/guide/load-guard.md#admission-and-runtime`; folded by ADR-0165**, 2026-11-04 (#629).
+
 ## Context
 
 - On 2026-10-29 the guard's formula read about 5.2 GiB free on a healthy machine (pressure 1, swap 0, Activity Monitor

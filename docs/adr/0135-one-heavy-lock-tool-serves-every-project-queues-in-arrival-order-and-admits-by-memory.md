@@ -37,6 +37,8 @@ It keeps:
 
 Evidence: [`docs/reference/20261023-heavy-lock-incident.md`](../reference/20261023-heavy-lock-incident.md).
 
+**Current text: `docs/guide/load-guard.md#admission-and-runtime`; folded by ADR-0165**, 2026-11-04 (#629), for decision 6 only, as amended by ADR-0151 and ADR-0152. Decisions 1–5, 7 and 8 are not built yet (D312) and are not folded.
+
 ## Context
 
 - **Two projects share one machine.**

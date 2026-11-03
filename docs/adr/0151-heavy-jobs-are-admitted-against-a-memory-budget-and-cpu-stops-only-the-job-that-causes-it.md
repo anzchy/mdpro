@@ -17,6 +17,8 @@ decisions 2 (warn-level admission), 3 (the CPU clause) and 4 (the vitest worker 
 "Warn (2): … then start with a logged warning". Everything else in ADR-0150 stands: the exclusion, the pressure-4
 runtime stop, exit 76, the log, the backstop, the measurement, the phases.
 
+**Current text: `docs/guide/load-guard.md#exclusion-and-workers`; `docs/guide/load-guard.md#admission-and-runtime`; `docs/guide/load-guard.md#interface-for-both-repositories`; folded by ADR-0165**, 2026-11-04 (#629), as amended by ADR-0153 and ADR-0154.
+
 ## Context
 
 - **cores − 2 is wrong for vitest.** ADR-0150 decision 4 caps parallelism at cores − 2, which is 8 on the 10-core mini.

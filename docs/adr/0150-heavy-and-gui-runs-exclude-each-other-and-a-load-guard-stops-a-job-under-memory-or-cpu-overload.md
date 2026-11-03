@@ -17,6 +17,8 @@ Extends [ADR-0135](0135-one-heavy-lock-tool-serves-every-project-queues-in-arriv
 (Accepted 2026-10-23, not yet built as D312): its decision 6 (memory admission) is pulled forward into phase 1 here, and
 this record adds what it does not have, a stop for a job that is already running.
 
+**Current text: `docs/guide/load-guard.md#exclusion-and-workers`; `docs/guide/load-guard.md#admission-and-runtime`; `docs/guide/load-guard.md#backstop-installation`; folded by ADR-0165**, 2026-11-04 (#629), for decisions 1–7 as amended by ADR-0151–ADR-0154. Decisions 8 (D312 absorbs the guard) and 9 (the end of the pause) are not folded.
+
 ## Context
 
 - **The crash.** The Mac mini (10 cores, 16 GiB) froze on 2026-10-28 and rebooted at 23:23. `/Library/Logs/DiagnosticReports`:

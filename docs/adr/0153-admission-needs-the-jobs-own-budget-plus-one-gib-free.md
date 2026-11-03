@@ -9,6 +9,8 @@
 [ADR-0151](0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md)
 decision 1: its "+ 4 GiB headroom" and its 9 GiB placeholder. The rest of ADR-0151 stands.
 
+**Current text: `docs/guide/load-guard.md#admission-and-runtime`; folded by ADR-0165**, 2026-11-04 (#629), as amended by ADR-0154.
+
 ## Context
 
 - While implementing ADR-0150 WI-1, the implementor's real sampler read **6.4 GiB** of free + inactive + purgeable

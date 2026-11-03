@@ -1,5 +1,12 @@
 # Load guard for heavy and GUI jobs
 
+This page states the current rule. Its history is in ADR-0150 to ADR-0154 and ADR-0135 decision 6, folded here by
+ADR-0165 (#629); [§ History](#history) lists them and the clauses that are not built yet.
+
+## Exclusion and workers
+
+At most one heavy job runs on the machine at a time: a full unit lane, an `xcodebuild test` or `swift test` lane,
+`cargo test`, `tauri build`, or a GUI batch.
 The mdpro and picsee wrappers share `~/.cache/mdpro-heavy.lock`. A GUI batch
 takes that lock first, then `~/.cache/desktop-gui.lock`, and releases them in
 reverse order. A full test or build lane holds the heavy lock for its entire
@@ -10,23 +17,30 @@ locked workers get 2048 MiB. A worker heap failure is a test failure.
 Locked Vitest runs default to two workers; explicit overrides are capped at
 three and at the available core count minus two (minimum one). Cargo test
 jobs are capped at cores minus two, respecting a smaller existing limit.
+picsee passes cores minus two to `swift -j` and `xcodebuild -jobs`.
 
 ## Admission and runtime
 
 On macOS, `kern.memorystatus_vm_pressure_level` reports libdispatch's
 **NORMAL 1**, **WARN 2**, or **CRITICAL 4**. These are not the internal XNU
 memorystatus levels. Jetsam does not reliably kill a runaway test worker;
-the guard must stop it. Admission requires pressure 1 and available memory
+the guard must stop it. Admission, for locked and guard-only runs alike,
+requires pressure 1 and available memory
 from `kern.memorystatus_level` (a 0–100 percentage of `hw.memsize`) at least
-the job-class budget plus 1 GiB. An unreadable or out-of-range level holds a
+the job-class budget plus 1 GiB. The 1 GiB is a margin for the sampling
+interval, not headroom for agents or the OS. An unreadable or out-of-range level holds a
 macOS job until the admission deadline. The older `vm_stat` free + inactive +
 purgeable figure is logged beside the new estimate for comparison. The
 measured full Vitest coverage budget is 2 GiB (1358.2 MiB peak × 1.2 =
 1.592 GiB, rounded up); every other unmeasured class,
 including picsee's, starts at 4 GiB. Replace each with measured peak
-group RSS plus 20%. Pressure 2 or 4 waits until the shared deadline and then
+group RSS plus 20%. The budgets live in one table keyed by job class,
+`BUDGET_GIB` in `scripts/load-guard/guard.py`: the Vitest coverage lane,
+`cargo test`, picsee's SwiftPM and App xctest lanes, `tauri build`, a GUI
+batch, and a partial test run. Pressure 2 or 4 waits until the shared deadline and then
 exits 75 without starting. An unreadable or unexpected pressure value on
-macOS acts as WARN and is logged with its raw value on **every** sample. On
+macOS acts as WARN and is logged with its raw value on **every** sample; a
+running job is not stopped on an unreadable sample alone. On
 other operating systems it starts the job with one note, so Linux CI can run.
 
 During a run, two consecutive pressure-4 samples stop the job. Three samples
@@ -128,3 +142,22 @@ the managed file. The installer does not load the agent and refuses to
 overwrite or remove a foreign plist. After both projects land their wrappers,
 the delegator installs and loads the agent under the user-approved operational
 barrier. The plist runs `backstop.py --once` every five seconds.
+
+## History
+
+The records behind this page, kept for their reasons (`docs/adr/README.md` § Existing records):
+
+- [ADR-0150](../adr/0150-heavy-and-gui-runs-exclude-each-other-and-a-load-guard-stops-a-job-under-memory-or-cpu-overload.md):
+  the exclusion, the runtime stop, exit 76, the log and the backstop. Its decisions 8 (D312 absorbs the guard) and 9
+  (the end of the 2026-10-29 pause) are not folded.
+- [ADR-0151](../adr/0151-heavy-jobs-are-admitted-against-a-memory-budget-and-cpu-stops-only-the-job-that-causes-it.md):
+  budgets, no start at warn, the Vitest worker cap and heap, CPU attribution, the retry rule.
+- [ADR-0152](../adr/0152-an-unreadable-memory-pressure-reading-on-macos-holds-the-job.md),
+  [ADR-0153](../adr/0153-admission-needs-the-jobs-own-budget-plus-one-gib-free.md),
+  [ADR-0154](../adr/0154-admission-reads-macos-own-available-memory-figure.md): unreadable readings by OS, the 1 GiB
+  margin, the kernel's available-memory figure.
+- [ADR-0135](../adr/0135-one-heavy-lock-tool-serves-every-project-queues-in-arrival-order-and-admits-by-memory.md)
+  decision 6 (memory admission). Its other decisions, the shared tool, `flock` lifetime, sentinel cutover, queue,
+  nesting, idle holders and tests, and
+  [ADR-0155](../adr/0155-a-gui-keeper-holds-the-heavy-lock-in-a-holding-state-and-releases-itself-when-its-gui-lock-is-gone.md)'s
+  keeper `holding` state, are not built yet (D312) and still govern from those records.
