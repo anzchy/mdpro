@@ -209,3 +209,46 @@ describe.skipIf(!pluginVersion)("D357 unarmed barriers and concurrent actions", 
     expect(pending.stderr).not.toContain("B-1 (");
   });
 });
+
+const storeScript = join(source, "scripts/tdd/receipt-store.mjs");
+const keepCheck = () => repo.run(process.execPath, [storeScript, "keep-check", "--parent", "master", "--head", "HEAD"]);
+const opOwner = (id: string) => JSON.parse(repo.read(`${T}/.unit-red-${id}.lock/owner.json`)).pid as number;
+const itemNames = (dir: string) => listing(dir).every((name) => /^[A-Z][A-Z0-9-]*\.json$/.test(name));
+
+describe.skipIf(!pluginVersion)("D357 interrupted item writes and discards (L6, L7)", () => {
+  it("L6: SIGKILL between an item's temp write and its rename leaves only <ID>.json names, and git status shows no temp path", async () => {
+    const ignore = readFileSync(join(source, ".gitignore"), "utf8").split("\n").filter((line) => line.startsWith(".claude/tdd-guardian/"));
+    expect(ignore).toContain(".claude/tdd-guardian/.tmp/");
+    repo.write(".gitignore", ["ignored/", ...ignore, ""].join("\n"));
+    expect((await repo.commit("the repository's tdd-guardian ignore lines")).status).toBe(0);
+    failing(file("A-1"));
+    expect((await record("A-1")).status).toBe(0);
+    fix();
+    const v = barriers("verify-item-temp");
+    const verifying = run(["verify", "--id", "A-1"], { MDPRO_UNIT_RED_BARRIER_DIR: v });
+    expect(await ready(v, "verify-item-temp")).toBe(true);
+    expect(listing(TMP).some((name) => /^receipt-.+\.json$/.test(name))).toBe(true);
+    await killHeld(opOwner("A-1"));
+    killed(await verifying);
+    expect(item("A-1").verdict).toBeFalsy();
+    failingOn(file("B-1"), "b");
+    const r = barriers("record-item-temp");
+    const recording = record("B-1", { MDPRO_UNIT_RED_BARRIER_DIR: r });
+    expect(await ready(r, "record-item-temp")).toBe(true);
+    await killHeld(stamp().pid);
+    killed(await recording);
+    expect(listing(TMP).length).toBeGreaterThan(0);
+    expect(listing(R)).toEqual(["A-1.json"]);
+    expect(itemNames(R) && itemNames(E)).toBe(true);
+    const status = (await repo.git("status", "--porcelain=v1", "--untracked-files=all")).stdout;
+    expect(status).not.toContain(".tmp");
+    const pending = await run(["check-pending"]);
+    expect(pending.status, pending.output).not.toBe(64);
+    expect(pending.output).not.toContain("unexpected file");
+    failingOn(file("C-1"), "c");
+    const next = await record("C-1");
+    expect(next.status, next.output).toBe(0);
+    expect(listing(R)).toEqual(["A-1.json", "C-1.json"]);
+  });
+
+});

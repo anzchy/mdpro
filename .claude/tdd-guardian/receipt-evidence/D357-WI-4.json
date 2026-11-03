@@ -1,0 +1,33 @@
+{
+  "id": "D357-WI-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T05:21:16.943Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rc5-receipt-lifecycle.test.ts\",\"D357 interrupted item writes and discards (L6, L7)\",\"L6: SIGKILL between an item's temp write and its rename leaves only <ID>.json names, and git status shows no temp path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-lifecycle.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D357-WI-4/20261103T052116943Z/tests",
+    "tree": "d8e3549591b1ebdc4e3831023a3fdfde300e2314"
+  },
+  "spec_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "816470ec80388b1db8e05374025db71209848ce4"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "816470ec80388b1db8e05374025db71209848ce4"
+  }
+}

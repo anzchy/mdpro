@@ -166,7 +166,7 @@ function record(args) {
       const after = viewText(args.cwd);
       // Write back on every engine return: a refused RED stays visible and discardable (R-a).
       receipt = viewRecord(after, args.id);
-      if (receipt) { writeItem(args.cwd, "receipt", args.id, receipt); current.set(args.id, receipt); }
+      if (receipt) { writeItem(args.cwd, "receipt", args.id, receipt, () => barrier("record-item-temp", "hold")); current.set(args.id, receipt); }
       foreign = foreignChanges(before, after, args.id);
       // A discard during the call removed its item, not its view record (L2b).
       for (const id of [...current.keys()]) if (id !== args.id && !existsSync(join(args.cwd, RECEIPTS_DIR, `${id}.json`))) current.delete(id);
@@ -211,7 +211,7 @@ function verify(args) {
   }).store.receipts[0];
   const target = readReceipt(args.cwd, args.id);
   if (!target || JSON.stringify(target) !== identity) throw usageError("Receipt incarnation changed during verification.");
-  writeItem(args.cwd, "receipt", args.id, judged);
+  writeItem(args.cwd, "receipt", args.id, judged, () => barrier("verify-item-temp", "hold")); // D357 L6: temp written, not renamed
   if (entry) withEvidenceLock(args.cwd, () => updateEntry(args.cwd, args.id, changed ? { settled_blobs: current, evidence_required: true } : { settled_blobs: current }));
   const after = readReceipt(args.cwd, args.id);
   if (!after || after.verdict !== "SEPARATION-HELD") {
