@@ -251,4 +251,29 @@ describe.skipIf(!pluginVersion)("D357 interrupted item writes and discards (L6, 
     expect(listing(R)).toEqual(["A-1.json", "C-1.json"]);
   });
 
+  it("L7: a discard killed between its two removals, then a second discard, leaves neither file and keep-check passes", async () => {
+    failing(file("A-1"));
+    expect((await record("A-1")).status).toBe(0);
+    expect(has(`${E}/A-1.json`) && has(`${R}/A-1.json`)).toBe(true);
+    const dir = barriers("discard-between-removals");
+    const discarding = run(["discard", "--id", "A-1"], { MDPRO_UNIT_RED_BARRIER_DIR: dir });
+    expect(await ready(dir, "discard-between-removals")).toBe(true);
+    expect(has(`${E}/A-1.json`)).toBe(false);
+    expect(has(`${R}/A-1.json`)).toBe(true);
+    await killHeld(opOwner("A-1"));
+    killed(await discarding);
+    expect((await repo.commit("the store a killed discard leaves")).status).toBe(0);
+    const between = await keepCheck();
+    expect(between.status, between.output).toBe(0);
+    expect(between.stdout).not.toContain("orphan");
+    expect(between.stdout).toContain("added 1");
+    const again = await run(["discard", "--id", "A-1"]);
+    expect(again.status, again.output).toBe(0);
+    expect(again.stdout).toContain("Discarded A-1");
+    expect(has(`${E}/A-1.json`) || has(`${R}/A-1.json`)).toBe(false);
+    expect((await repo.commit("the store after the second discard")).status).toBe(0);
+    const after = await keepCheck();
+    expect(after.status, after.output).toBe(0);
+    expect(after.stdout).toContain("added 0");
+  });
 });

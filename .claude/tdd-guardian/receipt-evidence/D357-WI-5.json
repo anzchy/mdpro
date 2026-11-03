@@ -1,0 +1,33 @@
+{
+  "id": "D357-WI-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T05:24:43.046Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rc5-receipt-lifecycle.test.ts\",\"D357 interrupted item writes and discards (L6, L7)\",\"L7: a discard killed between its two removals, then a second discard, leaves neither file and keep-check passes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-lifecycle.test.ts",
+        "line": 260
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D357-WI-5/20261103T052443046Z/tests",
+    "tree": "36bac37c6ab7a2fb2919d2e2767438fe3d4ca7b1"
+  },
+  "spec_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "816baa52adc73a21a2b1be3c4030345ba2084dcb"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "816baa52adc73a21a2b1be3c4030345ba2084dcb"
+  }
+}

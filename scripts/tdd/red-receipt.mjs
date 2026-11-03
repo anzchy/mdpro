@@ -249,6 +249,7 @@ function discard(args) {
   // Evidence first, so a stop between the two never leaves evidence without its receipt.
   // The pin ref stays for the 30-day sweep (brief: no ref is deleted by hand).
   withEvidenceLock(args.cwd, () => removeEntry(args.cwd, args.id));
+  barrier("discard-between-removals", "hold"); // D357 L7: evidence gone, receipt not yet
   removeItem(args.cwd, "receipt", args.id);
   process.stdout.write(`Discarded ${args.id} (${receipt.lane}, unsettled).\n`);
 }
