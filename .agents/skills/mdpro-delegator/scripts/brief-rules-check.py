@@ -75,6 +75,33 @@ def live_lines(lines):
     return live
 
 
+def code_spans(text):
+    """CommonMark code spans: a backtick run closed by the next run of the same length. Yields (start, end, content)."""
+    spans, i = [], 0
+    while i < len(text):
+        run = re.match(r"`+", text[i:])
+        if not run:
+            i += 1
+            continue
+        n = len(run.group(0))
+        close = re.search(r"(?<!`)`{%d}(?!`)" % n, text[i + n:])
+        if not close:
+            i += n
+            continue
+        end = i + n + close.end()
+        spans.append((i, end, text[i + n:i + n + close.start()].strip()))
+        i = end
+    return spans
+
+
+def masked(text):
+    """The text with every code span blanked, so a marker or a word quoted in one is not found."""
+    out = list(text)
+    for start, end, _ in code_spans(text):
+        out[start:end] = " " * (end - start)
+    return "".join(out)
+
+
 def paragraph(lines, start, column):
     """The text after a marker at `lines[start][column:]`, through its continuation lines."""
     first = lines[start]
@@ -140,16 +167,16 @@ def check(brief_path, root):
     except (OSError, UnicodeDecodeError) as error:
         raise Refusal("cannot read brief %s (%s)" % (brief_path, error))
     rules = {number: rule_globs(root, number) for number in RULE_NUMBERS}
-    fields = [(i, line.index(FIELD)) for i, line in enumerate(lines) if FIELD in line]
+    fields = [(i, masked(line).index(FIELD)) for i, line in enumerate(lines) if FIELD in masked(line)]
     if len(fields) != 1:
         raise Refusal("%s needs exactly one %s field, found %d" % (brief_path, FIELD, len(fields)))
     field = paragraph(lines, fields[0][0], fields[0][1] + len(FIELD))
-    scopes = [paragraph(lines, i, line.index(MAY_EDIT) + len(MAY_EDIT)) for i, line in enumerate(lines) if MAY_EDIT in line]
+    scopes = [paragraph(lines, i, masked(line).index(MAY_EDIT) + len(MAY_EDIT)) for i, line in enumerate(lines) if MAY_EDIT in masked(line)]
     if not scopes:
         raise Refusal("%s has no %s paragraph" % (brief_path, MAY_EDIT))
-    tokens = [token for text in scopes for token in re.findall(r"`([^`]+)`", text)]
+    tokens = [content for text in scopes for _, _, content in code_spans(text)]
     # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
-    if any(re.search(r"\btheir tests\b", re.sub(r"`[^`]*`", "", text), re.I) for text in scopes):
+    if any(re.search(r"\btheir tests\b", masked(text), re.I) for text in scopes):
         tokens.append(THEIR_TESTS)
     if not tokens:
         raise Refusal("%s: its %s paragraph names no backticked path" % (brief_path, MAY_EDIT))

@@ -136,5 +136,16 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- Scope: as below.", "rule 22, rule 50", fenced));
     h.expectRefused(await h.send(brief), /REFUSED:.*no \*\*May edit:\*\* paragraph/);
   });
+  it("C56b AC-2: a field marker quoted in a code span is a mention, not the field", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `src/a.ts`.", null, "The template's `**Rules for paths in scope.** rule 22, rule 50` line is new.\n"));
+    h.expectRefused(await h.send(brief), /REFUSED:.*exactly one \*\*Rules for paths in scope\.\*\* field, found 0/);
+  });
+
+  it("C56b AC-5: a May edit marker quoted in a code span is a mention, not scope", async () => {
+    const h = harness();
+    const brief = h.write(grant("- Scope: the brief's `**May edit:** `docs/x.md`` line.", "rule 22, rule 50"));
+    h.expectRefused(await h.send(brief), /REFUSED:.*no \*\*May edit:\*\* paragraph/);
+  });
   // next-case
 });
