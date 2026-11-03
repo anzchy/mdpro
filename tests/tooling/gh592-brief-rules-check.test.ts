@@ -522,7 +522,9 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
 
   it("C49a/C49b AC-2: the template's May edit wording; the fixture allowance is not scope", async () => {
     const h = harness();
-    const lines = fs.readFileSync(".agents/skills/mdpro-delegator/references/templates/brief-template.md", "utf8").split("\n").slice(21, 25).join("\n");
+    const all = fs.readFileSync(".agents/skills/mdpro-delegator/references/templates/brief-template.md", "utf8").split("\n");
+    const at = all.findIndex((line) => line.startsWith("- **May edit:**"));
+    const lines = all.slice(at, at + 4).join("\n");
     expect(lines).toMatch(/^- \*\*May edit:\*\* <paths>, their tests/);
     needs(await h.send(h.write(grant(lines.replace("<paths>", "`docs/x.md`").replace(/<ID>/g, "X1"), "none"))), [22, 50]);
     h.reset();
@@ -568,6 +570,15 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.expectSent(await h.send(brief), brief);
     h.reset();
     needs(await h.send(h.write("﻿" + grant("- **May edit:** `src/a.ts`.", "规则：rule 22").replace(/\n/g, "\r\n"))), [50]);
+  });
+  it.each(["brief-template.md", "fix-brief-template.md"])("C50 AC-5: the real %s, filled, passes; with the field placeholder left in, it refuses", async (file) => {
+    const h = harness();
+    const template = fs.readFileSync(path.join(".agents/skills/mdpro-delegator/references/templates", file), "utf8");
+    const filled = template.replace(/<paths>/g, "`src/a.ts`");
+    const brief = h.write(filled.replace("<AGENTS.md path-table rules, by path>", "rule 22, rule 50"));
+    h.expectSent(await h.send(brief), brief);
+    h.reset();
+    h.expectRefused(await h.send(h.write(filled, "unfilled.md")), /needs rule 22 [\s\S]*needs rule 50 /);
   });
   // next-case
 });
