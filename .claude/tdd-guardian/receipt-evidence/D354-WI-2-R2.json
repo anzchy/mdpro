@@ -30,5 +30,12 @@
   "settled_blobs": {
     "src-tauri/tests/d354_errors.rs": "5f7201e4da217ab3f2d107c29f2048588d8c4cf9"
   },
-  "evidence_required": true
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D354-WI-2-R2.json",
+    "digest": "04f1d1cc8db449435b7cedb6da1b82dbfc4480653691b5807f28734b7b68ae05",
+    "result": "failed",
+    "base": "cd25299b936192a32e02d036b3b6b63625bbf31f",
+    "head": "97751278e9d192ae880c54f0555be722c85e154f"
+  }
 }

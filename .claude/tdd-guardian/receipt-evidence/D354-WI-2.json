@@ -33,9 +33,9 @@
   "evidence_required": true,
   "replay": {
     "path": ".claude/tdd-guardian/evidence/D354-WI-2.json",
-    "digest": "d4a9e0668a6e65d4e6b5e2a77e830059d8df59383d7ab2354352195693204c74",
+    "digest": "89b89cda780b96deb0daff74593271d38b579e88d50ef0ea8ad98a316619edb0",
     "result": "failed",
-    "base": "a3e9b7ec3bc33ac0ee7705c9c033f90cd161d149",
-    "head": "cd25299b936192a32e02d036b3b6b63625bbf31f"
+    "base": "cd25299b936192a32e02d036b3b6b63625bbf31f",
+    "head": "97751278e9d192ae880c54f0555be722c85e154f"
   }
 }
