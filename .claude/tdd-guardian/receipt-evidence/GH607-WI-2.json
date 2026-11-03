@@ -85,5 +85,12 @@
   "settled_blobs": {
     "tests/tooling/ci-workflow-gate.test.ts": "6a135a389ec9bf9f5b38d5fde7baf711bfc0c992",
     "tests/tooling/gh607-failure-summary.test.ts": "c8f7ca3f75e5106823c499db493099ce7f1eb5fa"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH607-WI-2.json",
+    "digest": "e058ce20b7d86632653f26a23e50aeb3ede0f9f0a1cfbc330cb120e21c77ba00",
+    "result": "passed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "482b3c35e283984acd5104c747177750179cc487"
   }
 }
