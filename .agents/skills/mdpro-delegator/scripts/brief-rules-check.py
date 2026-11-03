@@ -153,6 +153,24 @@ def segments_overlap(a, b):
     return walk(0, 0)
 
 
+def resolvable(token, root):
+    """Ruling 2 gap 11 / ruling 3 G5: a token's first segment must be a top-level entry of this checkout (no git read).
+
+    A single word is exempt only as a whole `[...]` token or a glob-free file name with an extension
+    (`[Unreleased]`, `CHANGELOG.md`, `.py`); a single root-level file cannot fall under a rule's directory globs.
+    """
+    parts = [part for part in token.split("/") if part]
+    if len(parts) == 1 and not token.endswith("/"):
+        word = parts[0]
+        if re.fullmatch(r"\[[^\]]*\]", word) or (not GLOB_CHARS & set(word) and re.search(r"\.\w+$", word)):
+            return True
+    first = parts[0].lower()
+    entries = [entry.lower() for entry in os.listdir(root)]
+    if GLOB_CHARS & set(first):
+        return any(fnmatch.fnmatchcase(entry, first) for entry in entries)
+    return first in entries
+
+
 def scope_pattern(token):
     """A scope token as segments; a folder-like token (trailing slash, or no extension) also covers what is under it."""
     parts = [part for part in token.split("/") if part]
@@ -181,6 +199,10 @@ def check(brief_path, root):
     if bad:
         raise Refusal("%s: scope path %s is not a plain repo-relative path (absolute, '..', whitespace or an unsupported"
                       " character such as a brace)" % (brief_path, ", ".join("'%s'" % t for t in bad)))
+    unresolvable = [t for t in tokens if not resolvable(t, root)]
+    if unresolvable:
+        raise Refusal("%s: unresolvable scope path %s: its first segment is no top-level entry of %s; write the path"
+                      " from the repo root" % (brief_path, ", ".join("'%s'" % t for t in unresolvable), root))
     # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
     if any(re.search(r"\btheir tests\b", masked(text), re.I) for text in scopes):
         tokens.append(THEIR_TESTS)
