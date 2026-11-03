@@ -57,6 +57,9 @@ const { get } = useEditor((root) =>
 );
 ```
 
+This example is generic Milkdown. mdpro does not sync content through `listener`: edits reach the store through
+`editSyncMilkdownPlugin` (`src/plugins/milkdown/editSync/plugin.ts`).
+
 **Common mistake:** Registering `listenerCtx` callbacks without `.use(listener)` anywhere in the chain causes a silent no-op — the onChange never fires. The order of `.use()` and `.config()` does not matter: `.config()` callbacks run at `create()`, after every plugin is registered.
 
 ---
