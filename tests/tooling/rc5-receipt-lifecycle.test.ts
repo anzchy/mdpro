@@ -325,3 +325,47 @@ describe("D357 bound overrides only lower the bound (L9, ruling 1)", () => {
     expect(guardianBoundMs(700_000, { [MARGIN]: "5000" })).toBe(705_000);
   });
 });
+
+/** Set every receipt lane's `timeoutMs` in the fixture's tdd-guardian config. */
+function laneTimeout(ms: number) {
+  const config = JSON.parse(repo.read(`${T}/config.json`));
+  for (const lane of config.lanes) if (lane.name === "unit-red" || lane.name === "rust") lane.timeoutMs = ms;
+  repo.write(`${T}/config.json`, `${JSON.stringify(config, null, 2)}\n`);
+}
+const LOWERED = { MDPRO_UNIT_RED_GUARDIAN_FLOOR_MS: "1000", MDPRO_UNIT_RED_BOUND_MARGIN_MS: "1000", MDPRO_UNIT_RED_KILL_GRACE_MS: "1000" };
+
+describe.skipIf(!pluginVersion)("D357 a record waiting on another is inside its launcher bound (L9)", () => {
+  it("L9b: two records whose lanes each take 0.6 of the guardian bound both finish; B is never stopped by its launcher", async () => {
+    laneTimeout(30_000); // guardian bound 31 s, record launcher bound 2 × 31 + 1 = 63 s
+    failingOn(file("B-1"), "b", 18_600);
+    failingOn(file("A-1"), "a", 18_600);
+    const first = record("A-1", LOWERED);
+    expect(await until(() => has(`${STORE_LOCK}/owner.json`) && has(STAMP) && stamp().phase === "engine")).toBe(true);
+    const started = Date.now();
+    const second = await record("B-1", LOWERED);
+    const elapsed = Date.now() - started;
+    const a = await first;
+    expect(a.status, a.output).toBe(0);
+    expect(second.status, second.output).toBe(0);
+    for (const output of [a.output, second.output]) {
+      expect(output).not.toContain("did not finish");
+      expect(output).not.toContain("stopped at the launcher bound");
+    }
+    expect(elapsed).toBeGreaterThan(32_000); // past one guardian bound plus the margin: a one-call launcher bound would have stopped B
+    expect(item("B-1").red.kind).toBe("assertion-failure");
+  });
+
+  it("L9c: a record that waits on a live store lock past its launcher bound is stopped at exactly that bound", async () => {
+    laneTimeout(10_000); // guardian bound 11 s, record launcher bound 23 s
+    failingOn(file("B-1"), "b");
+    repo.write(`${STORE_LOCK}/owner.json`, JSON.stringify({ pid: process.pid, token: "d357-live-owner" }));
+    const started = Date.now();
+    const result = await record("B-1", { ...LOWERED, MDPRO_RECEIPT_STORE_LOCK_WAIT_MS: "120000" });
+    const elapsed = Date.now() - started;
+    expect(result.status, result.output).toBe(64);
+    expect(result.output).toContain("stopped at the launcher bound (23000 ms)");
+    expect(elapsed).toBeGreaterThanOrEqual(23_000);
+    expect(elapsed).toBeLessThan(30_000);
+    expect(has(`${R}/B-1.json`)).toBe(false);
+  });
+});
