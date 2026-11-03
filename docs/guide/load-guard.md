@@ -14,8 +14,9 @@ process group. Focused RED/GREEN runs use `scripts/heavy-lock.sh --guard-only
 <command...>`: they are monitored without taking the shared lock and must use
 at most two Vitest workers. Guard-only Vitest workers get a 1024 MiB V8 heap;
 locked workers get 2048 MiB. A worker heap failure is a test failure.
-Locked Vitest runs default to two workers; explicit overrides are capped at
-three and at the available core count minus two (minimum one). Cargo test
+Locked Vitest runs default to two workers; an explicit override may raise
+that to three only when the measured peak fits, and is capped at the
+available core count minus two (minimum one). Cargo test
 jobs are capped at cores minus two, respecting a smaller existing limit.
 picsee passes cores minus two to `swift -j` and `xcodebuild -jobs`.
 

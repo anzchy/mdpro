@@ -17,7 +17,7 @@ Extends [ADR-0135](0135-one-heavy-lock-tool-serves-every-project-queues-in-arriv
 (Accepted 2026-10-23, not yet built as D312): its decision 6 (memory admission) is pulled forward into phase 1 here, and
 this record adds what it does not have, a stop for a job that is already running.
 
-**Current text: `docs/guide/load-guard.md#exclusion-and-workers`; `docs/guide/load-guard.md#admission-and-runtime`; `docs/guide/load-guard.md#backstop-installation`; folded by ADR-0165**, 2026-11-04 (#629), for decisions 1–7 as amended by ADR-0151–ADR-0154. Decisions 8 (D312 absorbs the guard) and 9 (the end of the pause) are not folded.
+**Current text: `docs/guide/load-guard.md#exclusion-and-workers`; `docs/guide/load-guard.md#admission-and-runtime`; `docs/guide/load-guard.md#backstop-installation`; folded by ADR-0165**, 2026-11-04 (#629), for decisions 1–7 as amended by ADR-0151–ADR-0154, decision 5 read as widened by ADR-0151 decision 1's budget admission, which ADR-0153 decision 1 and ADR-0154 decision 1 state for "a job", so guard-only runs are admitted as locked ones are, as `scripts/heavy-lock.sh` does. Decisions 8 (D312 absorbs the guard) and 9 (the end of the pause) are not folded.
 
 ## Context
 
