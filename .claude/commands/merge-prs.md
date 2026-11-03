@@ -1,11 +1,15 @@
 ---
-description: Review and merge open PRs — sequential, safe, with rebase handling
+description: Review open PRs and prepare the ready ones for the delegator to land — sequential, with rebase handling
 argument-hint: "[#PR ... | --mine | --pattern fix/issue-*]"
 ---
 
 # Merge PRs
 
-Safely review and merge open pull requests. Sequential processing with rebase handling between merges.
+Review open pull requests one at a time, rebase the ones that need it, and hand the ready ones to the delegator.
+
+**Only the delegator lands, by `git merge --ff-only` onto `master`, and pushes `origin master`** ([rule 70 § Commits and
+branches](../rules/70-multi-session-coordination.md#commits-and-branches)). This command never merges a PR: no `gh pr
+merge`, no squash, no merge commit. Its last step is the hand-off.
 
 ## Input
 
@@ -54,19 +58,19 @@ gh pr checks {N}
 
 | Checks | Mergeable | Status |
 |--------|-----------|--------|
-| Pass | Yes | **Ready** — can merge |
+| Pass | Yes | **Ready** — can go to the delegator |
 | Fail | Any | **Blocked** — checks must pass first |
-| Pass | Conflict | **Needs rebase** — will rebase before merge |
+| Pass | Conflict | **Needs rebase** — will rebase onto `origin/master` first |
 | Pending | Any | **Waiting** — checks still running |
 
 **Present the table to the user and ask for confirmation before proceeding.**
 
 Options to offer:
-- Merge all ready PRs (skip blocked/waiting)
-- Merge specific PRs by number
+- Hand all ready PRs to the delegator (skip blocked/waiting)
+- Hand specific PRs by number
 - Cancel
 
-## Phase 3: Sequential Merge
+## Phase 3: Sequential Preparation
 
 Process PRs one at a time in the order confirmed by the user.
 
@@ -85,10 +89,11 @@ gh pr view {N} --json mergeable,statusCheckRollup,mergeStateStatus
 
 ```bash
 gh pr checkout {N}
-git rebase main
+git fetch origin
+git rebase origin/master
 ```
 
-- If rebase succeeds: force-push the branch, wait for checks, then merge.
+- If rebase succeeds: force-push the branch, then wait for checks.
   ```bash
   git push --force-with-lease
   ```
@@ -98,23 +103,22 @@ git rebase main
   ```
 - If rebase has conflicts: skip this PR, report conflicts to user, continue to next.
 
-### 3c. Merge
+### 3c. Hand to the delegator
 
+Send the delegator the PR number, its head SHA and its green checks. The delegator lands it with
+`git merge --ff-only <sha>` and pushes `origin master` (rule 70). Do not merge it here, and do not check out, pull or
+merge into `master` in this checkout.
+
+### 3d. Refresh `origin/master`
+
+Before the next PR's rebase, fetch so it rebases onto whatever the delegator has landed:
 ```bash
-gh pr merge {N} --squash --delete-branch
-```
-
-### 3d. Update main
-
-After each merge, update local main so subsequent rebases are against the latest:
-```bash
-git checkout main
-git pull origin main
+git fetch origin
 ```
 
 ### 3e. Report
 
-After each merge, log the result. Continue to next PR.
+After each hand-off, log the result. Continue to next PR.
 
 ## Phase 4: Summary
 
@@ -123,13 +127,13 @@ After all PRs are processed, display final results:
 ```
 | # | Title | Result |
 |---|-------|--------|
-| 12 | fix: resolve X | ✅ Merged |
+| 12 | fix: resolve X | ✅ Ready for delegator |
 | 34 | feat: add Y | ❌ Skipped — checks failing |
-| 56 | fix: handle Z | ✅ Merged (rebased) |
+| 56 | fix: handle Z | ✅ Ready for delegator (rebased) |
 ```
 
 Also report:
-- Number merged / skipped / failed
+- Number handed to the delegator / skipped / failed
 - Any PRs that need manual attention (conflicts, failing checks)
 
 ## Error Handling
@@ -139,15 +143,16 @@ Also report:
 | No open PRs | Report, STOP |
 | Checks failing | Skip PR, report, continue |
 | Rebase conflict | Skip PR, report conflict files, continue |
-| Merge fails | Report error, continue to next |
+| Hand-off refused (delegator reports a problem) | Report error, continue to next |
 | Force-push rejected | Skip PR, report, continue |
-| User cancels | STOP immediately, report what was already merged |
+| User cancels | STOP immediately, report what was already handed off |
 
 ## Safety Rules
 
-1. **Always confirm with user** before merging anything.
-2. **Never merge PRs with failing checks** — skip and report.
+1. **Always confirm with user** before handing anything off (an implementor asks through the delegator).
+2. **Never hand off PRs with failing checks** — skip and report.
 3. **Use `--force-with-lease`** for rebase pushes, never `--force`.
-4. **Delete branch after merge** (`--delete-branch`) to keep repo clean.
-5. **Sequential only** — never merge in parallel. Each merge may affect the next PR's mergeability.
-6. **Squash merge** — one clean commit per PR on main.
+4. **Never delete a branch** — branch deletion asks the user (rule 25), and remote branches stay thirty days (ADR-0084).
+5. **Sequential only** — never prepare in parallel. Each landing may affect the next PR's mergeability.
+6. **No merge here** — only the delegator lands, by `git merge --ff-only` onto `master` (rule 70). `master` takes no
+   merge commit.
