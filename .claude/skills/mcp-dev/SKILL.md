@@ -1,6 +1,6 @@
 ---
 name: mcp-dev
-description: MCP server development for mdpro — rmcp binary structure, shadow store, HTTP API routes, token auth, and adding new tools.
+description: MCP server development for mdpro — rmcp binary structure, shadow store, HTTP API routes, token auth, and adding new tools. Use when adding or changing an MCP tool, resource or HTTP route, or editing src-tauri/src/bin/mdpro_mcp.rs, services/http_server*.rs or services/shadow_store*.rs.
 ---
 
 # MCP Dev Skill

@@ -1,6 +1,6 @@
 ---
 name: milkdown-dev
-description: Milkdown 7 development patterns for mdpro — plugin system, content sync, ProseMirror commands, and WYSIWYG editor integration.
+description: Milkdown 7 development patterns for mdpro — plugin system, content sync, ProseMirror commands, and WYSIWYG editor integration. Use when writing or changing a Milkdown plugin under src/plugins/milkdown/, a ProseMirror command, or src/components/Editor/MilkdownEditor.tsx.
 ---
 
 # Milkdown Dev Skill
@@ -52,12 +52,12 @@ const { get } = useEditor((root) =>
     .use(commonmark)
     .use(gfm)
     .use(history)
-    .use(listener)          // must be used before .config() registers listener
+    .use(listener)          // required: listenerCtx above exists only when this plugin is in the chain
     // ... add more plugins
 );
 ```
 
-**Common mistake:** Forgetting to `.use(listener)` before registering `listenerCtx` callbacks causes a silent no-op — the onChange never fires.
+**Common mistake:** Registering `listenerCtx` callbacks without `.use(listener)` anywhere in the chain causes a silent no-op — the onChange never fires. The order of `.use()` and `.config()` does not matter: `.config()` callbacks run at `create()`, after every plugin is registered.
 
 ---
 
@@ -217,8 +217,9 @@ The store is the **single source of truth** for document content. Neither Milkdo
 Test the logic layer, not the editor integration:
 
 ```typescript
-// src/plugins/milkdown/myPlugin.test.ts
-import { extractImageFromClipboard } from './imagePastePlugin';
+// tests/my-plugin.test.ts — tests live under tests/, never under src/ (rule 10 § File placement)
+// extractImageFromClipboard is a placeholder for a pure helper your plugin exports
+import { extractImageFromClipboard } from '../src/plugins/milkdown/myPlugin';
 
 it('extracts PNG from clipboard items', () => {
   const mockItem = { type: 'image/png', getAsFile: () => new File([], 'img.png') };

@@ -1,12 +1,12 @@
 ---
 name: plan-and-doc-map
 description: >-
-  Where mdpro's planning documents live, which document is authoritative for which fact, the
-  status vocabulary, and the current phase / gate / defect state of the frontend-backend
-  redesign. Load this BEFORE writing or editing anything under docs/plans/ or docs/adr/,
-  before marking a work item done, before opening a branch, and before deciding what to work
-  on next. Also load when asked "what should I work on next", "what's the progress", "where
-  does this plan go", "is this an ADR or a plan", or anything about specs/.
+  Where mdpro's planning documents live, which one is authoritative for which fact, the
+  status vocabulary, and the redesign's phase / gate / defect state. Load this BEFORE writing
+  or editing anything under docs/plans/ or docs/adr/, before marking a work item done, before
+  opening a branch, and before deciding what to work on next. Also load when asked "what
+  should I work on next", "what's the progress", "where does this plan go", "is this an ADR
+  or a plan", or anything about specs/.
 ---
 
 # mdpro — planning documents and progress map
