@@ -41,6 +41,14 @@ _Avoid_: policy
 **Gate exception**:
 A recorded, user-approved permission to land one change although a named landing condition is unmet.
 
+**Change scope**:
+CI's class for a pull request — prose, policy or code — set by the most demanding path it changes.
+_Avoid_: docs tier, CI tier (tier means the audit tier)
+
+**Gate input**:
+A file that is not code but that a test or gate script reads, so CI treats a change to it as policy.
+_Avoid_: executable doc, test fixture (for these files)
+
 ## TDD
 
 **Test matrix**: the list of cases written before any implementation, each naming its situation and the effect it checks (a document, state or IPC effect, not a boolean).
