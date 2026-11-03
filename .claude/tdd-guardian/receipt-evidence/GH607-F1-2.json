@@ -1,0 +1,51 @@
+{
+  "id": "GH607-F1-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T14:23:22.222Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"caps an oversized failed-file message within its own row\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 196
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain 'tests/large.test.ts > (file failed: \\…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"lists every unhandled error and never claims no failures after a failure\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 209
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain 'first \\<progress\\>'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"lists failed files without failed assertions and escapes their messages\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 184
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain 'tests/first.test.ts > (file failed: l…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-F1-2/20261103T142322222Z/tests",
+    "tree": "9cde43c2c885342b4b9797f1b9c7ffe29f90598a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh607-failure-summary.test.ts": "a2181b951405454102e1444f76835c4d77974a37"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh607-failure-summary.test.ts": "a2181b951405454102e1444f76835c4d77974a37"
+  }
+}

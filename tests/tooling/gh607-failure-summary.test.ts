@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,7 +26,7 @@ function failedReport(file: string, title: string) {
   };
 }
 
-async function run(needs: string | undefined, reports: Array<[string, string]> = []) {
+async function run(needs: string | undefined, reports: Array<[string, string]> = [], unreadableLegs: string[] = []) {
   const dir = mkdtempSync(join(tmpdir(), "gh607-summary-"));
   dirs.push(dir);
   const artifacts = join(dir, "artifacts");
@@ -35,6 +35,7 @@ async function run(needs: string | undefined, reports: Array<[string, string]> =
     mkdirSync(legDir, { recursive: true });
     writeFileSync(join(legDir, ".ci-vitest-results.json"), content);
   }
+  for (const leg of unreadableLegs) chmodSync(join(artifacts, leg, ".ci-vitest-results.json"), 0o000);
   const summary = join(dir, "summary.md");
   const env = { ...process.env, GITHUB_STEP_SUMMARY: summary, NEEDS: needs };
   const result = await new Promise<{ status: number | null; stdout: string; stderr: string }>((resolve, reject) => {
@@ -112,6 +113,7 @@ describe("GH607 diagnostic CI failure summary", () => {
     expect(second.result.status).toBe(0);
     expect(second.text).toBe(first.text);
   }, 60_000);
+
   it("renders artifact-derived Markdown and HTML as inert text", async () => {
     const report = failedReport("tests/<img onerror=alert(1)>_x.test.ts", "`pipe|#*_&\\ <progress>");
     report.testResults[0].assertionResults[0].ancestorTitles = ["![alt](https://example.invalid)", "[repair](https://example.invalid)"];
@@ -170,4 +172,100 @@ describe("GH607 diagnostic CI failure summary", () => {
     expect(text).toContain("[truncated]");
   }, 60_000);
 
+  it("lists failed files without failed assertions and escapes their messages", async () => {
+    const report = {
+      success: false,
+      testResults: [
+        { name: join(ROOT, "tests/first.test.ts"), status: "failed", message: "load <img onerror=alert(1)> [repair](https://example.invalid)", assertionResults: [] },
+        { name: join(ROOT, "tests/second.test.ts"), status: "failed", message: "collect `oops|<progress>", assertionResults: [] },
+      ],
+    };
+    const { result, text } = await run(undefined, [["failed", JSON.stringify(report)]]);
+    expect(result.status).toBe(0);
+    expect(text).toContain("tests/first.test.ts > (file failed: load \\<img");
+    expect(text).toContain("tests/second.test.ts > (file failed: collect \\`oops\\|\\<progress\\>)");
+    expect(text).not.toContain("[repair](https://example.invalid)");
+    expect(text).not.toContain("no failed tests");
+  }, 60_000);
+
+  it("caps an oversized failed-file message within its own row", async () => {
+    const report = { success: false, testResults: [
+      { name: join(ROOT, "tests/large.test.ts"), status: "failed", message: `<img onerror=alert(1)> ${"M".repeat(500)}`, assertionResults: [] },
+    ] };
+    const { result, text } = await run(undefined, [["failed", JSON.stringify(report)]]);
+    expect(result.status).toBe(0);
+    expect(text).toContain("tests/large.test.ts > (file failed: \\<img");
+    expect(text).toContain("[truncated])");
+    expect(text).not.toContain("M".repeat(180));
+    expect(text).not.toContain("no failed tests");
+  }, 60_000);
+
+  it("lists every unhandled error and never claims no failures after a failure", async () => {
+    const report = { success: false, testResults: [], unhandledErrors: [
+      { message: "first <progress>" }, { message: "second [repair](https://example.invalid)" },
+    ] };
+    const passed = { success: true, testResults: [{ name: join(ROOT, "tests/passed.test.ts"), status: "passed", assertionResults: [] }] };
+    const first = await run(undefined, [["a-failed", JSON.stringify(report)], ["b-passed", JSON.stringify(passed)]]);
+    expect(first.result.status).toBe(0);
+    expect(first.text).toContain("first \\<progress\\>");
+    expect(first.text).toContain("second \\[repair\\]");
+    expect(first.text).not.toContain("no failed tests");
+    const failed = failedReport("tests/failed.test.ts", "failed assertion");
+    const second = await run(undefined, [["a-failed", JSON.stringify(failed)], ["b-passed", JSON.stringify(passed)]]);
+    expect(second.result.status).toBe(0);
+    expect(second.text).toContain("failed assertion");
+    expect(second.text).not.toContain("no failed tests");
+  }, 60_000);
+
+  it("names malformed and oversized reports beside a successful report without claiming absence", async () => {
+    const passed = JSON.stringify({ success: true, testResults: [] });
+    const { result, text } = await run(undefined, [
+      ["a-passed", passed], ["b-malformed", "{broken"],
+      ["c-oversized", JSON.stringify(failedReport("tests/huge.test.ts", "X".repeat(1_100_000)))],
+    ]);
+    expect(result.status).toBe(0);
+    expect(text).toContain("b-malformed");
+    expect(text).toContain("[malformed]");
+    expect(text).toContain("c-oversized");
+    expect(text).toContain("[oversized]");
+    expect(text).not.toContain("no failed tests");
+  }, 60_000);
+
+  it("names each artifact above the report count cap", async () => {
+    const passed = JSON.stringify({ success: true, testResults: [] });
+    const reports = Array.from({ length: 23 }, (_, index): [string, string] => [`leg-${String(index).padStart(2, "0")}`, passed]);
+    const { result, text } = await run(undefined, reports);
+    expect(result.status).toBe(0);
+    for (const index of [20, 21, 22]) expect(text).toContain(`leg-${index} [over report cap]`);
+    expect(text).not.toContain("no failed tests");
+  }, 60_000);
+
+  it("names an unreadable report and keeps the summary uncertain", async () => {
+    const passed = JSON.stringify({ success: true, testResults: [] });
+    const { result, text } = await run(undefined, [["a-passed", passed], ["b-unreadable", passed]], ["b-unreadable"]);
+    expect(result.status).toBe(0);
+    expect(text).toContain("b-unreadable [unreadable]");
+    expect(text).not.toContain("no failed tests");
+  }, 60_000);
+
+  it("reports an unsuccessful run without test rows and rejects unknown success status", async () => {
+    for (const [leg, report, reason] of [
+      ["failed", { success: false, testResults: [] }, "report failed, no test rows"],
+      ["missing", { testResults: [] }, "report status unknown"],
+      ["string", { success: "true", testResults: [] }, "report status unknown"],
+    ] as const) {
+      const { result, text } = await run(undefined, [[leg, JSON.stringify(report)]]);
+      expect(result.status).toBe(0);
+      expect(text).toContain(leg);
+      expect(text).toContain(reason);
+      expect(text).not.toContain("no failed tests");
+    }
+  }, 60_000);
+
+  it("claims no failed tests only for fully read successful reports", async () => {
+    const passed = JSON.stringify({ success: true, testResults: [] });
+    const { result, text } = await run(undefined, [["first", passed], ["second", passed]]);
+    expect(result.status).toBe(0);
+    expect(text.match(/no failed tests/g)).toHaveLength(1);
+  }, 60_000);
 });

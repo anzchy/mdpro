@@ -1,0 +1,60 @@
+{
+  "id": "GH607-F1-6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T14:33:04.382Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"names an unreadable report and keeps the summary uncertain\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 247
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain 'b-unreadable [unreadable]'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"names each artifact above the report count cap\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 239
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain 'leg-20 [over report cap]'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"names malformed and oversized reports beside a successful report without claiming absence\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 228
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain '[malformed]'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"reports an unsuccessful run without test rows and rejects unknown success status\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 260
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain 'report failed, no test rows'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-F1-6/20261103T143304382Z/tests",
+    "tree": "b9b2f0c822ed105829cc404f1281b776052a06e7"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh607-failure-summary.test.ts": "2efeb86d6e129f3ab9a6d31683b5acc26519827a"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh607-failure-summary.test.ts": "2efeb86d6e129f3ab9a6d31683b5acc26519827a"
+  }
+}

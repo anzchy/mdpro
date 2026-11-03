@@ -19,25 +19,21 @@ function safeLine(value) {
 
 function findReports(location) {
   const files = [];
+  const dropped = [];
   let excess = false;
   function visit(current) {
-    if (files.length >= reportLimit) {
-      excess = true;
-      return;
-    }
     try {
       const stat = fs.statSync(current);
       if (stat.isFile()) {
         if (files.length < reportLimit) files.push(current);
-        else excess = true;
+        else {
+          excess = true;
+          if (dropped.length < 100) dropped.push(current);
+        }
         return;
       }
       if (!stat.isDirectory()) return;
       for (const item of fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-        if (files.length >= reportLimit) {
-          excess = true;
-          break;
-        }
         const child = path.join(current, item.name);
         if (item.isDirectory()) visit(child);
         else if (item.isFile() && item.name === reportName) visit(child);
@@ -47,7 +43,7 @@ function findReports(location) {
     }
   }
   visit(location);
-  return { files, excess };
+  return { files, dropped, excess };
 }
 
 function failedJobs(raw) {
@@ -75,13 +71,23 @@ function failedTests(file) {
   const names = [];
   for (const result of report.testResults) {
     if (typeof result?.name !== "string" || !Array.isArray(result.assertionResults)) throw Error("malformed test result");
+    const before = names.length;
     for (const assertion of result.assertionResults) {
       if (assertion?.status !== "failed") continue;
       if (!Array.isArray(assertion.ancestorTitles) || typeof assertion.title !== "string") throw Error("malformed assertion");
       names.push([fileName(result.name), ...assertion.ancestorTitles, assertion.title].map(safeLine).join(" > "));
     }
+    if (result.status === "failed" && names.length === before) {
+      const message = typeof result.message === "string" ? result.message : "unknown error";
+      names.push(`${safeLine(fileName(result.name))} > (file failed: ${safeLine(message)})`);
+    }
   }
-  return { tests: names, oversized: false };
+  if (report.unhandledErrors !== undefined && !Array.isArray(report.unhandledErrors)) throw Error("malformed unhandledErrors");
+  for (const error of report.unhandledErrors ?? []) {
+    const message = typeof error?.message === "string" ? error.message : error;
+    names.push(`(unhandled error: ${safeLine(message)})`);
+  }
+  return { tests: names, oversized: false, success: report.success === true, failedRun: report.success === false };
 }
 
 function boundedOutput(lines) {
@@ -108,20 +114,33 @@ function summary(needs, location) {
   const jobs = failedJobs(needs);
   lines.push(...(jobs.length ? jobs.map((job) => `- ${job}`) : ["- no non-success jobs"]));
   lines.push("", "### Failed tests");
-  const { files, excess } = findReports(location);
+  const { files, dropped, excess } = findReports(location);
   if (!files.length) lines.push("- no test results");
+  let hasFailures = false;
+  let allSucceeded = !excess;
   for (const file of files) {
+    const artifact = safeLine(path.basename(path.dirname(file)));
     try {
-      const { tests, oversized } = failedTests(file);
+      const { tests, oversized, success, failedRun } = failedTests(file);
       if (oversized) {
-        lines.push(`- no test results (${safeLine(path.basename(path.dirname(file)))}) ${truncated}`);
+        lines.push(`- no test results (${artifact}) [oversized] ${truncated}`);
+        allSucceeded = false;
         continue;
       }
-      lines.push(...(tests.length ? tests.map((test) => `- ${test}`) : ["- no failed tests"]));
-    } catch {
-      lines.push(`- no test results (${safeLine(path.basename(path.dirname(file)))})`);
+      if (!success) {
+        allSucceeded = false;
+        if (!tests.length) tests.push(`${artifact} > (${failedRun ? "report failed, no test rows" : "report status unknown"})`);
+      }
+      if (tests.length) hasFailures = true;
+      lines.push(...tests.map((test) => `- ${test}`));
+    } catch (error) {
+      allSucceeded = false;
+      const reason = error && typeof error === "object" && "code" in error ? "unreadable" : "malformed";
+      lines.push(reason === "unreadable" ? `- no test results (${artifact} [unreadable])` : `- no test results (${artifact}) [malformed]`);
     }
   }
+  for (const file of dropped) lines.push(`- ${safeLine(path.basename(path.dirname(file)))} [over report cap]`);
+  if (allSucceeded && files.length && !hasFailures) lines.push("- no failed tests");
   if (excess) lines.push(`- ${truncated} (additional reports)`);
   return boundedOutput(lines);
 }
