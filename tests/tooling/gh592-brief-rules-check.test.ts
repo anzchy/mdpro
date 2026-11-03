@@ -158,5 +158,14 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- **May create:** `scripts/new.mjs`.", "rule 22"));
     h.expectSent(await h.send(brief), brief);
   });
+  const BAD_TOKENS = ["/Users/x/src/a.ts", "~/src/a.ts", "docs/../src/a.ts", "{src,docs}/**", "src/{a,b}.tsx", "node scripts/x.mjs"];
+  it.each(BAD_TOKENS.flatMap((token) => [["May edit", token], ["May create", token]]))("C16/C45/C55/C72 AC-5: a %s token %s refuses even beside a valid one and with both rules named", async (label, token) => {
+    const h = harness();
+    const scope = label === "May edit" ? `- **May edit:** \`docs/a.md\`, \`${token}\`.` : `- **May edit:** \`docs/a.md\`.\n- **May create:** \`${token}\`.`;
+    const brief = h.write(grant(scope, "rule 22, rule 50"));
+    const result = await h.send(brief);
+    h.expectRefused(result, /REFUSED:.*scope path/);
+    expect(result.stderr).toContain(token);
+  });
   // next-case
 });

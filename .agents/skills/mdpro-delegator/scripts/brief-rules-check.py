@@ -176,7 +176,11 @@ def check(brief_path, root):
               for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
     if not scopes:
         raise Refusal("%s has no %s paragraph (nor %s)" % (brief_path, MAY_EDIT, MAY_CREATE))
-    tokens = [content for text in scopes for _, _, content in code_spans(text)]
+    tokens = [re.sub(r"^(?:\./)+", "", content) for text in scopes for _, _, content in code_spans(text)]
+    bad = [t for t in tokens if t.startswith(("/", "~")) or ".." in t.split("/") or not re.fullmatch(r"[\w.\-/*?\[\]@+]+", t)]
+    if bad:
+        raise Refusal("%s: scope path %s is not a plain repo-relative path (absolute, '..', whitespace or an unsupported"
+                      " character such as a brace)" % (brief_path, ", ".join("'%s'" % t for t in bad)))
     # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
     if any(re.search(r"\btheir tests\b", masked(text), re.I) for text in scopes):
         tokens.append(THEIR_TESTS)
