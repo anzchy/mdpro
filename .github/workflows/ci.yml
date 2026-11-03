@@ -228,12 +228,12 @@ jobs:
             || { echo "ci-gate: a job ended in failure, was cancelled, or skipped without scope's code=false"; exit 1; }
 
       - uses: actions/checkout@v6
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 2
 
       - uses: actions/download-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 2
         with:
@@ -241,7 +241,7 @@ jobs:
           path: .ci-vitest-artifacts
 
       - name: Summarize failed jobs and tests
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         timeout-minutes: 1
         env:

@@ -77,7 +77,7 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(downloadIndex).toBeGreaterThan(checkoutIndex);
     expect(summaryIndex).toBeGreaterThan(downloadIndex);
     for (const index of [checkoutIndex, downloadIndex, summaryIndex]) {
-      expect(scalar(gateSteps[index] ?? null, "if")).toBe("always()");
+      expect(scalar(gateSteps[index] ?? null, "if")).toBe("${{ !cancelled() }}");
       expect(scalar(gateSteps[index] ?? null, "continue-on-error")).toBe("true");
     }
     const download = entry(gateSteps[downloadIndex] ?? null, "with")?.body ?? null;
@@ -95,7 +95,7 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     const diagnostics = gateSteps.slice(decisionIndex + 1);
     expect(diagnostics).toHaveLength(3);
     const budgets = diagnostics.map((step) => {
-      expect(scalar(step, "if")).toBe("always()");
+      expect(scalar(step, "if")).toBe("${{ !cancelled() }}");
       expect(scalar(step, "continue-on-error")).toBe("true");
       const timeout = scalar(step, "timeout-minutes");
       expect(timeout ?? "").toMatch(/^\d+$/);

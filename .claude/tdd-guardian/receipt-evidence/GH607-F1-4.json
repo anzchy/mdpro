@@ -1,0 +1,42 @@
+{
+  "id": "GH607-F1-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T14:24:59.750Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"bounds optional diagnostics within the ci-gate job budget\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected 'always()' to be '${{ !cancelled() }}' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"runs optional summary diagnostics after the decision without changing gate failures\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected 'always()' to be '${{ !cancelled() }}' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-F1-4/20261103T142459750Z/tests",
+    "tree": "aa7aa61cc4d4d7116e32821499e213e031a29354"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "fb3725e4ceeb51679d1d1bfa3e14de21c9b9528b"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "fb3725e4ceeb51679d1d1bfa3e14de21c9b9528b"
+  }
+}
