@@ -7,7 +7,8 @@ land with `node scripts/codex-rules/land-guard.mjs <sha>`, and push the direct d
 
 - `docs/audit/audit-log.md`: one PR row after the newest (`| #<pr> | <ID> | <tier> | <ranges> | <rounds> | <Codex per
   round> | <Opus per round> | <security> | <merged per round> | PR #<pr> comments | landed `<sha>` |`); one
-  `G<pr>-<n>` row under audit-log.md § Gate exceptions for every receipt or lane exception, quoting the user's ruling.
+  `G<pr>-<n>` row under audit-log.md § Gate exceptions for every lane or other actual gate exception, quoting the user's ruling;
+  a receipt verdict alone needs no exception ([decision](../../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md#current-rule)).
 - The item's issue: the landing record as a comment (date, PR, rounds, merged BLOCKING C0 H0, exceptions, `<sha>`), the
   `landed-unverified` label while a device AC is open (`真机未验`), closed when none is. An existing D item's
   sequencing row is still updated by the commit that finishes it, in its old status form.

@@ -10,6 +10,8 @@ partially supersedes, for its life (decision 6):
 - rule 70 § Commits item 2's dispatch order (verifier and both audits dispatched together with the CI push): under
   decision 3, the audits and the verifier are dispatched after `ci-gate` is green on the head.
 
+Current text: `.claude/rules/10-tdd.md#core-discipline`; folded and changed by `docs/agents/decisions/20261104-receipts-are-audit-evidence.md` (2026-11-04, decision 1 only; decisions 5–6 expired when 0.3.6 shipped).
+
 ## Context
 On 2026-10-31 the user asked 「反复开发核心原因是什么，让 fable 和 Codex 来评估，开发工作暂停」. gpt-auditor and
 fable-auditor assessed the records blind (`~/.mdpro-redesign/herdr-spike/{gpt-auditor,opus-auditor}/rework-assessment.md`,

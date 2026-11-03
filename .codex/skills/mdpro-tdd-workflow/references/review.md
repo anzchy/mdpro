@@ -34,7 +34,7 @@ findings and fixes nothing.
 | A data-loss path, silent failure, or unguarded await on a mutating path | High |
 | A wiring-only test in a changed file | High |
 | Every test of a unit passes against a hard-coded return | High |
-| A receipt `SEPARATION-BROKEN` without a stated reason | High |
+| A receipt `SEPARATION-BROKEN` without a stated reason | Note as audit evidence; the verdict does not decide landing ([decision](../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md)) |
 | A brief AC with no test, or a happy path untested | High |
 | A unit with a law but no S4–S6 case | Medium |
 | A mocked internal module | Medium |

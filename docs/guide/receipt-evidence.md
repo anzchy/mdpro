@@ -5,6 +5,8 @@ together with enough evidence to explain it later and to replay it against the P
 come from [ADR-0145](../adr/0145-a-broken-red-receipt-carries-its-own-evidence-and-the-auditors-rule-on-it.md)
 as amended by [ADR-0149](../adr/0149-a-broken-receipt-is-judged-by-a-base-tree-fail-to-pass-replay.md).
 The engine's receipt is untouched: it never gains a field, and nothing here changes a verdict.
+Under the [2026-11-04 decision](../agents/decisions/20261104-receipts-are-audit-evidence.md), a verdict is
+audit evidence rather than a landing condition; the parent-record `keep-check` remains a PASS condition.
 
 **Receipts and evidence are one file per id** ([decision log](../agents/decisions/20261102-receipts-per-item-files.md)):
 `.claude/tdd-guardian/receipts/<ID>.json` and `.claude/tdd-guardian/receipt-evidence/<ID>.json`, each the object as
@@ -217,15 +219,14 @@ causes never share one either.
 
 ## Who rules
 
-`mdpro-landing-verifier` step 4 runs `check-pending`, and runs `replay --base <parent>` for every
-receipt that `check-pending` names. It reports each digest.
-- **Since the entry shipped** (#551, 2026-10-30; the transition was recorded on 2026-11-01, user:
-  「Switch on now (Recommended)」), both auditors' non-weakening rulings on a passed replay, citing the
-  same digest, clear the receipt (ADR-0145 d4). The audit log still gets a gate-exception row citing
-  the digest and both rulings.
-- **The user is asked** one batched question per landing (ADR-0149 d6) only for a weakening, an
-  auditor disagreement, or a replay that failed or could not run.
-- Before 2026-11-01 every BROKEN receipt went to the user in that batched question.
+`mdpro-landing-verifier` step 4 runs `check-pending` and prints its flagged ids as information.
+The delegator puts those ids and the RED-pin → head diff of their spec files in the audit request's
+Known qualifications as advisory evidence. No receipt verdict needs a ruling or gate exception.
+When an auditor disputes whether a Critical or High's regression test fails without the fix, the
+auditor asks and the delegator runs `replay` when an auditor asks, or runs the test against the base;
+the auditor cites that result in its finding. ADR-0161 d7's T-03 go-live proof still reads receipts
+to confirm that each cycle settled before the next. The independent `keep-check` enforces an
+intentional byte-immutability and canonical-shape policy for parent records.
 
 ## Deleting pins
 

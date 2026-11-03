@@ -65,17 +65,12 @@ under `scripts/heavy-lock.sh`; the `rust` and `rust-verify-run` lanes if `src-ta
 before any other step and stops if either is missing (ADR-0162 decision 4).
 Commit on the branch; no push.
 
-**Receipt habits** (user, 2026-11-01: 「两条都采纳（带条件）(Recommended)」; brief practice only, the receipt contract is
-unchanged until D347):
-- **A wrong RED is discarded before it is edited.** Only an unsettled, branch-owned receipt, and only while no production
-  path has changed since the last commit (committed, staged, unstaged or untracked). Order: `discard`, then fix the test,
-  then `record` under a **new** id (`<ID>b`). The handoff names old and new ids, why the old oracle was wrong, and
-  `git diff-tree -p <old pin> <new pin>`. Production already changed, or `discard` refuses: keep the receipt and go to replay.
-- **One commit per cycle**: record RED → minimal change → `verify` → focused tests → commit; the next cycle starts clean.
-  Never squash or fix up cycle commits. The handoff maps each receipt to its cycle commit and shows `head_sha` equals
-  that commit's parent. The full coverage lane, typecheck and build run once per handoff, not per cycle commit.
-- After a rebase, map old→new cycle SHAs and refresh every replay digest. `check-pending` drift on a shared spec file is
-  reported, not worked around (D347).
+**Receipt habits** (user, 2026-11-01: 「两条都采纳（带条件）(Recommended)」; current landing policy:
+[2026-11-04 decision](../../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md#current-rule)):
+- **Wrong RED:** only discard an unsettled branch-owned receipt before production changes. Fix the oracle and record a
+  new id; name both ids and the reason in the handoff. Otherwise retain it as evidence.
+- **Cycles:** record RED → minimal change → `verify` → focused tests; settle each before the next. A receipt verdict
+  is advisory at landing. After a rebase, report `check-pending` drift; an auditor may ask the delegator for `replay`.
 
 ## 6. Self-acceptance
 `<ID>-handoff.md` in your folder: the AC | evidence | verdict table, receipts, lanes, tree SHAs, paths changed, the

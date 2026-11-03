@@ -28,7 +28,9 @@ The source was ported 2026-10-20 at the user's request: 「创建 .codex/skills/
 | — | Step 8: self-acceptance handoff (rule 71) | you |
 
 Nothing here replaces the delegator's checks. After your handoff, it re-reads your table, the
-landing verifier re-runs your lanes and receipts, and two auditors audit the range. This workflow
+landing verifier re-runs your lanes and checks receipt-store integrity; receipt verdicts are advisory
+under the [2026-11-04 decision](../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md).
+Two auditors audit the range. This workflow
 exists so that those checks find nothing.
 
 ## Mandatory rules
@@ -173,7 +175,7 @@ Then write `<item>-handoff.md` per `references/handoff.md`. It ends with the
 | A gap beyond the brief | Ask the delegator; stop |
 | RED not an assertion failure | Fix the test or runner and record again. Never edit production code to get a RED |
 | Receipt shows `implementation-already-present` | Name it in the handoff; don't re-record to hide it |
-| `SEPARATION-BROKEN` | Name each file and the reason. The delegator decides; don't re-record |
+| `SEPARATION-BROKEN` | Name each file and the reason as audit evidence; don't re-record |
 | Environment failure | Stop at that step and report it |
 | Coverage below threshold | Add tests or stop |
 | Reviewer High still open after one fix | List it; stop |

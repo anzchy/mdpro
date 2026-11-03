@@ -2,6 +2,8 @@
 
 ## Status
 
+Current text: `docs/guide/receipt-evidence.md#who-rules`; folded and changed by `docs/agents/decisions/20261104-receipts-are-audit-evidence.md` (2026-11-04, decisions 2–6 and decision 7's mandatory ruling dependency; per-RED evidence and storage remain).
+
 **2026-10-29: partially superseded** (decision 1's snapshot of the code under test; decision 2's re-RED target and print step; decision 3's digest contents, extended) by [ADR-0149](0149-a-broken-receipt-is-judged-by-a-base-tree-fail-to-pass-replay.md).
 
 **Accepted, 2026-10-27.** Decided by the user: 「Accept (Recommended)」, after both auditors' scoped round 3

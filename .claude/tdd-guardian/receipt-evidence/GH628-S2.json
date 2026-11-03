@@ -1,0 +1,61 @@
+{
+  "id": "GH628-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T21:24:31.106Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh628-decision.test.ts\",\"GH628-S2 reviewed decision\",\"adds forward links without changing accepted ADR bodies\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-decision.test.ts",
+        "line": 55
+      },
+      "message": "AssertionError: 0125: expected '# 0125. Frontend RED receipts run one…' to contain 'Current text:'"
+    },
+    {
+      "id": "[\"tests/tooling/gh628-decision.test.ts\",\"GH628-S2 reviewed decision\",\"names every superseded clause while preserving the receipt route\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-decision.test.ts",
+        "line": 16
+      },
+      "message": "AssertionError: ADR-0125 d5: expected '' to contain 'ADR-0125 d5'"
+    },
+    {
+      "id": "[\"tests/tooling/gh628-decision.test.ts\",\"GH628-S2 reviewed decision\",\"sends flagged ids and RED-pin to head diffs as advice, with replay only on auditor request\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-decision.test.ts",
+        "line": 44
+      },
+      "message": "AssertionError: expected '# Request: <ID> PR #<n> audit, round …' to contain 'check-pending'"
+    },
+    {
+      "id": "[\"tests/tooling/gh628-decision.test.ts\",\"GH628-S2 reviewed decision\",\"states the accepted costs and the separate CI question\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-decision.test.ts",
+        "line": 28
+      },
+      "message": "AssertionError: expected '' to contain 'intentional byte-immutability and can…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH628-S2/20261103T212431106Z/tests",
+    "tree": "872bb32a21bee66e9b40867fe305935bd310e11a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh628-decision.test.ts": "52b3fa6e78baf9c302f5ab55fa6bd27b8b97a066"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh628-decision.test.ts": "52b3fa6e78baf9c302f5ab55fa6bd27b8b97a066"
+  }
+}

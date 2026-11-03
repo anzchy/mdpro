@@ -20,6 +20,12 @@ or `cd src-tauri && cargo test` before commit.
 Bug fixes MUST include a regression test that fails without the fix and
 passes with it.
 
+**Receipt policy.** Record and verify each RED under this rule. A receipt verdict is audit evidence,
+not a landing condition; `check-pending` is informational. The independent
+`receipt-store.mjs keep-check` remains a verifier PASS condition for parent-byte immutability and
+canonical file shape. See the [2026-11-04 decision](../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md)
+and [receipt guide](../../docs/guide/receipt-evidence.md#who-rules).
+
 ## When tests are required
 
 | Category | Required? | Notes |

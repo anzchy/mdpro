@@ -2,6 +2,8 @@
 
 ## Status
 
+Current text: `.claude/rules/10-tdd.md#core-discipline`; folded and changed by `docs/agents/decisions/20261104-receipts-are-audit-evidence.md` (2026-11-04, decision 5's unsettled-receipt landing check only).
+
 Partially superseded (2026-10-21): Decision 5's "verifier's full re-run on the SHA", by [ADR-0128](0128-the-coverage-gate-runs-in-ci-and-the-verifier-stops-repeating-the-full-lane.md), once its parity proof passes.
 
 Accepted, 2026-10-20, by the user: 「Accept, fix Mediums first」. Drafted by herdr-delegator; the

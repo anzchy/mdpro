@@ -13,6 +13,8 @@ AC verdicts:
 - AC-<n>: <gpt-auditor PROVED|NOT PROVED|WRONG with evidence>; <opus-auditor PROVED|NOT PROVED|WRONG with evidence>.
   <Cite any ADR-0146 decision 4 acceptance and its (a), (b) or (c) ground.>
 
+Receipt flags in Known qualifications are advisory; no receipt-verdict ruling or gate exception is part of this merged verdict ([decision](../../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md#current-rule)).
+
 Mediums listed one line each:
 - M<n> (<gpt-auditor|opus-auditor>): <dimension, site, issue, and disposition>. Lows are counted only.
 

@@ -9,7 +9,7 @@ each block names where it came from. When this file and a rule disagree, the rul
 2. **The delegator checks ancestry and scope** (not a code review) with `git cat-file -p <sha>` and
    `git diff-tree --no-ext-diff --stat -r <parent> <sha>` (the external diff
    wrapper garbles plain `git diff`), then dispatches two independent checks
-   on that SHA at once: `mdpro-landing-verifier` (lanes, receipts, tree
+   on that SHA at once: `mdpro-landing-verifier` (lanes, receipt-store integrity, tree
    identity) and the two audits of item 4. It also pushes that SHA as the
    PR's head, so CI tests what will land. When the branch was rebased or fixed
    after an earlier push, it re-pushes with
@@ -167,7 +167,7 @@ worktree half of the confirmation above; branches still need it.
      and no second fix is offered.
    - **Every release checkpoint** runs each tracked finding's presence check on the locked SHA.
      Ancestry does not count.
-   - **Every gate exception** (lane, receipt, unrunnable check) gets a row in
+   - **Every gate exception** (lane or unrunnable check) gets a row in
      `docs/audit/audit-log.md` § Gate exceptions, whenever it is granted.
 
 ## Tiers
@@ -302,7 +302,10 @@ what it needs. An AC that conflicts with another is recorded, resolved toward th
 brief's background, and the work goes on. The implementor stops only for a path outside scope.
 
 **The delegator confirms by checking the table, not by trusting it.** It re-reads the evidence
-for each AC. The verifier re-runs the lanes and the receipts. The auditors are given the ACs. An
+for each AC. The verifier re-runs the lanes and checks parent receipt bytes and shape with `keep-check`;
+`check-pending` is informational for verifiers dispatched after the policy commit is on master
+([decision](../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md)).
+The auditors are given the ACs. An
 AC with no evidence, or with evidence that does not show the behaviour, sends the item back
 before any audit starts, except an unproved AC with a recorded acceptance under ADR-0146 decision 4
 cited in the audit request. The delegator records that acceptance before audit only when (a) a
