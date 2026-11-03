@@ -120,5 +120,21 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- **May edit:** `scripts/x.mjs`, their tests, the X1 row, `CHANGELOG.md` `[Unreleased]`.", "rule 22"));
     h.expectRefused(await h.send(brief), /REFUSED:.*rule 50 .*their tests/);
   });
+  const FENCES: Array<[string, string, string]> = [["```", "```", "backtick"], ["~~~", "~~~", "tilde"], ["````", "````", "four-backtick around ```"]];
+  it.each(FENCES)("C13 AC-2: a field inside a %s fence is not the field (closed by %s)", async (open, close, label) => {
+    const h = harness();
+    const inner = label.startsWith("four") ? "```\n" : "";
+    const fenced = `${open}markdown\n${inner}**Rules for paths in scope.** rule 22, rule 50.\n${inner}${close}\n`;
+    const brief = h.write(grant("- **May edit:** `src/a.ts`.", null, fenced));
+    h.expectRefused(await h.send(brief), /REFUSED:.*exactly one \*\*Rules for paths in scope\.\*\* field, found 0/);
+  });
+
+  it.each(FENCES)("C13 AC-2: a May edit inside a %s fence is not scope (closed by %s)", async (open, close, label) => {
+    const h = harness();
+    const inner = label.startsWith("four") ? "```\n" : "";
+    const fenced = `${open}markdown\n${inner}- **May edit:** \`docs/x.md\`.\n${inner}${close}\n`;
+    const brief = h.write(grant("- Scope: as below.", "rule 22, rule 50", fenced));
+    h.expectRefused(await h.send(brief), /REFUSED:.*no \*\*May edit:\*\* paragraph/);
+  });
   // next-case
 });

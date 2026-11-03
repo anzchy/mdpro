@@ -57,6 +57,24 @@ def rule_globs(root, number):
     return os.path.splitext(os.path.basename(path))[0], globs
 
 
+def live_lines(lines):
+    """Blank out fenced code blocks (``` or ~~~, closed by a fence of the same character at least as long)."""
+    fence, live = None, []
+    for line in lines:
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if fence:
+            if marker and marker.group(1)[0] == fence[0] and len(marker.group(1)) >= fence[1] and not line[marker.end(1):].strip():
+                fence = None
+            live.append("")
+            continue
+        if marker:
+            fence = (marker.group(1)[0], len(marker.group(1)))
+            live.append("")
+            continue
+        live.append(line)
+    return live
+
+
 def paragraph(lines, start, column):
     """The text after a marker at `lines[start][column:]`, through its continuation lines."""
     first = lines[start]
@@ -118,7 +136,7 @@ def scope_pattern(token):
 def check(brief_path, root):
     try:
         with open(brief_path, encoding="utf-8-sig") as handle:
-            lines = handle.read().replace("\r\n", "\n").split("\n")
+            lines = live_lines(handle.read().replace("\r\n", "\n").split("\n"))
     except (OSError, UnicodeDecodeError) as error:
         raise Refusal("cannot read brief %s (%s)" % (brief_path, error))
     rules = {number: rule_globs(root, number) for number in RULE_NUMBERS}
