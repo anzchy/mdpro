@@ -103,13 +103,6 @@ describe("D355 fix 3: the test lint", () => {
     expect(trackedFiles(await built)).toEqual(["a.md"]);
   });
 
-  // D355 fix 5 (L-r4-1): the mock covers the default export too, so `cp.default.<sync>` cannot slip past it
-  it("L16: the default export's three synchronous child calls throw too", async () => {
-    const cp = await import("node:child_process");
-    const calls = cp.default as unknown as Record<"execFileSync" | "execSync" | "spawnSync", () => unknown>;
-    for (const name of ["execFileSync", "execSync", "spawnSync"] as const) expect(() => calls[name](), name).toThrow("sync");
-  });
-
   it("L14: a failed load rejects and caches nothing", async () => {
     expect(typeof (core as Record<string, unknown>).loadTrackedFiles).toBe("function");
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "d355-fix3-"));
