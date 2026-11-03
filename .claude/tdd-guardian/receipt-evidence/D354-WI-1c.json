@@ -1,0 +1,51 @@
+{
+  "id": "D354-WI-1c",
+  "lane": "rust",
+  "recorded_at": "2026-11-03T07:27:32.754Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_admission::c1_all_contenders_before_listener_have_one_owner_and_once_only_receipt",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_admission.rs",
+        "line": 165
+      },
+      "message": "assertion `left == right` failed: only one process may reach normal setup\n  left: 0\n right: 1"
+    },
+    {
+      "id": "d354_admission::c2_stale_endpoint_before_bind_still_has_one_owner_and_once_only_receipt",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_admission.rs",
+        "line": 143
+      },
+      "message": "called `Option::unwrap()` on a `None` value"
+    },
+    {
+      "id": "d354_admission::c3_namespace_keys_and_path_boundary_are_stable",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_admission.rs",
+        "line": 214
+      },
+      "message": "called `Result::unwrap()` on an `Err` value: AdmissionError"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-1c/20261103T072732754Z/tests",
+    "tree": "be964c6c2beb8fd1905e19b92c4db61cb86bbfbb"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_admission.rs": "bf683ff80aa6b8bbdef14da7e93032a8e34ee7ff"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_admission.rs": "bf683ff80aa6b8bbdef14da7e93032a8e34ee7ff"
+  }
+}

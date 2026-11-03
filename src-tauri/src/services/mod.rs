@@ -15,6 +15,7 @@
 //!   feature, so a feature-off build carries no guard code.
 //! - `control_channel` (ADR-0047 WI-009) exists only with the
 //!   `control-channel` feature, likewise.
+//! - `instance_admission` owns macOS singleton election before Tauri setup.
 
 pub mod app_exit;
 pub mod app_ready;
@@ -28,6 +29,8 @@ pub mod encoding;
 pub mod file_watcher;
 pub mod html_template;
 pub mod http_server;
+#[cfg(target_os = "macos")]
+pub mod instance_admission;
 pub mod logger;
 pub mod logger_settings_read;
 pub mod markdown;
