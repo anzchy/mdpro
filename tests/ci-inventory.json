@@ -2764,7 +2764,8 @@
     {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3e/F3i AC-F3: a later unbackticked path or a fence inside the scope refuses"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3f/F3g/F3m AC-F3: the scope stops at a heading, a field label, the field line and a sibling label bullet"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3k/F3o/F3p AC-5: \"Same paths as the grant\" is matched as rendered, and a hidden May edit does not satisfy it"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3l/F3p AC-2: \"their tests\" is matched as rendered: wrapped, emphasised or with a wide space"], "prerequisite": "macos"}
+    {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3l/F3p AC-2: \"their tests\" is matched as rendered: wrapped, emphasised or with a wide space"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3q AC-5 (code review, added in cycle F1-6): an escape inside \"Same paths as the grant\" is dropped as S5 renders it"], "prerequisite": "macos"}
   ],
   "exclusions": [
     {
