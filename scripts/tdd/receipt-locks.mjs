@@ -13,7 +13,8 @@
  *   (at least 660 s). record gets two guardian bounds plus 60 s (R-g): it may wait on the
  *   store lock for one other record's whole engine call before its own.
  *   MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS overrides it, for tests; MDPRO_UNIT_RED_GUARDIAN_FLOOR_MS and
- *   MDPRO_UNIT_RED_BOUND_MARGIN_MS may only lower the floor and the margin (D357 ruling 1).
+ *   MDPRO_UNIT_RED_BOUND_MARGIN_MS may only lower the floor and the margin (D357 ruling 1); the
+ *   floor also lowers record's store-lock wait, which is one guardian bound.
  * - On the bound, SIGINT, SIGTERM or SIGHUP, the death of the calling entry (a SIGKILL
  *   it cannot forward), and whenever the operation has exited, the
  *   launcher sends the session's group SIGTERM, waits MDPRO_UNIT_RED_KILL_GRACE_MS
@@ -32,8 +33,13 @@
  *   a crashed call and is rebuilt over. A record of another id added, changed or deleted in
  *   the view during the engine call is a foreign change: the view is left as found, and only
  *   the stamp moves, to the bytes the entry would have written, so the next record refuses it.
+ * - Test barriers (MDPRO_UNIT_RED_BARRIER_DIR) come in three modes: the older ones always pause
+ *   until `<name>.go`; `pause` false only marks `<name>.ready`; the D357 kill points
+ *   (record-view-written, record-rebuilt, record-item-temp, verify-item-temp,
+ *   discard-between-removals) are "hold": they pause only when a test writes `<name>.hold`, so
+ *   an unarmed one adds no wait (D357 ruling 1). With no barrier dir, none does anything.
  * @coordinates-with scripts/tdd/red-receipt.mjs (the only caller), scripts/tdd/replay-worktree.mjs (writes the worktree marker)
- * @coordinates-with tests/tooling/red-receipt-race.test.ts, tests/tooling/red-receipt-flock.test.ts, tests/tooling/adr0149e-launcher-bound.test.ts
+ * @coordinates-with tests/tooling/red-receipt-race.test.ts, tests/tooling/red-receipt-flock.test.ts, tests/tooling/adr0149e-launcher-bound.test.ts, tests/tooling/rc5-receipt-lifecycle.test.ts
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

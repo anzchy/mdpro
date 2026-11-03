@@ -11,7 +11,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createReceiptRepo, entryScript, pluginVersion, repo as source, type ReceiptRepo } from "./adr0149eRepo";
+// @ts-expect-error -- plain ESM script, no .d.ts by design (as rc5-receipt-view.test.ts)
 import { guardianBoundMs, launcherBoundMs } from "../../scripts/tdd/receipt-locks.mjs";
+// @ts-expect-error -- same module
+import { barrier } from "../../scripts/tdd/receipt-locks.mjs";
 
 vi.setConfig({ testTimeout: 240_000 });
 const T = ".claude/tdd-guardian", R = `${T}/receipts`, E = `${T}/receipt-evidence`, TMP = `${T}/.tmp`;
@@ -177,6 +180,14 @@ describe.skipIf(!pluginVersion)("D357 unarmed barriers and concurrent actions", 
     for (const name of ["record-view-written", "record-rebuilt"]) expect(existsSync(join(dir, `${name}.ready`)), name).toBe(true);
     // An armed barrier with no release would stop the record at its 10 s deadline with exit 64.
     expect(Date.now() - started).toBeLessThan(10_000);
+    // In process, the same barriers with nothing armed return at once: a hold barrier adds no wait of any length.
+    process.env.MDPRO_UNIT_RED_BARRIER_DIR = dir;
+    try {
+      const t = performance.now();
+      barrier("record-view-written", "hold");
+      barrier("record-rebuilt", "hold");
+      expect(performance.now() - t).toBeLessThan(100);
+    } finally { delete process.env.MDPRO_UNIT_RED_BARRIER_DIR; }
   });
 
   it("L2: verify of another id completes while a record holds the store lock, without waiting for it", async () => {
@@ -213,6 +224,14 @@ describe.skipIf(!pluginVersion)("D357 unarmed barriers and concurrent actions", 
 
 const storeScript = join(source, "scripts/tdd/receipt-store.mjs");
 const keepCheck = () => repo.run(process.execPath, [storeScript, "keep-check", "--parent", "master", "--head", "HEAD"]);
+const keepCheckAt = (head: string) => repo.run(process.execPath, [storeScript, "keep-check", "--parent", "master", "--head", head]);
+/** Commit the worktree with plumbing (a temporary index, write-tree, commit-tree), leaving HEAD and the index alone. */
+async function plumbed() {
+  const env = { GIT_INDEX_FILE: join(repo.root, ".git", "d357-plumbing-index") };
+  for (const args of [["read-tree", "HEAD"], ["add", "-A"]]) expect((await repo.run("git", args, env)).status).toBe(0);
+  const tree = (await repo.run("git", ["write-tree"], env)).stdout.trim();
+  return (await repo.run("git", ["commit-tree", tree, "-p", "HEAD", "-m", "the worktree"], env)).stdout.trim();
+}
 const opOwner = (id: string) => JSON.parse(repo.read(`${T}/.unit-red-${id}.lock/owner.json`)).pid as number;
 const itemNames = (dir: string) => listing(dir).every((name) => /^[A-Z][A-Z0-9-]*\.json$/.test(name));
 
@@ -241,6 +260,7 @@ describe.skipIf(!pluginVersion)("D357 interrupted item writes and discards (L6, 
     expect(listing(TMP).length).toBeGreaterThan(0);
     expect(listing(R)).toEqual(["A-1.json"]);
     expect(itemNames(R) && itemNames(E)).toBe(true);
+    expect(listing(E)).toEqual(["A-1.json"]);
     const status = (await repo.git("status", "--porcelain=v1", "--untracked-files=all")).stdout;
     expect(status).not.toContain(".tmp");
     const pending = await run(["check-pending"]);
@@ -250,6 +270,7 @@ describe.skipIf(!pluginVersion)("D357 interrupted item writes and discards (L6, 
     const next = await record("C-1");
     expect(next.status, next.output).toBe(0);
     expect(listing(R)).toEqual(["A-1.json", "C-1.json"]);
+    expect(listing(E)).toEqual(["A-1.json", "C-1.json"]);
   });
 
   it("L7: a discard killed between its two removals, then a second discard, leaves neither file and keep-check passes", async () => {
@@ -263,6 +284,9 @@ describe.skipIf(!pluginVersion)("D357 interrupted item writes and discards (L6, 
     expect(has(`${R}/A-1.json`)).toBe(true);
     await killHeld(opOwner("A-1"));
     killed(await discarding);
+    const plumbing = await keepCheckAt(await plumbed()); // the brief's form: the worktree committed by plumbing, HEAD untouched
+    expect(plumbing.status, plumbing.output).toBe(0);
+    expect(plumbing.stdout).not.toContain("orphan");
     expect((await repo.commit("the store a killed discard leaves")).status).toBe(0);
     const between = await keepCheck();
     expect(between.status, between.output).toBe(0);
@@ -305,6 +329,8 @@ describe.skipIf(!pluginVersion)("D357 aged store lock with a live owner (L8)", (
     expect(a.output + b.output).not.toContain("foreign");
     expect(item("A-1").red.kind).toBe("assertion-failure");
     expect(item("B-1").red.kind).toBe("assertion-failure");
+    expect(Object.keys(item("A-1").test_files)).toEqual([file("A-1")]);
+    expect(Object.keys(item("B-1").test_files)).toEqual([file("B-1")]);
   });
 });
 
