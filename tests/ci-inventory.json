@@ -2597,7 +2597,19 @@
     {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "V3b: a changed or deleted record of another id during the engine call is foreign, and its item file is untouched"], "prerequisite": "plugin"},
     {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "L1: two records in one worktree serialise on the store lock and both keep their receipt"], "prerequisite": "plugin"},
     {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "L2b: a discard during another id's engine call is not a foreign change"], "prerequisite": "plugin"},
-    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "ruling 1 opus M5: capture takes the evidence lock only after the store lock is released"], "prerequisite": "plugin"}
+    {"id": ["tests/tooling/rc5-receipt-view.test.ts", "RC5-S5 foreign changes and the store lock", "ruling 1 opus M5: capture takes the evidence lock only after the store lock is released"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 RC5 view kill windows (L5)", "L5a: SIGKILL at record-view-written (stamp engine, view not yet rebuilt) leaves a store the next record accepts"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 RC5 view kill windows (L5)", "L5b: SIGKILL at record-rebuilt (sorted view written, stamp still engine) leaves a store the next record accepts"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 RC5 view kill windows (L5)", "L5d: both named barriers, held then released, let the record finish with a matching idle stamp"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 RC5 view kill windows (L5)", "L5e: SIGKILL at record-engine (view rebuilt, stamp engine, engine not called) leaves a store the next record accepts"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 RC5 view kill windows (L5)", "N4: an existing barrier with no .hold file still pauses (hold-on-request is only for the new barriers)"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 a record waiting on another is inside its launcher bound (L9)", "L9b: two records whose lanes each take 0.6 of the guardian bound both finish; B is never stopped by its launcher"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 a record waiting on another is inside its launcher bound (L9)", "L9c: a record that waits on a live store lock past its launcher bound is stopped at exactly that bound"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 aged store lock with a live owner (L8)", "L8: a store-lock dir aged ten minutes whose owner is alive is not reaped; the waiter records after the owner releases"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 interrupted item writes and discards (L6, L7)", "L6: SIGKILL between an item's temp write and its rename leaves only <ID>.json names, and git status shows no temp path"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 interrupted item writes and discards (L6, L7)", "L7: a discard killed between its two removals, then a second discard, leaves neither file and keep-check passes"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 unarmed barriers and concurrent actions", "L2: verify of another id completes while a record holds the store lock, without waiting for it"], "prerequisite": "plugin"},
+    {"id": ["tests/tooling/rc5-receipt-lifecycle.test.ts", "D357 unarmed barriers and concurrent actions", "X4 (ruling 1): with a barrier dir but nothing armed, the new barriers are reached and add no wait"], "prerequisite": "plugin"}
   ],
   "exclusions": [
     {

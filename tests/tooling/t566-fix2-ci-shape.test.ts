@@ -21,7 +21,7 @@ const CACHE_FREE = "tests/tooling/t566-fix2-cache-free.test.ts";
 const MATTPOCOCK = "tests/tooling/t567-mattpocock-version.test.ts";
 const MATTPOCOCK_HOME = /^\s*const home = os\.homedir\(\);$/;
 const MATTPOCOCK_PREDICATE = "liveCaseEnabled(process)";
-/** The 39 receipt suites tagged `plugin` before fix 2 (255 ids); fix 2 adds only `CACHE_FREE`. RC5 adds its three entry suites (24 ids): 42 suites, 279 ids. */
+/** The 39 receipt suites tagged `plugin` before fix 2 (255 ids); fix 2 adds only `CACHE_FREE`. RC5 adds its three entry suites (24 ids): 42 suites, 279 ids. D357 adds `rc5-receipt-lifecycle` (12 ids): 43 suites, 291 ids. */
 const RECEIPT_SUITES = [
   ...["digest-stable", "digest-text", "digest", "holes", "launcher-bound", "lock-wait-bound", "message-fallback", "normalise-law", "pin",
     "pre-entry-incomplete", "pre-entry", "print", "record-evidence", "replay-env", "replay-fail", "replay-killed", "replay-pass", "replay-prune",
@@ -29,7 +29,7 @@ const RECEIPT_SUITES = [
   "red-receipt-boundary", "red-receipt-flock", "red-receipt-race", "red-receipt", "unit-red-lane",
   ...["-advanced", "-async-attempts", "-async-late", "-async-provenance", "-async-unawaited", "-chain", "-delayed-soft", "-provenance", "-review",
     "-scoped", "-soft-pending", "-soft", ""].map((suffix) => `unit-red-phase${suffix}`),
-  "unit-red-runner-hygiene", "rc5-receipt-entry", "rc5-receipt-view", "rc5-view-lane",
+  "unit-red-runner-hygiene", "rc5-receipt-entry", "rc5-receipt-view", "rc5-view-lane", "rc5-receipt-lifecycle",
 ].map((name) => `tests/tooling/${name}.test.ts`);
 const pluginEntries = inventory.tests.filter((item) => item.prerequisite === "plugin");
 const pluginFiles = [...new Set(pluginEntries.map((item) => item.id[0]))].sort();
@@ -38,9 +38,9 @@ const scratch: string[] = [];
 afterEach(() => { for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 describe("T566-F2-1 the plugin inventory is conserved", () => {
-  it("tags exactly the 42 receipt suites (279 ids), the cache-free file and T-01's one live case, with the exclusions unchanged", () => {
+  it("tags exactly the 43 receipt suites (291 ids), the cache-free file and T-01's one live case, with the exclusions unchanged", () => {
     expect(pluginFiles).toEqual([...RECEIPT_SUITES, CACHE_FREE, MATTPOCOCK].sort());
-    expect(pluginEntries.filter((item) => item.id[0] !== CACHE_FREE && item.id[0] !== MATTPOCOCK)).toHaveLength(279);
+    expect(pluginEntries.filter((item) => item.id[0] !== CACHE_FREE && item.id[0] !== MATTPOCOCK)).toHaveLength(291);
     expect(pluginEntries.filter((item) => item.id[0] === MATTPOCOCK)).toHaveLength(1);
     expect(inventory.exclusions).toHaveLength(73);
     expect(inventory.exclusions.map((item) => item.id)).toContainEqual(["tests/tooling/unit-red-phase.test.ts", "D302 owner cleanup probe"]);
