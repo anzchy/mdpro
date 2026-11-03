@@ -199,5 +199,13 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const result = await h.send(h.write(grant("- **May edit:** `yy-decoy/a.md`.", "none")));
     h.expectRefused(result, /REFUSED:.*unresolvable.*'yy-decoy\/a\.md'/);
   });
+  const LABELS = ["**May create or edit:** `src/components/New.tsx`.", "- **May create, newly granted:** `src/components/New.tsx`.", "- **May create** tests: `src/components/New.tsx`.",
+    "May create: `src/components/New.tsx`.", "- May create or edit: `src/components/New.tsx`.", "**May extend** `src/components/New.tsx`."];
+  it.each(LABELS)("C74a-f AC-5: the label in %s is not one of the two scope labels and refuses as unrecognised", async (line) => {
+    const h = harness();
+    const result = await h.send(h.write(grant(`- **May edit:** \`docs/x.md\`.\n${line}`, "rule 22, rule 50")));
+    h.expectRefused(result, /REFUSED:.*unrecognised scope label/);
+    expect(result.stderr).toContain(line.replace(/^- /, "").split(/[:`]/)[0].replace(/\*\*/g, "").trim());
+  });
   // next-case
 });

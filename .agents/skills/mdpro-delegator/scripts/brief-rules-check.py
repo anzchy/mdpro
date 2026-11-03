@@ -171,6 +171,25 @@ def resolvable(token, root):
     return first in entries
 
 
+def unrecognised_labels(lines):
+    """Ruling 3 G12: a `May …` label (bold, or opening a line or bullet) other than the two scope labels, by name."""
+    found = []
+    for line in lines:
+        text = masked(line)
+        for hit in re.finditer(r"(?:\*\*|^\s*(?:[-*+]\s+)?)(May\b)(?=\s+[A-Za-z]|[:*])", text):
+            start = hit.start(1)
+            bold = text[:start].endswith("**")
+            if bold and (text.startswith(MAY_EDIT, start - 2) or text.startswith(MAY_CREATE, start - 2)):
+                continue
+            rest = text[start:]
+            colon = rest.find(":")
+            if colon < 0 and not bold:
+                continue
+            end = colon if colon >= 0 else (rest.find("**") if "**" in rest else len(rest))
+            found.append(rest[:end].replace("*", "").strip())
+    return found
+
+
 def scope_pattern(token):
     """A scope token as segments; a folder-like token (trailing slash, or no extension) also covers what is under it."""
     parts = [part for part in token.split("/") if part]
@@ -190,6 +209,10 @@ def check(brief_path, root):
     if len(fields) != 1:
         raise Refusal("%s needs exactly one %s field, found %d" % (brief_path, FIELD, len(fields)))
     field = paragraph(lines, fields[0][0], fields[0][1] + len(FIELD))
+    unknown = unrecognised_labels(lines)
+    if unknown:
+        raise Refusal("%s: unrecognised scope label %s; use exactly %s or %s"
+                      % (brief_path, ", ".join("'%s'" % label for label in unknown), MAY_EDIT, MAY_CREATE))
     scopes = [paragraph(lines, i, masked(line).index(label) + len(label))
               for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
     if not scopes:
