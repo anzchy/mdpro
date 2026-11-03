@@ -221,6 +221,11 @@ def check(brief_path, root):
                       % (brief_path, ", ".join("'%s'" % label for label in unknown), MAY_EDIT, MAY_CREATE))
     scopes = [paragraph(lines, i, masked(line).index(label) + len(label))
               for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
+    # Ruling 1 Q1(a) / ruling 3 G13: a fix brief cannot inherit its scope by reference.
+    if (any(re.search(r"\bsame paths as the grant\b", masked(line), re.I) for line in lines)
+            and not any(MAY_EDIT in masked(line) for line in lines)):
+        raise Refusal("%s says \"Same paths as the grant\" but has no %s paragraph; copy the grant's %s into it"
+                      % (brief_path, MAY_EDIT, MAY_EDIT))
     if not scopes:
         raise Refusal("%s has no %s paragraph (nor %s)" % (brief_path, MAY_EDIT, MAY_CREATE))
     tokens = [re.sub(r"^(?:\./)+", "", content) for text in scopes for _, _, content in code_spans(text)]
