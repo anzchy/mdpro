@@ -276,7 +276,7 @@ describe("GH586 fix 1: the entry states two auditor route caps with sourced arit
     expect(text).not.toContain("route cap is unchanged");
   });
 
-  it("adds up live figures to totals under each cap, with the shared set labelled planned and auditor.md a budget", () => {
+  it("adds up the recorded figures to totals under each cap, with the shared set labelled planned and auditor.md a budget", () => {
     const caps = flat(field("Caps"));
     const terms = [...caps.matchAll(/(\d{1,3},\d{3}) B/g)].map(m => num(m[1]));
     const [shared, dimsB, request, auditor, ordinaryTotal, policyB, routedTotal] = terms;

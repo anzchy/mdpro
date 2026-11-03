@@ -15,7 +15,9 @@ import { trackedFiles } from "./rules-lib-core";
 vi.mock("node:child_process", async (orig) => {
   const real = await orig<typeof import("node:child_process")>();
   const sync = () => { throw new Error("sync"); };
-  return { ...real, execFileSync: sync, execSync: sync, spawnSync: sync };
+  // D355 fix 5 (L-r4-1): the default export too, so `cp.default.<sync>` cannot slip past the mock
+  const def = { ...(real as unknown as { default: object }).default, execFileSync: sync, execSync: sync, spawnSync: sync };
+  return { ...real, default: def, execFileSync: sync, execSync: sync, spawnSync: sync };
 });
 
 const run = promisify(execFile);
@@ -101,6 +103,12 @@ describe("D355 fix 3: the test lint", () => {
     const built = (async () => fixture({ "a.md": "a\n" }))();
     await expect(built).resolves.toEqual(expect.any(String));
     expect(trackedFiles(await built)).toEqual(["a.md"]);
+  });
+
+  it("L16: the default export's three synchronous child calls throw too", async () => {
+    const cp = await import("node:child_process");
+    const calls = cp.default as unknown as Record<"execFileSync" | "execSync" | "spawnSync", () => unknown>;
+    for (const name of ["execFileSync", "execSync", "spawnSync"] as const) expect(() => calls[name](), name).toThrow("sync");
   });
 
   it("L14: a failed load rejects and caches nothing", async () => {
