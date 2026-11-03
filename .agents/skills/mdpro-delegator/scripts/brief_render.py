@@ -6,16 +6,17 @@ outside fences and code spans it refuses, naming the 1-based line: a comment ins
 HTML tag, a default-ignorable character and a line-separator character. `plain` has code spans blanked, `visible` keeps
 them; both keep every column, so a position found in one holds in the other.
 
-On top of that it finds labels that read as May edit or May create (escapes dropped, NFKC, Cyrillic and Greek
-lookalikes folded), a scope paragraph's extent (to the next heading, field label or stop line), what in scope
+On top of that it finds labels that read as May edit or May create (escapes dropped, NFKC, Latin lookalikes folded),
+a scope paragraph's extent (to the next heading, field label or stop line), what in scope
 refuses (a fence, an escape, a footnote, a defined reference link), the field as rendered (struck text and link titles
-removed), and the views a reader sees for prose paths and phrases. Every doubt refuses.
+removed), and the views a reader sees for prose paths (percent-decoded) and phrases (folded). Every doubt refuses.
 
 @coordinates-with brief-rules-check.py, which loads this file from its own directory only.
 """
 import html
 import re
 import unicodedata
+import urllib.parse
 
 SEPARATORS = "\u2028\u2029\u0085\v\f\x1c\x1d\x1e"
 # Default_Ignorable code points that are not category Cf.
@@ -29,8 +30,9 @@ SLASHES = dict.fromkeys(map(ord, "\u2215\u2044\u29f8\u2571\uff0f"), "/")
 REF_DEF = re.compile(r"^ {0,3}\[([^\]]+)\]:")
 REF_USE = re.compile(r"\[([^\]]+)\](?:\[([^\]]*)\])?(?!\()")
 STRUCK = re.compile(r"~~.*?~~|~[^~]*?~", re.S)
-# Ruling 6 Q1: Cyrillic and Greek lookalikes fold to Latin for label detection only; CJK is never folded.
-FOLD = str.maketrans("МмаеорсухіткнвԁАЕОРСХТКНВΜαεορτκνΑΕΟΡΤΚΝ", "MmaeopcyxitkhbdAEOPCXTKHBMaeoptkvAEOPTKN")
+# Ruling 6 Q1 / ruling 7: Latin lookalikes (Cyrillic, Greek, `ɑ`, `ı`) fold to Latin for labels and phrases; CJK is
+# never folded.
+FOLD = str.maketrans("МмаеорсухіткнвԁАЕОРСХТКНВΜαεορτκνΑΕΟΡΤΚΝɑı", "MmaeopcyxitkhbdAEOPCXTKHBMaeoptkvAEOPTKNai")
 # An opening emphasis run (left-flanking: not after a word or another marker, and not followed by a space).
 EMPHASISED_MAY = re.compile(r"(?<![\w*_])[*_]{1,3}(may)\b(?=\s+[^\W\d_]|\s*[:*_]|\s*$)", re.I)
 EMPHASIS_RUN = re.compile(r"(\*{1,3}|_{1,3})(?=\S)(.+?)(?<=\S)\1")
@@ -57,8 +59,9 @@ def label_key(label):
 
 
 def rendered_prose(text):
-    """Scope text as a reader sees it, for the not-backticked check: NFKC, slash lookalikes and `a\\b` become `/`."""
-    text = unicodedata.normalize("NFKC", text).translate(SLASHES)
+    """Scope text as a reader sees it, for the not-backticked check: percent-decoded (a link destination such as
+    `src%2Fa.ts`, ruling 7), NFKC, slash lookalikes and `a\\b` become `/`."""
+    text = unicodedata.normalize("NFKC", urllib.parse.unquote(text)).translate(SLASHES)
     return re.sub(r"(?<=\w)\\(?=\w)", "/", text)
 
 
@@ -74,9 +77,9 @@ def label_name(rest):
 
 
 def phrase_view(text):
-    """Text as a reader sees a phrase in it: escapes dropped, NFKC, emphasis and strike markers removed, whitespace
-    collapsed. Lookalikes are not folded here (question 3)."""
-    return " ".join(re.sub(r"[*_~]", "", unicodedata.normalize("NFKC", ESCAPE.sub(r"\1", text))).split())
+    """Text as a reader sees a phrase in it: escapes dropped, NFKC, lookalikes folded (ruling 7), emphasis and strike
+    markers removed, whitespace collapsed."""
+    return " ".join(re.sub(r"[*_~]", "", unicodedata.normalize("NFKC", ESCAPE.sub(r"\1", text)).translate(FOLD)).split())
 
 
 def indent_of(line):
