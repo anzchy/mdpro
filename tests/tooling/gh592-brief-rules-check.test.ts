@@ -207,5 +207,20 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.expectRefused(result, /REFUSED:.*unrecognised scope label/);
     expect(result.stderr).toContain(line.replace(/^- /, "").split(/[:`]/)[0].replace(/\*\*/g, "").trim());
   });
+  const NAMED: Array<[string, string]> = [["the stem, any case", "22-Comment-Maintenance, 50-CODEBASE-conventions"],
+    ["the rule path", "`.claude/rules/22-comment-maintenance.md` and `.claude/rules/50-codebase-conventions.md`"],
+    ["a mix of forms", "Rule 22 and `.claude/rules/50-codebase-conventions.md`"]];
+  it.each(NAMED)("C20 AC-3: the field may name a rule by %s", async (_label, field) => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `src/a.ts`, `scripts/b.mjs`.", field));
+    h.expectSent(await h.send(brief), brief);
+  });
+
+  it("C47 AC-3: after a rename the stem is read from the matched rule file", async () => {
+    const h = harness();
+    fs.renameSync(h.rule(22), path.join(h.rules, "22-comment-upkeep.md"));
+    const brief = h.write(grant("- **May edit:** `scripts/b.mjs`.", "22-comment-upkeep"));
+    h.expectSent(await h.send(brief), brief);
+  });
   // next-case
 });

@@ -198,6 +198,12 @@ def scope_pattern(token):
     return parts
 
 
+def named_in(field, number, stem):
+    """Q4: `rule <n>`, the matched file's stem, or `.claude/rules/<stem>.md`, case-insensitive (the path holds the stem)."""
+    return bool(re.search(r"\brule\s+%d\b" % number, field, re.I)
+                or re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(stem), field, re.I))
+
+
 def check(brief_path, root):
     try:
         with open(brief_path, encoding="utf-8-sig") as handle:
@@ -234,7 +240,7 @@ def check(brief_path, root):
     missing = []
     for number, (stem, globs) in sorted(rules.items()):
         needed = [t for t in tokens if any(segments_overlap(scope_pattern(t.split(" ")[0]), g.split("/")) for g in globs)]
-        named = re.search(r"\brule\s+%d\b" % number, field, re.I)
+        named = named_in(field, number, stem)
         if needed and not named:
             missing.append("REFUSED: %s needs rule %d (.claude/rules/%s.md) in its %s field, for %s"
                            % (brief_path, number, stem, FIELD, ", ".join(needed)))
