@@ -1,0 +1,42 @@
+{
+  "id": "GH592-WI-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T07:47:09.189Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C29/C36 AC-5: a fix brief saying \\\"Same paths as the grant\\\" alone refuses until it copies the grant's May edit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /REFUSED:.*copy the grant's \\*\\*May ed…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C29/C36 AC-5: a fix brief saying \\\"Same paths as the grant\\\" with only a May create refuses until it copies the grant's May edit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 96
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-WI-5/20261103T074709189Z/tests",
+    "tree": "fe84a6f16a78f4f0703a6ba72bc89c88a3a81063"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "197ac5879bfd3df27b8197954ae96ac08afc359e"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "197ac5879bfd3df27b8197954ae96ac08afc359e"
+  }
+}

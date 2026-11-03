@@ -222,5 +222,18 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- **May edit:** `scripts/b.mjs`.", "22-comment-upkeep"));
     h.expectSent(await h.send(brief), brief);
   });
+  const SAME: Array<[string, string]> = [["alone", "- Same paths as the grant."],
+    ["with only a May create", "- Same paths as the grant.\n- **May create:** `docs/new.md`."]];
+  it.each(SAME)("C29/C36 AC-5: a fix brief saying \"Same paths as the grant\" %s refuses until it copies the grant's May edit", async (_label, scope) => {
+    const h = harness();
+    const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
+    h.expectRefused(result, /REFUSED:.*copy the grant's \*\*May edit:\*\*/);
+  });
+
+  it("C75b AC-5: \"Same paths as the grant\" beside a copied May edit is sent", async () => {
+    const h = harness();
+    const brief = h.write(grant("- Same paths as the grant.\n- **May edit:** `src/a.ts`.", "rule 22, rule 50"));
+    h.expectSent(await h.send(brief), brief);
+  });
   // next-case
 });
