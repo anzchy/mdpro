@@ -1,0 +1,42 @@
+{
+  "id": "GH592-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T08:19:16.966Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C38/C72d AC-5: a path without backticks in a May create paragraph refuses as not backticked\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 107
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C38/C72d AC-5: a path without backticks in a May edit paragraph refuses as not backticked\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 107
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-S10/20261103T081916966Z/tests",
+    "tree": "8d144df622cf99effb233b34d1357b5254f22a60"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "fcb14a3b26481a7e047f7f476ea0f2276fe4faa3"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "fcb14a3b26481a7e047f7f476ea0f2276fe4faa3"
+  }
+}
