@@ -65,6 +65,28 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(list(job(TEXT, "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "rust-test"]);
   }, 30_000);
 
+  it("runs optional summary diagnostics after the decision without changing gate failures", () => {
+    const gateSteps = steps(job(TEXT, "ci-gate"));
+    const decisionIndex = gateSteps.findIndex((step) => scalar(step, "name") === "Every job succeeded, or skipped for a prose-only change");
+    const checkoutIndex = gateSteps.findIndex((step) => scalar(step, "uses") === "actions/checkout@v6");
+    const downloadIndex = gateSteps.findIndex((step) => scalar(step, "uses") === "actions/download-artifact@v4");
+    const summaryIndex = gateSteps.findIndex((step) => stepRun(step)?.includes("node scripts/ci/failure-summary.mjs"));
+    expect(decisionIndex).toBeGreaterThanOrEqual(0);
+    expect(checkoutIndex).toBeGreaterThan(decisionIndex);
+    expect(downloadIndex).toBeGreaterThan(checkoutIndex);
+    expect(summaryIndex).toBeGreaterThan(downloadIndex);
+    for (const index of [checkoutIndex, downloadIndex, summaryIndex]) {
+      expect(scalar(gateSteps[index] ?? null, "if")).toBe("always()");
+      expect(scalar(gateSteps[index] ?? null, "continue-on-error")).toBe("true");
+    }
+    const download = entry(gateSteps[downloadIndex] ?? null, "with")?.body ?? null;
+    expect(scalar(download, "pattern")).toBe("frontend-vitest-*");
+    expect(scalar(download, "path")).toBe(".ci-vitest-artifacts");
+    expect(scalar(entry(TEXT, "permissions")?.body ?? null, "contents")).toBe("read");
+    expect(entry(entry(TEXT, "permissions")?.body ?? null, "actions")).toBeNull();
+    expect(scalar(gateSteps[decisionIndex] ?? null, "continue-on-error")).toBeNull();
+  });
+
   it("runs profile, coverage, critical checker and comparator as authoritative frontend steps", () => {
     const frontend = steps(job(TEXT, "frontend"));
     const commands = [

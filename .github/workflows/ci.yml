@@ -226,3 +226,21 @@ jobs:
               (. == "skipped" and $code == "false")))
           ' --arg code "$(echo "$NEEDS" | jq -r '.scope.outputs.code')" >/dev/null \
             || { echo "ci-gate: a job ended in failure, was cancelled, or skipped without scope's code=false"; exit 1; }
+
+      - uses: actions/checkout@v6
+        if: always()
+        continue-on-error: true
+
+      - uses: actions/download-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          pattern: frontend-vitest-*
+          path: .ci-vitest-artifacts
+
+      - name: Summarize failed jobs and tests
+        if: always()
+        continue-on-error: true
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/ci/failure-summary.mjs .ci-vitest-artifacts

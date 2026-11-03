@@ -1,0 +1,89 @@
+{
+  "id": "GH607-WI-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T08:17:13.966Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"runs optional summary diagnostics after the decision without changing gate failures\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 72
+      },
+      "message": "AssertionError: expected -1 to be greater than 0"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"emits identical content for the same inputs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 104
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"handles missing, malformed, and empty needs without inventing failures\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"keeps a later failed test when the first artifact is malformed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 85
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"keeps job diagnostics and exits zero for missing or malformed reports\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 74
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"lists every non-success job and each failed test, without passing rows\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"preserves all non-success results, including skipped and matrix job names\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 64
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-WI-2/20261103T081713966Z/tests",
+    "tree": "e0035fca84930afb16334044336c77820b893451"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "6a135a389ec9bf9f5b38d5fde7baf711bfc0c992",
+    "tests/tooling/gh607-failure-summary.test.ts": "c8f7ca3f75e5106823c499db493099ce7f1eb5fa"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "6a135a389ec9bf9f5b38d5fde7baf711bfc0c992",
+    "tests/tooling/gh607-failure-summary.test.ts": "c8f7ca3f75e5106823c499db493099ce7f1eb5fa"
+  }
+}
