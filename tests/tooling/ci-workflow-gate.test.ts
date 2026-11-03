@@ -16,11 +16,15 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { entry, job, jobIds, list, scalar, steps, stepRun } from "../support/workflowBlocks";
+import { entry, job, jobIds, list, scalar, steps, stepRun as stepRunStrict } from "../support/workflowBlocks";
 
 const AUDIT_TOML = path.resolve(__dirname, "..", "..", "src-tauri", ".cargo", "audit.toml");
 const TEXT = fs.readFileSync(path.resolve(__dirname, "..", "..", ".github", "workflows", "ci.yml"), "utf8");
+const stepRun = stepRunStrict as (step: string | null) => string | null;
+const runFile = promisify(execFile);
 const runs = (id: string) => steps(job(TEXT, id)).map(stepRun).filter((r): r is string => r !== null);
 
 describe("ADR95-WI-1 ci.yml gate shape", () => {
@@ -50,8 +54,16 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(checkout[0], "if")).toBe("github.event_name == 'pull_request'");
     expect(scalar(entry(checkout[0], "with")?.body ?? null, "ref")).toBe("${{ github.event.pull_request.head.sha }}");
     expect(scalar(checkout[1], "if")).toBe("github.event_name != 'pull_request'");
-    expect(entry(checkout[1], "with")).toBeNull();
+    expect(scalar(entry(checkout[0], "with")?.body ?? null, "fetch-depth")).toBe("0");
+    expect(scalar(entry(checkout[1], "with")?.body ?? null, "fetch-depth")).toBe("0");
   });
+
+  it("preserves the ci-gate decision bytes from GH607's pinned base", async () => {
+    const { stdout: baseline } = await runFile("git", ["show", "a3e9b7ec:.github/workflows/ci.yml"], { encoding: "utf8" });
+    const decision = (text: string) => steps(job(text, "ci-gate")).find((step) => scalar(step, "name") === "Every job succeeded, or skipped for a prose-only change");
+    expect(stepRun(decision(TEXT) ?? null)).toBe(stepRun(decision(baseline) ?? null));
+    expect(list(job(TEXT, "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "rust-test"]);
+  }, 30_000);
 
   it("runs profile, coverage, critical checker and comparator as authoritative frontend steps", () => {
     const frontend = steps(job(TEXT, "frontend"));

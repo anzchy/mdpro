@@ -1,0 +1,33 @@
+{
+  "id": "GH607-WI-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T08:15:51.994Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"checks out the PR head while non-PR runs use the default checkout\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 54
+      },
+      "message": "AssertionError: expected null to be '0' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-WI-1/20261103T081551994Z/tests",
+    "tree": "583a1e057da74c8871169ec3c4ddc3c268c89d20"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "d413b1045381468786c623464794f0d651027181"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "d413b1045381468786c623464794f0d651027181"
+  }
+}
