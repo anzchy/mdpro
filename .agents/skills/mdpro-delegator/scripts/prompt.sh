@@ -112,7 +112,14 @@ overlay,marker=sys.argv[1:]
 sys.exit(0 if os.stat(marker).st_mtime_ns >= os.stat(overlay).st_mtime_ns else 1)' "$overlay" "$marker" || {
       echo "REFUSED: overlay is newer than the pane for $a" >&2
       exit 2
-    } ;;
+    }
+    # GH592: a Codex implementor brief must name rule 22/50 for a scope their paths: frontmatter matches.
+    if [[ $pane_mode == implementor ]]; then
+      /usr/bin/python3 "${0:A:h}/brief-rules-check.py" "$f" || {
+        echo "REFUSED: brief rules check failed for $a: $f" >&2
+        exit 2
+      }
+    fi ;;
   claude)
     if [[ $a == *-imple-* && $verb != brief ]]; then
       echo "REFUSED: implementor needs a brief" >&2

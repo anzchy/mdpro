@@ -142,7 +142,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     fs.writeFileSync(h.targetOverlay, `# Local mdpro role: ${role}\n`);
     h.markStarted();
     const brief = path.join(h.root, "brief.md");
-    fs.writeFileSync(brief, "# test brief\n");
+    fs.writeFileSync(brief, "# test brief\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     const result = await run(path.join(scripts, "prompt.sh"), [name, brief, role === "auditor" ? "request" : "brief", "1000"], h.env);
     expect(result.code, result.stderr).toBe(0);
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === name)).toEqual([expect.arrayContaining(["agent", "prompt", name])]);
@@ -191,7 +191,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     const h = harness("codex", name);
     h.markStarted();
     const brief = path.join(h.root, "brief.md");
-    fs.writeFileSync(brief, "# implement\n");
+    fs.writeFileSync(brief, "# implement\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     const own = await run(path.join(scripts, "prompt.sh"), [name, brief, "brief", "1000"], h.env);
     expect(own.code, own.stderr).toBe(0);
     const foreign = path.join(h.root, "Documents/mac-app/mdpro-wt/foreign");
@@ -210,7 +210,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     fs.writeFileSync(path.join(other, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
     fs.writeFileSync(path.join(other, ".codex/rules/.started-at"), "w1:p7\n");
     const brief = path.join(h.root, "brief.md");
-    fs.writeFileSync(brief, "# implement\n");
+    fs.writeFileSync(brief, "# implement\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     const denied = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: other });
     expect(denied.code).toBe(2);
     const accepted = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET: other, MDPRO_WORKTREE_OVERRIDE: other });
@@ -258,7 +258,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
   it("refuses the delegator checkout on prompt and allows a roster-like sibling prefix", async () => {
     const h = harness("codex", "opus-imple-1");
     const brief = path.join(h.root, "brief.md");
-    fs.writeFileSync(brief, "# implement\n");
+    fs.writeFileSync(brief, "# implement\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     const checkout = path.join(h.root, "Documents/mac-app/mdpro");
     const sibling = path.join(h.root, "Documents/mac-app/mdpro-wt/gpt-imple-2x");
     for (const dir of [checkout, sibling]) {
@@ -418,7 +418,7 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     fs.unlinkSync(h.overlay);
     h.markStarted();
     const brief = path.join(h.root, "brief.md");
-    fs.writeFileSync(brief, "# test brief\n");
+    fs.writeFileSync(brief, "# test brief\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-2", brief, "brief", "1000"], h.env);
     expect(result.code, result.stderr).toBe(0);
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-imple-2")).toHaveLength(1);

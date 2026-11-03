@@ -1,0 +1,33 @@
+{
+  "id": "GH592-WI-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T06:49:35.740Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C2 AC-1: adding docs/** to rule 50's paths: frontmatter makes a docs scope require rule 50\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-WI-1/20261103T064935740Z/tests",
+    "tree": "ca3742fd1ec0a55e1e984e1e4500ddff4aa1cb70"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "c26040aa8fd3f52d056af238f320c2302ddb94e6"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "c26040aa8fd3f52d056af238f320c2302ddb94e6"
+  }
+}

@@ -125,7 +125,7 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
   it("routes both implementor runtimes to the same jack-tdd-workflow brief text", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");
-    fs.writeFileSync(brief, "# brief\n");
+    fs.writeFileSync(brief, "# brief\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     try {
       const codex = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
       expect(codex.status).toBe(0);
