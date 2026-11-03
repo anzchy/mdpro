@@ -2,9 +2,12 @@
 """Purpose: refuse a Codex implementor brief whose scope needs rule 22 or 50 but whose field does not name it (GH592).
 
 prompt.sh runs this for verb `brief` to a Codex implementor only. The required rules come from each rule file's
-`paths:` frontmatter in the repo this script sits in, never from a copied list; the scope is the brief's backticked
-`**May edit:**` tokens; the named rules come from its `**Rules for paths in scope.**` paragraph. Every doubt refuses.
-Exit 0 passes; exit 2 prints one `REFUSED:` line per reason on stderr.
+`paths:` frontmatter in the checkout this script sits in, never from a copied list or git. The scope is the backticked
+tokens of every `**May edit:**` and `**May create:**` paragraph, outside fences and code spans, plus `tests/**` when a
+paragraph says "their tests"; each token must be a plain repo-root path whose first segment is a top-level entry of
+that checkout. The named rules come from the one `**Rules for paths in scope.**` paragraph (`rule <n>`, the file
+stem, or its path). Any other `May …` label, a path without backticks, an empty paragraph, or "Same paths as the
+grant" without a May edit refuses. Every doubt refuses. Exit 0 passes; exit 2 prints `REFUSED:` lines on stderr.
 """
 import fnmatch
 import glob
@@ -17,7 +20,7 @@ FIELD = "**Rules for paths in scope.**"
 MAY_EDIT = "**May edit:**"
 MAY_CREATE = "**May create:**"
 GLOB_CHARS = set("*?[")
-THEIR_TESTS = "tests/** (their tests)"
+THEIR_TESTS = ("tests/**", "tests/** (their tests)")
 
 
 class Refusal(Exception):
@@ -246,12 +249,13 @@ def check(brief_path, root):
     if unresolvable:
         raise Refusal("%s: unresolvable scope path %s: its first segment is no top-level entry of %s; write the path"
                       " from the repo root" % (brief_path, ", ".join("'%s'" % t for t in unresolvable), root))
+    scope = [(t, t) for t in tokens]
     # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
     if any(re.search(r"\btheir tests\b", masked(text), re.I) for text in scopes):
-        tokens.append(THEIR_TESTS)
+        scope.append(THEIR_TESTS)
     missing = []
     for number, (stem, globs) in sorted(rules.items()):
-        needed = [t for t in tokens if any(segments_overlap(scope_pattern(t.split(" ")[0]), g.split("/")) for g in globs)]
+        needed = [shown for token, shown in scope if any(segments_overlap(scope_pattern(token), g.split("/")) for g in globs)]
         named = named_in(field, number, stem)
         if needed and not named:
             missing.append("REFUSED: %s needs rule %d (.claude/rules/%s.md) in its %s field, for %s"

@@ -5,6 +5,7 @@
 #   verb: "brief" (implementors: read the brief, then a Codex target runs $tdd-guardian:tdd-guardian-workflow and a Claude
 #   target follows rule 71 § Briefs for Claude) or "request" (auditors: read BRIEF.md first). After launching, check `herdr agent get <agent>` shows "working": a prompt sent while a new pane was still
 #   starting was lost once.
+# A Codex implementor brief must first pass brief-rules-check.py (GH592), or nothing is sent.
 set -eu
 a=$1 f=$2 verb=${3:-request} to=${4:-7200000} report=${5:-}
 mode=$("${0:A:h}/delegator-route.sh")

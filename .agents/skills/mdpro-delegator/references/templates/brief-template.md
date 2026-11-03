@@ -12,8 +12,8 @@ matrix attack. On Claude, follow `docs/agents/implementor.md#matrix-and-attack`.
 named for that path in AGENTS.md. #592 checks it.
 
 For a Codex implementor, `prompt.sh` refuses a brief whose May edit or May create paths match a rule's `paths:`
-frontmatter unless the field above names that rule (as rule and number, its file stem, or its path). Write every scope
-path backticked and from the repo root, under exactly those two labels.
+frontmatter unless its `**Rules for paths in scope.**` field names that rule (as rule and number, its file stem, or
+its path). Write every scope path backticked and from the repo root, under exactly those two labels.
 
 ## 1. Background
 - **The issue.** `anzchy/mdpro#<n>` (or, for an existing D item, `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>`), and the plan row, if any.

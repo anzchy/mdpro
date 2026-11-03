@@ -18,8 +18,8 @@ fixture allowance (brief § 2).
 named for that path in AGENTS.md. #592 checks it.
 
 For a Codex implementor, `prompt.sh` refuses a brief whose May edit or May create paths match a rule's `paths:`
-frontmatter unless the field above names that rule (as rule and number, its file stem, or its path). Write every scope
-path backticked and from the repo root, under exactly those two labels.
+frontmatter unless its `**Rules for paths in scope.**` field names that rule (as rule and number, its file stem, or
+its path). Write every scope path backticked and from the repo root, under exactly those two labels.
 
 ## Open questions, with defaults
 - **Q1.** <question>. Default: <answer>. (Follow each default without stopping; record which you used.)
