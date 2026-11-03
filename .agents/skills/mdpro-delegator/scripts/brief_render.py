@@ -5,8 +5,9 @@ across a blank line or a line that starts a new block), and hides HTML comments 
 link reference definition lines. Anywhere outside fences and code spans it refuses, naming the 1-based line: a comment
 inside a line, any CommonMark raw HTML (a tag of any name, a processing instruction, a declaration, CDATA, an unclosed
 opener of the last three, or an HTML-block start; fix 2), a real HTML entity, a default-ignorable character and a
-line-separator character. Autolinks, a `<` that starts none of these, and an escaped `\\<` are text. `plain` has code spans blanked, `visible` keeps
-them; both keep every column, so a position found in one holds in the other.
+line-separator character. A raw-HTML match may run over any line but a blank one (ruling 3). Autolinks, a `<` that
+starts none of these, and an escaped `\\<` are text. `plain` has code spans blanked, `visible` keeps them; both keep
+every column, so a position found in one holds in the other.
 
 On top of that it finds labels that read as May edit or May create (escapes dropped, NFKC, Latin lookalikes folded),
 a scope paragraph's extent (to the next heading, field label or stop line), what in scope
@@ -26,7 +27,7 @@ IGNORABLE_RANGES = ((0x034F, 0x034F), (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180
                     (0xFE00, 0xFE0F), (0xFFA0, 0xFFA0), (0xE0000, 0xE0FFF))
 ENTITY = re.compile(r"&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{0,31});")
 # Fix 2: CommonMark 0.31 raw HTML. Whitespace inside a construct may hold one line ending; every match is bounded by
-# the block (BLOCK_END), so it never crosses a blank line.
+# HTML_END, so it never crosses a blank line.
 _WS = r"(?:[ \t]*\n?[ \t]*)"
 _WS1 = r"(?:[ \t]+\n?[ \t]*|\n[ \t]*)"
 _ATTR = _WS1 + r"""[A-Za-z_:][A-Za-z0-9_.:-]*(?:""" + _WS + "=" + _WS + r"""(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?"""
@@ -38,10 +39,13 @@ LINE_LEAD = re.compile(r"[ \t]*(?:(?:>|[-*+]|\d{1,9}[.)])[ \t]*)*")
 AUTOLINK = re.compile(r"<[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*>"
                       r"|<[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
                       r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*>")
-# Where a code span or an HTML construct must end: a blank line, or a line that starts a new block (a list item, a
-# heading, a block quote, a thematic break or a setext underline; fix 2, ruling 1).
+# Where a code span must end: a blank line, or a line that starts a new block (a list item, a heading, a block quote,
+# a thematic break or a setext underline; fix 2, ruling 1). Stopping early leaves text visible, so this errs safe.
 BLOCK_END = re.compile(r"\n[ \t]*\n|\n(?=[ \t]*(?:[-*+][ \t]|\d{1,9}[.)][ \t]|#{1,6}(?:[ \t]|$)|>"
                        r"|([-*_])[ \t]*(?:\1[ \t]*){2,}$|=+[ \t]*$))", re.M)
+# Where a raw-HTML match must end: a blank line only (ruling 3). A line that opens like a list item, heading or quote
+# does not always end a paragraph for a reader (`2.` cannot interrupt one), and a longer match only refuses more.
+HTML_END = re.compile(r"\n[ \t]*\n")
 ESCAPE = re.compile(r"\\([!-/:-@\[-`{-~])")
 SLASHES = dict.fromkeys(map(ord, "\u2215\u2044\u29f8\u2571\uff0f"), "/")
 REF_DEF = re.compile(r"^ {0,3}\[([^\]]+)\]:")
@@ -148,7 +152,7 @@ class Brief:
         raw HTML (refused). Whichever starts first wins, so a backtick inside a tag's attribute opens no span."""
         plain, visible, spans, i = list(text), list(text), [], 0
         while i < len(text):
-            if text[i] == "\\" and re.match(r"[!-/:-@\[-`{-~]", text[i + 1:i + 2]):
+            if text[i] == "\\" and ESCAPE.match(text, i):
                 i += 2
                 continue
             if text[i] == "`":
@@ -181,27 +185,28 @@ class Brief:
         return "".join(plain), "".join(visible), spans
 
     @staticmethod
-    def _block_end(text, offset):
-        end = BLOCK_END.search(text, offset)
+    def _block_end(text, offset, end_at=BLOCK_END):
+        end = end_at.search(text, offset)
         return end.start() if end else len(text)
 
     def _html(self, text, i):
         """At a `<`: past an autolink, past a `<` that starts no raw HTML, or a refusal naming the line of the `<`."""
-        bound = self._block_end(text, i)
+        bound = self._block_end(text, i, HTML_END)
         link = AUTOLINK.match(text, i, bound)
         if link:
             return link.end()
         line = self._at(text, i)[0] + 1
+        # Blocks are read before inlines, so a tag name that starts a line opens an HTML block whatever follows it.
+        start = HTML_BLOCK_START.match(text, i, bound)
+        if start and LINE_LEAD.fullmatch(text, text.rfind("\n", 0, i) + 1, i):
+            raise Refusal("HTML tag (line %d): '%s'; an HTML block hides what follows; write Markdown instead"
+                          % (line, start.group(0)))
         tag = HTML_TAG.match(text, i, bound)
         if tag:
             raise Refusal("HTML tag (line %d): '%s'; write Markdown instead" % (line, " ".join(tag.group(0).split())))
         other = HTML_OTHER.match(text, i, bound) or HTML_OPENER.match(text, i, bound)
         if other:
             raise Refusal("inline HTML (line %d): '%s'; write Markdown instead" % (line, " ".join(other.group(0).split())))
-        start = HTML_BLOCK_START.match(text, i, bound)
-        if start and LINE_LEAD.fullmatch(text, text.rfind("\n", 0, i) + 1, i):
-            raise Refusal("HTML tag (line %d): '%s'; an HTML block hides what follows; write Markdown instead"
-                          % (line, start.group(0)))
         return i + 1
 
     @staticmethod

@@ -2789,7 +2789,13 @@
     {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "G1t/G1u AC-G1: a backtick inside a tag's attribute does not open a code span; the tag refuses"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "G1m/G1n/G1v/G1ac/G1ad AC-G1: <!--> and <!---> close at once, and a backtick in an autolink, another block or after a backslash pairs with nothing"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "G1o/G1p/G1q/G1ab AC-G1 controls: autolinks, a bare <, near-miss shapes, escapes, code spans and fences are sent"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "G1r AC-G1: an escaped < in scope still refuses as an escape"], "prerequisite": "macos"}
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "G1r AC-G1: an escaped < in scope still refuses as an escape"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold-2.test.ts", "GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)", "G2a-e/G2j/G2l AC-G1 (ruling 3): a tag across a line that cannot interrupt its paragraph refuses, quoting all of it"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold-2.test.ts", "GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)", "G2k AC-G1 (ruling 3): a tag over an indented heading line in prose refuses as a tag, not as a missing rule"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold-2.test.ts", "GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)", "G2f AC-G1 (ruling 3): inside a list, a tag across a new item is refused (a safe over-refusal)"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold-2.test.ts", "GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)", "G2m AC-G1 (ruling 3): a processing instruction, declaration or CDATA across such a line is quoted whole"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold-2.test.ts", "GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)", "G2g AC-G1 control (ruling 1 unchanged): a code span still does not pair across a new list item"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold-2.test.ts", "GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)", "G2h/G2i AC-G1 controls: no match crosses a blank line, even one holding spaces"], "prerequisite": "macos"}
   ],
   "exclusions": [
     {

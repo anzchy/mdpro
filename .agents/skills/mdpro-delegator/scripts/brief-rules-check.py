@@ -5,9 +5,9 @@ prompt.sh runs this for verb `brief` to a Codex implementor only. The required r
 `paths:` frontmatter in the checkout this script sits in, never from a copied list or git. The brief is read through
 `brief_render.py`, loaded from this script's own directory only, which refuses what it cannot read (an entity, any
 inline HTML outside code: a tag, a comment, a processing instruction, a declaration or CDATA; an invisible or
-line-separator character) and hides fences, comments on their own lines and link reference definitions. The scope is the backticked tokens of every `**May edit:**` and `**May create:**`
-paragraph, which runs to the next heading, field label or the field (fix 1), plus `tests/**` when it says "their
-tests"; each token must be a plain repo-root path whose first segment is a top-level entry of that checkout. The named
+line-separator character) and hides fences, comments on their own lines and link reference definitions. The scope
+is the backticked tokens of every `**May edit:**` and `**May create:**` paragraph, which runs to the next heading,
+field label or the field (fix 1), plus `tests/**` when it says "their tests"; each token must be a plain repo-root path whose first segment is a top-level entry of that checkout. The named
 rules come from the one `**Rules for paths in scope.**` paragraph as rendered (`rule <n>`, the file stem, or its
 path). Any other label that reads as May edit or May create, a path without backticks as a reader sees it, an escape,
 fence, footnote or reference link in scope, an empty paragraph, or "Same paths as the grant" without a May edit

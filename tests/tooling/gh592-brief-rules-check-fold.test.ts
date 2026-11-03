@@ -1,8 +1,9 @@
 // @vitest-environment node
 /**
  * GH592 ruling 7 (cycle F1-4): percent-encoded link paths, the lookalike fold in the "Same paths as the grant" and
- * "their tests" phrases, and `ɑ` / `ı` in scope labels. Each case runs the real prompt.sh and brief-rules-check.py
- * copied into a temp tree, with only `herdr` stubbed on PATH.
+ * "their tests" phrases, and `ɑ` / `ı` in scope labels; then fix 2 (cycle F2-1): any CommonMark inline HTML outside
+ * code refuses, while autolinks, a bare `<` and escapes do not. Each case runs the real prompt.sh and
+ * brief-rules-check.py copied into a temp tree, with only `herdr` stubbed on PATH.
  *
  * This file holds a minimal copy of the harness in `gh592-brief-rules-check.test.ts`, which is the source of truth
  * (ruling 8). The big file has 156 tests, and the receipt lane's 120 s vitest cap (#622) kills its record under load,

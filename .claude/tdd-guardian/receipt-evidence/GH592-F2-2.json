@@ -1,0 +1,60 @@
+{
+  "id": "GH592-F2-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T20:55:06.905Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold-2.test.ts\",\"GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)\",\"G2a-e/G2j/G2l AC-G1 (ruling 3): a tag across a line that cannot interrupt its paragraph refuses, quoting all of it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold-2.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold-2.test.ts\",\"GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)\",\"G2f AC-G1 (ruling 3): inside a list, a tag across a new item is refused (a safe over-refusal)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold-2.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold-2.test.ts\",\"GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)\",\"G2k AC-G1 (ruling 3): a tag over an indented heading line in prose refuses as a tag, not as a missing rule\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold-2.test.ts",
+        "line": 102
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /HTML tag \\(line \\d+\\)/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold-2.test.ts\",\"GH592 brief rules check, fix 2 ruling 3 fold (requires macos zsh)\",\"G2m AC-G1 (ruling 3): a processing instruction, declaration or CDATA across such a line is quoted whole\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold-2.test.ts",
+        "line": 142
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to contain '\\'<?x 2. rule 50 ?>\\''"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-F2-2/20261103T205506905Z/tests",
+    "tree": "c79b1a6d0fee7edbe2014ec6b52d7a1a5608b0d3"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check-fold-2.test.ts": "6985805cb8765533ab39109707bab1083cc2a68e"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check-fold-2.test.ts": "6985805cb8765533ab39109707bab1083cc2a68e"
+  }
+}
