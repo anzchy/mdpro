@@ -12,7 +12,8 @@
  *   guardian bound plus 60 s, the guardian bound being the longest lane timeout plus 60 s
  *   (at least 660 s). record gets two guardian bounds plus 60 s (R-g): it may wait on the
  *   store lock for one other record's whole engine call before its own.
- *   MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS overrides it, for tests.
+ *   MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS overrides it, for tests; MDPRO_UNIT_RED_GUARDIAN_FLOOR_MS and
+ *   MDPRO_UNIT_RED_BOUND_MARGIN_MS may only lower the floor and the margin (D357 ruling 1).
  * - On the bound, SIGINT, SIGTERM or SIGHUP, the death of the calling entry (a SIGKILL
  *   it cannot forward), and whenever the operation has exited, the
  *   launcher sends the session's group SIGTERM, waits MDPRO_UNIT_RED_KILL_GRACE_MS
@@ -107,14 +108,25 @@ export function laneTimeoutMs(cwd) {
     return Math.max(0, ...lanes.filter((lane) => lane.name === "unit-red" || lane.name === "rust").map((lane) => Number(lane.timeoutMs) || 0));
   } catch { return 0; }
 }
-/** The guardian call's bound: above the lane's own timeout, never below the old 660 s. */
-export const guardianBoundMs = (laneTimeout) => Math.max(DEFAULT_GUARDIAN_BOUND_MS, laneTimeout + BOUND_MARGIN_MS);
+/**
+ * Test-only overrides, read here (D357 ruling 1): MDPRO_UNIT_RED_GUARDIAN_FLOOR_MS and MDPRO_UNIT_RED_BOUND_MARGIN_MS
+ * can only lower the 660 s floor and the 60 s margin, so a lane test can reach the bounds in seconds. A value that is
+ * not plain digits, is not positive, or is above the default is ignored, and the default applies.
+ */
+function lowered(value, fallback) {
+  const ms = /^\d+$/.test(value ?? "") ? Number(value) : 0;
+  return ms > 0 && ms <= fallback ? ms : fallback;
+}
+const boundMarginMs = (env) => lowered(env.MDPRO_UNIT_RED_BOUND_MARGIN_MS, BOUND_MARGIN_MS);
+/** The guardian call's bound: above the lane's own timeout, never below the 660 s floor. */
+export const guardianBoundMs = (laneTimeout, env = process.env) =>
+  Math.max(lowered(env.MDPRO_UNIT_RED_GUARDIAN_FLOOR_MS, DEFAULT_GUARDIAN_BOUND_MS), laneTimeout + boundMarginMs(env));
 /** The OS-lock launcher's bound for `action`, above every bound the operation runs under. */
 export function launcherBoundMs(action, env, laneTimeout) {
   if (env.MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS) return Number(env.MDPRO_UNIT_RED_LAUNCH_TIMEOUT_MS);
   if (action === "replay") return 3 * replaySpawnTimeoutMs(env, true) + REPLAY_OVERHEAD_MS;
-  if (action === "record") return RECORD_GUARDIAN_CALLS * guardianBoundMs(laneTimeout) + BOUND_MARGIN_MS;
-  return guardianBoundMs(laneTimeout) + BOUND_MARGIN_MS;
+  if (action === "record") return RECORD_GUARDIAN_CALLS * guardianBoundMs(laneTimeout, env) + boundMarginMs(env);
+  return guardianBoundMs(laneTimeout, env) + boundMarginMs(env);
 }
 /** How long record waits for the store lock: one other record's engine call. */
 export const storeLockWaitMs = (cwd) => Number(process.env.MDPRO_RECEIPT_STORE_LOCK_WAIT_MS) || guardianBoundMs(laneTimeoutMs(cwd));

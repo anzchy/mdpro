@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createReceiptRepo, entryScript, pluginVersion, repo as source, type ReceiptRepo } from "./adr0149eRepo";
+import { guardianBoundMs, launcherBoundMs } from "../../scripts/tdd/receipt-locks.mjs";
 
 vi.setConfig({ testTimeout: 240_000 });
 const T = ".claude/tdd-guardian", R = `${T}/receipts`, E = `${T}/receipt-evidence`, TMP = `${T}/.tmp`;
@@ -304,5 +305,23 @@ describe.skipIf(!pluginVersion)("D357 aged store lock with a live owner (L8)", (
     expect(a.output + b.output).not.toContain("foreign");
     expect(item("A-1").red.kind).toBe("assertion-failure");
     expect(item("B-1").red.kind).toBe("assertion-failure");
+  });
+});
+
+describe("D357 bound overrides only lower the bound (L9, ruling 1)", () => {
+  const FLOOR = "MDPRO_UNIT_RED_GUARDIAN_FLOOR_MS", MARGIN = "MDPRO_UNIT_RED_BOUND_MARGIN_MS";
+  it("N1c: a floor or margin that is not plain digits, is not positive, or is above the default is ignored; a lower one applies", () => {
+    for (const env of [{}, { [FLOOR]: "abc", [MARGIN]: "abc" }, { [FLOOR]: "-5", [MARGIN]: "-5" }, { [FLOOR]: "0", [MARGIN]: "0" },
+      { [FLOOR]: "1e3", [MARGIN]: "1e3" }, { [FLOOR]: "1000.5", [MARGIN]: " 1000" }, { [FLOOR]: "660001", [MARGIN]: "60001" }]) {
+      expect(guardianBoundMs(0, env)).toBe(660_000);
+      expect(launcherBoundMs("record", env, 0)).toBe(1_380_000);
+      expect(guardianBoundMs(700_000, env)).toBe(760_000);
+    }
+    const lower = { [FLOOR]: "1000", [MARGIN]: "1000" };
+    expect(guardianBoundMs(20_000, lower)).toBe(21_000);
+    expect(launcherBoundMs("record", lower, 20_000)).toBe(43_000);
+    expect(launcherBoundMs("verify", lower, 20_000)).toBe(22_000);
+    expect(guardianBoundMs(0, { [FLOOR]: "660000", [MARGIN]: "60000" })).toBe(660_000);
+    expect(guardianBoundMs(700_000, { [MARGIN]: "5000" })).toBe(705_000);
   });
 });

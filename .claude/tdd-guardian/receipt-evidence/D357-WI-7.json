@@ -1,0 +1,33 @@
+{
+  "id": "D357-WI-7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T05:30:41.973Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rc5-receipt-lifecycle.test.ts\",\"D357 bound overrides only lower the bound (L9, ruling 1)\",\"N1c: a floor or margin that is not plain digits, is not positive, or is above the default is ignored; a lower one applies\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-lifecycle.test.ts",
+        "line": 321
+      },
+      "message": "AssertionError: expected 660000 to be 21000 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D357-WI-7/20261103T053041973Z/tests",
+    "tree": "97685bd0ce07b5df7cf5032f2279ecbf5955a575"
+  },
+  "spec_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "0f587b48241ad86e0551d2d2e1b64b38a784d490"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "0f587b48241ad86e0551d2d2e1b64b38a784d490"
+  }
+}
