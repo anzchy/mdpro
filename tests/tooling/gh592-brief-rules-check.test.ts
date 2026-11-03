@@ -616,5 +616,15 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.reset();
     h.expectRefused(await h.send(h.write(filled, "unfilled.md")), /needs rule 22 [\s\S]*needs rule 50 /);
   });
+  it("C76 AC-2 (code review): a bare dot-folder token is a folder, so it needs the rules under it", async () => {
+    const h = harness();
+    for (const token of [".claude", ".agents"]) {
+      h.reset();
+      needs(await h.send(h.write(grant(`- **May edit:** \`${token}\`.`, "none"))), [22]);
+    }
+    h.reset();
+    const brief = h.write(grant("- **May edit:** `CHANGELOG.md`.", "none"));
+    h.expectSent(await h.send(brief), brief);
+  });
   // next-case
 });
