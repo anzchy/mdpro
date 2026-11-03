@@ -227,6 +227,7 @@ jobs:
           ' --arg code "$(echo "$NEEDS" | jq -r '.scope.outputs.code')" >/dev/null \
             || { echo "ci-gate: a job ended in failure, was cancelled, or skipped without scope's code=false"; exit 1; }
 
+      # ci-gate now resolves two actions at setup; resolution failure fails closed (blocks, never passes).
       - uses: actions/checkout@v6
         if: ${{ !cancelled() }}
         continue-on-error: true
