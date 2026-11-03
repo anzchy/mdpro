@@ -1,24 +1,28 @@
 ---
 name: release-gate
-description: Run VMark release gates and summarize results. Use when asked to run full quality gates (lint/test/build), verify readiness, or produce a gate report.
+description: Run mdpro's release gates and summarize the results. Use when asked to run the full quality gates (tests, typecheck, build, coverage, Rust tests, ledger), verify readiness, or produce a gate report.
 ---
 
 # Release Gate
 
 ## Overview
-Run the full VMark gate (`pnpm check:all`) and summarize outcomes.
+Run mdpro's gate commands in order and summarize the outcome. Every heavy command runs through
+`scripts/heavy-lock.sh` (rule 10).
 
 ## Workflow
-1) Confirm current branch and dirty state (`git status -sb`).
-2) Run the full gate:
-   - `pnpm check:all`
-   - Or run individual steps: `pnpm lint && pnpm test && pnpm build`
-3) If failures occur, capture the first error block and stop.
+1) Confirm the current branch and dirty state (`git status -sb`).
+2) Run the gates, in this order:
+   - Unit tests: `scripts/heavy-lock.sh pnpm test:run`
+   - Typecheck and build: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'`
+   - Coverage: `scripts/heavy-lock.sh pnpm coverage`
+   - Rust tests: `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml`
+   - Feature ledger: `pnpm ledger:check`
+3) If a gate fails, capture the first error block and stop.
 4) Report:
-   - Which steps ran (lint/test/build)
-   - Pass/fail status
+   - Which gates ran
+   - Pass/fail status of each
    - Key errors and next actions
 
 ## Notes
-- Prefer the full gate over partial commands unless asked.
-- Do not run interactive dev servers.
+- Run every gate unless asked for a subset.
+- Do not run interactive dev servers, and not `pnpm test`, which starts vitest in watch mode.
