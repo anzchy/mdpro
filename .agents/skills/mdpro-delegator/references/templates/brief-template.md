@@ -10,11 +10,7 @@ before RED; if unavailable, record `ATTACK-NOT-RUN` and stop.
 <NL item: matrix from `nl-matrix-template.md`, eval results in the handoff (decision 20261103).>
 
 **Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
-named for that path in AGENTS.md. #592 checks it.
-
-For a Codex implementor, `prompt.sh` refuses a brief whose May edit or May create paths match a rule's `paths:`
-frontmatter unless its `**Rules for paths in scope.**` field names that rule (as rule and number, its file stem, or
-its path). Write every scope path backticked and from the repo root, under exactly those two labels.
+named for that path in AGENTS.md. `prompt.sh` refuses a Codex brief that misses one (#592).
 
 ## 1. Background
 - **The issue.** `anzchy/mdpro#<n>` (or, for an existing D item, `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>`), and the plan row, if any.
