@@ -1,6 +1,8 @@
 // Purpose: shared helpers for the D355 fix-1 tests (d355-fix1-*.test.ts) and the ADR readers: `adrFiles`/`findAdr`/`ADR`
-// read `NNNN-*.md` records only, and `withoutForwardLinks` strips the Status paragraphs docs/adr/README.md permits, so a
-// body hash holds the accepted record while folds add Status lines (#629; its own tests are adr-forward-links.test.ts).
+// read `NNNN-*.md` records only; `isForwardLink` recognises a Status paragraph only in a form docs/adr/README.md permits;
+// `heldBody` is an accepted record's pin, its body plus its existing forward links held as a set, so only well-formed
+// additions are free; `unresolvedCurrentText` checks every Current text target (#629 and its fix 1; their own tests are
+// adr-forward-links.test.ts).
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -134,21 +136,81 @@ export function unresolvedSectionRefs(file: string, text: string): string[] {
   });
   return bad;
 }
-// A paragraph docs/adr/README.md lets an accepted ADR gain after acceptance: `Superseded by ADR-NNNN`, `partially
-// superseded: …`, `Current text: …; folded by ADR-0165`, `Current text: …; folded and changed by …`, and dated
-// `Drifted` / `False in practice` lines. An optional leading date, `**` or `Status note**:` prefix is allowed; the
-// `**Status**:` line itself and a backward `Supersedes …` paragraph are not forward links.
-const FORWARD_LINK =
-  /^(?:\*\*)?(?:status note\*\*:\s*)?(?:\(?\d{4}-\d{2}-\d{2}\)?[,:]?\s+)?(?:\*\*)?(?:current text: [^\n]*?; folded (?:and changed )?by\b|(?:partially )?superseded\b|drifted\b|false in practice\b)/i;
+// The forward-link paragraphs docs/adr/README.md lets an accepted ADR gain, each recognised only in its README form
+// (#629 fix 1): `Superseded by ADR-NNNN`; `partially superseded: <clause> by ADR-NNNN`; a dated `Current text:
+// <file>#<anchor>[; <file>#<anchor>…]; folded by ADR-0165` or `…; folded and changed by docs/agents/decisions/<file>`;
+// and `Drifted` / `False in practice`, dated, with a link to the evidence. An optional leading `**`, `Status note**:` or
+// date is allowed. Anything else, the `**Status**:` line and a backward `Supersedes …` included, is not a forward link.
+const DATE = String.raw`\(?\d{4}-\d{2}-\d{2}\)?`;
+const LEAD = String.raw`^(?:\*\*)?(?:status note\*\*:\s*)?(?:(?<date>${DATE})[,:]?\s+)?(?:\*\*)?`;
+const ADR_REF = String.raw`(?:\*\*)?\[?ADR-\d{4}\b`;
+const TARGET = "`[^`\\s#]+#[^`\\s#]+`";
+const DECISION = "`docs/agents/decisions/[^`\\s]+\\.md`";
+const FORMS: RegExp[] = [
+  new RegExp(String.raw`${LEAD}superseded(?:\*\*)?(?:,?\s+${DATE})?\s+by\s+${ADR_REF}`, "i"),
+  new RegExp(String.raw`${LEAD}partially superseded(?:\*\*)?:\s+\S[\s\S]*?\s+by\s+${ADR_REF}`, "i"),
+  new RegExp(String.raw`${LEAD}current text: ${TARGET}(?:[;,] ${TARGET})*; folded (?:by ADR-0165\b|and changed by (?:\[${DECISION}\]\(\.\./agents/decisions/[^)\s]+\.md\)|${DECISION}))(?:\*\*)?(?:,\s+(?<date2>\d{4}-\d{2}-\d{2}))?`, "i"),
+  new RegExp(String.raw`${LEAD}(?:drifted|false in practice)(?:\*\*)?(?:,?\s+(?<date2>${DATE}))?[:,][\s\S]*\]\([^)\s]+\)`, "i"),
+];
+const DATED = [false, false, true, true]; // the Current text and Drifted / False in practice forms must carry a date
+/** True when `p` is one forward-link paragraph in a form docs/adr/README.md permits. */
+export function isForwardLink(p: string): boolean {
+  return FORMS.some((re, i) => {
+    const m = p.match(re);
+    return !!m && (!DATED[i] || !!(m.groups?.date || m.groups?.date2));
+  });
+}
 /**
- * The ADR's text with every permitted forward-link paragraph of its Status block removed (#629): the paragraphs before
- * the first `## ` heading other than `## Status`. Everything else, the Status line and the body included, is kept
- * byte for byte, so a hash of the result holds the accepted record while Status annotations are added.
+ * The paragraphs of the Status block: those before the first `## ` heading other than `## Status`. A text with no such
+ * heading has no Status block, so nothing in it is ever stripped (opus-auditor L2).
  */
-export function withoutForwardLinks(text: string): string {
+export function statusParagraphs(text: string): string[] {
   const paras = text.split("\n\n");
   const end = paras.findIndex((p) => /^## (?!Status\n|Status$)/.test(p));
-  return paras.filter((p, i) => (end >= 0 && i >= end) || !FORWARD_LINK.test(p)).join("\n\n");
+  return end < 0 ? [] : paras.slice(0, end);
+}
+/** `text` less the Status paragraphs `drop` selects; the rest, the Status line and the body included, byte for byte. */
+function stripStatus(text: string, drop: (p: string) => boolean): string {
+  const n = statusParagraphs(text).length;
+  return text.split("\n\n").filter((p, i) => i >= n || !drop(p)).join("\n\n");
+}
+/** The ADR's text with every correctly formed forward-link paragraph of its Status block removed (#629). */
+export const withoutForwardLinks = (text: string) => stripStatus(text, isForwardLink);
+/**
+ * The pin of an accepted record (#629 fix 1). `base` is the sha256 of each forward-link paragraph the record had when
+ * its pin was recorded. `body` is the text less those paragraphs and less any correctly formed one added since, so a
+ * hash of it holds the accepted record; `missing` lists each base paragraph no longer present byte for byte, so
+ * deleting, rewriting or repointing an existing forward link fails the pin while adding a well-formed one does not.
+ */
+export function heldBody(text: string, base: readonly string[]): { body: string; missing: string[] } {
+  const present = new Set(statusParagraphs(text).map(sha));
+  return {
+    body: stripStatus(text, (p) => base.includes(sha(p)) || isForwardLink(p)),
+    missing: base.filter((h) => !present.has(h)),
+  };
+}
+/**
+ * `file: target: file missing|anchor missing` for each Current text target in `text` that does not resolve, and the
+ * number of targets seen. It scans every Status paragraph that says `Current text:`, whatever its prefix (gpt-auditor
+ * H1), and any line starting `**Current text:`; a `folded and changed by` decision file must exist too.
+ */
+export function unresolvedCurrentText(file: string, text: string): { bad: string[]; seen: number } {
+  const paras = new Set([...statusParagraphs(text), ...text.split("\n").filter((l) => l.startsWith("**Current text:"))]);
+  const bad: string[] = [];
+  let seen = 0;
+  for (const p of [...paras].filter((q) => /current text:/i.test(q))) {
+    const span = p.match(/current text:([\s\S]*?); folded/i)?.[1] ?? "";
+    const targets = [...span.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    const route = p.match(/folded and changed by \[?`(docs\/agents\/decisions\/[^`]+)`/i)?.[1];
+    if (!targets.length) bad.push(`${file}: ${p.slice(0, 60)}: no target`);
+    for (const t of [...targets, ...(route ? [route] : [])]) {
+      seen++;
+      const [f, anchor] = t.split("#");
+      if (!exists(f)) bad.push(`${file}: ${t}: file missing`);
+      else if (anchor && !anchorExists(f, anchor)) bad.push(`${file}: ${t}: anchor missing`);
+    }
+  }
+  return { bad, seen };
 }
 /** `text` with `para` added as the last paragraph before `## Context`: a Status annotation, as a fold would add it. */
 export const addStatusParagraph = (text: string, para: string) => text.replace("\n\n## Context\n", `\n\n${para}\n\n## Context\n`);

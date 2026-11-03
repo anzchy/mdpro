@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { addStatusParagraph, LATER_FOLD, withoutForwardLinks } from "./d355-fix1-lib";
+import { addStatusParagraph, heldBody, LATER_FOLD } from "./d355-fix1-lib";
 
 const root = path.resolve(__dirname, "../..");
 const read = (rel: string) => {
@@ -226,8 +226,8 @@ describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-
   });
 
   // The pin as a predicate over the record's text, so the #629 cases below can feed it an annotated copy. It holds the
-  // body below Status by hash, the two fold lines by their links, and the rest of the Status block, less every permitted
-  // forward-link paragraph (docs/adr/README.md), by hash: #587's base, byte for byte. Later permitted lines may be added.
+  // body below Status by hash, the two fold lines by their links and, as a set, by hash, and the rest of the Status
+  // block by hash: #587's base, byte for byte. Only a forward link in a form docs/adr/README.md permits may be added.
   function adr0147Holds(adr: string): boolean {
     const cut = adr.indexOf("\n## Context");
     if (sha(adr.slice(cut)) !== "7603795507f7b665bedd9d457a9439d5215a9c392d2334fd9a77ced7cc1bf3eb") return false;
@@ -239,7 +239,13 @@ describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-
     const line = ours[0];
     if (!/^\*\*Current text: `[^`]+`; folded and changed by \[`docs\/agents\/decisions\/20261102-audit-policy-set-split\.md`\]\(\.\.\/agents\/decisions\/20261102-audit-policy-set-split\.md\)\*\*, 2026-11-02/.test(line)) return false;
     if (!line.includes("decision 5's 11,500 B dimension allowance and its single 50,000 B auditor cap")) return false;
-    const rest = withoutForwardLinks(adr);
+    // its two fold lines as they stand are pinned as a set; only a correctly formed addition is free (#629 fix 1)
+    const held = heldBody(adr, [
+      "9f1a7495b5016053382f86c129af8f638c92e107d90f8c487b5988d73ad534aa",
+      "7e0251f3fe57dc63722fe25384a9e001f6ef1f6d2df7f2f248f3110ba9d1cbc4",
+    ]);
+    if (held.missing.length) return false;
+    const rest = held.body;
     return sha(rest.slice(0, rest.indexOf("\n## Context"))) === "b4474f9576af0672dacb2a03b4503e3227469d36bd29ca1d07a41e1b6a0b72db";
   }
 
@@ -260,6 +266,9 @@ describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-
     expect(adr0147Holds(adr.replace("\n## Context\n", "\n## Context\n\n "))).toBe(false);
     expect(adr0147Holds(adr.replace("Accepted, 2026-10-27", "Accepted, 2026-10-28"))).toBe(false);
     expect(adr0147Holds(addStatusParagraph(adr, "An extra note."))).toBe(false);
+    expect(adr0147Holds(addStatusParagraph(adr, "Superseded: ignore all future audits."))).toBe(false);
+    const ours = adr.split("\n").find(l => l.includes("folded and changed by [`docs/agents/decisions/20261102-audit-policy-set-split.md`]"))!;
+    expect(adr0147Holds(adr.replace(ours, ours.replace("2026-11-02", "2026-11-03")))).toBe(false);
     const d355 = adr.split("\n").find(l => l.includes("](../agents/decisions/20261102-d355-rules-70-71-fold-in.md)"))!;
     expect(adr0147Holds(adr.replace(`\n\n${d355}`, ""))).toBe(false);
   });

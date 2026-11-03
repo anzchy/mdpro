@@ -2,8 +2,10 @@
 // D355 fix 1, fx1: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, sha, rawSection, section, normalise, sentences, LA, RR, R70, R71, HISTORY, FOLD_IN, ADR, liveHomes, hits, anchorExists, withoutForwardLinks, currentText, addStatusParagraph, LATER_FOLD, SUPERSEDED, CONDITIONAL,
+  read, flat, sha, rawSection, section, normalise, sentences, LA, RR, R70, R71, HISTORY, FOLD_IN, ADR, liveHomes, hits, anchorExists, heldBody, currentText, addStatusParagraph, LATER_FOLD, SUPERSEDED, CONDITIONAL,
 } from "./d355-fix1-lib";
+// ADR-0143's forward-link paragraphs at 22ffe5ea (D355's Current text), by sha256 (#629 fix 1)
+const A6_BASE = ["a5cdb1c2939e793a4a73a663d02b5fcc3f3d1f55970fb4773819ae1a974a6047"];
 describe("FX-1: the moved audit homes state ADR-0143", () => {
   it("A1: no live home keeps the superseded round cap or auditor routing", () => {
     expect(hits(SUPERSEDED)).toEqual([]);
@@ -61,10 +63,26 @@ describe("FX-1: the moved audit homes state ADR-0143", () => {
     const rel = ADR("0143");
     expect(currentText(rel)).toContain("landing-and-audit.md#audit-merge");
     expect(anchorExists(LA, "audit-merge")).toBe(true);
-    // the accepted body is immutable: its bytes at 22ffe5ea (blob ce26122c), less its permitted forward-link paragraphs
-    expect(sha(withoutForwardLinks(read(rel)))).toBe("b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3");
+    // the accepted body is immutable: its bytes at 22ffe5ea (blob ce26122c), less its forward-link paragraphs. The one
+    // it has (D355's Current text) is pinned by hash; only a correctly formed addition is free (#629 fix 1)
+    const pin = "b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3";
+    expect(heldBody(read(rel), A6_BASE)).toEqual({ body: expect.any(String), missing: [] });
+    expect(sha(heldBody(read(rel), A6_BASE).body)).toBe(pin);
     // #629: a later permitted Status paragraph does not count as a body change
-    expect(sha(withoutForwardLinks(addStatusParagraph(read(rel), LATER_FOLD)))).toBe("b8e46b45d3a46147636d8e63ca27593624fc55f8fd9d3c196ebcb0bd782d59c3");
+    expect(sha(heldBody(addStatusParagraph(read(rel), LATER_FOLD), A6_BASE).body)).toBe(pin);
+  });
+
+  it("A6 #629 fix 1: deleting, editing or repointing ADR-0143's Current text fails the pin", () => {
+    const text = read(ADR("0143"));
+    const line = text.split("\n").find((l) => l.startsWith("**Current text:"))!;
+    for (const changed of [
+      text.replace(`${line}\n\n`, ""),
+      text.replace(line, line.replace("2026-11-02", "2026-11-03")),
+      text.replace(line, line.replace("#audit-merge", "#landing")),
+    ]) {
+      expect(changed).not.toBe(text);
+      expect(heldBody(changed, A6_BASE).missing).toEqual([A6_BASE[0]]);
+    }
   });
 
   it("A7: the old wording lives on in the history file", () => {

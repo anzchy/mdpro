@@ -2,8 +2,18 @@
 // D355 fix 1, shoulds: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, withoutForwardLinks, currentText, addStatusParagraph, LATER_FOLD,
+  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, heldBody, currentText, addStatusParagraph, LATER_FOLD,
 } from "./d355-fix1-lib";
+// D3's pins (#629): ADR-0085's and ADR-0134's bodies, and each one's forward-link paragraphs at 22ffe5ea by sha256
+// (0085: its 2026-10-28 partially superseded and D355's Current text; 0134: decision 7's partially superseded and D355's)
+const D3_BODIES: Record<string, string> = {
+  "0085": "e82b18283bc1d7295ff05028a7b31894994bfed61b53bbe7d83ed00a3afce251",
+  "0134": "2c73c259a2c7f948028bc4468887dad0faedec84ec609baa3f8c5cfcadd0c4f7",
+};
+const D3_BASE: Record<string, string[]> = {
+  "0085": ["c306ace53e16f5b721f330f5524952c579f5976d0bac39331ffa13a43c7c8561", "d15a5b9dd34c7329ca8b188b43a0313fb5f22dc0d99ba3ba6eee1cb8ba0c4dec"],
+  "0134": ["590e18c9e3ee850a3342882db78eb49cd45a48370526e0104ee4c37718cfca27", "af936fd2c495b613825aaab9d1d2e3c916065e54cd6c5058e5f74d1f21b0e084"],
+};
 describe("Shoulds: fN4–fN13, gN4–gN5", () => {
   it("D1: codex-panes.md links AGENTS.md's renamed section", () => {
     const t = read(CP);
@@ -77,16 +87,14 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     for (const a of ["device-tester.md#mac-mini", "roster-and-routing.md#roster", "codex-panes.md#restart", "device-batches.md#device-routing"]) {
       expect(l134, a).toContain(a);
     }
-    // the accepted records are immutable: their bytes at 22ffe5ea (blobs b58c7599, aa0f8aa4), less every permitted
-    // forward-link paragraph (#629 re-recorded both: each is the old pin's text less one dated "partially superseded")
-    const bodies: Record<string, string> = {
-      "0085": "e82b18283bc1d7295ff05028a7b31894994bfed61b53bbe7d83ed00a3afce251",
-      "0134": "2c73c259a2c7f948028bc4468887dad0faedec84ec609baa3f8c5cfcadd0c4f7",
-    };
+    // the accepted records are immutable: their bytes at 22ffe5ea (blobs b58c7599, aa0f8aa4), less their forward-link
+    // paragraphs (#629 re-recorded both: each is the old pin's text less one "partially superseded"). Those paragraphs
+    // are pinned as a set, by hash (D3_BASE); only a correctly formed addition is free (#629 fix 1)
     for (const n of ["0085", "0134"]) {
-      expect(sha(withoutForwardLinks(read(ADR(n)))), n).toBe(bodies[n]);
+      expect(heldBody(read(ADR(n)), D3_BASE[n]).missing, n).toEqual([]);
+      expect(sha(heldBody(read(ADR(n)), D3_BASE[n]).body), n).toBe(D3_BODIES[n]);
       // #629: a later permitted Status paragraph does not count as a body change
-      expect(sha(withoutForwardLinks(addStatusParagraph(read(ADR(n)), LATER_FOLD))), `${n} + later fold`).toBe(bodies[n]);
+      expect(sha(heldBody(addStatusParagraph(read(ADR(n)), LATER_FOLD), D3_BASE[n]).body), `${n} + later fold`).toBe(D3_BODIES[n]);
     }
     const entry = read(FOLD_IN);
     expect(entry.split("\n").find((l) => l.startsWith("| 0085 |"))).toContain("70-multi-session-coordination.md#commits-and-branches");
@@ -98,6 +106,26 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     const down = section(read("docs/agents/auditor.md"), "Downgrades");
     expect(down).toContain("user decision 2026-10-16");
     expect(down).not.toContain("ADR-0085");
+  });
+
+  it("D3 #629 fix 1: deleting, editing or repointing an existing forward link of ADR-0085 or ADR-0134 fails the pin", () => {
+    for (const n of ["0085", "0134"]) {
+      const text = read(ADR(n));
+      const paras = text.split("\n\n").filter((p) => D3_BASE[n].includes(sha(p)));
+      expect(paras, n).toHaveLength(2);
+      for (const [i, p] of paras.entries()) {
+        const ref = p.match(/\(([^)\s]+\.md)\)|`([^`]+#[^`]+)`/)!;
+        const target = ref[1] ?? ref[2];
+        for (const changed of [
+          text.replace(`${p}\n\n`, ""),
+          text.replace(p, p.replace(/decision \d|D355/, (m) => `${m}x`)),
+          text.replace(p, p.replace(target, target.replace(/\.md/, "-other.md"))),
+        ]) {
+          expect(changed, `${n} paragraph ${i}`).not.toBe(text);
+          expect(heldBody(changed, D3_BASE[n]).missing, `${n} paragraph ${i}`).toEqual([D3_BASE[n][i]]);
+        }
+      }
+    }
   });
 
   it("D4: the Q&A header's moved block reads whole, once", () => {
