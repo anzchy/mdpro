@@ -16,6 +16,7 @@ Run mdpro's gate commands in order and summarize the outcome. Every heavy comman
    - Typecheck and build: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'`
    - Coverage: `scripts/heavy-lock.sh pnpm coverage`
    - Rust tests: `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml`
+   - Rust tests with the control channel: `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml --features control-channel`
    - Feature ledger: `pnpm ledger:check`
 3) If a gate fails, capture the first error block and stop.
 4) Report:

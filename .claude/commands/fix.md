@@ -85,8 +85,10 @@ that fails on code the fix did not touch (see "If a step fails"), and then the f
 - Once before the commit, the full unit lane with coverage, which checks the coverage thresholds:
   `scripts/heavy-lock.sh pnpm exec vitest run --coverage`.
 - Typecheck and build: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'`.
-- If Rust code was changed, also run `scripts/heavy-lock.sh cargo check --manifest-path src-tauri/Cargo.toml`, then
-  `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml`.
+- If Rust code was changed (`src-tauri/`), also run `scripts/heavy-lock.sh cargo check --manifest-path src-tauri/Cargo.toml`,
+  then the `rust` and `rust-verify-run` lanes (rule 10):
+  `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml` and
+  `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml --features control-channel`.
 - If user-facing behavior changed, update CHANGELOG.md.
 
 ### When to Rewrite vs Patch

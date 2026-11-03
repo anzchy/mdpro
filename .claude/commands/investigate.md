@@ -69,8 +69,9 @@ Once the root cause is confirmed:
 4. **Run all gates**, each heavy command through `scripts/heavy-lock.sh` (rule 10): the full unit lane,
    `scripts/heavy-lock.sh pnpm exec vitest run --coverage`, and
    `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'`. If Rust changed:
-   `scripts/heavy-lock.sh cargo check --manifest-path src-tauri/Cargo.toml`, then
-   `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml`.
+   `scripts/heavy-lock.sh cargo check --manifest-path src-tauri/Cargo.toml`, then the `rust` and `rust-verify-run`
+   lanes (rule 10): `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml`
+   and `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml --features control-channel`.
 
 ## Blast Radius Rule
 
