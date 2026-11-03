@@ -61,7 +61,8 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
   it("preserves the ci-gate decision bytes from GH607's pinned base", async () => {
     const { stdout: baseline } = await runFile("git", ["show", "a3e9b7ec:.github/workflows/ci.yml"], { encoding: "utf8" });
     const decision = (text: string) => steps(job(text, "ci-gate")).find((step) => scalar(step, "name") === "Every job succeeded, or skipped for a prose-only change");
-    expect(stepRun(decision(TEXT) ?? null)).toBe(stepRun(decision(baseline) ?? null));
+    expect(decision(TEXT)).toBe(decision(baseline));
+    expect(scalar(job(TEXT, "ci-gate"), "continue-on-error")).toBeNull();
     expect(list(job(TEXT, "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "rust-test"]);
   }, 30_000);
 
