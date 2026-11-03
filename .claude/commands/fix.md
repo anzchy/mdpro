@@ -78,13 +78,15 @@ commits or the log.
 
 ### 6. Verify
 
-Every heavy command runs through `scripts/heavy-lock.sh` (rule 10). All of these must pass:
+Every heavy command runs through `scripts/heavy-lock.sh` (rule 10). All of these must pass; the only exception is a gate
+that fails on code the fix did not touch (see "If a step fails"), and then the fix is blocked, not done:
 
 - The focused run while you work: `VITEST_MAX_WORKERS=2 scripts/heavy-lock.sh --guard-only pnpm exec vitest run tests/<files>`.
 - Once before the commit, the full unit lane with coverage, which checks the coverage thresholds:
   `scripts/heavy-lock.sh pnpm exec vitest run --coverage`.
 - Typecheck and build: `scripts/heavy-lock.sh sh -c 'pnpm -s typecheck:tests && pnpm -s build'`.
-- If Rust code was changed, also run `scripts/heavy-lock.sh cargo check --manifest-path src-tauri/Cargo.toml`.
+- If Rust code was changed, also run `scripts/heavy-lock.sh cargo check --manifest-path src-tauri/Cargo.toml`, then
+  `scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml`.
 - If user-facing behavior changed, update CHANGELOG.md.
 
 ### When to Rewrite vs Patch
@@ -104,7 +106,8 @@ Every heavy command runs through `scripts/heavy-lock.sh` (rule 10). All of these
 
 - **The bug cannot be reproduced:** stop and ask for more detail (an implementor asks through the delegator). Do not
   fix a guess.
-- **A gate fails on code the fix did not touch:** report the command and its output, and do not fix it here.
+- **A gate fails on code the fix did not touch:** report the fix as **blocked, not done**, with the command and its
+  failing output, and do not fix it here.
 - **The fix touches more than 5 files:** pause and report what changed, why each file is needed, and whether a
   narrower fix is possible, as `/investigate`'s Blast Radius Rule does. Ask before going on (an implementor asks
   through the delegator).
@@ -114,6 +117,7 @@ Every heavy command runs through `scripts/heavy-lock.sh` (rule 10). All of these
 Report:
 1. **Root cause** — the file:line and the condition that triggers the failure
 2. **Fix** — what changed and why it removes the root cause
-3. **Regression test** — its path and name, and its RED output before the fix
+3. **Regression test** — its path and name, and its RED output before the fix; or, for a CSS-only or visual fix, the
+   visual QA evidence instead
 4. **Gates** — each command run in step 6 and its result
 5. **Rewrite or patch** — which one, and the criterion from "When to Rewrite vs Patch" that decided it

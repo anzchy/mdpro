@@ -93,9 +93,10 @@ git fetch origin
 git rebase origin/master
 ```
 
-- If rebase succeeds: force-push the branch, then wait for checks.
+- If rebase succeeds: the delegator alone force-pushes the PR branch, never `master`, a `release/x.y` branch or a tag
+  (rule 25's standing exception). Any other session reports the rebased head to the delegator instead.
   ```bash
-  git push --force-with-lease
+  git push --force-with-lease=<branch>:<old head>
   ```
   Wait for checks:
   ```bash
@@ -151,7 +152,8 @@ Also report:
 
 1. **Always confirm with user** before handing anything off (an implementor asks through the delegator).
 2. **Never hand off PRs with failing checks** — skip and report.
-3. **Use `--force-with-lease`** for rebase pushes, never `--force`.
+3. **Only the delegator force-pushes**, as `git push --force-with-lease=<branch>:<old head>` on a PR branch, never
+   `master`, a `release/x.y` branch or a tag (rule 25), and never a bare `--force`.
 4. **Never delete a branch** — branch deletion asks the user (rule 25), and remote branches stay thirty days (ADR-0084).
 5. **Sequential only** — never prepare in parallel. Each landing may affect the next PR's mergeability.
 6. **No merge here** — only the delegator lands, by `git merge --ff-only` onto `master` (rule 70). `master` takes no
