@@ -46,7 +46,8 @@ commit that starts it working.
       repo root. A scope runs to the next heading or field label.
 
     Any other label that reads as May edit or May create, an unbackticked path or an escape in scope, or an
-    entity, an HTML tag or a comment inside a line anywhere, refuses, naming the line.
+    entity, any inline HTML outside code (a tag of any name, a PI, declaration or CDATA) or a comment inside a
+    line anywhere, refuses, naming the line.
   - **Never arm a bare `herdr agent wait` right after a prompt.** Without `--until`, it returns at
     once if the agent is still `idle`, which it is until the turn starts. Only `prompt --wait`
     first requires observed activity (`agent_prompt_stalled` otherwise). Use one detached
