@@ -15,6 +15,7 @@ import sys
 RULE_NUMBERS = (22, 50)
 FIELD = "**Rules for paths in scope.**"
 MAY_EDIT = "**May edit:**"
+MAY_CREATE = "**May create:**"
 GLOB_CHARS = set("*?[")
 THEIR_TESTS = "tests/** (their tests)"
 
@@ -171,9 +172,10 @@ def check(brief_path, root):
     if len(fields) != 1:
         raise Refusal("%s needs exactly one %s field, found %d" % (brief_path, FIELD, len(fields)))
     field = paragraph(lines, fields[0][0], fields[0][1] + len(FIELD))
-    scopes = [paragraph(lines, i, masked(line).index(MAY_EDIT) + len(MAY_EDIT)) for i, line in enumerate(lines) if MAY_EDIT in masked(line)]
+    scopes = [paragraph(lines, i, masked(line).index(label) + len(label))
+              for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
     if not scopes:
-        raise Refusal("%s has no %s paragraph" % (brief_path, MAY_EDIT))
+        raise Refusal("%s has no %s paragraph (nor %s)" % (brief_path, MAY_EDIT, MAY_CREATE))
     tokens = [content for text in scopes for _, _, content in code_spans(text)]
     # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
     if any(re.search(r"\btheir tests\b", masked(text), re.I) for text in scopes):

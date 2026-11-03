@@ -147,5 +147,16 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- Scope: the brief's `**May edit:** `docs/x.md`` line.", "rule 22, rule 50"));
     h.expectRefused(await h.send(brief), /REFUSED:.*no \*\*May edit:\*\* paragraph/);
   });
+  it("C63 AC-2: a src path granted only under May create still needs rule 50", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `docs/x.md`.\n- **May create:** `src/components/New.tsx`.", "rule 22"));
+    h.expectRefused(await h.send(brief), /REFUSED:.*rule 50 .*src\/components\/New\.tsx/);
+  });
+
+  it("C64 AC-3: a brief whose only scope is May create is a valid scope", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May create:** `scripts/new.mjs`.", "rule 22"));
+    h.expectSent(await h.send(brief), brief);
+  });
   // next-case
 });
