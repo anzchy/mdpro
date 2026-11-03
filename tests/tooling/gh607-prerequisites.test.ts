@@ -26,6 +26,6 @@ describe("GH607 platform prerequisite declarations", () => {
   it("requires macOS declarations without excluding supported Linux behavior", () => {
     const rule = readFileSync(resolve(ROOT, ".claude/rules/60-review-checklist.md"), "utf8");
     const line = rule.split("\n").find((part) => part.includes("macOS-only"));
-    expect(line).toBe("- [ ] macOS-only test: inventory `prerequisite` or `cfg(target_os)`; leave Linux-supported unmarked.");
+    expect(line).toBe("- [ ] macOS-only test: `prerequisite: macos` or `cfg(target_os)`; never on a Linux-supported test.");
   });
 });
