@@ -10,7 +10,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { vi } from "vitest";
 
+// Each case spawns zsh, python3 and the stub herdr several times; a two-send case can pass 5 s on a loaded machine.
+vi.setConfig({ testTimeout: 30_000 });
 const SK = ".agents/skills/mdpro-delegator/scripts";
 const COPIED = ["prompt.sh", "delegator-route.sh", "agent-role.sh", "notify-settled.sh", "brief-rules-check.py"];
 const RULES = ["22-comment-maintenance.md", "50-codebase-conventions.md"];
@@ -166,6 +169,35 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const result = await h.send(brief);
     h.expectRefused(result, /REFUSED:.*scope path/);
     expect(result.stderr).toContain(token);
+  });
+  const UNRESOLVABLE = ["tooling/x.test.ts", "tooling/", "hooks/", "components", "stores", "tool*/x.test.ts", "references/codex-panes.md"];
+  it.each(UNRESOLVABLE.flatMap((token) => [["May edit", token], ["May create", token]]))("C60/C62/C68/C69/C73a AC-5: a %s token %s whose first segment is no top-level entry refuses as unresolvable", async (label, token) => {
+    const h = harness();
+    const scope = label === "May edit" ? `- **May edit:** \`src/a.ts\`, \`${token}\`.` : `- **May edit:** \`src/a.ts\`.\n- **May create:** \`${token}\`.`;
+    const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
+    h.expectRefused(result, /REFUSED:.*unresolvable/);
+    expect(result.stderr).toContain(`'${token}'`);
+    expect(result.stderr).not.toContain("'src/a.ts'");
+  });
+
+  it("C66a AC-5: top-level entries come from the script's own tree, not a fixed list", async () => {
+    const h = harness();
+    fs.rmSync(path.join(h.repo, "docs"), { recursive: true });
+    fs.mkdirSync(path.join(h.repo, "zz-extra"));
+    const extra = h.write(grant("- **May edit:** `zz-extra/a.md`.", "none"), "extra.md");
+    h.expectSent(await h.send(extra), extra);
+    h.reset();
+    const result = await h.send(h.write(grant("- **May edit:** `docs/x.md`.", "none")));
+    h.expectRefused(result, /REFUSED:.*unresolvable.*'docs\/x\.md'/);
+  });
+
+  it("C66b AC-5: a top-level entry that exists only in the cwd, the target worktree or the test main is still unresolvable", async () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-cwd-"));
+    dirs.push(cwd);
+    const h = harness({ cwd });
+    for (const dir of [cwd, h.target, String(h.env.MDPRO_GUARD_TEST_MAIN)]) fs.mkdirSync(path.join(dir, "yy-decoy"));
+    const result = await h.send(h.write(grant("- **May edit:** `yy-decoy/a.md`.", "none")));
+    h.expectRefused(result, /REFUSED:.*unresolvable.*'yy-decoy\/a\.md'/);
   });
   // next-case
 });
