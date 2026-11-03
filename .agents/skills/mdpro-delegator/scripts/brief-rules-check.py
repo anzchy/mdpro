@@ -160,7 +160,8 @@ def resolvable(token, root):
     """Ruling 2 gap 11 / ruling 3 G5: a token's first segment must be a top-level entry of this checkout (no git read).
 
     A single word is exempt only as a whole `[...]` token or a glob-free file name with an extension
-    (`[Unreleased]`, `CHANGELOG.md`, `.py`); a single root-level file cannot fall under a rule's directory globs.
+    (`[Unreleased]`, `CHANGELOG.md`, `.py`). Such a word still goes through overlap, where a real directory of
+    this checkout (`.claude`) counts as a folder.
     """
     parts = [part for part in token.split("/") if part]
     if len(parts) == 1 and not token.endswith("/"):
@@ -193,10 +194,11 @@ def unrecognised_labels(lines):
     return found
 
 
-def scope_pattern(token):
-    """A scope token as segments; a folder-like token (trailing slash, or no extension) also covers what is under it."""
+def scope_pattern(token, root):
+    """A scope token as segments; a folder-like token (trailing slash, no extension, or a directory of this checkout,
+    such as `.claude`) also covers what is under it."""
     parts = [part for part in token.split("/") if part]
-    if token.endswith("/") or "." not in parts[-1]:
+    if token.endswith("/") or "." not in parts[-1] or os.path.isdir(os.path.join(root, token)):
         parts.append("**")
     return parts
 
@@ -255,7 +257,7 @@ def check(brief_path, root):
         scope.append(THEIR_TESTS)
     missing = []
     for number, (stem, globs) in sorted(rules.items()):
-        needed = [shown for token, shown in scope if any(segments_overlap(scope_pattern(token), g.split("/")) for g in globs)]
+        needed = [shown for token, shown in scope if any(segments_overlap(scope_pattern(token, root), g.split("/")) for g in globs)]
         named = named_in(field, number, stem)
         if needed and not named:
             missing.append("REFUSED: %s needs rule %d (.claude/rules/%s.md) in its %s field, for %s"
