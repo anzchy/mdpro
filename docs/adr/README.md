@@ -3,6 +3,9 @@
 How mdpro writes, numbers, reviews and changes its ADRs. `CLAUDE.md` § Architecture Decision Records keeps the scope test
 and the short rules; this file holds the full text, moved here by D355 (ADR-0147 WI-1; ADR-0165 follow-up 3).
 
+**Index:** every numbered ADR by topic, with each process record's current home and the history records:
+[`INDEX.md`](INDEX.md).
+
 <!-- moved-from: CLAUDE.md § Architecture Decision Records (ADR) (ADR-0147) -->
 **A repository-wide ADR records a decision about the product or its architecture**
 ([ADR-0165](0165-adrs-record-architecture-and-product-decisions-only.md)
