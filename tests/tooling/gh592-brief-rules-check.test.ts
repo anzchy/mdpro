@@ -199,8 +199,21 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- **May create:** `scripts/new.mjs`.", "rule 22"));
     h.expectSent(await h.send(brief), brief);
   });
-  const BAD_TOKENS = ["/Users/x/src/a.ts", "~/src/a.ts", "docs/../src/a.ts", "{src,docs}/**", "src/{a,b}.tsx", "node scripts/x.mjs"];
-  it.each(BAD_TOKENS.flatMap((token) => [["May edit", token], ["May create", token]]))("C16/C45/C55/C72 AC-5: a %s token %s refuses even beside a valid one and with both rules named", async (label, token) => {
+  const BAD_TOKENS: Array<[string, string]> = [
+    ["May edit", "/Users/x/src/a.ts"],
+    ["May create", "/Users/x/src/a.ts"],
+    ["May edit", "~/src/a.ts"],
+    ["May create", "~/src/a.ts"],
+    ["May edit", "docs/../src/a.ts"],
+    ["May create", "docs/../src/a.ts"],
+    ["May edit", "{src,docs}/**"],
+    ["May create", "{src,docs}/**"],
+    ["May edit", "src/{a,b}.tsx"],
+    ["May create", "src/{a,b}.tsx"],
+    ["May edit", "node scripts/x.mjs"],
+    ["May create", "node scripts/x.mjs"],
+  ];
+  it.each(BAD_TOKENS)("C16/C45/C55/C72 AC-5: a %s token %s refuses even beside a valid one and with both rules named", async (label, token) => {
     const h = harness();
     const scope = label === "May edit" ? `- **May edit:** \`docs/a.md\`, \`${token}\`.` : `- **May edit:** \`docs/a.md\`.\n- **May create:** \`${token}\`.`;
     const brief = h.write(grant(scope, "rule 22, rule 50"));
@@ -208,8 +221,23 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.expectRefused(result, /REFUSED:.*scope path/);
     expect(result.stderr).toContain(token);
   });
-  const UNRESOLVABLE = ["tooling/x.test.ts", "tooling/", "hooks/", "components", "stores", "tool*/x.test.ts", "references/codex-panes.md"];
-  it.each(UNRESOLVABLE.flatMap((token) => [["May edit", token], ["May create", token]]))("C60/C62/C68/C69/C73a AC-5: a %s token %s whose first segment is no top-level entry refuses as unresolvable", async (label, token) => {
+  const UNRESOLVABLE: Array<[string, string]> = [
+    ["May edit", "tooling/x.test.ts"],
+    ["May create", "tooling/x.test.ts"],
+    ["May edit", "tooling/"],
+    ["May create", "tooling/"],
+    ["May edit", "hooks/"],
+    ["May create", "hooks/"],
+    ["May edit", "components"],
+    ["May create", "components"],
+    ["May edit", "stores"],
+    ["May create", "stores"],
+    ["May edit", "tool*/x.test.ts"],
+    ["May create", "tool*/x.test.ts"],
+    ["May edit", "references/codex-panes.md"],
+    ["May create", "references/codex-panes.md"],
+  ];
+  it.each(UNRESOLVABLE)("C60/C62/C68/C69/C73a AC-5: a %s token %s whose first segment is no top-level entry refuses as unresolvable", async (label, token) => {
     const h = harness();
     const scope = label === "May edit" ? `- **May edit:** \`src/a.ts\`, \`${token}\`.` : `- **May edit:** \`src/a.ts\`.\n- **May create:** \`${token}\`.`;
     const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
@@ -310,8 +338,16 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     expect(result.code, result.stderr).toBe(0);
     expect({ stdout: strip(result.stdout), stderr: strip(result.stderr), calls: h.calls().map((call) => call.map(strip)) }).toEqual(PRE_CHANGE[key]);
   };
-  const SEQUENCES: Array<["claude" | "codex", Exempt | "codex-impl-report"]> = [];
-  for (const delegator of ["claude", "codex"] as const) for (const label of ["auditor-request", "device-brief", "claude-brief", "codex-impl-report"] as const) SEQUENCES.push([delegator, label]);
+  const SEQUENCES: Array<["claude" | "codex", Exempt | "codex-impl-report"]> = [
+    ["claude", "auditor-request"],
+    ["claude", "device-brief"],
+    ["claude", "claude-brief"],
+    ["claude", "codex-impl-report"],
+    ["codex", "auditor-request"],
+    ["codex", "device-brief"],
+    ["codex", "claude-brief"],
+    ["codex", "codex-impl-report"],
+  ];
   it.each(SEQUENCES)("C57/C18/C23-C26 AC-4: under a %s delegator, %s keeps the full pre-change herdr sequence and output", async (delegator, label) => {
     const h = label === "codex-impl-report" ? harness({ delegator }) : exemptHarness(label, delegator);
     const spec = label === "codex-impl-report" ? { verb: "brief", file: "brief.md" } : EXEMPT[label];
@@ -320,7 +356,7 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     expectPreChange(h, await h.send(brief, spec.verb, more), `${delegator} ${label}`);
   });
 
-  it.each(Object.keys(EXEMPT) as Exempt[])("C48/C74h AC-4: %s ignores a broken rule, an unreadable file, bad tokens and an unknown label", async (label) => {
+  it.each(["auditor-request", "device-brief", "claude-brief"] as Exempt[])("C48/C74h AC-4: %s ignores a broken rule, an unreadable file, bad tokens and an unknown label", async (label) => {
     const variants: Array<[string, (h: ReturnType<typeof harness>, f: string) => void, string]> = [
       ["no rule 22 file", (h) => fs.rmSync(h.rule(22)), grant("- **May edit:** `src/a.ts`.", null)],
       ["unreadable file", (_h, f) => fs.chmodSync(f, 0o000), grant("- **May edit:** `src/a.ts`.", null)],
