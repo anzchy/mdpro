@@ -162,8 +162,12 @@ After all PRs are processed, display final results:
 |---|-------|--------|
 | 12 | fix: resolve X | ✅ Ready @ <head> |
 | 34 | feat: add Y | ❌ Skipped — checks failing |
-| 56 | fix: handle Z | ✅ Ready @ <S′> (rebased) |
+| 56 | fix: handle Z | ✅ Ready @ <S′> (rebased); re-run `/merge-prs #56` after the PR before it lands |
 ```
+
+Only the first Ready PR can land as it stands: each later one was checked against an `origin/master` that the first
+landing will move. Mark every Ready PR after the first as "Ready @ <sha>; re-run `/merge-prs #N` after the PR before
+it lands".
 
 Also report:
 - Number Ready / skipped / failed, with each Ready PR's head SHA
@@ -192,5 +196,7 @@ Also report:
    `master`, a `release/x.y` branch or a tag (rule 25), and never a bare `--force`.
 4. **Never delete a branch** — branch deletion asks the user (rule 25), and remote branches stay thirty days (ADR-0084).
 5. **Sequential only** — never prepare in parallel. Each rebase or landing may affect the next PR's mergeability.
+   Every Ready PR after the first is "Ready @ <sha>; re-run `/merge-prs #N` after the PR before it lands"; this
+   command still never lands anything.
 6. **No merge here** — only the delegator lands, by `git merge --ff-only` onto `master` (rule 70). `master` takes no
    merge commit.
