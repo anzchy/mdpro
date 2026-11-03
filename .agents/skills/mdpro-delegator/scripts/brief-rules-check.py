@@ -16,6 +16,7 @@ RULE_NUMBERS = (22, 50)
 FIELD = "**Rules for paths in scope.**"
 MAY_EDIT = "**May edit:**"
 GLOB_CHARS = set("*?[")
+THEIR_TESTS = "tests/** (their tests)"
 
 
 class Refusal(Exception):
@@ -129,11 +130,14 @@ def check(brief_path, root):
     if not scopes:
         raise Refusal("%s has no %s paragraph" % (brief_path, MAY_EDIT))
     tokens = [token for text in scopes for token in re.findall(r"`([^`]+)`", text)]
+    # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
+    if any(re.search(r"\btheir tests\b", re.sub(r"`[^`]*`", "", text), re.I) for text in scopes):
+        tokens.append(THEIR_TESTS)
     if not tokens:
         raise Refusal("%s: its %s paragraph names no backticked path" % (brief_path, MAY_EDIT))
     missing = []
     for number, (stem, globs) in sorted(rules.items()):
-        needed = [t for t in tokens if any(segments_overlap(scope_pattern(t), g.split("/")) for g in globs)]
+        needed = [t for t in tokens if any(segments_overlap(scope_pattern(t.split(" ")[0]), g.split("/")) for g in globs)]
         named = re.search(r"\brule\s+%d\b" % number, field, re.I)
         if needed and not named:
             missing.append("REFUSED: %s needs rule %d (.claude/rules/%s.md) in its %s field, for %s"

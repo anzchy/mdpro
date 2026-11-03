@@ -114,4 +114,11 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.setPaths(50, ["src/**", "src-tauri/**", "tests/**", "docs/**"]);
     h.expectRefused(await h.send(brief), /REFUSED:.*rule 50/);
   });
+
+  it("C39 AC-2: the template's \"their tests\" adds tests/**, so a scripts grant in template wording needs rule 50 too", async () => {
+    const h = harness();
+    const brief = h.write(grant("- **May edit:** `scripts/x.mjs`, their tests, the X1 row, `CHANGELOG.md` `[Unreleased]`.", "rule 22"));
+    h.expectRefused(await h.send(brief), /REFUSED:.*rule 50 .*their tests/);
+  });
+  // next-case
 });
