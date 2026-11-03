@@ -1,0 +1,33 @@
+{
+  "id": "GH607-WI-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T08:18:31.447Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh607-prerequisites.test.ts\",\"GH607 platform prerequisite declarations\",\"requires macOS declarations without excluding supported Linux behavior\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-prerequisites.test.ts",
+        "line": 29
+      },
+      "message": "AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-WI-3/20261103T081831447Z/tests",
+    "tree": "737bbc8c44e548817914e95676a4d887a47867f4"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh607-prerequisites.test.ts": "fed8627ab2cad122ff2137dd9b3c113b983fc7f4"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh607-prerequisites.test.ts": "fed8627ab2cad122ff2137dd9b3c113b983fc7f4"
+  }
+}

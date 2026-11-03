@@ -1,0 +1,62 @@
+{
+  "id": "GH607-WI-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T08:18:31.447Z",
+  "head_sha": "a3e9b7ec3bc33ac0ee7705c9c033f90cd161d149",
+  "dirty_source": [
+    ".github/workflows/ci.yml",
+    "scripts/ci/failure-summary.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/gh607-prerequisites.test.ts": {
+      "state": "ok",
+      "sha": "e906ccfc125767c45244c939f82fd0f7999f5ca72b043c9ece73b6a2a366f5bb",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "7571c7236d81e917",
+        "bb91cd051b955e93",
+        "9c94784f8cfa14e6",
+        "a063ae9cb282dfc4",
+        "c7e3c3d6c14d07c4",
+        "01b9ca85024be315",
+        "a7744d03c7674947",
+        "ffeff7cfed3b1654",
+        "ae5366d6b5bd9ce3",
+        "231d7eae68781743",
+        "78cd9abe79c3a4be",
+        "9d828e5bc8a066b3",
+        "0ec6122fb96f6a9a",
+        "29576b54e255e3c9",
+        "1e0b669e997f60d6",
+        "7fc31a12303dc3cf",
+        "7fe7de2234df28ae",
+        "76f94e2e482b0486",
+        "78cd9abe79c3a4be",
+        "29576b54e255e3c9",
+        "054492eaf86cadb9",
+        "1701aad01911ae8e",
+        "c15551a8314cca1b",
+        "37cb8b29e86fd558",
+        "b38f073d52990b91",
+        "b7bce06e44090f9f",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-03T08:18:47.696Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.github/workflows/ci.yml, scripts/ci/failure-summary.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
