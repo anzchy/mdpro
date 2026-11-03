@@ -58,6 +58,7 @@ libc = "0.2"
 # semver-compatible `objc2` would make `class_addMethod` register against a
 # different runtime binding, and it would compile and pass every test.
 [target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3.5.1"
 objc2 = "0.6"
 objc2-foundation = "0.3"
 objc2-app-kit = { version = "0.3", features = [

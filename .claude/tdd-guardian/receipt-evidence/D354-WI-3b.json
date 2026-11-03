@@ -1,0 +1,51 @@
+{
+  "id": "D354-WI-3b",
+  "lane": "rust",
+  "recorded_at": "2026-11-03T20:34:32.067Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_compat::late_compatible_legacy_socket_forwards_one_bounded_frame",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_compat.rs",
+        "line": 408
+      },
+      "message": "late compatible peer was not forwarded"
+    },
+    {
+      "id": "d354_compat::late_stale_legacy_socket_retries_until_deadline_without_replacement",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_compat.rs",
+        "line": 134
+      },
+      "message": "stale entrant skipped the retry window: 1.134667ms"
+    },
+    {
+      "id": "d354_compat::public_alias_bound_after_classification_wins_exclusive_creation",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_compat.rs",
+        "line": 20
+      },
+      "message": "qualification never connected"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-3b/20261103T203432067Z/tests",
+    "tree": "05c07dcbb15244da3c255ae98357e4b570d1686c"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_compat.rs": "5ac529f6dfcfc71811d70f2a7c0125db073f716b"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_compat.rs": "5ac529f6dfcfc71811d70f2a7c0125db073f716b"
+  }
+}

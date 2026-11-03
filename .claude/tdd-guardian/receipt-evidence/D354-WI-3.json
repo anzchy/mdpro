@@ -1,0 +1,36 @@
+{
+  "id": "D354-WI-3",
+  "lane": "rust",
+  "recorded_at": "2026-11-03T14:47:19.048Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_compat::unrelated_public_file_remains_intact_and_prevents_private_owner_setup",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_compat.rs",
+        "line": 33
+      },
+      "message": "assertion failed: matches!(outcome, Ok(Admission::Refused))"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-3/20261103T144719048Z/tests",
+    "tree": "eaff14fb9ec774c2e70d304ebf86a0e8b11d632c"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_compat.rs": "bf40b980b55173bcbda71b0f9b7a6957f6227b5e",
+    "src-tauri/tests/d354_handover.rs": "499210fe38b3aa3ec5444b0574b5a898deb88b58"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_compat.rs": "29d1c750579388a086186a9998ac5ba18f2b0687",
+    "src-tauri/tests/d354_handover.rs": "a200668e54f36f9d3133146a890d8ed516c72fc6"
+  },
+  "evidence_required": true
+}

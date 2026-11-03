@@ -4378,6 +4378,7 @@ dependencies = [
  "rfd",
  "rmcp",
  "same-file",
+ "security-framework 3.5.1",
  "serde",
  "serde_json",
  "tauri",

@@ -1,9 +1,8 @@
 use std::ffi::CStr;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::os::fd::AsRawFd;
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 use std::thread;
@@ -11,6 +10,12 @@ use std::time::{Duration, Instant};
 
 use super::codec::decode;
 use super::connector::{connect_until, io_timeout, SOCKET_PATH_BYTES};
+use super::legacy_peer::{CompatibleImage, LEGACY_COMPATIBLE_IMAGES};
+use super::legacy_route::{forward_legacy, resolve_after_alias_creation};
+use super::lock::{open_lock, try_lock};
+use super::public_alias::{
+    classify as classify_public_alias, ensure as ensure_public_alias, PublicEntry,
+};
 
 const STARTUP_DEADLINE: Duration = Duration::from_secs(10);
 const RETRY_DELAY: Duration = Duration::from_millis(10);
@@ -106,42 +111,6 @@ pub fn validate_socket_path(path: &Path) -> Result<(), AdmissionError> {
     Ok(())
 }
 
-fn validate_lock(file: &File) -> Result<(), AdmissionError> {
-    let metadata = file.metadata()?;
-    if !metadata.file_type().is_file()
-        || metadata.uid() != unsafe { libc::geteuid() }
-        || metadata.mode() & 0o7777 != 0o600
-        || metadata.nlink() != 1
-    {
-        return Err(AdmissionError::Invalid("untrusted owner lock"));
-    }
-    Ok(())
-}
-
-fn open_lock(path: &Path) -> Result<File, AdmissionError> {
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .mode(0o600)
-        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW)
-        .open(path)?;
-    validate_lock(&file)?;
-    Ok(file)
-}
-
-fn try_lock(file: &File) -> Result<bool, AdmissionError> {
-    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
-        return Ok(true);
-    }
-    let error = io::Error::last_os_error();
-    if error.raw_os_error() == Some(libc::EWOULDBLOCK) {
-        Ok(false)
-    } else {
-        Err(error.into())
-    }
-}
-
 fn ensure_private_socket_absent(path: &Path, deadline: Instant) -> Result<(), AdmissionError> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
@@ -162,30 +131,37 @@ fn ensure_private_socket_absent(path: &Path, deadline: Instant) -> Result<(), Ad
     }
 }
 
-fn ensure_public_alias(namespace: &Namespace) -> Result<(), AdmissionError> {
-    match std::os::unix::fs::symlink(&namespace.socket, &namespace.public_alias) {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-            let target = fs::read_link(&namespace.public_alias)
-                .map_err(|_| AdmissionError::Invalid("public alias occupied"))?;
-            if target == namespace.socket {
-                Ok(())
-            } else {
-                Err(AdmissionError::Invalid("public alias occupied"))
-            }
-        }
-        Err(error) => Err(error.into()),
-    }
-}
-
 pub struct Owner {
-    listener: UnixListener,
+    listener: Option<UnixListener>,
     _lock: File,
+    socket: PathBuf,
+    generation: (u64, u64),
 }
 
 impl Owner {
     pub fn listener(&self) -> &UnixListener {
-        &self.listener
+        self.listener
+            .as_ref()
+            .expect("owner listener already retired")
+    }
+
+    pub fn retire(&mut self) -> Result<(), AdmissionError> {
+        self.listener.take();
+        match fs::symlink_metadata(&self.socket) {
+            Ok(metadata) if (metadata.dev(), metadata.ino()) == self.generation => {
+                fs::remove_file(&self.socket)?;
+                Ok(())
+            }
+            Ok(_) => Err(AdmissionError::Invalid("private socket generation changed")),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(error.into()),
+        }
+    }
+}
+
+impl Drop for Owner {
+    fn drop(&mut self) {
+        let _ = self.retire();
     }
 }
 
@@ -197,15 +173,47 @@ pub enum Admission {
 
 pub fn admit(identifier: &str, payload: &[u8]) -> Result<Admission, AdmissionError> {
     let namespace = Namespace::for_identifier(identifier)?;
-    match fs::symlink_metadata(&namespace.public_alias) {
-        Ok(metadata)
-            if metadata.file_type().is_socket() && metadata.uid() == unsafe { libc::geteuid() } =>
-        {
-            return Ok(Admission::Refused);
-        }
-        Ok(_) => (),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => (),
-        Err(error) => return Err(error.into()),
+    admit_in_namespace(namespace, payload, LEGACY_COMPATIBLE_IMAGES, |_| {})
+}
+
+/// Exercises foreign public entries without requiring privilege to create one at a generated path.
+#[cfg(debug_assertions)]
+pub fn admit_with_public_alias_for_test(
+    identifier: &str,
+    public_alias: &Path,
+    payload: &[u8],
+) -> Result<Admission, AdmissionError> {
+    let mut namespace = Namespace::for_identifier(identifier)?;
+    validate_socket_path(public_alias)?;
+    namespace.public_alias = public_alias.to_owned();
+    admit_in_namespace(namespace, payload, LEGACY_COMPATIBLE_IMAGES, |_| {})
+}
+
+/// Runs a deterministic test action after the first public classification and before exclusive alias creation.
+#[cfg(debug_assertions)]
+pub fn admit_with_alias_creation_hook_for_test(
+    identifier: &str,
+    payload: &[u8],
+    allowed: &[CompatibleImage],
+    hook: impl FnOnce(&Namespace),
+) -> Result<Admission, AdmissionError> {
+    let namespace = Namespace::for_identifier(identifier)?;
+    admit_in_namespace(namespace, payload, allowed, hook)
+}
+
+fn admit_in_namespace(
+    namespace: Namespace,
+    payload: &[u8],
+    allowed: &[CompatibleImage],
+    before_alias_creation: impl FnOnce(&Namespace),
+) -> Result<Admission, AdmissionError> {
+    let deadline = Instant::now() + STARTUP_DEADLINE;
+    let public_entry = classify_public_alias(&namespace)?;
+    if public_entry == PublicEntry::UnknownSameUid {
+        return Ok(Admission::Refused);
+    }
+    if public_entry == PublicEntry::LegacySocket {
+        return Ok(forward_legacy(&namespace, payload, deadline, allowed));
     }
     match fs::DirBuilder::new()
         .mode(0o700)
@@ -217,17 +225,27 @@ pub fn admit(identifier: &str, payload: &[u8]) -> Result<Admission, AdmissionErr
     }
     validate_root(&namespace.directory)?;
     let lock = open_lock(&namespace.lock)?;
-    let deadline = Instant::now() + STARTUP_DEADLINE;
     loop {
         if try_lock(&lock)? {
             ensure_private_socket_absent(&namespace.socket, deadline)?;
             let listener = UnixListener::bind(&namespace.socket)?;
             fs::set_permissions(&namespace.socket, fs::Permissions::from_mode(0o600))?;
-            ensure_public_alias(&namespace)?;
-            return Ok(Admission::Owner(Owner {
-                listener,
+            let metadata = fs::symlink_metadata(&namespace.socket)?;
+            let owner = Owner {
+                listener: Some(listener),
                 _lock: lock,
-            }));
+                socket: namespace.socket.clone(),
+                generation: (metadata.dev(), metadata.ino()),
+            };
+            let entry = if public_entry == PublicEntry::ForeignUid {
+                PublicEntry::ForeignUid
+            } else {
+                before_alias_creation(&namespace);
+                ensure_public_alias(&namespace)?
+            };
+            return Ok(resolve_after_alias_creation(
+                &namespace, owner, entry, payload, deadline, allowed,
+            ));
         }
         if decode(payload).is_err() {
             return Ok(Admission::Refused);
