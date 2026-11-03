@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { vi } from "vitest";
+import { afterAll } from "vitest";
 
 // Each case spawns zsh, python3 and the stub herdr several times; a two-send case can pass 5 s on a loaded machine.
 vi.setConfig({ testTimeout: 30_000 });
@@ -34,30 +35,18 @@ function exec(file: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string
   });
 }
 
-function harness(opts: Opts = {}) {
-  const name = opts.name ?? "gpt-imple-2", kind = opts.kind ?? "codex", role = opts.role ?? "implementor";
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-"));
-  dirs.push(root);
-  const repo = path.join(root, "repo"), scripts = path.join(repo, SK), rules = path.join(repo, ".claude/rules");
-  const target = path.join(root, "Documents/mac-app/mdpro-wt", name), bin = path.join(root, "bin"), main = path.join(root, "main");
-  for (const dir of [scripts, rules, bin, path.join(target, ".codex/rules"), path.join(main, ".codex/rules")]) fs.mkdirSync(dir, { recursive: true });
+let cache: string | null = null;
+/** The scripts under test and the fake herdr, written once per run: each harness links the scripts and finds herdr on PATH here. */
+function exeCache(): string {
+  if (cache) return cache;
+  cache = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-exe-"));
   for (const file of COPIED) {
     const source = path.join(SK, file);
     if (!fs.existsSync(source)) continue;
-    fs.copyFileSync(source, path.join(scripts, file));
-    fs.chmodSync(path.join(scripts, file), 0o755);
+    fs.copyFileSync(source, path.join(cache, file));
+    fs.chmodSync(path.join(cache, file), 0o755);
   }
-  for (const file of RULES) fs.copyFileSync(path.join(".claude/rules", file), path.join(rules, file));
-  for (const dir of TOP) fs.mkdirSync(path.join(repo, dir), { recursive: true });
-  fs.writeFileSync(path.join(repo, "CHANGELOG.md"), "# Changelog\n");
-  fs.writeFileSync(path.join(main, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: delegator\n");
-  const overlay = path.join(target, ".codex/rules/mdpro-role.rules");
-  fs.writeFileSync(overlay, `# Local mdpro role: ${role}\n`);
-  const old = new Date(Date.now() - 5000);
-  fs.utimesSync(overlay, old, old);
-  fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
-  const log = path.join(root, "calls.jsonl");
-  fs.writeFileSync(path.join(bin, "herdr"), `#!/usr/bin/env node
+  fs.writeFileSync(path.join(cache, "herdr"), `#!/usr/bin/env node
 const fs = require("node:fs");
 const args = process.argv.slice(2), op = args.slice(2);
 fs.appendFileSync(process.env.FAKE_HERDR_LOG, JSON.stringify(op) + "\\n");
@@ -70,9 +59,31 @@ if (op[0] === "agent" && op[1] === "get") {
   process.stdout.write(JSON.stringify({ result: { agent } }));
 }
 `);
-  fs.chmodSync(path.join(bin, "herdr"), 0o755);
+  fs.chmodSync(path.join(cache, "herdr"), 0o755);
+  return cache;
+}
+
+function harness(opts: Opts = {}) {
+  const name = opts.name ?? "gpt-imple-2", kind = opts.kind ?? "codex", role = opts.role ?? "implementor";
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-"));
+  dirs.push(root);
+  const repo = path.join(root, "repo"), scripts = path.join(repo, SK), rules = path.join(repo, ".claude/rules");
+  const target = path.join(root, "Documents/mac-app/mdpro-wt", name), bin = path.join(root, "bin"), main = path.join(root, "main");
+  for (const dir of [scripts, rules, bin, path.join(target, ".codex/rules"), path.join(main, ".codex/rules")]) fs.mkdirSync(dir, { recursive: true });
+  // Hard links to one per-run copy: macOS scans each newly written executable on its first run (~0.5 s), not each link.
+  for (const file of COPIED) if (fs.existsSync(path.join(exeCache(), file))) fs.linkSync(path.join(exeCache(), file), path.join(scripts, file));
+  for (const file of RULES) fs.copyFileSync(path.join(".claude/rules", file), path.join(rules, file));
+  for (const dir of TOP) fs.mkdirSync(path.join(repo, dir), { recursive: true });
+  fs.writeFileSync(path.join(repo, "CHANGELOG.md"), "# Changelog\n");
+  fs.writeFileSync(path.join(main, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: delegator\n");
+  const overlay = path.join(target, ".codex/rules/mdpro-role.rules");
+  fs.writeFileSync(overlay, `# Local mdpro role: ${role}\n`);
+  const old = new Date(Date.now() - 5000);
+  fs.utimesSync(overlay, old, old);
+  fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
+  const log = path.join(root, "calls.jsonl");
   const env: NodeJS.ProcessEnv = {
-    ...process.env, HOME: root, PATH: `${bin}:${process.env.PATH ?? ""}`, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: main,
+    ...process.env, HOME: root, PATH: `${bin}:${exeCache()}:${process.env.PATH ?? ""}`, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: main,
     FAKE_DELEGATOR_KIND: opts.delegator ?? "claude", FAKE_TARGET_KIND: kind, FAKE_MAIN: main, FAKE_TARGET: target,
     FAKE_HERDR_LOG: log, FAKE_SHAPE: opts.shape ?? "top",
   };
@@ -107,6 +118,7 @@ function grant(scope: string, field: string | null, extra = ""): string {
 }
 
 afterEach(() => { for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { if (cache) fs.rmSync(cache, { recursive: true, force: true }); cache = null; });
 
 describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (requires macos zsh)", () => {
   it("C2 AC-1: adding docs/** to rule 50's paths: frontmatter makes a docs scope require rule 50", async () => {
@@ -244,6 +256,13 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const h = harness();
     const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
     h.expectRefused(result, new RegExp(`REFUSED:.*\\*\\*${label}:\\*\\* paragraph names no backticked path`));
+  });
+  const PROSE: Array<[string, string]> = [["May edit", "- **May edit:** `docs/x.md` and src/a.ts."],
+    ["May create", "- **May edit:** `docs/x.md`.\n- **May create:** `docs/y.md`, scripts/new.mjs."]];
+  it.each(PROSE)("C38/C72d AC-5: a path without backticks in a %s paragraph refuses as not backticked", async (_label, scope) => {
+    const h = harness();
+    const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
+    h.expectRefused(result, /REFUSED:.*scope path not backticked: '(src\/a\.ts|scripts\/new\.mjs)'/);
   });
   // next-case
 });

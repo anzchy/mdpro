@@ -233,6 +233,10 @@ def check(brief_path, root):
     empty = [label for label, text in labelled if not code_spans(text)]
     if empty:
         raise Refusal("%s: its %s paragraph names no backticked path" % (brief_path, " and ".join(sorted(set(empty)))))
+    # Ruling 1 Q6: a path written without backticks would escape the check, so it refuses.
+    prose = [word.rstrip(".,;:") for text in scopes for word in re.findall(r"[\w.\-]+/[\w./*\-]*", masked(text))]
+    if prose:
+        raise Refusal("%s: scope path not backticked: %s" % (brief_path, ", ".join("'%s'" % word for word in prose)))
     tokens = [re.sub(r"^(?:\./)+", "", content) for text in scopes for _, _, content in code_spans(text)]
     bad = [t for t in tokens if t.startswith(("/", "~")) or ".." in t.split("/") or not re.fullmatch(r"[\w.\-/*?\[\]@+]+", t)]
     if bad:
