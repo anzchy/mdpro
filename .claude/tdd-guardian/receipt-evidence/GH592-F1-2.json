@@ -1,0 +1,282 @@
+{
+  "id": "GH592-F1-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T13:15:59.477Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"### May edit\\\\n- `src/a.ts`\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**MAY EDIT:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**May  edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 120
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /REFUSED:.*unrecognised scope label '[…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**May edit**: `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 120
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /REFUSED:.*unrecognised scope label '[…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**May-edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**May/edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**May\\\\\\\\ edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**May\\\\nedit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"**may edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"*May edit:* `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- **May edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 120
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /REFUSED:.*unrecognised scope label '[…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- **Paths you may create:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- **You may edit:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- May edit `src/a.ts` too.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- [ ] May edit `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- [May edit:](#x) `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"- may edit `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"1. **may create:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"1. May edit: `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"2) may create `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"> **May Create:** `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 120
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /REFUSED:.*unrecognised scope label '[…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"> May create `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"May create `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"\\\\\\\\*\\\\\\\\*May create:\\\\\\\\*\\\\\\\\* `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"_May create:_ `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"__May edit:__ `src/a.ts`.\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2a/F2b/F2c/F2f/F2g AC-F2: the label variant \\\"| May edit | `src/a.ts` |\\\" refuses as unrecognised, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2h/F2i/F2k/F2l AC-F2: a lone CR, every folded lookalike, a variant before an exact label, and the line after a fence and CRLF\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 120
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /unrecognised scope label 'May create'…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F2j AC-F2: a bold run that mentions May edit without a colon is not a label; C21's question line is still sent\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-F1-2/20261103T131559477Z/tests",
+    "tree": "d8601cd05e26ed88d5d6fe3f28e8043bd2028164"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "b917c11142da03525df8b36e4e061747b7d54304"
+  }
+}
