@@ -32,9 +32,9 @@
   },
   "replay": {
     "path": ".claude/tdd-guardian/evidence/GH607-WI-3.json",
-    "digest": "05704bf302891f322717b0e1319702095f4471ee10d07aaa12765a2194e2307e",
+    "digest": "e391bf5cc9593a6578066371ea987595a01ff6030652a5e66c1fd2f3a1f12cf3",
     "result": "failed",
     "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
-    "head": "482b3c35e283984acd5104c747177750179cc487"
+    "head": "db841ed85a64999e5b0acb10b8913c0e8cd7a2b6"
   }
 }
