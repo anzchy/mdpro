@@ -15,11 +15,7 @@ fixture allowance (brief § 2).
 - **May edit:** <paths>, copied from the grant's May edit with its backticks; #592 refuses a fix brief without this line.
 
 **Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
-named for that path in AGENTS.md. #592 checks it.
-
-For a Codex implementor, `prompt.sh` refuses a brief whose May edit or May create paths match a rule's `paths:`
-frontmatter unless its `**Rules for paths in scope.**` field names that rule (as rule and number, its file stem, or
-its path). Write every scope path backticked and from the repo root, under exactly those two labels.
+named for that path in AGENTS.md. `prompt.sh` refuses a Codex brief that misses one (#592).
 
 ## Open questions, with defaults
 - **Q1.** <question>. Default: <answer>. (Follow each default without stopping; record which you used.)
