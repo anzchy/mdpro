@@ -112,4 +112,62 @@ describe("GH607 diagnostic CI failure summary", () => {
     expect(second.result.status).toBe(0);
     expect(second.text).toBe(first.text);
   }, 60_000);
+  it("renders artifact-derived Markdown and HTML as inert text", async () => {
+    const report = failedReport("tests/<img onerror=alert(1)>_x.test.ts", "`pipe|#*_&\\ <progress>");
+    report.testResults[0].assertionResults[0].ancestorTitles = ["![alt](https://example.invalid)", "[repair](https://example.invalid)"];
+    const { result, text } = await run(JSON.stringify({ "<img onerror=alert(1)>": { result: "failure|<progress>" } }), [
+      ["<progress>", "{broken"],
+      ["valid", JSON.stringify(report)],
+    ]);
+    expect(result.status).toBe(0);
+    for (const raw of ["![alt]", "[repair](https://example.invalid)", "`pipe|#*_&\\"]) expect(text).not.toContain(raw);
+    expect(text).toContain("\\<img");
+    expect(text).toContain("\\[repair\\]");
+    expect(text).toContain("\\`");
+    expect(text).toContain("\\|");
+    expect(text).toContain("no test results (\\<progress\\>)");
+  }, 60_000);
+
+  it("caps each artifact-derived field independently", async () => {
+    const long = (letter: string) => letter.repeat(400);
+    const cases: Array<[string, string | undefined, Array<[string, string]>]> = [
+      ["title", undefined, [["one", JSON.stringify(failedReport("tests/one.test.ts", long("T")))]]],
+      ["job name", JSON.stringify({ [long("J")]: { result: "failure" } }), []],
+      ["test path", undefined, [["one", JSON.stringify(failedReport(`tests/${long("P")}.test.ts`, "failed"))]]],
+      ["ancestor", undefined, [["one", JSON.stringify({ ...failedReport("tests/one.test.ts", "failed"), testResults: [{ ...failedReport("tests/one.test.ts", "failed").testResults[0], assertionResults: [{ ancestorTitles: [long("A")], title: "failed", status: "failed" }] }] })]]],
+      ["job result", JSON.stringify({ frontend: { result: long("R") } }), []],
+      ["fallback directory", undefined, [["D".repeat(200), "{broken"]]],
+    ];
+    for (const [label, needs, reports] of cases) {
+      const { result, text } = await run(needs, reports);
+      expect(result.status, label).toBe(0);
+      expect(text, label).toContain("[truncated]");
+      expect(text, label).not.toContain(long(label === "title" ? "T" : label === "job name" ? "J" : label === "test path" ? "P" : label === "ancestor" ? "A" : label === "job result" ? "R" : "D").slice(0, 180));
+    }
+  }, 60_000);
+
+  it("bounds oversized reports and the number of reports", async () => {
+    const huge = await run(undefined, [["huge", JSON.stringify(failedReport("tests/one.test.ts", "X".repeat(1_100_000)))]]);
+    expect(huge.result.status).toBe(0);
+    expect(huge.text).toContain("[truncated]");
+    expect(huge.text).not.toContain("X".repeat(200));
+    const reports = Array.from({ length: 25 }, (_, index): [string, string] => [
+      `leg-${String(index).padStart(2, "0")}`, JSON.stringify(failedReport("tests/one.test.ts", `failure-${index}`)),
+    ]);
+    const many = await run(undefined, reports);
+    expect(many.result.status).toBe(0);
+    expect(many.text).toContain("[truncated]");
+    expect(many.text).toContain("failure-0");
+    expect(many.text).not.toContain("failure-24");
+  }, 60_000);
+
+  it("caps total summary output with an explicit truncation note", async () => {
+    const report = failedReport("tests/one.test.ts", "failed");
+    report.testResults[0].assertionResults = Array.from({ length: 200 }, (_, index) => ({ ancestorTitles: ["suite"], title: `failure-${index}-${"B".repeat(100)}`, status: "failed" }));
+    const { result, text } = await run(undefined, [["many", JSON.stringify(report)]]);
+    expect(result.status).toBe(0);
+    expect(Buffer.byteLength(text)).toBeLessThanOrEqual(16_000);
+    expect(text).toContain("[truncated]");
+  }, 60_000);
+
 });

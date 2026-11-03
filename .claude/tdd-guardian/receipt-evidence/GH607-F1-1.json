@@ -1,0 +1,60 @@
+{
+  "id": "GH607-F1-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T14:22:20.258Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"bounds oversized reports and the number of reports\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 153
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain '[truncated]'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"caps each artifact-derived field independently\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 145
+      },
+      "message": "AssertionError: title: expected '## CI failure summary\\n\\n### Jobs\\n- …' to contain '[truncated]'"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"caps total summary output with an explicit truncation note\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 170
+      },
+      "message": "AssertionError: expected 28562 to be less than or equal to 16000"
+    },
+    {
+      "id": "[\"tests/tooling/gh607-failure-summary.test.ts\",\"GH607 diagnostic CI failure summary\",\"renders artifact-derived Markdown and HTML as inert text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh607-failure-summary.test.ts",
+        "line": 124
+      },
+      "message": "AssertionError: expected '## CI failure summary\\n\\n### Jobs\\n- …' not to contain '![alt]'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-F1-1/20261103T142220258Z/tests",
+    "tree": "3a9a2a0fb4e0c2ab1fddc0d6894a02eeb1c8945e"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh607-failure-summary.test.ts": "d0721c939ff8b5b81f27d7b8288cb9d6d9b28711"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh607-failure-summary.test.ts": "d0721c939ff8b5b81f27d7b8288cb9d6d9b28711"
+  }
+}
