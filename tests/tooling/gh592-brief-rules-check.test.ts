@@ -9,9 +9,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { vi } from "vitest";
-import { afterAll } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 // Each case spawns zsh, python3 and the stub herdr several times; a two-send case can pass 5 s on a loaded machine.
 vi.setConfig({ testTimeout: 30_000 });

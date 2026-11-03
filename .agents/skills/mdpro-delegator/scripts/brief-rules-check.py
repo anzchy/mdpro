@@ -175,11 +175,10 @@ def resolvable(token, root):
     return first in entries
 
 
-def unrecognised_labels(lines):
+def unrecognised_labels(masked_lines):
     """Ruling 3 G12: a `May …` label (bold, or opening a line or bullet) other than the two scope labels, by name."""
     found = []
-    for line in lines:
-        text = masked(line)
+    for text in masked_lines:
         for hit in re.finditer(r"(?:\*\*|^\s*(?:[-*+]\s+)?)(May\b)(?=\s+[A-Za-z]|[:*])", text):
             start = hit.start(1)
             bold = text[:start].endswith("**")
@@ -216,20 +215,21 @@ def check(brief_path, root):
     except (OSError, UnicodeDecodeError) as error:
         raise Refusal("cannot read brief %s (%s)" % (brief_path, error))
     rules = {number: rule_globs(root, number) for number in RULE_NUMBERS}
-    fields = [(i, masked(line).index(FIELD)) for i, line in enumerate(lines) if FIELD in masked(line)]
+    plain = [masked(line) for line in lines]
+    fields = [(i, text.index(FIELD)) for i, text in enumerate(plain) if FIELD in text]
     if len(fields) != 1:
         raise Refusal("%s needs exactly one %s field, found %d" % (brief_path, FIELD, len(fields)))
     field = paragraph(lines, fields[0][0], fields[0][1] + len(FIELD))
-    unknown = unrecognised_labels(lines)
+    unknown = unrecognised_labels(plain)
     if unknown:
         raise Refusal("%s: unrecognised scope label %s; use exactly %s or %s"
                       % (brief_path, ", ".join("'%s'" % label for label in unknown), MAY_EDIT, MAY_CREATE))
-    labelled = [(label, paragraph(lines, i, masked(line).index(label) + len(label)))
-                for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
+    labelled = [(label, paragraph(lines, i, text.index(label) + len(label)))
+                for i, text in enumerate(plain) for label in (MAY_EDIT, MAY_CREATE) if label in text]
     scopes = [text for _, text in labelled]
     # Ruling 1 Q1(a) / ruling 3 G13: a fix brief cannot inherit its scope by reference.
-    if (any(re.search(r"\bsame paths as the grant\b", masked(line), re.I) for line in lines)
-            and not any(MAY_EDIT in masked(line) for line in lines)):
+    if (any(re.search(r"\bsame paths as the grant\b", text, re.I) for text in plain)
+            and not any(MAY_EDIT in text for text in plain)):
         raise Refusal("%s says \"Same paths as the grant\" but has no %s paragraph; copy the grant's %s into it"
                       % (brief_path, MAY_EDIT, MAY_EDIT))
     if not scopes:
