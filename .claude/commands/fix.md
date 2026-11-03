@@ -62,7 +62,7 @@ commits or the log.
   - Util bug → table-driven `it.each` covering the broken case
 - Exception: CSS-only or visual bugs don't need unit tests — use visual QA instead.
 
-### 4. Fix Properly (GREEN)
+### 4. Fix the Root Cause (GREEN)
 
 - Address the root cause. Rewrite when one of the "Rewrite when" conditions below holds.
 - Keep the diff minimal and focused — don't refactor unrelated code.
