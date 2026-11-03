@@ -235,5 +235,15 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     const brief = h.write(grant("- Same paths as the grant.\n- **May edit:** `src/a.ts`.", "rule 22, rule 50"));
     h.expectSent(await h.send(brief), brief);
   });
+  const EMPTY: Array<[string, string, string]> = [
+    ["C37 a May edit with no backticked path", "- **May edit:** the files you need.", "May edit"],
+    ["C65 a May create with no backticked path", "- **May create:** whatever the tests need.", "May create"],
+    ["C71 an empty May create beside a valid May edit", "- **May edit:** `docs/x.md`.\n- **May create:** new tests as needed.", "May create"],
+    ["C71 an empty May edit beside a valid May create", "- **May edit:** what you touch.\n- **May create:** `docs/new.md`.", "May edit"]];
+  it.each(EMPTY)("C37/C65/C71 AC-5: %s refuses, naming its label", async (_label, scope, label) => {
+    const h = harness();
+    const result = await h.send(h.write(grant(scope, "rule 22, rule 50")));
+    h.expectRefused(result, new RegExp(`REFUSED:.*\\*\\*${label}:\\*\\* paragraph names no backticked path`));
+  });
   // next-case
 });

@@ -219,8 +219,9 @@ def check(brief_path, root):
     if unknown:
         raise Refusal("%s: unrecognised scope label %s; use exactly %s or %s"
                       % (brief_path, ", ".join("'%s'" % label for label in unknown), MAY_EDIT, MAY_CREATE))
-    scopes = [paragraph(lines, i, masked(line).index(label) + len(label))
-              for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
+    labelled = [(label, paragraph(lines, i, masked(line).index(label) + len(label)))
+                for i, line in enumerate(lines) for label in (MAY_EDIT, MAY_CREATE) if label in masked(line)]
+    scopes = [text for _, text in labelled]
     # Ruling 1 Q1(a) / ruling 3 G13: a fix brief cannot inherit its scope by reference.
     if (any(re.search(r"\bsame paths as the grant\b", masked(line), re.I) for line in lines)
             and not any(MAY_EDIT in masked(line) for line in lines)):
@@ -228,6 +229,10 @@ def check(brief_path, root):
                       % (brief_path, MAY_EDIT, MAY_EDIT))
     if not scopes:
         raise Refusal("%s has no %s paragraph (nor %s)" % (brief_path, MAY_EDIT, MAY_CREATE))
+    # Ruling 2 gap 12 / G10: every scope paragraph carries at least one backticked path.
+    empty = [label for label, text in labelled if not code_spans(text)]
+    if empty:
+        raise Refusal("%s: its %s paragraph names no backticked path" % (brief_path, " and ".join(sorted(set(empty)))))
     tokens = [re.sub(r"^(?:\./)+", "", content) for text in scopes for _, _, content in code_spans(text)]
     bad = [t for t in tokens if t.startswith(("/", "~")) or ".." in t.split("/") or not re.fullmatch(r"[\w.\-/*?\[\]@+]+", t)]
     if bad:
@@ -240,8 +245,6 @@ def check(brief_path, root):
     # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
     if any(re.search(r"\btheir tests\b", masked(text), re.I) for text in scopes):
         tokens.append(THEIR_TESTS)
-    if not tokens:
-        raise Refusal("%s: its %s paragraph names no backticked path" % (brief_path, MAY_EDIT))
     missing = []
     for number, (stem, globs) in sorted(rules.items()):
         needed = [t for t in tokens if any(segments_overlap(scope_pattern(t.split(" ")[0]), g.split("/")) for g in globs)]
