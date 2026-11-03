@@ -1,0 +1,41 @@
+{
+  "id": "D354-WI-2",
+  "lane": "rust",
+  "recorded_at": "2026-11-03T09:43:01.262Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_forwarding::malformed_request_is_refused_before_it_can_reach_the_owner",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_forwarding.rs",
+        "line": 18
+      },
+      "message": "assertion failed: matches!(outcome, Admission::Refused)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-2/20261103T094301262Z/tests",
+    "tree": "158a511f1c3de4091e1ad574335d0e708d01973f"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "9f105b0863d369a81691da53936648069323e3f5"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "7c1829aee9fccf856172593dbd954a846d4de9f3"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D354-WI-2.json",
+    "digest": "d4a9e0668a6e65d4e6b5e2a77e830059d8df59383d7ab2354352195693204c74",
+    "result": "failed",
+    "base": "a3e9b7ec3bc33ac0ee7705c9c033f90cd161d149",
+    "head": "cd25299b936192a32e02d036b3b6b63625bbf31f"
+  }
+}

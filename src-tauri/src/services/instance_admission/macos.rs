@@ -1,17 +1,19 @@
 use std::ffi::CStr;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::os::fd::AsRawFd;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt};
-use std::os::unix::net::{UnixListener, UnixStream};
+use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use super::codec::decode;
+use super::connector::{connect_until, io_timeout, SOCKET_PATH_BYTES};
+
 const STARTUP_DEADLINE: Duration = Duration::from_secs(10);
 const RETRY_DELAY: Duration = Duration::from_millis(10);
-const SOCKET_PATH_BYTES: usize = 104;
 
 #[derive(Debug)]
 pub enum AdmissionError {
@@ -140,13 +142,13 @@ fn try_lock(file: &File) -> Result<bool, AdmissionError> {
     }
 }
 
-fn ensure_private_socket_absent(path: &Path) -> Result<(), AdmissionError> {
+fn ensure_private_socket_absent(path: &Path, deadline: Instant) -> Result<(), AdmissionError> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
             if !metadata.file_type().is_socket() || metadata.uid() != unsafe { libc::geteuid() } {
                 return Err(AdmissionError::Invalid("untrusted private socket"));
             }
-            match UnixStream::connect(path) {
+            match connect_until(path, deadline) {
                 Ok(_) => Err(AdmissionError::Invalid("private socket already live")),
                 Err(error) if error.raw_os_error() == Some(libc::ECONNREFUSED) => {
                     fs::remove_file(path)?;
@@ -195,6 +197,16 @@ pub enum Admission {
 
 pub fn admit(identifier: &str, payload: &[u8]) -> Result<Admission, AdmissionError> {
     let namespace = Namespace::for_identifier(identifier)?;
+    match fs::symlink_metadata(&namespace.public_alias) {
+        Ok(metadata)
+            if metadata.file_type().is_socket() && metadata.uid() == unsafe { libc::geteuid() } =>
+        {
+            return Ok(Admission::Refused);
+        }
+        Ok(_) => (),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+        Err(error) => return Err(error.into()),
+    }
     match fs::DirBuilder::new()
         .mode(0o700)
         .create(&namespace.directory)
@@ -208,7 +220,7 @@ pub fn admit(identifier: &str, payload: &[u8]) -> Result<Admission, AdmissionErr
     let deadline = Instant::now() + STARTUP_DEADLINE;
     loop {
         if try_lock(&lock)? {
-            ensure_private_socket_absent(&namespace.socket)?;
+            ensure_private_socket_absent(&namespace.socket, deadline)?;
             let listener = UnixListener::bind(&namespace.socket)?;
             fs::set_permissions(&namespace.socket, fs::Permissions::from_mode(0o600))?;
             ensure_public_alias(&namespace)?;
@@ -217,9 +229,34 @@ pub fn admit(identifier: &str, payload: &[u8]) -> Result<Admission, AdmissionErr
                 _lock: lock,
             }));
         }
-        if let Ok(mut stream) = UnixStream::connect(&namespace.socket) {
-            stream.write_all(payload)?;
-            return Ok(Admission::Forwarded);
+        if decode(payload).is_err() {
+            return Ok(Admission::Refused);
+        }
+        if let Ok(mut stream) = connect_until(&namespace.socket, deadline) {
+            let mut sent = 0;
+            while sent < payload.len() {
+                let Some(timeout) = io_timeout(deadline) else {
+                    return Ok(Admission::Refused);
+                };
+                stream.set_write_timeout(Some(timeout))?;
+                match stream.write(&payload[sent..]) {
+                    Ok(0) => return Ok(Admission::Refused),
+                    Ok(count) => sent += count,
+                    Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(_) => return Ok(Admission::Refused),
+                }
+            }
+            stream.shutdown(std::net::Shutdown::Write)?;
+            let Some(timeout) = io_timeout(deadline) else {
+                return Ok(Admission::Refused);
+            };
+            stream.set_read_timeout(Some(timeout))?;
+            let mut response = [0u8; 1];
+            return match stream.read(&mut response) {
+                Ok(0) if Instant::now() <= deadline => Ok(Admission::Forwarded),
+                Ok(1) if response[0] == 1 && Instant::now() <= deadline => Ok(Admission::Forwarded),
+                Ok(_) | Err(_) => Ok(Admission::Refused),
+            };
         }
         if Instant::now() >= deadline {
             return Ok(Admission::Refused);

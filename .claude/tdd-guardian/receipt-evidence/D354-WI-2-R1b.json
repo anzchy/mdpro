@@ -1,0 +1,33 @@
+{
+  "id": "D354-WI-2-R1b",
+  "lane": "rust",
+  "recorded_at": "2026-11-03T13:49:29.996Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_forwarding::reset_after_valid_prefix_never_completes_a_frame",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_forwarding.rs",
+        "line": 29
+      },
+      "message": "assertion `left == right` failed\n  left: Ok(ForwardRequest { cwd: \"/tmp\", argv: [\"mdpro\", \"valid-prefix.md\"] })\n right: Err(Io)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-2-R1b/20261103T134929996Z/tests",
+    "tree": "0083a9f6b1c2749b95a9f5e46781832d77ca1934"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "6d1302b82124d338d5188ea90312cade65aa3a31"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "6d1302b82124d338d5188ea90312cade65aa3a31"
+  }
+}

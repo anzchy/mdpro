@@ -1,0 +1,34 @@
+{
+  "id": "D354-WI-2-R2",
+  "lane": "rust",
+  "recorded_at": "2026-11-03T14:01:53.422Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_errors::free_lock_and_saturated_legacy_public_listener_refuse_without_replacing_it",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_errors.rs",
+        "line": 76
+      },
+      "message": "assertion failed: matches!(outcome, Ok(Admission::Refused))"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-2-R2/20261103T140153422Z/tests",
+    "tree": "e48c2608c8669ed82345d25cc421230be442ae1f"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_errors.rs": "d18b91b3353b839c22e63330fb685b862b95e6dc"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_errors.rs": "5f7201e4da217ab3f2d107c29f2048588d8c4cf9"
+  },
+  "evidence_required": true
+}
