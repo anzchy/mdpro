@@ -12,9 +12,14 @@ Read, in order: `<ID>-brief.md` (grants still bind), `<ID>-handoff.md`, the merg
 ## Scope
 Branch `<branch>` at `<sha>`; rebase onto `origin/master` first if it moved. Same paths as the grant, and the same
 fixture allowance (brief § 2).
+- **May edit:** <paths>, copied from the grant's May edit with its backticks; #592 refuses a fix brief without this line.
 
 **Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
 named for that path in AGENTS.md. #592 checks it.
+
+For a Codex implementor, `prompt.sh` refuses a brief whose May edit or May create paths match a rule's `paths:`
+frontmatter unless the field above names that rule (as rule and number, its file stem, or its path). Write every scope
+path backticked and from the repo root, under exactly those two labels.
 
 ## Open questions, with defaults
 - **Q1.** <question>. Default: <answer>. (Follow each default without stopping; record which you used.)
