@@ -1,9 +1,11 @@
 """Purpose: read a brief's Markdown for brief-rules-check.py (GH592 fix 1), refusing what it cannot read.
 
-`Brief(text)` splits lines at \\n, \\r\\n and \\r only. It blanks fenced blocks, pairs code spans across the lines of a
-paragraph, and hides HTML comments that stand on lines of their own and link reference definition lines. Anywhere
-outside fences and code spans it refuses, naming the 1-based line: a comment inside a line, a real HTML entity, an
-HTML tag, a default-ignorable character and a line-separator character. `plain` has code spans blanked, `visible` keeps
+`Brief(text)` splits lines at \\n, \\r\\n and \\r only. It blanks fenced blocks, pairs code spans within a block (never
+across a blank line or a line that starts a new block), and hides HTML comments that stand on lines of their own and
+link reference definition lines. Anywhere outside fences and code spans it refuses, naming the 1-based line: a comment
+inside a line, any CommonMark raw HTML (a tag of any name, a processing instruction, a declaration, CDATA, an unclosed
+opener of the last three, or an HTML-block start; fix 2), a real HTML entity, a default-ignorable character and a
+line-separator character. Autolinks, a `<` that starts none of these, and an escaped `\\<` are text. `plain` has code spans blanked, `visible` keeps
 them; both keep every column, so a position found in one holds in the other.
 
 On top of that it finds labels that read as May edit or May create (escapes dropped, NFKC, Latin lookalikes folded),
@@ -23,8 +25,23 @@ SEPARATORS = "\u2028\u2029\u0085\v\f\x1c\x1d\x1e"
 IGNORABLE_RANGES = ((0x034F, 0x034F), (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180B, 0x180F), (0x3164, 0x3164),
                     (0xFE00, 0xFE0F), (0xFFA0, 0xFFA0), (0xE0000, 0xE0FFF))
 ENTITY = re.compile(r"&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{0,31});")
-TAG = re.compile(r"</?(?:b|i|u|s|em|strong|span|del|ins|strike|mark|small|big|font|sup|sub|code|kbd|a|br|div|p|details"
-                 r"|summary)(?:\s[^<>]*)?/?>", re.I)
+# Fix 2: CommonMark 0.31 raw HTML. Whitespace inside a construct may hold one line ending; every match is bounded by
+# the block (BLOCK_END), so it never crosses a blank line.
+_WS = r"(?:[ \t]*\n?[ \t]*)"
+_WS1 = r"(?:[ \t]+\n?[ \t]*|\n[ \t]*)"
+_ATTR = _WS1 + r"""[A-Za-z_:][A-Za-z0-9_.:-]*(?:""" + _WS + "=" + _WS + r"""(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?"""
+HTML_TAG = re.compile(r"<[A-Za-z][A-Za-z0-9-]*(?:%s)*%s/?>|</[A-Za-z][A-Za-z0-9-]*%s>" % (_ATTR, _WS, _WS))
+HTML_OTHER = re.compile(r"<\?.*?\?>|<![A-Za-z][^>]*>|<!\[CDATA\[.*?\]\]>", re.S)
+HTML_OPENER = re.compile(r"<(?:\?|![A-Za-z]|!\[CDATA\[)")
+HTML_BLOCK_START = re.compile(r"</?[A-Za-z][A-Za-z0-9-]*(?=[\s/>]|$)")
+LINE_LEAD = re.compile(r"[ \t]*(?:(?:>|[-*+]|\d{1,9}[.)])[ \t]*)*")
+AUTOLINK = re.compile(r"<[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*>"
+                      r"|<[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+                      r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*>")
+# Where a code span or an HTML construct must end: a blank line, or a line that starts a new block (a list item, a
+# heading, a block quote, a thematic break or a setext underline; fix 2, ruling 1).
+BLOCK_END = re.compile(r"\n[ \t]*\n|\n(?=[ \t]*(?:[-*+][ \t]|\d{1,9}[.)][ \t]|#{1,6}(?:[ \t]|$)|>"
+                       r"|([-*_])[ \t]*(?:\1[ \t]*){2,}$|=+[ \t]*$))", re.M)
 ESCAPE = re.compile(r"\\([!-/:-@\[-`{-~])")
 SLASHES = dict.fromkeys(map(ord, "\u2215\u2044\u29f8\u2571\uff0f"), "/")
 REF_DEF = re.compile(r"^ {0,3}\[([^\]]+)\]:")
@@ -126,13 +143,17 @@ class Brief:
         return live
 
     def _scan(self, text):
-        """Left to right: a code span (closed by the next run of its length before a blank line) or a comment."""
+        """Left to right, as CommonMark reads inline text: a backslash escape, a code span (closed by the next run of its
+        length within the block), a comment, an autolink (stepped over whole, so its backticks pair with nothing) or
+        raw HTML (refused). Whichever starts first wins, so a backtick inside a tag's attribute opens no span."""
         plain, visible, spans, i = list(text), list(text), [], 0
         while i < len(text):
+            if text[i] == "\\" and re.match(r"[!-/:-@\[-`{-~]", text[i + 1:i + 2]):
+                i += 2
+                continue
             if text[i] == "`":
                 n = len(re.match(r"`+", text[i:]).group(0))
-                stop = re.compile(r"\n[ \t]*\n").search(text, i)
-                close = re.compile(r"(?<!`)`{%d}(?!`)" % n).search(text, i + n, stop.start() if stop else len(text))
+                close = re.compile(r"(?<!`)`{%d}(?!`)" % n).search(text, i + n, self._block_end(text, i))
                 if not close:
                     i += n
                     continue
@@ -141,18 +162,47 @@ class Brief:
                 i = close.end()
                 continue
             if text.startswith("<!--", i):
-                close = text.find("-->", i + 4)
-                end = len(text) if close < 0 else close + 3
-                after = text.find("\n", end)
-                if text[text.rfind("\n", 0, i) + 1:i].strip() or text[end:len(text) if after < 0 else after].strip():
+                close = next((i + len(short) for short in ("<!-->", "<!--->") if text.startswith(short, i)), None)
+                if close is None:
+                    found = text.find("-->", i + 4)
+                    close = len(text) if found < 0 else found + 3
+                after = text.find("\n", close)
+                if text[text.rfind("\n", 0, i) + 1:i].strip() or text[close:len(text) if after < 0 else after].strip():
                     raise Refusal("HTML comment inside a line (line %d); put a comment on lines of its own"
                                   % (self._at(text, i)[0] + 1))
-                blank(plain, i, end)
-                blank(visible, i, end)
-                i = end
+                blank(plain, i, close)
+                blank(visible, i, close)
+                i = close
+                continue
+            if text[i] == "<":
+                i = self._html(text, i)
                 continue
             i += 1
         return "".join(plain), "".join(visible), spans
+
+    @staticmethod
+    def _block_end(text, offset):
+        end = BLOCK_END.search(text, offset)
+        return end.start() if end else len(text)
+
+    def _html(self, text, i):
+        """At a `<`: past an autolink, past a `<` that starts no raw HTML, or a refusal naming the line of the `<`."""
+        bound = self._block_end(text, i)
+        link = AUTOLINK.match(text, i, bound)
+        if link:
+            return link.end()
+        line = self._at(text, i)[0] + 1
+        tag = HTML_TAG.match(text, i, bound)
+        if tag:
+            raise Refusal("HTML tag (line %d): '%s'; write Markdown instead" % (line, " ".join(tag.group(0).split())))
+        other = HTML_OTHER.match(text, i, bound) or HTML_OPENER.match(text, i, bound)
+        if other:
+            raise Refusal("inline HTML (line %d): '%s'; write Markdown instead" % (line, " ".join(other.group(0).split())))
+        start = HTML_BLOCK_START.match(text, i, bound)
+        if start and LINE_LEAD.fullmatch(text, text.rfind("\n", 0, i) + 1, i):
+            raise Refusal("HTML tag (line %d): '%s'; an HTML block hides what follows; write Markdown instead"
+                          % (line, start.group(0)))
+        return i + 1
 
     @staticmethod
     def _at(text, offset):
@@ -168,9 +218,6 @@ class Brief:
         for hit in ENTITY.finditer(line):
             if html.unescape(hit.group(0)) != hit.group(0):
                 raise Refusal("escape or entity (line %d): '%s'; write the character itself" % (i + 1, hit.group(0)))
-        tag = TAG.search(line)
-        if tag:
-            raise Refusal("HTML tag (line %d): '%s'; write Markdown instead" % (i + 1, tag.group(0)))
 
     def unknown_labels(self, exact):
         """Fix 1 S5: `(name, line)` for each label that reads as May edit or May create but is not one of `exact`.

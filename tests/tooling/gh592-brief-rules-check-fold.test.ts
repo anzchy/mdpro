@@ -5,7 +5,7 @@
  * copied into a temp tree, with only `herdr` stubbed on PATH.
  *
  * This file holds a minimal copy of the harness in `gh592-brief-rules-check.test.ts`, which is the source of truth
- * (ruling 8). The big file has 157 tests, and the receipt lane's 120 s vitest cap (#622) kills its record under load,
+ * (ruling 8). The big file has 156 tests, and the receipt lane's 120 s vitest cap (#622) kills its record under load,
  * so the case cannot live there. Its receipts are settled, so its harness is not moved to a shared module either.
  * Matrix: ~/.mdpro-redesign/herdr-spike/opus-imple-1/GH592-test-matrix.md.
  */
@@ -171,5 +171,62 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check, ruling 
       expect(result.stderr).toContain("tests/** (their tests)");
       expect(h.prompts()).toEqual([]);
     }
+  });
+  // Fix 2 (round 3, H1): any CommonMark inline HTML refuses; autolinks, a bare `<` and escapes do not (GH592-F2-1).
+  const NOTES = (body: string) => `## 3. Notes\n${body}\n`;
+  const TAGS: Array<[string, string]> = [["src<x></x>/a.ts", "<x>"], ["src<abbr>/</abbr>a.ts", "<abbr>"], ["src<x>/</x>a.ts", "<x>"],
+    ["src<my-el></my-el>/a.ts", "<my-el>"], ["src</x>/a.ts", "</x>"], ["src<x class=\"a\">/a.ts", "<x class=\"a\">"], ["src<x data-a=b/>/a.ts", "<x data-a=b/>"],
+    ["src<x a='1' b>/a.ts", "<x a='1' b>"], ["src<X>/a.ts", "<X>"], ["src<x :y>/a.ts", "<x :y>"], ["src<x _b.c=1>/a.ts", "<x _b.c=1>"]];
+  it.each(TAGS)("G1a-d/f/h/aa AC-G1: a tag %s in a scope path refuses as an HTML tag, quoting it and naming its line", async (word, quoted) => {
+    const h = harness();
+    const result = await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`, ${word}.`, "none"), /HTML tag \(line \d+\)/, word);
+    expect(result.stderr).toContain(`'${quoted}'`);
+  });
+  const OTHER: Array<[string, string]> = [["<?x ?>", "<?x ?>"], ["<!X y>", "<!X y>"], ["<![CDATA[x]]>", "<![CDATA[x]]>"]];
+  it.each(OTHER)("G1i AC-G1: %s in scope refuses as inline HTML, quoting it and naming its line", async (construct, quoted) => {
+    const h = harness();
+    const result = await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`, ${construct} src.`, "none"), /inline HTML \(line \d+\)/, construct);
+    expect(result.stderr).toContain(`'${quoted}'`);
+  });
+  it("G1e/G1g/G1k/G1l AC-G1: a tag inside a label, split over two lines, outside scope, or in the field refuses, naming its line", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.\n- **May<x></x> create:** `src/a.ts`.", "rule 22"), /HTML tag \(line \d+\): '<x>'/, "**May<x>");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`, src<x\n  y=\"1\"></x>/a.ts.", "none"), /HTML tag \(line \d+\)/, "src<x");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "none", NOTES("See x <x></x> y.")), /HTML tag \(line \d+\): '<x>'/, "See x");
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22, <x>rule 50</x>"), /HTML tag \(line \d+\): '<x>'/, "**Rules for paths");
+  });
+  it("G1i/G1j/G1w/G1x/G1y/G1z AC-G1: unclosed or split openers and HTML-block starts refuse, naming the opening line", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "none", NOTES("<?php\nsome text")), /inline HTML \(line \d+\)/, "<?php");
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22, <!X\nrule 50>"), /inline HTML \(line \d+\)/, "<!X");
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22, <![CDATA[\nrule 50]]>"), /inline HTML \(line \d+\)/, "<![CDATA[");
+    for (const block of ["<div\nsome text", "> <div\n> - **May create:** `src/a.ts`.", "   <div\n- **May create:** `src/a.ts`."]) {
+      await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50", NOTES(block)), /HTML tag \(line \d+\): '<div'/, "<div");
+    }
+  });
+  it("G1t/G1u AC-G1: a backtick inside a tag's attribute does not open a code span; the tag refuses", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22 <x a=\"rule 50 `\"> see `x`"), /HTML tag \(line \d+\)/, "**Rules for paths");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "none", NOTES("Note <x a=\"`\"> **May create:** src/a.ts and `y` ok.")), /HTML tag \(line \d+\)/, "Note <x");
+  });
+  it("G1m/G1n/G1v/G1ac/G1ad AC-G1: <!--> and <!---> close at once, and a backtick in an autolink, another block or after a backslash pairs with nothing", async () => {
+    const h = harness();
+    for (const before of ["<!-->", "<!--->", "- Docs at <https://e.com/`>.", "- A lone ` backtick.", "- An escaped \\` tick, then `y`."]) {
+      h.reset();
+      const result = await h.send(h.write(grant("- **May edit:** `docs/x.md`.", "rule 22", NOTES(`${before}\n- **May create:** \`src/a.ts\`.`))));
+      needs(result, [50]);
+      expect(result.stderr).toContain("src/a.ts");
+      expect(h.prompts()).toEqual([]);
+    }
+  });
+  it("G1o/G1p/G1q/G1ab AC-G1 controls: autolinks, a bare <, near-miss shapes, escapes, code spans and fences are sent", async () => {
+    const h = harness();
+    const notes = "See <https://example.com/x> and <a@b.co>.\n\nCompare a < b, x <= y, a<b and <- arrows.\n\npairs <a, b> and <x y=\"1> here\n\n" +
+      "Literal \\<x> here; code `<x>` here.\n\n```html\n<div>\n```";
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.", "none", NOTES(notes)));
+  });
+  it("G1r AC-G1: an escaped < in scope still refuses as an escape", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`, \\<x>.", "none"), /escape or entity \(line \d+\): '\\<'/, "\\<x>");
   });
 });
