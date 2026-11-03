@@ -609,7 +609,7 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
   it.each(["brief-template.md", "fix-brief-template.md"])("C50 AC-5: the real %s, filled, passes; with the field placeholder left in, it refuses", async (file) => {
     const h = harness();
     const template = fs.readFileSync(path.join(".agents/skills/mdpro-delegator/references/templates", file), "utf8");
-    const filled = template.replace(/<paths>/g, "`src/a.ts`");
+    const filled = template.replace(/<paths>/g, "`src/a.ts`").replace(/<(?!!--|AGENTS\.md path-table rules, by path>)[^<>\n]+>/g, "x");
     const brief = h.write(filled.replace("<AGENTS.md path-table rules, by path>", "rule 22, rule 50"));
     h.expectSent(await h.send(brief), brief);
     h.reset();
