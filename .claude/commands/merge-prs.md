@@ -1,15 +1,19 @@
 ---
-description: Review open PRs and prepare the ready ones for the delegator to land — sequential, with rebase handling
+description: The delegator's own command — review open PRs, rebase the ones that need it, and list the ones ready to land
 argument-hint: "[#PR ... | --mine | --pattern fix/issue-*]"
 ---
 
 # Merge PRs
 
-Review open pull requests one at a time, rebase the ones that need it, and hand the ready ones to the delegator.
+Review open pull requests one at a time, rebase the ones that need it, and mark the ones ready to land.
+
+**This is the delegator's command alone.** Any other session that is asked to run it stops here, before Phase 1 and
+before any `gh` or `git` command, and sends the delegator `$ARGUMENTS` verbatim (the PR numbers, `--mine`,
+`--pattern …`, or "(empty)"). It runs nothing else.
 
 **Only the delegator lands, by `git merge --ff-only` onto `master`, and pushes `origin master`** ([rule 70 § Commits and
 branches](../rules/70-multi-session-coordination.md#commits-and-branches)). This command never merges a PR: no `gh pr
-merge`, no squash, no merge commit. Its last step is the hand-off.
+merge`, no squash, no merge commit. Its last step is the Ready list; landing is the delegator's separate procedure.
 
 ## Input
 
@@ -58,7 +62,8 @@ gh pr checks {N}
 
 | Checks | Mergeable | Status |
 |--------|-----------|--------|
-| Pass | Yes | **Ready** — can go to the delegator |
+| Pass | Yes, and up to date with `origin/master` | **Ready** — green on its current head |
+| Pass | Yes, but behind `origin/master` | **Needs rebase** — `--ff-only` would refuse it |
 | Fail | Any | **Blocked** — checks must pass first |
 | Pass | Conflict | **Needs rebase** — will rebase onto `origin/master` first |
 | Pending | Any | **Waiting** — checks still running |
@@ -66,8 +71,8 @@ gh pr checks {N}
 **Present the table to the user and ask for confirmation before proceeding.**
 
 Options to offer:
-- Hand all ready PRs to the delegator (skip blocked/waiting)
-- Hand specific PRs by number
+- Prepare all ready PRs (skip blocked/waiting)
+- Prepare specific PRs by number
 - Cancel
 
 ## Phase 3: Sequential Preparation
@@ -79,47 +84,74 @@ For each PR:
 ### 3a. Final check
 
 ```bash
-gh pr view {N} --json mergeable,statusCheckRollup,mergeStateStatus
+git fetch origin
+gh pr view {N} --json headRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
+git fetch origin <headRefName>
 ```
+
+Record `<branch>` = `headRefName` and `<S>` = `headRefOid` from that output; every later step uses these two values.
 
 - If checks failed since Phase 2: skip, report, continue to next.
-- If conflict detected: attempt rebase (Phase 3b).
+- Rebase (3b) when any of these holds:
+  - `mergeable` reports a conflict;
+  - `mergeStateStatus` is `BEHIND`;
+  - `git merge-base --is-ancestor origin/master <S>` exits non-zero (`origin/master` is not in the PR's history).
+- Otherwise skip 3b and go to 3c with `<head>` = `<S>`.
 
-### 3b. Rebase if needed
+### 3b. Rebase in a throwaway worktree
+
+Never check out the PR in the current checkout: the main checkout stays on `master`. Use a detached worktree under
+`/Users/jack/Documents/mac-app/mdpro-wt/` (ADR-0134), named `merge-prs-<N>-<first 7 of S>`. If that path already
+exists, skip this PR and report the path: never reuse or delete it.
 
 ```bash
-gh pr checkout {N}
-git fetch origin
-git rebase origin/master
+git worktree add --detach /Users/jack/Documents/mac-app/mdpro-wt/merge-prs-<N>-<S7> <S>
 ```
 
-- If rebase succeeds: the delegator alone force-pushes the PR branch, never `master`, a `release/x.y` branch or a tag
-  (rule 25's standing exception). Any other session reports the rebased head to the delegator instead.
-  ```bash
-  git push --force-with-lease=<branch>:<old head>
-  ```
-  Wait for checks:
-  ```bash
-  gh pr checks {N} --watch
-  ```
-- If rebase has conflicts: skip this PR, report conflicts to user, continue to next.
+In that worktree, in this order:
 
-### 3c. Hand to the delegator
+1. `git rebase origin/master`. On conflicts: `git rebase --abort`, then go to step 5, and skip this PR with the
+   conflicting files in its report.
+2. `<S′>` = `git rev-parse HEAD`.
+3. `git push --force-with-lease=<branch>:<S> origin HEAD:refs/heads/<branch>`. This is rule 25's standing exception,
+   the delegator's alone, on a PR branch, never `master`, a `release/x.y` branch or a tag. If the push is rejected, go
+   to step 5, and skip this PR ("Force-push rejected"); there is no poll.
+4. Leave the worktree (`cd` back to where you started).
+5. `git worktree remove /Users/jack/Documents/mac-app/mdpro-wt/merge-prs-<N>-<S7>`. If it is refused, leave the
+   directory, report its path, and ask the user before `--force` or any `rm` (rule 25).
 
-Send the delegator the PR number, its head SHA and its green checks. The delegator lands it with
-`git merge --ff-only <sha>` and pushes `origin master` (rule 70). Do not merge it here, and do not check out, pull or
-merge into `master` in this checkout.
+Then wait for GitHub to see the pushed head: run `gh pr view {N} --json headRefOid` every 10 seconds, up to 30 times.
+- If it equals `<S′>`: go to 3c with `<head>` = `<S′>`.
+- If it is neither `<S>` nor `<S′>` (someone else pushed): stop polling, skip this PR, report "head moved".
+- After 30 tries still `<S>`: skip this PR, report "pushed head not seen".
+
+### 3c. Checks on that exact head
+
+```bash
+gh pr checks {N} --watch
+gh pr view {N} --json headRefOid,statusCheckRollup
+```
+
+The PR is **Ready** only when all of these hold:
+- the watch exited 0;
+- `statusCheckRollup` lists `ci-gate`, completed and passing. An empty list means the checks have not started yet:
+  run the watch again, and do not count it as green;
+- the `headRefOid` read after the watch still equals `<head>`. If not, skip the PR and report "head moved".
+
+A failing check makes it "Skipped — checks failing". Record each Ready PR with its `<head>` SHA. The delegator lands it
+later by its own procedure (rule 70 § Commits and branches: verifier PASS, audit verdict, green `ci-gate` on that SHA,
+then `git merge --ff-only <head>`), not from this command.
 
 ### 3d. Refresh `origin/master`
 
-Before the next PR's rebase, fetch so it rebases onto whatever the delegator has landed:
+Before the next PR:
 ```bash
 git fetch origin
 ```
 
 ### 3e. Report
 
-After each hand-off, log the result. Continue to next PR.
+After each PR, log the result and its SHA. Continue to next PR.
 
 ## Phase 4: Summary
 
@@ -128,13 +160,13 @@ After all PRs are processed, display final results:
 ```
 | # | Title | Result |
 |---|-------|--------|
-| 12 | fix: resolve X | ✅ Ready for delegator |
+| 12 | fix: resolve X | ✅ Ready @ <head> |
 | 34 | feat: add Y | ❌ Skipped — checks failing |
-| 56 | fix: handle Z | ✅ Ready for delegator (rebased) |
+| 56 | fix: handle Z | ✅ Ready @ <S′> (rebased) |
 ```
 
 Also report:
-- Number handed to the delegator / skipped / failed
+- Number Ready / skipped / failed, with each Ready PR's head SHA
 - Any PRs that need manual attention (conflicts, failing checks)
 
 ## Error Handling
@@ -144,17 +176,21 @@ Also report:
 | No open PRs | Report, STOP |
 | Checks failing | Skip PR, report, continue |
 | Rebase conflict | Skip PR, report conflict files, continue |
-| Hand-off refused (delegator reports a problem) | Report error, continue to next |
+| Pushed head not seen after 30 polls | Skip PR, report, continue |
+| Head moved (another push during the run) | Skip PR, report both SHAs, continue |
+| Throwaway worktree path already exists | Skip PR, report the path, never reuse or delete it, continue |
+| `git worktree remove` refused | Leave the directory, report its path, ask the user before `--force` or any `rm` (rule 25) |
 | Force-push rejected | Skip PR, report, continue |
-| User cancels | STOP immediately, report what was already handed off |
+| User cancels | STOP immediately, report what was already marked Ready |
 
 ## Safety Rules
 
-1. **Always confirm with user** before handing anything off (an implementor asks through the delegator).
-2. **Never hand off PRs with failing checks** — skip and report.
+1. **The delegator's command alone.** Any other session asked to run it stops before Phase 1 and sends the delegator
+   `$ARGUMENTS` verbatim. The delegator confirms with the user before preparing anything.
+2. **Never mark a PR Ready without green checks on its current head** — skip and report.
 3. **Only the delegator force-pushes**, as `git push --force-with-lease=<branch>:<old head>` on a PR branch, never
    `master`, a `release/x.y` branch or a tag (rule 25), and never a bare `--force`.
 4. **Never delete a branch** — branch deletion asks the user (rule 25), and remote branches stay thirty days (ADR-0084).
-5. **Sequential only** — never prepare in parallel. Each landing may affect the next PR's mergeability.
+5. **Sequential only** — never prepare in parallel. Each rebase or landing may affect the next PR's mergeability.
 6. **No merge here** — only the delegator lands, by `git merge --ff-only` onto `master` (rule 70). `master` takes no
    merge commit.
