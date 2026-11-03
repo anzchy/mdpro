@@ -88,4 +88,28 @@ describe.skipIf(!pluginVersion)("D357 RC5 view kill windows (L5)", () => {
     expect(stamp()).toMatchObject({ phase: "idle", sha256: sha(repo.read(VIEW)) });
     expect(item("A-1").red.kind).toBe("assertion-failure");
   });
+
+  it("L5b: SIGKILL at record-rebuilt (sorted view written, stamp still engine) leaves a store the next record accepts", async () => {
+    failing(file("B-1"));
+    expect((await record("B-1")).status).toBe(0);
+    failing(file("A-1"));
+    const dir = barriers("record-rebuilt");
+    const running = record("A-1", { MDPRO_UNIT_RED_BARRIER_DIR: dir });
+    expect(await ready(dir, "record-rebuilt")).toBe(true);
+    expect(repo.read(VIEW)).toBe(built(["A-1", "B-1"]));
+    expect(stamp().phase).toBe("engine");
+    expect(item("A-1").red.kind).toBe("assertion-failure");
+    await killHeld(stamp().pid);
+    killed(await running);
+    // A-1.json holds a counted RED written before the kill, so A-1 itself is refused by design (Q4).
+    const again = await record("A-1");
+    expect(again.status).toBe(64);
+    expect(again.stderr).toContain("already has valid or settled evidence");
+    failing(file("C-1"));
+    const next = await record("C-1");
+    expect(next.status, next.output).toBe(0);
+    expect(next.stderr).not.toContain("changed outside");
+    expect(ids()).toEqual(["A-1", "B-1", "C-1"]);
+    expect(stamp()).toMatchObject({ phase: "idle", sha256: sha(repo.read(VIEW)) });
+  });
 });

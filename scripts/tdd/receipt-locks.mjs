@@ -247,5 +247,6 @@ export function foreignChanges(before, afterText, id) {
 export function settleView(cwd, receipts, update, foreign) {
   if (foreign.length) { writeStamp(cwd, "idle", sha256(buildView(receipts))); return; }
   update(cwd, () => JSON.parse(buildView(receipts)));
+  barrier("record-rebuilt", "hold"); // D357 L5: the stamp is still `engine` until the line below
   writeStamp(cwd, "idle", sha256(viewText(cwd)));
 }
