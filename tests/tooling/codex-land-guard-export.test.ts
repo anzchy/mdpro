@@ -27,7 +27,10 @@ it("S7: the export's index lists every file of the commit, including tracked fil
   const exported = fs.readFileSync(out, "utf8").split("\0").filter(Boolean).sort();
   const committed = (await runFile("git", ["ls-tree", "-r", "-z", "--name-only", "HEAD"], { cwd: root, maxBuffer: 64 << 20, encoding: "utf8" }))
     .stdout.split("\0").filter(Boolean).sort();
-  expect(committed).toContain(".claude/tdd-guardian/receipts.json");
+  const ignoredTracked = (await runFile("git", ["ls-files", "-ci", "--exclude-standard", "-z"], { cwd: root, maxBuffer: 64 << 20, encoding: "utf8" }))
+    .stdout.split("\0").filter(Boolean);
+  expect(ignoredTracked.length).toBeGreaterThan(0);
+  expect(ignoredTracked.filter((name) => !exported.includes(name))).toEqual([]);
   expect(exported.filter((name) => !committed.includes(name))).toEqual([]);
   expect(committed.filter((name) => !exported.includes(name))).toEqual([]);
 });
