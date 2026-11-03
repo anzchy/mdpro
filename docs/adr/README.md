@@ -22,26 +22,62 @@ decision 1; [decision log](../agents/decisions/20261102-adr-scope-and-decision-l
   formats, CI lane layout). Each goes to one file in the
   [decision log](../agents/decisions/README.md). A decision that reaches for
   `AskUserQuestion` is not, by that fact alone, ADR-worthy.
-- **Mixed cases** (both product and process) get an ADR, and their process half is
-  a log entry pointing at it.
+- **Mixed cases** (both product and process) get an ADR when they pass the bar
+  below, and their process half is a log entry pointing at it.
+
+## The bar
+
+**An ADR needs both parts of a two-part test** (since 2026-11-04,
+[entry](../agents/decisions/20261104-adr-bar-raised.md)):
+
+- **(a) Scope.** The decision is on the scope list above.
+- **(b) Significance.** It is hard or costly to reverse once shipped, or it binds
+  more than one module or an external party (a user's files, a contract other
+  code calls).
+
+A decision that passes (a) but not (b) goes **below the bar**.
+
+- **Below the bar** means it is recorded where it is made: the item's issue (or
+  its existing D row), the spec snapshot or the ledger row. A colour value, a
+  single shortcut default and a measurement are examples.
 - **Who classifies.** The delegator, before reserving a number; the planner
-  proposes for a feature. Doubt goes to the ADR route and to the user.
-- **Below the bar.** A product decision too small for an ADR is recorded where it
-  is made: the item's issue (or its existing D row), the spec snapshot or the ledger row.
+  proposes for a feature. **Doubt goes below the bar**, not to the ADR route. A
+  below-the-bar record becomes an ADR later only when it is disputed, superseded
+  or built on (the promotion rule at the end of this file).
+- **No answer, no number.** Before reserving a number, the delegator writes the
+  one-line answer to (a) and (b) in the reservation.
+- **A correction takes no number.** A measurement or evidence correction that
+  changes no decision is a linked evidence record under `docs/test/` or
+  `docs/reference/`, plus a dated Status note on the existing ADR.
+- **Amendments.** A change on a topic that already has an ADR takes a new ADR,
+  listed under the topic lead in [`INDEX.md`](INDEX.md), only when the contract
+  changes; otherwise it lives in the item's issue. When the contract of a topic
+  that already has amendments really changes, one new ADR replaces the whole
+  topic at that time, and the lead and each amendment gain its Superseded line.
+  A topic is consolidated at its next genuine revision, never to lower a count.
 - **One feature's decisions** stay in its spec snapshot under local ids
-  `<prefix>-r<N>-D<n>` (rule 12), unless they are on the scope list above.
+  `<prefix>-r<N>-D<n>` (rule 12), unless they pass the bar.
+- **What not to do:** no bulk Status sweep to Superseded or Retired; no
+  `docs/adr/archive/` directory (a tooling test reads every entry of `docs/adr/`
+  as a file); no rewriting of accepted bodies; no backfilling; no target count.
+
+## Writing and changing an ADR
+
 - **Location**: `docs/adr/NNNN-kebab-title.md`, numbered sequentially from
-  `0001`, never renumbered and never deleted.
+  `0001`, never renumbered and never deleted. The commit that adds an ADR adds
+  its line to [`INDEX.md`](INDEX.md).
 - **Structure** (Nygard): `# NNNN. Title` → **Status** → **Enforced by** →
   **Context** → **Options considered** → **Decision** → **Consequences**. Every
   new ADR's "Enforced by" line names the lint, test, gate or config that holds the
-  decision, or says plainly that nothing does. Context states the
+  decision, or says plainly that nothing does: a pointer, not a restatement of
+  the rules it holds. Context states the
   forces *as they were understood at the time*, not as they look in hindsight.
   Options considered names every option that was on the table, with the reason
   each losing one lost; a record without them cannot stop the re-litigation it
-  exists to prevent. Keep it to a page where you can; evidence (log lines, device
-  runs, probe output) goes in a linked record under `docs/test/` or
-  `docs/reference/`, not in the ADR.
+  exists to prevent. **One page, about 1,000 words at most.** Runbooks,
+  implementation steps and review dispositions go to the spec or a guide;
+  evidence (log lines, device runs, probe output) goes in a linked record under
+  `docs/test/` or `docs/reference/`. None of it goes in the ADR.
 - **Status** is one of `Proposed` / `Accepted` / `Rejected` /
   `Superseded by ADR-NNNN` / `Deprecated` / `Drifted` / `False in practice`. Date
   every status change, and on

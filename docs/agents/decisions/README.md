@@ -43,6 +43,8 @@ High tier there.
 
 ## Entries
 
+- [20261104-adr-bar-raised.md](20261104-adr-bar-raised.md): an ADR needs scope and significance; doubt goes below the
+  bar, a correction takes no number, an amendment takes one only when the contract changes, one page at most.
 - [20261102-receipts-per-item-files.md](20261102-receipts-per-item-files.md): each receipt and evidence entry is
   one file per id; `receipts.json` is a generated view, and `receipt-store.mjs keep-check` is the verifier's check.
 - [20261102-audit-policy-set-split.md](20261102-audit-policy-set-split.md): the policy set moves, unchanged, into

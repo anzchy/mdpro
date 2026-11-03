@@ -63,7 +63,9 @@ handoff. Each item is tagged `prep` or `impl`.
   `git worktree list` prints (that covers `mdpro-wt/`,
   `.claude/worktrees/agent-*` and the Codex worktree), plus the numbers it
   has already handed out. After a restart it asks each session which numbers
-  it holds before handing out another. Then it announces the reservation to all sessions.
+  it holds before handing out another. Then it announces the reservation to all sessions. A reservation carries the
+  one-line answer to both parts of [the bar](../../../../docs/adr/README.md#the-bar), scope and significance; no answer,
+  no number.
 - **D numbers are no longer issued.** A new item is a GitHub issue in `anzchy/mdpro`, and its number is its id; its
   receipt ids are `GH<n>-S<k>`. Existing `D<n>` ids stay
   ([entry](../../../../docs/agents/decisions/20261102-new-items-are-github-issues.md#decision)).

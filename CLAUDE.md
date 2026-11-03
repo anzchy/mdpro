@@ -111,15 +111,15 @@ and `pnpm ledger:build` when the markdown changes. It is not a changelog, a plan
 
 ## Architecture Decision Records (ADR)
 
-**An ADR records a decision about the product or its architecture** (ADR-0165): an IPC or MCP contract, a persisted
+**An ADR records a significant product or architecture decision** (ADR-0165): an IPC or MCP contract, a persisted
 format or preference key, a dependency, a rendering surface or engine, platform and release scope, an accepted known
-defect, or deciding not to build something. The test: would a user of the released app, or a contributor reading
-product code, see the difference? How the work is done goes to
-[`docs/agents/decisions/`](./docs/agents/decisions/README.md) instead.
+defect, or not building something. Significant: costly to reverse once shipped, or binding several modules or an
+external party. Otherwise, or in doubt, it goes below the bar (issue, spec or ledger row). Process goes to
+[`docs/agents/decisions/`](./docs/agents/decisions/README.md).
 
-Numbers are reserved through the delegator. Structure: Status, Enforced by, Context, Options considered, Decision,
-Consequences. An accepted ADR's body is immutable; changing your mind writes a new ADR that supersedes it. Review,
-Status values and the fold-in of process ADRs: [`docs/adr/README.md`](./docs/adr/README.md).
+The delegator reserves numbers. Structure: Status, Enforced by, Context, Options considered, Decision, Consequences;
+one page. An accepted ADR's body is immutable; a changed mind takes a superseding ADR. The bar, review, Status and
+fold-in: [`docs/adr/README.md`](./docs/adr/README.md).
 
 ## Spec-Driven Development
 

@@ -87,10 +87,10 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 
 **Classify first** ([ADR-0165](../../../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md);
 [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)), before
-reserving any number. Use [CLAUDE.md § ADR](../../../../CLAUDE.md#architecture-decision-records-adr)'s scope list and test.
+reserving any number. Use the two-part test, scope and significance, in [the bar](../../../../docs/adr/README.md#the-bar).
 A product or architecture decision, or a mixed one, is a repository-wide ADR. A process or tooling decision is a
 [decision-log entry](../../../../docs/agents/decisions/README.md). A decision inside one feature is a spec-local decision
-(rule 12). Doubt goes to the ADR route and to the user.
+(rule 12). Doubt goes below the bar.
 
 **An ADR.** Reserve its number. Then check CLAUDE.md § ADR's review trigger and record the classification in its Status
 line; doubt means review.

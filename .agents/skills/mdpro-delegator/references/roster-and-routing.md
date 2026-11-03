@@ -129,8 +129,8 @@ the heartbeat assignment.
   marked Proposed) **only** for a decision on [CLAUDE.md § ADR](../../../../CLAUDE.md#architecture-decision-records-adr)'s scope list,
   all under `~/.mdpro-redesign/planner/<feature>/`. It hands the paths to the delegator.
 - **Which decisions are ADRs** ([ADR-0165](../../../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
-  decisions 1 and 3; [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). The planner proposes the class by CLAUDE.md § ADR's scope list and test, and the delegator classifies before
-  reserving a number; doubt goes to the user. The spec cites each ADR it relies on. Every other decision in the spec takes a local id
+  decisions 1 and 3; [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). The planner proposes the class by the two-part test in [the bar](../../../../docs/adr/README.md#the-bar), and the delegator classifies before
+  reserving a number; doubt goes below the bar. The spec cites each ADR it relies on. Every other decision in the spec takes a local id
   `<prefix>-r<N>-D<n>` (e.g. `T567-r1-D1`) and no global number. A feature decision made after `r<N>` is approved goes in
   `docs/specs/<feature>/decisions.md`, under the same ids, committed with the ticket's landing record; one that changes an AC still
   needs `r<N+1>`. A local decision that later governs shared code or another feature is promoted by a new ADR that links the snapshot.

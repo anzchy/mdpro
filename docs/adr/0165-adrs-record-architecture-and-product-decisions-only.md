@@ -40,6 +40,8 @@ the follow-up PR hold it.
 
 **Current text: `CLAUDE.md#architecture-decision-records-adr`; folded and changed by [`docs/agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md`](../agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md)**, 2026-11-02 (user: 「Change = fold it in (Recommended)」), for decision 4's "Reversing or replacing a decision still takes a new ADR" and decision 5's move-only reading of a fold-in, process ADRs ADR-0001…ADR-0164 only. Landed with PR #585 (`1d6a9854`).
 
+**Current text: `docs/adr/README.md#the-bar`; folded and changed by [`docs/agents/decisions/20261104-adr-bar-raised.md`](../agents/decisions/20261104-adr-bar-raised.md)**, 2026-11-04 (user: 「不轻易建adr」), for decision 1's "Who classifies" sentence "Doubt goes to the global route and to the user" and its "Below the bar" clause.
+
 ## Context
 
 - 161 ADRs exist: 44 written in September and 115 in October. Numbers 0120 to 0164 hold 43 records, since 0123 and
