@@ -9,7 +9,8 @@ effort and the adversary). Fresh session. On Codex, run `$tdd-guardian:tdd-guard
 matrix attack. On Claude, follow `docs/agents/implementor.md#matrix-and-attack`.
 
 **Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
-named for that path in AGENTS.md. `prompt.sh` refuses a Codex brief that misses one (#592).
+named for that path in AGENTS.md. `prompt.sh` checks rules 22 and 50 only, each named as `rule <n>` (#592;
+forms: `codex-panes.md`).
 
 ## 1. Background
 - **The issue.** `anzchy/mdpro#<n>` (or, for an existing D item, `docs/plans/20260912-frontend-backend-sequencing-order.md#<id>`), and the plan row, if any.
