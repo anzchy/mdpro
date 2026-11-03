@@ -50,7 +50,7 @@ Findings in this category are **blockers**. Do not commit until resolved.
 ### Test Coverage Gaps
 
 - [ ] New code has the tests rule 10's "When tests are required" table demands; bug fixes have a regression test (fails without the fix, passes with it).
-- [ ] macOS-only test: `prerequisite: macos` or `cfg(target_os)`; never on a Linux-supported test.
+- [ ] macOS-only Vitest inventory `prerequisite: macos`+skipIf; Rust `cfg(target_os)`; no ubuntu tests.
 
 ### Documentation Sync
 
