@@ -75,8 +75,9 @@ describe("D355 fix 5: the history rule flags every form both auditors probed", (
     expect(flagged([T], tree(chain))).toEqual([`${T}: log`]);
   });
 
-  it("H4: execa, and a required child-process module", () => {
-    expect(flagged([T], one('await execa("git", ["log"]);', imp("{ execa }", ["exe", "ca"].join(""))))).toEqual([`${T}: log`]);
+  it("H4: the exec-a package, and a required child-process module", () => {
+    const PKG = ["exe", "ca"].join("");
+    expect(flagged([T], one(`await ${PKG}("git", ["log"]);`, imp(`{ ${PKG} }`, PKG)))).toEqual([`${T}: log`]);
     expect(flagged([T], one(`${REQ}("node:${CP}").execSync("git log");`, ""))).toEqual([`${T}: log`]);
   });
 
