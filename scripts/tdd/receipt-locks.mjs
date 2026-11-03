@@ -139,11 +139,12 @@ export function withOsLock(args, entryFile) {
     });
   });
 }
+/** A test barrier: writes `<name>.ready`, then pauses until `<name>.go`; `pause` false never pauses, "hold" only when `<name>.hold` exists. */
 export function barrier(name, pause = true) {
   const directory = process.env.MDPRO_UNIT_RED_BARRIER_DIR;
   if (!directory) return;
   writeFileSync(join(directory, `${name}.ready`), "ready");
-  if (!pause) return;
+  if (!pause || (pause === "hold" && !existsSync(join(directory, `${name}.hold`)))) return;
   const release = join(directory, `${name}.go`), deadline = Date.now() + 10_000;
   while (!existsSync(release)) {
     if (Date.now() > deadline) throw usageError(`Barrier ${name} timed out.`);
@@ -225,6 +226,7 @@ function recordsOf(text) {
 /** Rebuild the view from `receipts` (id → receipt) through the engine's `update`, stamped `engine`; returns its records. */
 export function rebuildView(cwd, receipts, update) {
   writeStamp(cwd, "engine", sha256(buildView(receipts)));
+  barrier("record-view-written", "hold"); // D357 L5: a kill here leaves a dead `engine` stamp, rebuilt over
   update(cwd, () => JSON.parse(buildView(receipts)));
   return recordsOf(viewText(cwd));
 }

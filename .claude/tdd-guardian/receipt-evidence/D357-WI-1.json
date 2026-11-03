@@ -1,0 +1,33 @@
+{
+  "id": "D357-WI-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T04:30:02.403Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/rc5-receipt-lifecycle.test.ts\",\"D357 RC5 view kill windows (L5)\",\"L5a: SIGKILL at record-view-written (stamp engine, view not yet rebuilt) leaves a store the next record accepts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/rc5-receipt-lifecycle.test.ts",
+        "line": 77
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D357-WI-1/20261103T043002403Z/tests",
+    "tree": "ac3f3fdc0df9691019b6d499e3919586ef21692b"
+  },
+  "spec_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "aa075ae98563dcd3280fe0e5799e259bd7a73f8a"
+  },
+  "settled_blobs": {
+    "tests/tooling/rc5-receipt-lifecycle.test.ts": "aa075ae98563dcd3280fe0e5799e259bd7a73f8a"
+  }
+}
