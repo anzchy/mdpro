@@ -2768,7 +2768,8 @@
     {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3k/F3o/F3p AC-5: \"Same paths as the grant\" is matched as rendered, and a hidden May edit does not satisfy it"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3l/F3p AC-2: \"their tests\" is matched as rendered: wrapped, emphasised or with a wide space"], "prerequisite": "macos"},
     {"id": ["tests/tooling/gh592-brief-rules-check.test.ts", "GH592 brief rules check (requires macos zsh)", "F3q AC-5 (code review, added in cycle F1-6): an escape inside \"Same paths as the grant\" is dropped as S5 renders it"], "prerequisite": "macos"},
-    {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "F1v/F3p/F2m AC-F1..F3 (ruling 7): a percent-encoded link path, a lookalike in either phrase, and \u0251 or \u0131 in a label refuse"], "prerequisite": "macos"}
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "F1v/F3p/F2m AC-F1..F3 (ruling 7): a percent-encoded link path, a lookalike in either phrase, and \u0251 or \u0131 in a label refuse"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/gh592-brief-rules-check-fold.test.ts", "GH592 brief rules check, ruling 7 fold (requires macos zsh)", "F3r AC-F3 (code review, added in cycle F1-5): a lookalike of a phrase-only letter (s, S, h, g) is folded too"], "prerequisite": "macos"}
   ],
   "exclusions": [
     {
