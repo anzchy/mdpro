@@ -47,5 +47,12 @@
   },
   "settled_blobs": {
     "src-tauri/tests/d354_compat.rs": "5ac529f6dfcfc71811d70f2a7c0125db073f716b"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D354-WI-3b.json",
+    "digest": "e5ebdd7ecbffea612841bca478f81b6e7881625337f7c7323c86ab1183eb3e3a",
+    "result": "failed",
+    "base": "48f09aae7e08b0a012872d1e176a8d6f37010d0f",
+    "head": "f3ab639facfb1f0eadb5b02ae49adf51bbd3b517"
   }
 }

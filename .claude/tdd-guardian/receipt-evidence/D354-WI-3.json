@@ -32,5 +32,12 @@
     "src-tauri/tests/d354_compat.rs": "29d1c750579388a086186a9998ac5ba18f2b0687",
     "src-tauri/tests/d354_handover.rs": "a200668e54f36f9d3133146a890d8ed516c72fc6"
   },
-  "evidence_required": true
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/D354-WI-3.json",
+    "digest": "03d95ea617a07b91ae9e8f7beb997ecee8806d4123edc21bafca41c76782158c",
+    "result": "failed",
+    "base": "48f09aae7e08b0a012872d1e176a8d6f37010d0f",
+    "head": "f3ab639facfb1f0eadb5b02ae49adf51bbd3b517"
+  }
 }
