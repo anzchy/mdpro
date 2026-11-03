@@ -37,6 +37,8 @@ const spec = (sleep = 0) => [
 ].join("\n");
 /** A failing spec that leaves `ignored/ran.log` when the lane loads it. */
 const marked = (target: string) => { repo.write(target, `import { appendFileSync, mkdirSync } from "node:fs";\nmkdirSync("ignored", { recursive: true }); appendFileSync("ignored/ran.log", "x\\n");\n${spec()}`); repo.write("src/x.mjs", "export const v = 1;\n"); };
+/** A failing spec on its own module `src/<mod>.mjs`, so another id's fix does not touch it. */
+function failingOn(target: string, mod: string, sleep = 0) { repo.write(target, spec(sleep).replace("../src/x.mjs", `../src/${mod}.mjs`)); repo.write(`src/${mod}.mjs`, "export const v = 1;\n"); }
 function failing(file: string, sleep = 0) { repo.write(file, spec(sleep)); repo.write("src/x.mjs", "export const v = 1;\n"); }
 const fix = () => repo.write("src/x.mjs", "export const v = 2;\n");
 const file = (id: string) => `tests/${id.toLowerCase()}.test.ts`;
@@ -161,5 +163,49 @@ describe.skipIf(!pluginVersion)("D357 RC5 view kill windows (L5)", () => {
     const result = await running;
     expect(result.status, result.output).toBe(0);
     expect(has("ignored/ran.log")).toBe(true);
+  });
+});
+
+describe.skipIf(!pluginVersion)("D357 unarmed barriers and concurrent actions", () => {
+  it("X4 (ruling 1): with a barrier dir but nothing armed, the new barriers are reached and add no wait", async () => {
+    failing(file("A-1"));
+    const dir = barriers();
+    const started = Date.now();
+    const result = await record("A-1", { MDPRO_UNIT_RED_BARRIER_DIR: dir });
+    expect(result.status, result.output).toBe(0);
+    for (const name of ["record-view-written", "record-rebuilt"]) expect(existsSync(join(dir, `${name}.ready`)), name).toBe(true);
+    // An armed barrier with no release would stop the record at its 10 s deadline with exit 64.
+    expect(Date.now() - started).toBeLessThan(10_000);
+  });
+
+  it("L2: verify of another id completes while a record holds the store lock, without waiting for it", async () => {
+    for (const id of ["B-1", "E-1"]) { failing(file(id)); expect((await record(id)).status).toBe(0); }
+    fix();
+    const control = Date.now();
+    expect((await run(["verify", "--id", "E-1"])).status).toBe(0);
+    const t0 = Date.now() - control;
+    failingOn(file("A-1"), "a", 25_000);
+    const running = record("A-1");
+    expect(await until(() => has(`${STORE_LOCK}/owner.json`) && has(STAMP) && stamp().phase === "engine")).toBe(true);
+    const owner = repo.read(`${STORE_LOCK}/owner.json`), pid = stamp().pid;
+    const started = Date.now();
+    const verified = await run(["verify", "--id", "B-1"]);
+    const elapsed = Date.now() - started;
+    expect(verified.status, verified.output).toBe(0);
+    expect(verified.stdout).toContain("B-1: SEPARATION-HELD");
+    expect(elapsed).toBeLessThan(t0 + 3_000);
+    expect(repo.read(`${STORE_LOCK}/owner.json`)).toBe(owner);
+    expect(alive(pid)).toBe(true);
+    expect(has(`${R}/A-1.json`)).toBe(false);
+    const settled = repo.read(`${R}/B-1.json`);
+    expect(JSON.parse(settled).verdict).toBe("SEPARATION-HELD");
+    const result = await running;
+    expect(result.status, result.output).toBe(0);
+    expect(result.output).not.toContain("foreign");
+    expect(item("A-1").red.kind).toBe("assertion-failure");
+    expect(repo.read(`${R}/B-1.json`)).toBe(settled);
+    const pending = await run(["check-pending"]);
+    expect(pending.stderr).toContain("A-1 (unit-red)");
+    expect(pending.stderr).not.toContain("B-1 (");
   });
 });
