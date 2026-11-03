@@ -1,0 +1,78 @@
+{
+  "id": "GH592-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T06:56:50.141Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C13 AC-2: a May edit inside a ``` fence is not scope (closed by ```)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C13 AC-2: a May edit inside a ```` fence is not scope (closed by ````)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C13 AC-2: a May edit inside a ~~~ fence is not scope (closed by ~~~)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C13 AC-2: a field inside a ``` fence is not the field (closed by ```)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C13 AC-2: a field inside a ```` fence is not the field (closed by ````)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C13 AC-2: a field inside a ~~~ fence is not the field (closed by ~~~)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-S3/20261103T065650141Z/tests",
+    "tree": "ab4eec8ebff60da4f2d429f58b6818a858b12ad9"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "6739ac39e2ff24c253f4385c15a6ac06f6da0df1"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "6739ac39e2ff24c253f4385c15a6ac06f6da0df1"
+  }
+}
