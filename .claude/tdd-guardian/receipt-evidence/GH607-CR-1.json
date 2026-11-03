@@ -1,0 +1,33 @@
+{
+  "id": "GH607-CR-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T13:37:06.566Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"bounds optional diagnostics within the ci-gate job budget\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 100
+      },
+      "message": "AssertionError: expected '' to match /^\\d+$/"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH607-CR-1/20261103T133706566Z/tests",
+    "tree": "03425d619035f672347d55030d3c866e70882fd7"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "59d7d6891f1613f9199783facb0b923782b08d30"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "59d7d6891f1613f9199783facb0b923782b08d30"
+  }
+}

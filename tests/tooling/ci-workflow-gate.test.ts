@@ -87,6 +87,23 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(gateSteps[decisionIndex] ?? null, "continue-on-error")).toBeNull();
   });
 
+  it("bounds optional diagnostics within the ci-gate job budget", () => {
+    const gate = job(TEXT, "ci-gate");
+    const gateSteps = steps(gate);
+    const decisionIndex = gateSteps.findIndex((step) => scalar(step, "name") === "Every job succeeded, or skipped for a prose-only change");
+    const diagnostics = gateSteps.slice(decisionIndex + 1);
+    expect(diagnostics).toHaveLength(3);
+    const budgets = diagnostics.map((step) => {
+      expect(scalar(step, "if")).toBe("always()");
+      expect(scalar(step, "continue-on-error")).toBe("true");
+      const timeout = scalar(step, "timeout-minutes");
+      expect(timeout ?? "").toMatch(/^\d+$/);
+      return Number(timeout);
+    });
+    expect(budgets).toEqual([2, 2, 1]);
+    expect(Number(scalar(gate, "timeout-minutes"))).toBe(5 + budgets.reduce((sum, budget) => sum + budget, 0));
+  });
+
   it("runs profile, coverage, critical checker and comparator as authoritative frontend steps", () => {
     const frontend = steps(job(TEXT, "frontend"));
     const commands = [
