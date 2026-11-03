@@ -14,7 +14,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 // Each case spawns zsh, python3 and the stub herdr several times; a two-send case can pass 5 s on a loaded machine.
 vi.setConfig({ testTimeout: 30_000 });
 const SK = ".agents/skills/mdpro-delegator/scripts";
-const COPIED = ["prompt.sh", "delegator-route.sh", "agent-role.sh", "notify-settled.sh", "brief-rules-check.py"];
+const COPIED = ["prompt.sh", "delegator-route.sh", "agent-role.sh", "notify-settled.sh", "brief-rules-check.py", "brief_render.py"];
 const RULES = ["22-comment-maintenance.md", "50-codebase-conventions.md"];
 const TOP = ["src", "src-tauri", "tests", "scripts", "docs"];
 const dirs: string[] = [];
@@ -566,9 +566,10 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.expectSent(await h.send(brief), brief);
   });
 
-  it("C58 AC-5: a standalone May edit line followed by column-0 bullets is a missing scope (known limit, fail closed)", async () => {
+  it("C58/F3d AC-F3: a standalone May edit line followed by column-0 bullets is read as scope (fix 1 lifts the known limit)", async () => {
     const h = harness();
-    h.expectRefused(await h.send(h.write(grant("**May edit:**\n- `docs/x.md`", "rule 22, rule 50"))), /\*\*May edit:\*\* paragraph names no backticked path/);
+    const brief = h.write(grant("**May edit:**\n- `docs/x.md`", "rule 22, rule 50"));
+    h.expectSent(await h.send(brief), brief);
   });
 
   it("C59 AC-2: known limit (ruling 2 gap 10): an unbackticked bare word is not scope", async () => {
@@ -623,6 +624,211 @@ describe.skipIf(process.platform !== "darwin")("GH592 brief rules check (require
     h.reset();
     const brief = h.write(grant("- **May edit:** `CHANGELOG.md`.", "none"));
     h.expectSent(await h.send(brief), brief);
+  });
+  // ---- Fix 1 (GH592-F1-1): encoded, hidden and rendered forms refuse, naming the line ----
+  /** The 1-based line (split at \n, \r\n and \r only) of the first line holding `needle`. */
+  const lineOf = (text: string, needle: string) => text.split(/\r\n|\r|\n/).findIndex((line) => line.includes(needle)) + 1;
+  const refusedAt = async (h: ReturnType<typeof harness>, text: string, pattern: RegExp, needle?: string) => {
+    h.reset();
+    const result = await h.send(h.write(text));
+    h.expectRefused(result, pattern);
+    if (needle !== undefined) expect(result.stderr).toContain(`(line ${lineOf(text, needle)})`);
+    return result;
+  };
+  const sentAs = async (h: ReturnType<typeof harness>, text: string) => {
+    h.reset();
+    const brief = h.write(text);
+    h.expectSent(await h.send(brief), brief);
+  };
+  const ENCODED = ["src\\/a.ts", "src&#47;a.ts", "src&#x2F;a.ts", "src&sol;a.ts", "src&#X2F;a.ts", "src&#0047;a.ts", "src&frasl;a.ts", "src&#8725;a.ts"];
+  it.each(ENCODED)("F1a/F1b/F1j AC-F1: an escaped or entity-encoded path %s in scope refuses, naming its line", async (word) => {
+    const h = harness();
+    await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`, ${word}.`, "none"), /REFUSED:.*escape or entity \(line \d+\)/, word);
+  });
+
+  it("F1c/F1f/F1g/F1i AC-F1: an encoded or escaped label, an entity anywhere, and a later escaped line refuse by their own line", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.\n- **May&#32;create:** `src/a.ts`.", "none"), /escape or entity/, "May&#32;");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.\n\\*\\*May create:\\*\\* `src/a.ts`.", "none"), /escape or entity/, "\\*\\*May");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "none", "## 3. Notes\nAT&amp;T notes.\n"), /escape or entity/, "AT&amp;T");
+    const fence = "```text\nsrc/z.ts\n```\n\n";
+    for (const scope of ["- **May edit:** `docs/x.md`,\n  `docs/y.md`,\n  src&#47;a.ts.", "- **May edit:** `docs/x.md`,\n  - also src\\/a.ts."]) {
+      const needle = scope.includes("&#47;") ? "src&#47;" : "src\\/";
+      await refusedAt(h, grant(scope, "none"), /escape or entity/, needle);
+      await refusedAt(h, fence + grant(scope, "none"), /escape or entity/, needle);
+    }
+    await sentAs(h, grant("- **May edit:** `docs/x.md` (R&D notes; see C:\\temp).", "none", "## 3. Notes\nThe a\\_b field.\n"));
+  });
+
+  it("F1d/F1k/F1m/F1t AC-F1: invisible characters, inline comments, tags and line separators refuse anywhere", async () => {
+    const h = harness();
+    for (const mark of ["\u200b", "\u2060", "\ufe0f", "\u034f", "\u3164", "\u115f", "\uffa0", "\u{e0101}", "\u180b"]) {
+      await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`.\n- **May${mark}edit:** \`src/a.ts\`.`, "rule 22, rule 50"), /invisible character/, `May${mark}`);
+      await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`, src${mark}/a.ts.`, "none"), /invisible character/, `src${mark}`);
+    }
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.\n- **May<!-- --> create:** `src/a.ts`.", "none"), /HTML comment/, "May<!--");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`, src<!-- -->/a.ts.", "none"), /HTML comment/, "src<!--");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.\n- **May <span>edit</span>:** `src/a.ts`.", "none"), /HTML tag/, "<span>");
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`, src<b>/</b>a.ts.", "none"), /HTML tag/, "src<b>");
+    for (const sep of ["\u2028", "\u0085", "\u2029", "\v", "\f"]) {
+      await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`,${sep}# \`src/a.ts\`.`, "rule 22"), /line-separator character/, `,${sep}`);
+    }
+  });
+
+  it("F1e/F1l/F1p AC-F1: slash lookalikes, a backslash between words and fullwidth backticks are paths without backticks", async () => {
+    const h = harness();
+    for (const word of ["src／a.ts", "src∕a.ts", "src⁄a.ts", "src⧸a.ts", "src╱a.ts", "src\\a.ts", "｀src/a.ts｀"]) {
+      await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`, ${word}.`, "none"), /not backticked/);
+    }
+  });
+
+  it("F1o/F1u AC-F1: a reference link or a footnote in scope refuses; a definition outside scope alone does not", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md` and [the panel][p].", "rule 22", "## 3. Links\n[p]: src/a.ts\n"), /reference link in scope/);
+    await refusedAt(h, grant("- **May edit:** `docs/x.md` and [p].", "rule 22", "## 3. Links\n[p]: src/a.ts\n"), /reference link in scope/);
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`[^p].", "rule 22", "## 3. Notes\n[^p]: also src/a.ts\n"), /footnote in scope/);
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.", "rule 22", "## 3. Links\n[p]: src/a.ts\n"));
+  });
+
+  it("F1q/F1s AC-2: the field is read as rendered: struck, titled and defined text names no rule", async () => {
+    const h = harness();
+    for (const field of ["rule 22, ~~rule 50~~", "rule 22, ~rule 50~", "[rule 22](#r \"rule 50\")", "rule 22.\n[rule 50]: #"]) {
+      h.reset();
+      const result = await h.send(h.write(grant("- **May edit:** `src/a.ts`.", field)));
+      needs(result, [50]);
+      expect(h.prompts()).toEqual([]);
+    }
+    h.reset();
+    const result = await h.send(h.write(grant("- **May edit:** `src/a.ts`.", "~~rule 22,\nrule 50~~")));
+    needs(result, [22, 50]);
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22 <!-- rule 50 -->"), /HTML comment/, "<!-- rule 50");
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22 <!--\nrule 50 -->"), /HTML comment/, "rule 22 <!--");
+    for (const tag of ["<del>rule 50</del>", "<s>rule 50</s>"]) {
+      await refusedAt(h, grant("- **May edit:** `src/a.ts`.", `rule 22, ${tag}`), /HTML tag/, tag);
+    }
+  });
+
+  it("F1r AC-2: a field hidden in a comment or a definition is not found; an indented or encoded second field refuses", async () => {
+    const h = harness();
+    const hidden = ["<!--\n**Rules for paths in scope.** rule 22, rule 50.\n-->\n", "[x]: # \"**Rules for paths in scope.** rule 22, rule 50\"\n"];
+    for (const extra of hidden) {
+      await refusedAt(h, grant("- **May edit:** `docs/x.md`.", null, extra), /exactly one \*\*Rules for paths in scope\.\*\* field, found 0/);
+    }
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", null, "Notes:\n\n    **Rules for paths in scope.** rule 22, rule 50.\n"), /indented/);
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50", "**Rules for paths in scope&#46;** none.\n"), /escape or entity/, "scope&#46;");
+  });
+
+  it("F6/C34 AC-5: brief_render.py loads from the helper's own directory only, reads no environment and writes no bytecode", async () => {
+    const helper = fs.readFileSync(path.join(SK, "brief-rules-check.py"), "utf8"), render = fs.readFileSync(path.join(SK, "brief_render.py"), "utf8");
+    for (const text of [helper, render]) expect(text).not.toMatch(/os\.environ|getenv|environ\b/);
+    expect(helper).toMatch(/sys\.dont_write_bytecode = True/);
+    expect(helper).toMatch(/spec_from_file_location\("brief_render", os\.path\.join\(os\.path\.dirname\(os\.path\.realpath\(__file__\)\), "brief_render\.py"\)\)/);
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "gh592-cwd-"));
+    dirs.push(cwd);
+    fs.writeFileSync(path.join(cwd, "brief_render.py"), "raise SystemExit(0)\n");
+    const h = harness({ cwd });
+    await refusedAt(h, grant("- **May edit:** `src/a.ts`.", "rule 22"), /needs rule 50/);
+    h.reset();
+    const decoy = await h.send(h.write(grant("- **May edit:** `src/a.ts`.", "rule 22")), "brief", [], { PYTHONPATH: cwd });
+    h.expectRefused(decoy, /needs rule 50/);
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.", "rule 22"));
+    expect(fs.readdirSync(path.join(h.repo, SK))).not.toContain("__pycache__");
+  });
+  // ---- Fix 1 (GH592-F1-2): a label that reads as May edit or May create but is not exactly one refuses, naming its line ----
+  const VARIANTS = ["**may edit:** `src/a.ts`.", "**MAY EDIT:** `src/a.ts`.", "*May edit:* `src/a.ts`.", "__May edit:__ `src/a.ts`.", "_May create:_ `src/a.ts`.",
+    "**May edit**: `src/a.ts`.", "**May  edit:** `src/a.ts`.", "1. **may create:** `src/a.ts`.", "> **May Create:** `src/a.ts`.", "- **May edit:** `src/a.ts`.",
+    "- May edit `src/a.ts` too.", "May create `src/a.ts`.", "- may edit `src/a.ts`.", "- **You may edit:** `src/a.ts`.", "- **Paths you may create:** `src/a.ts`.",
+    "**May-edit:** `src/a.ts`.", "**May/edit:** `src/a.ts`.", "**May\\ edit:** `src/a.ts`.", "1. May edit: `src/a.ts`.", "2) may create `src/a.ts`.",
+    "> May create `src/a.ts`.", "- [ ] May edit `src/a.ts`.", "### May edit\n- `src/a.ts`", "| May edit | `src/a.ts` |", "- [May edit:](#x) `src/a.ts`.",
+    "Then **May\nedit:** `src/a.ts`.", "\\*\\*May create:\\*\\* `src/a.ts`."];
+  it.each(VARIANTS)("F2a/F2b/F2c/F2f/F2g AC-F2: the label variant %j refuses as unrecognised, naming its line", async (line) => {
+    const h = harness();
+    const text = grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50", `## 3. Notes\n${line}\n`);
+    await refusedAt(h, text, /REFUSED:.*unrecognised scope label '[^']*' \(line \d+\)/, line.split("\n")[0]);
+  });
+
+  it("F2h/F2i/F2k/F2l AC-F2: a lone CR, every folded lookalike, a variant before an exact label, and the line after a fence and CRLF", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50", "## 3. Notes\rMay create: `src/a.ts`.\n"), /unrecognised scope label 'May create' \(line \d+\)/, "May create:");
+    // Each folded Cyrillic or Greek letter that can stand in "may edit" or "may create".
+    const LOOKALIKES = ["Мay edit", "мay edit", "Mаy edit", "Maу edit", "Μay edit", "Mαy edit", "May еdit", "May εdit", "May edіt", "May ediт", "May ediτ",
+      "May eԁit", "May сreate", "May creаte", "May creatе"];
+    for (const word of LOOKALIKES) {
+      const label = `- **${word}:** \`src/a.ts\`.`;
+      await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50", `## 3. Notes\n${label}\n`), /unrecognised scope label/, label);
+    }
+    const result = await refusedAt(h, grant("- **may create:** `src/a.ts`; **May edit:** `docs/x.md`.", "none"), /unrecognised scope label 'may create'/, "**may create:**");
+    expect(result.stderr).not.toMatch(/needs rule/);
+    const crlf = ("```text\n- **May edit:** `x`\n```\n\n" + grant("- **May edit:** `docs/x.md`.", "rule 22, rule 50", "## 3. Notes\n- **may create:** `src/a.ts`.\n")).replace(/\n/g, "\r\n");
+    await refusedAt(h, crlf, /unrecognised scope label 'may create'/, "**may create:**");
+  });
+
+  it("F2j AC-F2: a bold run that mentions May edit without a colon is not a label; C21's question line is still sent", async () => {
+    const h = harness();
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.", "none", "## 3. Notes\n- **Q: how are \"May edit\" paths found?** Default: below.\n- **You may edit** `src/a.ts` later.\n"));
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.", "none", "## 3. Notes\n- **You may edit:** `src/a.ts` later.\n"), /unrecognised scope label 'may edit'/, "**You may edit:**");
+  });
+  // ---- Fix 1 (GH592-F1-3): a scope runs to the next field label or heading; the phrases are read as rendered ----
+  const LATER: Array<[string, string]> = [
+    ["F3a a column-0 bullet after the marker", "- **May edit:** `docs/x.md`, and:\n- `src/a.ts`"],
+    ["F3b a blank line, then an indented path", "- **May edit:** `docs/x.md`,\n\n  `src/a.ts`."],
+    ["F3c a continuation that starts with #", "- **May edit:** `docs/x.md`,\n#also `src/a.ts`."],
+    ["F3d a standalone marker, then column-0 bullets", "**May edit:**\n- `docs/x.md`\n- `src/a.ts`"],
+    ["F3h nested bullets with bold paths and a nested label", "- **May edit:**\n  - `docs/x.md`;\n  - **`src/a.ts`** (new file);\n  - **also:** `src/b.ts`"],
+    ["F3j a blank line, then a column-0 sentence", "- **May edit:** `docs/x.md`.\n\nAlso `src/a.ts` for the panel."],
+    ["F3m a lazy bold label right after the marker", "- **May edit:** `docs/x.md`.\n**Also:** `src/a.ts`."],
+    ["F3m a lazy plain label right after the marker", "- **May edit:** `docs/x.md`.\nPlus: `src/a.ts`."],
+    ["F3n a comment over lines holding a stop line", "- **May edit:** `docs/x.md`,\n<!--\n- Note: internal\n## x\n**Rules for paths in scope.** rule 50.\n-->\n  `src/a.ts`."],
+  ];
+  it.each(LATER)("F3 AC-F3: %s keeps the later path in scope", async (_label, scope) => {
+    const h = harness();
+    const result = await h.send(h.write(grant(scope, "rule 22")));
+    needs(result, [50]);
+    expect(result.stderr).toContain("src/a.ts");
+    expect(h.prompts()).toEqual([]);
+  });
+
+  it("F3e/F3i AC-F3: a later unbackticked path or a fence inside the scope refuses", async () => {
+    const h = harness();
+    await refusedAt(h, grant("- **May edit:** `docs/x.md`.\n- also src/a.ts", "none"), /not backticked: 'src\/a\.ts'/);
+    for (const fence of ["```", "~~~"]) {
+      await refusedAt(h, grant(`- **May edit:** \`docs/x.md\`\n${fence}text\nsrc/a.ts\n${fence}`, "rule 22"), /fenced block in scope/);
+    }
+  });
+
+  it("F3f/F3g/F3m AC-F3: the scope stops at a heading, a field label, the field line and a sibling label bullet", async () => {
+    const h = harness();
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.\n## 3. Gates\n- run `src/a.ts`", "none"));
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.\n- **Out of scope:** `src/a.ts`", "none"));
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.\n- Anything else: stop; never `src/a.ts`.", "none"));
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.\n\n- Anything else: never `src/a.ts`.", "none"));
+    await sentAs(h, grant("- **May edit:** `docs/x.md`.\n\nOut of scope: `src/a.ts`.", "none"));
+    await sentAs(h, `# X1\n\n- **May edit:** \`docs/x.md\`.\n**Rules for paths in scope.** none; never \`src/a.ts\`.\n`);
+  });
+
+  it("F3k/F3o/F3p AC-5: \"Same paths as the grant\" is matched as rendered, and a hidden May edit does not satisfy it", async () => {
+    const h = harness();
+    const forms = ["- Same paths as\n  the grant.", "- Same paths as the *grant*.", "- Ｓame paths as the grant.", "- Same paths as the gr​ant.", "- Same paths as the gr&#97;nt.",
+      "- Same paths as the <b>grant</b>.", "- Same paths as the gr<!-- -->ant."];
+    for (const form of forms) {
+      await refusedAt(h, grant(`${form}\n- **May create:** \`scripts/new.mjs\`.`, "rule 22, rule 50"), /copy the grant's \*\*May edit:\*\*|invisible character|escape or entity|HTML tag|HTML comment/);
+    }
+    for (const hidden of ["<!--\n- **May edit:** `src/a.ts`.\n-->", "[x]: # \"- **May edit:** `src/a.ts`\""]) {
+      await refusedAt(h, grant(`- Same paths as the grant.\n${hidden}\n- **May create:** \`scripts/new.mjs\`.`, "rule 22"), /copy the grant's \*\*May edit:\*\*/);
+    }
+    await refusedAt(h, grant("- Same paths as the grant (wrapped\n  here).\n- **May create:** `scripts/new.mjs`.", "rule 22, rule 50"), /copy the grant's/);
+    await refusedAt(h, grant("- Same paths\n  as the grant.\n- **May create:** `scripts/new.mjs`.", "rule 22, rule 50"), /copy the grant's/);
+  });
+
+  it("F3l/F3p AC-2: \"their tests\" is matched as rendered: wrapped, emphasised or with a wide space", async () => {
+    const h = harness();
+    for (const scope of ["- **May edit:** `scripts/x.mjs`, their\n  tests.", "- **May edit:** `scripts/x.mjs`, their *tests*.", "- **May edit:** `scripts/x.mjs`, their　tests."]) {
+      h.reset();
+      const result = await h.send(h.write(grant(scope, "rule 22")));
+      needs(result, [50]);
+      expect(result.stderr).toContain("tests/** (their tests)");
+      expect(h.prompts()).toEqual([]);
+    }
   });
   // next-case
 });
