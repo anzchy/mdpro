@@ -277,3 +277,32 @@ describe.skipIf(!pluginVersion)("D357 interrupted item writes and discards (L6, 
     expect(after.stdout).toContain("added 0");
   });
 });
+
+describe.skipIf(!pluginVersion)("D357 aged store lock with a live owner (L8)", () => {
+  it("L8: a store-lock dir aged ten minutes whose owner is alive is not reaped; the waiter records after the owner releases", async () => {
+    failingOn(file("B-1"), "b"); // written first: a spec path that appears mid-lane makes A's record refuse to pin
+    failingOn(file("A-1"), "a", 25_000);
+    const holding = record("A-1");
+    expect(await until(() => has(`${STORE_LOCK}/owner.json`) && has(STAMP) && stamp().phase === "engine")).toBe(true);
+    const lock = join(repo.root, STORE_LOCK), owner = repo.read(`${STORE_LOCK}/owner.json`), pid = stamp().pid;
+    const aged = new Date(Date.now() - 10 * 60_000);
+    utimesSync(join(lock, "owner.json"), aged, aged);
+    utimesSync(lock, aged, aged);
+    const inode = statSync(lock).ino;
+    const dir = barriers();
+    const waiting = record("B-1", { MDPRO_UNIT_RED_BARRIER_DIR: dir, MDPRO_RECEIPT_STORE_LOCK_WAIT_MS: "120000" });
+    expect(await ready(dir, "record-preflight")).toBe(true);
+    await pause(14_000);
+    expect(alive(pid)).toBe(true);
+    expect(existsSync(join(dir, "record-engine.ready"))).toBe(false);
+    expect(repo.read(`${STORE_LOCK}/owner.json`)).toBe(owner);
+    expect(statSync(lock).ino).toBe(inode);
+    expect(listing(T).filter((name) => name.startsWith(".receipts.store.lock."))).toEqual([]);
+    const [a, b] = await Promise.all([holding, waiting]);
+    expect(a.status, a.output).toBe(0);
+    expect(b.status, b.output).toBe(0);
+    expect(a.output + b.output).not.toContain("foreign");
+    expect(item("A-1").red.kind).toBe("assertion-failure");
+    expect(item("B-1").red.kind).toBe("assertion-failure");
+  });
+});
