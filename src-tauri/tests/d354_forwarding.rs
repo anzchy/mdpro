@@ -50,6 +50,42 @@ fn malformed_request_is_refused_before_it_can_reach_the_owner() {
 }
 
 #[test]
+fn private_owner_eof_without_ack_refuses_after_full_frame() {
+    use std::io::Read;
+    use std::thread;
+
+    let key = format!(
+        "com.d354.{}",
+        &uuid::Uuid::new_v4().simple().to_string()[..12]
+    );
+    let namespace = Namespace::for_identifier(&key).unwrap();
+    let owner = match admit(&key, b"").unwrap() {
+        Admission::Owner(owner) => owner,
+        _ => panic!("first process must own the endpoint"),
+    };
+    let listener = owner.listener().try_clone().unwrap();
+    let frame = b"/tmp\0\0mdpro\0file.md";
+    let reader = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut received = Vec::new();
+        stream.read_to_end(&mut received).unwrap();
+        received
+    });
+    let outcome = admit(&key, frame).unwrap();
+    let received = reader.join().unwrap();
+    owner.listener().set_nonblocking(true).unwrap();
+    let replayed = owner.listener().accept().is_ok();
+    drop(owner);
+    let _ = fs::remove_file(&namespace.socket);
+    let _ = fs::remove_file(&namespace.public_alias);
+    let _ = fs::remove_file(&namespace.lock);
+    let _ = fs::remove_dir(&namespace.directory);
+    assert_eq!(received, frame, "listener received the full request");
+    assert!(!replayed, "a possibly delivered frame must not be replayed");
+    assert!(matches!(outcome, Admission::Refused), "EOF is not an ack");
+}
+
+#[test]
 fn old_wire_round_trips_multibyte_paths_and_keeps_argv_zero() {
     use tauri_app_lib::services::instance_admission::{decode, encode, ForwardRequest};
     for cwd in ["/tmp/工作 文 件", "/tmp/one", ""] {

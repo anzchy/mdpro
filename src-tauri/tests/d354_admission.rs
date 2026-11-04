@@ -75,6 +75,7 @@ fn d354_fixture_child() {
                             seen.last().unwrap(),
                         )
                         .unwrap();
+                        stream.write_all(&[1]).unwrap();
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                         thread::sleep(Duration::from_millis(5))

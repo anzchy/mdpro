@@ -50,6 +50,7 @@ fn d354_handover_child() {
                 stream.read_to_end(&mut bytes).unwrap();
                 accepted += 1;
                 fs::write(control.join(format!("received-{id}-{accepted}")), bytes).unwrap();
+                stream.write_all(&[1]).unwrap();
             }
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 thread::sleep(Duration::from_millis(5));

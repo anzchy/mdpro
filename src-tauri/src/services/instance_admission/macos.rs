@@ -131,6 +131,7 @@ fn ensure_private_socket_absent(path: &Path, deadline: Instant) -> Result<(), Ad
     }
 }
 
+#[derive(Debug)]
 pub struct Owner {
     listener: Option<UnixListener>,
     _lock: File,
@@ -165,6 +166,7 @@ impl Drop for Owner {
     }
 }
 
+#[derive(Debug)]
 pub enum Admission {
     Owner(Owner),
     Forwarded,
@@ -271,7 +273,6 @@ fn admit_in_namespace(
             stream.set_read_timeout(Some(timeout))?;
             let mut response = [0u8; 1];
             return match stream.read(&mut response) {
-                Ok(0) if Instant::now() <= deadline => Ok(Admission::Forwarded),
                 Ok(1) if response[0] == 1 && Instant::now() <= deadline => Ok(Admission::Forwarded),
                 Ok(_) | Err(_) => Ok(Admission::Refused),
             };

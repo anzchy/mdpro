@@ -1,0 +1,42 @@
+{
+  "id": "D354-F1-3",
+  "lane": "rust",
+  "recorded_at": "2026-11-04T11:03:57.590Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_forwarding::panicking_route_does_not_strand_the_next_request",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_forwarding.rs",
+        "line": 104
+      },
+      "message": "test route panic"
+    },
+    {
+      "id": "d354_forwarding::private_owner_eof_without_ack_refuses_after_full_frame",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_forwarding.rs",
+        "line": 85
+      },
+      "message": "EOF is not an ack"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-F1-3/20261104T110357590Z/tests",
+    "tree": "626c463a55a2eb0d4437b8ea4da67fad36d9faa1"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "c68159c88a5f50cb5f1f3d43afa639e8120ca89e"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "c68159c88a5f50cb5f1f3d43afa639e8120ca89e"
+  }
+}
