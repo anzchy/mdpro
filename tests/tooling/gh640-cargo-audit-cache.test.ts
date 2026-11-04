@@ -18,7 +18,7 @@
  * `.cargo/audit.toml` lives) and ADR-0107's place outside `ci-gate.needs` do
  * not change.
  */
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -223,26 +223,31 @@ describe("GH640 the version check rejects anything but the pinned version", () =
   );
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  const runCheck = (file: string, out: string, rc = 0) => {
+  /** The step's exit code, run asynchronously (the conditional-tests lint bars sync child calls). */
+  const runCheck = (file: string, out: string, rc = 0): Promise<number | null> => {
     const s = auditSteps(read(file));
     // A missing step must fail the case, not pass it as a non-zero exit.
     expect(s.check, `${file} has one version-check step`).toHaveLength(1);
     const script = stepRun(s.all[s.check[0]]) ?? "";
-    return spawnSync("bash", [...GITHUB_BASH, "-c", script], {
-      env: { PATH: `${dir}:${process.env.PATH ?? ""}`, CARGO_AUDIT_VERSION: PINNED, FAKE_OUT: out, FAKE_RC: String(rc) },
-      encoding: "utf8",
-    }).status;
+    return new Promise((resolve, reject) => {
+      const child = spawn("bash", [...GITHUB_BASH, "-c", script], {
+        env: { PATH: `${dir}:${process.env.PATH ?? ""}`, CARGO_AUDIT_VERSION: PINNED, FAKE_OUT: out, FAKE_RC: String(rc) },
+        stdio: "ignore",
+      });
+      child.on("error", reject);
+      child.on("close", resolve);
+    });
   };
 
-  it.each(FILES)("%s: passes the pinned version", (file) => {
-    expect(runCheck(file, `cargo-audit-audit ${PINNED}`)).toBe(0);
+  it.each(FILES)("%s: passes the pinned version", async (file) => {
+    expect(await runCheck(file, `cargo-audit-audit ${PINNED}`)).toBe(0);
   });
 
-  it.each(FILES)("%s: fails another version, a lookalike, an empty answer or a failing binary", (file) => {
+  it.each(FILES)("%s: fails another version, a lookalike, an empty answer or a failing binary", async (file) => {
     for (const out of ["cargo-audit-audit 0.22.1", "cargo-audit-audit 0.22.20", "cargo-audit-audit 0.22.2-rc1", `cargo-audit ${PINNED}`, ""]) {
-      expect(runCheck(file, out), out).not.toBe(0);
+      expect(await runCheck(file, out), out).not.toBe(0);
     }
-    expect(runCheck(file, `cargo-audit-audit ${PINNED}`, 1)).not.toBe(0);
+    expect(await runCheck(file, `cargo-audit-audit ${PINNED}`, 1)).not.toBe(0);
   });
 });
 
