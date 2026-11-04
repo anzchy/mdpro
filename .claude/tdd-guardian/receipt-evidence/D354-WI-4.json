@@ -1,0 +1,34 @@
+{
+  "id": "D354-WI-4",
+  "lane": "rust",
+  "recorded_at": "2026-11-04T05:15:59.549Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_compat::late_stale_legacy_socket_retries_until_deadline_without_replacement",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/tests/d354_compat.rs",
+        "line": 134
+      },
+      "message": "stale entrant skipped the retry window: 1.495298834s"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-WI-4/20261104T051559549Z/tests",
+    "tree": "693faed3c3ac26a848739d5f7309fe7235ff13f5"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_errors.rs": "2e705d310c9e1901eaf1d7389b0f45f7acc19ee9"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_errors.rs": "bb1becfb7f952bfda97ee273971d464d29844dee"
+  },
+  "evidence_required": true
+}

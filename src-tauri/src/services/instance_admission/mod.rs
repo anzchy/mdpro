@@ -2,6 +2,7 @@
 
 mod codec;
 mod connector;
+mod entry;
 mod legacy_peer;
 mod legacy_route;
 mod lock;
@@ -13,6 +14,7 @@ pub use codec::{
     decode, encode, encode_with_cwd, read_frame, read_request, ForwardRequest, WireError,
     MAX_FRAME_BYTES,
 };
+pub use entry::{settle_admission, EntryDecision, RefusalEffects};
 pub use legacy_peer::{
     forward_if_qualified, qualify_connected_peer, running_image_allowed, CompatibleImage,
     PeerIdentity, LEGACY_COMPATIBLE_IMAGES,
