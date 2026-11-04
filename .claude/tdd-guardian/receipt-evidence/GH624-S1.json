@@ -1,0 +1,34 @@
+{
+  "id": "GH624-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T03:48:39.766Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper-slow-tier.test.ts\",\"GH624-S1 keeps every spawn-heavy t567 case once in the slow tier with an explicit timeout\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper-slow-tier.test.ts",
+        "line": 35
+      },
+      "message": "AssertionError: W5 remains in the fast tier: expected [ { id: 'W5', timeout: undefined } ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH624-S1/20261104T034839766Z/tests",
+    "tree": "742092e538e9dcec21f051ea342e5fcacdfddd98"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper-slow-tier.test.ts": "a06e861d38d94ef2d2941e274c8afd7ba6cf6b4d"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper-slow-tier.test.ts": "a06e861d38d94ef2d2941e274c8afd7ba6cf6b4d"
+  }
+}

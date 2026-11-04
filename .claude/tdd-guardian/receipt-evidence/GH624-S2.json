@@ -1,0 +1,34 @@
+{
+  "id": "GH624-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T03:52:28.351Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper-extra-slow-tier.test.ts\",\"GH624-S2 keeps measured and deliberately slow t567 cases only in the slow tier\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper-extra-slow-tier.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: G3 remains fast: expected [ { id: 'G3', timeout: 30000 } ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH624-S2/20261104T035228351Z/tests",
+    "tree": "a3d1491c7480a54ed49a9dd9e1413f1038a350f2"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper-extra-slow-tier.test.ts": "c44c0286718697c03495d6c4f243a7c38d9d45b0"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper-extra-slow-tier.test.ts": "c44c0286718697c03495d6c4f243a7c38d9d45b0"
+  }
+}

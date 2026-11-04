@@ -1,0 +1,56 @@
+{
+  "id": "GH624-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T03:52:28.351Z",
+  "head_sha": "b005f2f4ce69602dbca59dfaf41046437a726268",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/t567-receipt-wrapper-extra-slow-tier.test.ts": {
+      "state": "ok",
+      "sha": "edc92e80cc41989b07ee994e465125d8b957ffe312ed2a8ebc3e7cc501a18d88",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "c110ad21c643bc95",
+        "efb2893cf8a54a66",
+        "d758156b7cf96384",
+        "a866385ca4f494ff",
+        "210b684d0be7760f",
+        "2ed227c9d2694f49",
+        "ea2e73678cc0f7f7",
+        "f8f9ea18f54e8440",
+        "608a4c4a2496d8fa",
+        "2f4a5652a4a1053c",
+        "80f402f82ae3542b",
+        "26eeda6c9c0805d0",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf",
+        "16f3e2df524361e9",
+        "df3982fd61017359",
+        "d5833291c076ad37",
+        "b513833d0b6cca1a",
+        "d10b36aa74a59bcf",
+        "703312e0c2c4788f",
+        "df80151e5e1761b0",
+        "e5d1af06a43cc1b0",
+        "f7e47d34ca66fe70",
+        "ea261db46d3df993",
+        "4338b6c32d2bb5fb",
+        "7833b43597e43ea1",
+        "f5d4b5e85749f6f7",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T03:52:45.257Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}
