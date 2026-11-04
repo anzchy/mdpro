@@ -168,9 +168,9 @@
   "evidence_required": true,
   "replay": {
     "path": ".claude/tdd-guardian/evidence/GH592-S7.json",
-    "digest": "c26310d5ca373fb185929f1db25d4b1669345485bb3227cf02ea82797dfa16b9",
+    "digest": "9f0612e845915b2c6ae41691d78ca629ad675de65fd945260534dc68a9a6f08b",
     "result": "passed",
-    "base": "a3e9b7ec3bc33ac0ee7705c9c033f90cd161d149",
-    "head": "efeac1db5f393582d26c75775ad831dadf0f74f6"
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
   }
 }

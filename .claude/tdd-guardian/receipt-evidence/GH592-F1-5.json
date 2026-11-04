@@ -29,5 +29,12 @@
   },
   "settled_blobs": {
     "tests/tooling/gh592-brief-rules-check-fold.test.ts": "28c024274c8f16a81d53658f69c78e00805eb4a7"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH592-F1-5.json",
+    "digest": "cb1c3199537bd5ae6f5621b5b6599ed2e7f0ec88cce8a8079b98c414362bc32e",
+    "result": "passed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
   }
 }
