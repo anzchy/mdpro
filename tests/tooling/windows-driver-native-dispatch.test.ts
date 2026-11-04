@@ -51,7 +51,7 @@ async function runLabelledFocus(op: object, scenario: NativeScenario) {
   } finally { await server.close(); }
 }
 
-describe("B7 post-cap focus recipient isolation", () => {
+describe.concurrent("B7 post-cap focus recipient isolation", () => {
   it.each(focusOps)("refuses $op when B stays foreground without key input to B", async (op) => {
     const result = await runLabelledFocus(op, { initialForeground: 202, refuseFocus: true });
     expect(result.status, JSON.stringify(result)).toBe(1);
@@ -123,7 +123,7 @@ describe("B7 post-cap focus recipient isolation", () => {
   });
 });
 
-describe("B7 native PowerShell dispatch against controlled OS observations", () => {
+describe.concurrent("B7 native PowerShell dispatch against controlled OS observations", () => {
   it("binds the labelled page to the challenged native title and restores it", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mdpro-title-challenge-"));
     const titlePath = path.join(dir, "title.txt");
