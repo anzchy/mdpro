@@ -39,10 +39,31 @@ describe("GH629-T2 fix 3 changed-fold Current-text form", () => {
     ["empty scope", valid.replace("decision 3 only", "")],
     ["second parenthetical", valid.replace("decision 3 only).", "decision 3 only) (extra).")],
     ["missing terminal period", valid.slice(0, -1)],
+    ["decision path escapes to an ADR", valid.replace("20261104-adr-bar-raised.md", "../../adr/README.md")],
+    ["decision path escapes to the repository root", valid.replace("20261104-adr-bar-raised.md", "../../../CLAUDE.md")],
+    ["impossible month and day", valid.replace("2026-11-04", "2026-99-99")],
+    ["impossible calendar day", valid.replace("2026-11-04", "2026-13-45")],
+    ["year zero and day zero", valid.replace("2026-11-04", "0000-00-00")],
+    ["future date", valid.replace("2026-11-04", "2099-12-31")],
+    ["whitespace-only scope", valid.replace("decision 3 only", " ")],
+    ["scope split across lines", valid.replace("decision 3 only", "decision 3\nonly")],
   ])("rejects %s and keeps the addition inside ADR-0085's body pin", (_name, paragraph) => {
     expect(isForwardLink(paragraph, "0085")).toBe(false);
     expect(heldBody(withStatus(paragraph), BASE_0085).missing).toEqual([]);
     expect(bodyPin(paragraph)).not.toBe(PIN_0085);
+  });
+
+  it("rejects the same path and date holes in the older route form while keeping ADR-0085 pinned", () => {
+    const older = "**Current text: `docs/adr/README.md#the-bar`; folded and changed by [`docs/agents/decisions/20261104-adr-bar-raised.md`](../agents/decisions/20261104-adr-bar-raised.md)**, 2026-11-04.";
+    expect(isForwardLink(older, "0085")).toBe(true);
+    for (const bad of [
+      older.replaceAll("20261104-adr-bar-raised.md", "../../../CLAUDE.md"),
+      older.replace("../agents/decisions/20261104-adr-bar-raised.md", "../agents/decisions/../../../CLAUDE.md"),
+      older.replace("2026-11-04.", "2026-99-99."),
+    ]) {
+      expect(isForwardLink(bad, "0085")).toBe(false);
+      expect(bodyPin(bad)).not.toBe(PIN_0085);
+    }
   });
 
   it("reports a missing decision file through the target checker", () => {

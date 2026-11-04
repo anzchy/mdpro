@@ -5,7 +5,8 @@
 // adr-forward-links.test.ts). Fix 2: each form is the whole paragraph and its ADRs, links and targets resolve
 // (`forwardLinkTargets`, `unresolvedForwardLinks`); four unpinned live lines (0135, 0150, 0165 x2) are exempt from the
 // live form check by exact sha256 (`isFormExempt`), which no pin relies on. GH629-T2 fix 3 accepts the dated
-// changed-fold Current text form with one nonempty scope parenthetical and a terminal period.
+// changed-fold Current text form with one nonblank, single-line scope parenthetical and a terminal period. Its scope
+// prose remains an accepted limit tracked on #634; decision paths and dates are validated separately.
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -149,15 +150,16 @@ export function unresolvedSectionRefs(file: string, text: string): string[] {
 // ADR-…` list, then terminal punctuation. The changed-fold decision form has exactly one `(date, scope)` parenthetical
 // and a terminal period. A paragraph with a line starting `#` is never one. The free text of a
 // partially superseded clause and of a Drifted / False in practice description is the README form's own, an accepted
-// limit. FORMS, the same forms anchored at the start only, finds the paragraphs whose targets must resolve.
+// limit; the changed-fold scope's free prose is tracked on #634. FORMS, the same forms anchored at the start only,
+// finds the paragraphs whose targets must resolve.
 const DATE = String.raw`\(?\d{4}-\d{2}-\d{2}\)?`;
 const LEAD = String.raw`^(?:\*\*)?(?:status note\*\*:\s*)?(?:(?<date>${DATE})[,:]?\s+)?(?:\*\*)?`;
 const ADR_REF = String.raw`(?:\*\*)?\[?ADR-\d{4}\b`;
 const TARGET = "`[^`\\s#]+#[^`\\s#]+`";
-const DECISION = "`docs/agents/decisions/[^`\\s]+\\.md`";
-const ROUTE = String.raw`folded (?:by ADR-0165\b|and changed by (?:\[${DECISION}\]\(\.\./agents/decisions/[^)\s]+\.md\)|${DECISION}))`;
+const DECISION = "`docs/agents/decisions/(?![^`\\s/]*\\.\\.)[^`\\s/]+\\.md`";
+const ROUTE = String.raw`folded (?:by ADR-0165\b|and changed by (?:\[${DECISION}\]\(\.\./agents/decisions/(?![^)\s/]*\.\.)[^)\s/]+\.md\)|${DECISION}))`;
 const CHANGED_ROUTE = String.raw`folded and changed by ${DECISION}`;
-const CHANGED_SCOPE = String.raw`\((?<date2>\d{4}-\d{2}-\d{2}), [^()\n]+\)`;
+const CHANGED_SCOPE = String.raw`\((?<date2>\d{4}-\d{2}-\d{2}), \S[^()\n]*\)`;
 const FORMS: RegExp[] = [
   new RegExp(String.raw`${LEAD}superseded(?:\*\*)?(?:,?\s+${DATE})?\s+by\s+${ADR_REF}`, "i"),
   new RegExp(String.raw`${LEAD}partially superseded(?:\*\*)?:\s+\S[\s\S]*?\s+by\s+${ADR_REF}`, "i"),
@@ -227,6 +229,7 @@ function currentTextTargets(p: string): { bad: string[]; seen: number } {
   const targets = [...span.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
   const route = p.match(/folded and changed by \[?`(docs\/agents\/decisions\/[^`]+)`/i)?.[1];
   const bad = targets.length ? [] : [`${p.slice(0, 60)}: no target`];
+  if (route && !isDecisionPath(route)) bad.push(`${route}: invalid decision path`);
   let seen = 0;
   for (const t of [...targets, ...(route ? [route] : [])]) {
     seen++;
@@ -236,6 +239,19 @@ function currentTextTargets(p: string): { bad: string[]; seen: number } {
   }
   return { bad, seen };
 }
+/** A single Markdown file directly inside the decision log, with no parent traversal component. */
+function isDecisionPath(value: string): boolean {
+  return /^docs\/agents\/decisions\/[^/\s`]+\.md$/.test(value) && !value.includes("..");
+}
+/** Real Gregorian calendar day no later than the machine's local current day. */
+function validDate(value: string, today: string): boolean {
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 1 || month < 1 || day < 1 || value > today) return false;
+  const parsed = new Date(0);
+  parsed.setUTCHours(0, 0, 0, 0);
+  parsed.setUTCFullYear(year, month - 1, day);
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+}
 /**
  * True when `p` is one forward-link paragraph of record `record` in a form docs/adr/README.md permits: the whole
  * paragraph is the form, no line of it is a heading, and every ADR, link and Current text target in it resolves.
@@ -243,11 +259,15 @@ function currentTextTargets(p: string): { bad: string[]; seen: number } {
 export function isForwardLink(p: string, record: string): boolean {
   if (HEADING_LINE.test(p)) return false;
   const text = p.replace(/\s*\n\s*/g, " ");
-  const shaped = WHOLE.some((re, i) => {
+  const form = WHOLE.findIndex((re, i) => {
     const m = text.match(re);
     return !!m && (!DATED[i] || !!(m.groups?.date || m.groups?.date2));
   });
-  if (!shaped || forwardLinkTargets(p, record).bad.length) return false;
+  if (form < 0 || (form === 3 && p.includes("\n"))) return false;
+  const now = new Date();
+  const today = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
+  if ([...text.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].some(([date]) => !validDate(date, today))) return false;
+  if (forwardLinkTargets(p, record).bad.length) return false;
   return !/current text:/i.test(text) || !currentTextTargets(p).bad.length;
 }
 /**
