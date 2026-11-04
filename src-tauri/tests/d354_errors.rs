@@ -357,7 +357,8 @@ fn owner_lock_is_cloexec_and_released_only_when_the_owner_dies() {
 }
 
 #[test]
-fn production_entry_admits_before_launch_migration_and_builder() {
+fn failed_admission_keeps_the_simulated_startup_effects_list_empty() {
+    // PR 2 owns the real startup-order proof when main.rs calls admission.
     let mut effects = ObservedRefusal::default();
     let decision = settle_admission(admit("invalid/identifier", b""), false, &mut effects);
     let mut startup_effects = Vec::new();

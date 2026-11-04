@@ -235,8 +235,26 @@ fn unqualified_same_uid_listener_receives_no_request_bytes() {
     cleanup(&namespace);
 }
 
-const NC_CD_HASH: &str = "fc4ea8f57b26f63d97d29cee15508d619e89dee8";
 const WRONG_034_CD_HASH: &str = "4eb98a54b23fe73ad056db421cb68b1d962ec5ea";
+
+fn nc_cd_hash() -> &'static str {
+    static HASH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    HASH.get_or_init(|| {
+        let inspected = std::process::Command::new("/usr/bin/codesign")
+            .arg("-dvvv")
+            .arg("/usr/bin/nc")
+            .output()
+            .unwrap();
+        assert!(inspected.status.success(), "nc signature inspection failed");
+        String::from_utf8(inspected.stderr)
+            .unwrap()
+            .lines()
+            .find_map(|line| line.strip_prefix("CDHash="))
+            .expect("signed nc has a CDHash")
+            .to_string()
+    })
+    .as_str()
+}
 
 fn spawn_nc(executable: &std::path::Path, socket: &std::path::Path) -> std::process::Child {
     use std::process::{Command, Stdio};
@@ -303,6 +321,11 @@ fn signed_listener_fixture() {
     use std::io::{Read, Write};
 
     let socket = std::env::var_os("D354_SIGNED_LISTENER_SOCKET").expect("fixture socket path");
+    if std::env::var_os("D354_SIGNED_LISTENER_WAIT_FOR_BIND").is_some() {
+        std::io::stdout().write_all(b"READY\n").unwrap();
+        std::io::stdout().flush().unwrap();
+        std::io::stdin().read_exact(&mut [0u8; 1]).unwrap();
+    }
     let listener = UnixListener::bind(socket).unwrap();
     if std::env::var_os("D354_SIGNED_LISTENER_READY").is_some() {
         std::io::stdout().write_all(b"BOUND\n").unwrap();
@@ -324,13 +347,40 @@ fn signed_listener_fixture() {
 #[test]
 fn late_compatible_legacy_socket_forwards_one_bounded_frame() {
     let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    use std::io::Read;
+    use std::io::{Read, Write};
     use std::os::fd::AsRawFd;
     use std::os::unix::fs::PermissionsExt;
     use std::process::{Command, Stdio};
     use tauri_app_lib::services::instance_admission::{
-        admit_with_alias_creation_hook_for_test, CompatibleImage,
+        admit_with_alias_creation_hook_for_test, running_image_allowed, CompatibleImage,
     };
+
+    fn await_banner(child: &mut std::process::Child, expected: &[u8]) {
+        let stdout = child.stdout.as_mut().unwrap();
+        let ready_by = std::time::Instant::now() + UNQUALIFIED_PEER_DEADLINE;
+        let mut banner = Vec::new();
+        loop {
+            let remaining = ready_by.saturating_duration_since(std::time::Instant::now());
+            assert!(!remaining.is_zero(), "signed listener did not become ready");
+            let mut pollfd = libc::pollfd {
+                fd: stdout.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            assert_eq!(
+                unsafe { libc::poll(&mut pollfd, 1, remaining.as_millis().max(1) as i32) },
+                1,
+                "signed listener readiness timed out"
+            );
+            let mut byte = [0u8; 1];
+            stdout.read_exact(&mut byte).unwrap();
+            banner.push(byte[0]);
+            assert!(banner.len() < 1024, "unexpected signed listener output");
+            if banner.ends_with(expected) {
+                break;
+            }
+        }
+    }
 
     let (key, namespace) = unique_namespace();
     let executable = std::env::temp_dir().join(format!(
@@ -363,52 +413,36 @@ fn late_compatible_legacy_socket_forwards_one_bounded_frame() {
         cdhash: allowed_hash,
     }];
     let frame = b"/tmp/working dir\0\0mdpro\0late file.md";
-    let mut child = None;
+    let mut child = Command::new(&executable)
+        .args([
+            "--ignored",
+            "--exact",
+            "signed_listener_fixture",
+            "--nocapture",
+        ])
+        .env("D354_SIGNED_LISTENER_SOCKET", &namespace.public_alias)
+        .env("D354_SIGNED_LISTENER_READY", "1")
+        .env("D354_SIGNED_LISTENER_WAIT_FOR_BIND", "1")
+        .env("D354_SIGNED_LISTENER_OUTPUT", &received_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    await_banner(&mut child, b"READY\n");
+    assert!(running_image_allowed(child.id() as i32, &allowed));
     let mut created = (0, 0);
+    let admission_started = std::time::Instant::now();
+    let mut fixture_ready_at = admission_started;
     let outcome = admit_with_alias_creation_hook_for_test(&key, frame, &allowed, |at| {
-        let mut spawned = Command::new(&executable)
-            .args([
-                "--ignored",
-                "--exact",
-                "signed_listener_fixture",
-                "--nocapture",
-            ])
-            .env("D354_SIGNED_LISTENER_SOCKET", &at.public_alias)
-            .env("D354_SIGNED_LISTENER_READY", "1")
-            .env("D354_SIGNED_LISTENER_OUTPUT", &received_path)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        let stdout = spawned.stdout.as_mut().unwrap();
-        let ready_by = std::time::Instant::now() + UNQUALIFIED_PEER_DEADLINE;
-        let mut banner = Vec::new();
-        loop {
-            let remaining = ready_by.saturating_duration_since(std::time::Instant::now());
-            assert!(!remaining.is_zero(), "signed listener did not bind");
-            let mut pollfd = libc::pollfd {
-                fd: stdout.as_raw_fd(),
-                events: libc::POLLIN,
-                revents: 0,
-            };
-            assert_eq!(
-                unsafe { libc::poll(&mut pollfd, 1, remaining.as_millis().max(1) as i32) },
-                1,
-                "signed listener readiness timed out"
-            );
-            let mut byte = [0u8; 1];
-            stdout.read_exact(&mut byte).unwrap();
-            banner.push(byte[0]);
-            assert!(banner.len() < 1024, "unexpected signed listener output");
-            if banner.ends_with(b"BOUND\n") {
-                break;
-            }
-        }
+        child.stdin.as_mut().unwrap().write_all(b"B").unwrap();
+        await_banner(&mut child, b"BOUND\n");
         let metadata = fs::symlink_metadata(&at.public_alias).unwrap();
         created = (metadata.dev(), metadata.ino());
-        child = Some(spawned);
+        fixture_ready_at = std::time::Instant::now();
     });
-    let output = finish_nc(child.unwrap());
+    let admission_finished = std::time::Instant::now();
+    let output = finish_nc(child);
     let alias = fs::symlink_metadata(&namespace.public_alias).unwrap();
     let still_created = (alias.dev(), alias.ino()) == created;
     let received = fs::read(&received_path).ok();
@@ -417,7 +451,9 @@ fn late_compatible_legacy_socket_forwards_one_bounded_frame() {
     cleanup(&namespace);
     assert!(
         matches!(outcome, Ok(Admission::Forwarded)),
-        "late compatible peer was not forwarded"
+        "late compatible peer was not forwarded: {outcome:?}; ready={:?} admission={:?} received={received:?}",
+        fixture_ready_at.duration_since(admission_started),
+        admission_finished.duration_since(admission_started),
     );
     assert!(still_created, "late public entry was replaced");
     assert_eq!(received.as_deref(), Some(frame.as_slice()));
@@ -441,7 +477,8 @@ fn signed_connected_peer_requires_exact_running_cdhash_before_receiving_bytes() 
         }]
     )
     .is_none());
-    let peer = qualify_connected_peer(&stream, &[CompatibleImage { cdhash: NC_CD_HASH }]).unwrap();
+    let nc_hash = nc_cd_hash();
+    let peer = qualify_connected_peer(&stream, &[CompatibleImage { cdhash: nc_hash }]).unwrap();
     assert_eq!(peer.pid, child.id());
     assert_eq!(peer.uid, unsafe { libc::geteuid() });
     let frame = "/tmp/工作 目录\0\0mdpro\0文 件.md".as_bytes();
@@ -459,7 +496,8 @@ fn qualified_forwarder_sends_one_frame_and_wrong_hash_sends_no_bytes() {
     use tauri_app_lib::services::instance_admission::{forward_if_qualified, CompatibleImage};
 
     let frame = b"/tmp\0\0mdpro\0file.md";
-    for (cdhash, expected_success) in [(NC_CD_HASH, true), (WRONG_034_CD_HASH, false)] {
+    let nc_hash = nc_cd_hash();
+    for (cdhash, expected_success) in [(nc_hash, true), (WRONG_034_CD_HASH, false)] {
         let (_, namespace) = unique_namespace();
         let mut child = spawn_nc(std::path::Path::new("/usr/bin/nc"), &namespace.public_alias);
         let ready_by = Instant::now() + Duration::from_secs(3);
@@ -492,6 +530,38 @@ fn qualified_forwarder_sends_one_frame_and_wrong_hash_sends_no_bytes() {
         );
         cleanup(&namespace);
     }
+}
+
+#[test]
+fn legacy_public_listener_without_ack_forwards_one_frame() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    use std::time::{Duration, Instant};
+    use tauri_app_lib::services::instance_admission::{
+        admit_with_alias_creation_hook_for_test, Admission, CompatibleImage,
+    };
+
+    let (key, namespace) = unique_namespace();
+    let nc_hash = nc_cd_hash();
+    let mut child = spawn_nc(std::path::Path::new("/usr/bin/nc"), &namespace.public_alias);
+    let ready_by = Instant::now() + Duration::from_secs(3);
+    while !namespace.public_alias.exists() {
+        assert!(child.try_wait().unwrap().is_none(), "nc exited before bind");
+        assert!(Instant::now() < ready_by, "nc did not bind");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+
+    let frame = b"/tmp\0\0mdpro\0legacy-no-ack.md";
+    let outcome = admit_with_alias_creation_hook_for_test(
+        &key,
+        frame,
+        &[CompatibleImage { cdhash: nc_hash }],
+        |_| panic!("existing legacy alias should bypass private bind"),
+    );
+    let received = finish_nc(child);
+    cleanup(&namespace);
+    // The private no-ack case is pinned by d354_forwarding::private_owner_eof_without_ack_refuses_after_full_frame.
+    assert!(matches!(outcome, Ok(Admission::Forwarded)), "{outcome:?}");
+    assert_eq!(received, frame);
 }
 
 #[test]
@@ -576,6 +646,10 @@ impl Drop for SuspendedLegacy {
 
 #[test]
 fn installed_035_running_image_matches_only_its_approved_hash() {
+    if std::env::var("MDPRO_D354_INSTALLED_035").as_deref() != Ok("1") {
+        eprintln!("skipped: set MDPRO_D354_INSTALLED_035=1 for the installed 0.3.5 proof");
+        return;
+    }
     let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::ffi::CString;
     use tauri_app_lib::services::instance_admission::{
