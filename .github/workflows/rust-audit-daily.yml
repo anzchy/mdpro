@@ -15,8 +15,9 @@ permissions:
 
 # GH640: rust-audit restores this cargo-audit from actions/cache and compiles
 # it (137–172 s) only on a miss. ci.yml and rust-audit-daily.yml pin the same
-# version and cache key, so the daily run on master seeds the cache that
-# pull-request runs restore. Bump both files together.
+# version and cache key. This job is the entry's only writer: on a miss it
+# saves the fresh build, and ci.yml's pull-request runs restore it without
+# saving. Bump both files together.
 env:
   CARGO_AUDIT_VERSION: "0.22.2"
 
@@ -32,7 +33,7 @@ jobs:
       # Only the binary: the rest of ~/.cargo/bin is rustup's proxies. No
       # restore-keys, so a version bump never restores the old binary.
       - id: cargo-audit-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cargo/bin/cargo-audit
           key: cargo-audit-${{ runner.os }}-${{ env.CARGO_AUDIT_VERSION }}
@@ -40,6 +41,24 @@ jobs:
       - name: Install cargo-audit
         if: steps.cargo-audit-cache.outputs.cache-hit != 'true'
         run: cargo install cargo-audit --locked --version "$CARGO_AUDIT_VERSION"
+
+      # The cache's one writer. It saves right after a miss install, before the
+      # audit, so a red audit (an open advisory) still seeds the entry.
+      - name: Save cargo-audit to the cache
+        if: steps.cargo-audit-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}-${{ env.CARGO_AUDIT_VERSION }}
+
+      # A mismatched binary fails here, not as a vacuous audit. It cannot catch a
+      # tampered binary that prints the right string; the cache's only writer is
+      # the daily job on master. The subcommand answers as `cargo-audit-audit`.
+      - name: Check the cargo-audit version
+        run: |
+          actual="$(cargo audit --version)"
+          echo "$actual"
+          test "$actual" = "cargo-audit-audit $CARGO_AUDIT_VERSION"
 
       # src-tauri/.cargo/audit.toml lists the advisories accepted as unreachable.
       - name: Security audit (Rust)

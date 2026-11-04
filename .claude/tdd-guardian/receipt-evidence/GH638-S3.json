@@ -1,0 +1,159 @@
+{
+  "id": "GH638-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T08:16:08.182Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml never writes the cargo-audit cache\",\"has no saving cache step for cargo-audit in any job\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 165
+      },
+      "message": "AssertionError: expected [ 'rust-audit step 2' ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml never writes the cargo-audit cache\",\"orders toolchain, restore, install, version check, then the audit, and has no other cache step\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 148
+      },
+      "message": "AssertionError: expected [ 2 ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit restores a pinned cargo-audit\",\"checks the binary's version, unconditionally, before the audit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 122
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit restores a pinned cargo-audit\",\"installs the pinned version with --locked only when the cache missed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 117
+      },
+      "message": "AssertionError: expected 'steps.cargo-audit-cache.outputs.cache…' to be 'steps.null.outputs.cache-hit != \\'tru…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit restores a pinned cargo-audit\",\"restores only the cargo-audit binary with actions/cache/restore@v4, keyed by OS and version, with no prefix fallback\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml is the one writer\",\"is the only step in any workflow that saves the cargo-audit entry\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 187
+      },
+      "message": "AssertionError: expected [ 'ci.yml rust-audit step 2', …(1) ] to deeply equal [ Array(1) ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml is the one writer\",\"saves exactly once, with actions/cache/save@v4, right after a miss install and before the audit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 192
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml is the one writer\",\"saves the same path and key it restores\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 207
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'key', 'path' ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit restores a pinned cargo-audit\",\"checks the binary's version, unconditionally, before the audit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 122
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit restores a pinned cargo-audit\",\"installs the pinned version with --locked only when the cache missed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 117
+      },
+      "message": "AssertionError: expected 'steps.cargo-audit-cache.outputs.cache…' to be 'steps.null.outputs.cache-hit != \\'tru…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit restores a pinned cargo-audit\",\"restores only the cargo-audit binary with actions/cache/restore@v4, keyed by OS and version, with no prefix fallback\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 the version check rejects anything but the pinned version\",\"ci.yml: fails another version, a lookalike, an empty answer or a failing binary\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: ci.yml has one version-check step: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 the version check rejects anything but the pinned version\",\"ci.yml: passes the pinned version\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: ci.yml has one version-check step: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 the version check rejects anything but the pinned version\",\"rust-audit-daily.yml: fails another version, a lookalike, an empty answer or a failing binary\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: rust-audit-daily.yml has one version-check step: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 the version check rejects anything but the pinned version\",\"rust-audit-daily.yml: passes the pinned version\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: rust-audit-daily.yml has one version-check step: expected [] to have a length of 1 but got +0"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH638-S3/20261104T081608182Z/tests",
+    "tree": "477b691f2db701d68092d2ff22c0a0b2d106fb8c"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh640-cargo-audit-cache.test.ts": "0b44eaf3cd8d7783394ae30062419c3eca928452"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh640-cargo-audit-cache.test.ts": "0b44eaf3cd8d7783394ae30062419c3eca928452"
+  }
+}
