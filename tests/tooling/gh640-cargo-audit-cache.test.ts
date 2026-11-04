@@ -8,11 +8,13 @@
  * `ci.yml` and `rust-audit-daily.yml` pin `CARGO_AUDIT_VERSION` at the
  * workflow level and restore `~/.cargo/bin/cargo-audit` (the one binary, not
  * the rustup proxies beside it) under a key of OS and version with no prefix
- * fallback. Only the daily job writes that entry: `actions/cache/save` right
- * after a miss install, before the audit, so a red audit still seeds it.
- * `ci.yml` only restores, so a pull-request run can never seed a binary that a
- * later run of the same PR would execute (round 1, gpt H1). A PR scope with no
- * entry falls back to master's, which the daily run wrote. The version check
+ * fallback. `ci.yml` only restores. Master's entry is written only by the
+ * daily job on master: `actions/cache/save` right after a miss install, before
+ * the audit (so a red audit still seeds it), and only when `github.ref` is
+ * master (fix 2, gpt r2 F1), so a dispatch on another branch never seeds that
+ * branch's scope. A PR scope with no entry falls back to master's. A PR's own
+ * earlier revisions can still write its own scope; that residual is accepted
+ * and tracked on #645, and no workflow text in the base can close it. The version check
  * catches a mismatched binary, not a tampered one with the right version
  * string. `cargo audit` itself, its `src-tauri` working directory (where
  * `.cargo/audit.toml` lives) and ADR-0107's place outside `ci-gate.needs` do
@@ -49,6 +51,8 @@ const VERSION_CHECK = [
 const GITHUB_BASH = ["-e"];
 const FAKE_ARGS_MISMATCH = 97;
 
+const MASTER_ONLY = "github.ref == 'refs/heads/master'";
+
 const withOf = (step: string | undefined) => entry(step ?? null, "with")?.body ?? null;
 const ownKeys = (step: string) => keys(step).filter((k) => k !== "name").sort();
 const usesOf = (step: string) => scalar(step, "uses") ?? "";
@@ -81,6 +85,29 @@ function auditSteps(text: string) {
     check: indexesWhere(all, (s) => stepRun(s)?.includes("cargo audit --version") ?? false),
     audit: indexesWhere(all, (s) => stepRun(s) === "cargo audit"),
   };
+}
+
+/**
+ * Whether a step writes a cargo-audit entry or anything under `.cargo/bin`: an
+ * `actions/cache@` or `actions/cache/save@` step whose path (inline or block)
+ * names either, or whose key starts `cargo-audit-`.
+ */
+function savesCargoAudit(step: string): boolean {
+  const uses = usesOf(step);
+  if (!uses.startsWith("actions/cache@") && !uses.startsWith("actions/cache/save@")) return false;
+  const options = withOf(step);
+  const p = entry(options, "path");
+  const pathText = p ? (p.inline ?? p.body) : "";
+  return pathText.includes("cargo-audit") || pathText.includes(".cargo/bin") || (scalar(options, "key") ?? "").startsWith("cargo-audit-");
+}
+
+/** Evaluates `<ctx> == '<v>'` / `<ctx> != '<v>'` terms joined by `&&`; anything else throws. */
+function evaluateIf(expr: string, ctx: Record<string, string>): boolean {
+  return expr.split(" && ").every((term) => {
+    const m = /^([a-z][a-z0-9_.-]*) (==|!=) '([^']*)'$/.exec(term);
+    if (!m || !(m[1] in ctx)) throw new Error(`unsupported if term: ${term}`);
+    return m[2] === "==" ? ctx[m[1]] === m[3] : ctx[m[1]] !== m[3];
+  });
 }
 
 const ascending = (xs: number[]) => xs.every((x, i) => i === 0 || xs[i - 1] < x);
@@ -154,15 +181,25 @@ describe("GH640 ci.yml never writes the cargo-audit cache", () => {
   it("has no saving cache step for cargo-audit in any job", () => {
     const savers: string[] = [];
     for (const id of jobIds(text)) {
-      steps(job(text, id)).forEach((step, i) => {
-        const uses = usesOf(step);
-        const saves = uses.startsWith("actions/cache@") || uses.startsWith("actions/cache/save@");
-        const options = withOf(step);
-        const cargoAudit = (scalar(options, "path") ?? "").includes("cargo-audit") || (scalar(options, "key") ?? "").startsWith("cargo-audit-");
-        if (saves && (id === "rust-audit" || cargoAudit)) savers.push(`${id} step ${i}`);
-      });
+      // rust-audit's own steps are also pinned to restore-only by the ordering case above.
+      steps(job(text, id)).forEach((step, i) => savesCargoAudit(step) && savers.push(`${id} step ${i}`));
     }
     expect(savers).toEqual([]);
+  });
+});
+
+describe("GH640 the saver scan flags any .cargo/bin save, whatever its key", () => {
+  const step = (uses: string, pathLines: string, key = "tools-x") => `uses: ${uses}\nwith:\n${pathLines}\n  key: ${key}`;
+  it.each([
+    ["a block path", step("actions/cache@v4", "  path: |\n    ~/.cargo/registry\n    ~/.cargo/bin"), true],
+    ["a folded path on save", step("actions/cache/save@v4", "  path: >-\n    ~/.cargo/bin"), true],
+    ["an expression key", step("actions/cache/save@v4", "  path: ~/.cargo/bin/cargo-audit", "${{ env.K }}"), true],
+    ["$HOME", step("actions/cache@v4", "  path: $HOME/.cargo/bin/cargo-audit"), true],
+    ["an absolute home", step("actions/cache/save@v4", "  path: /home/runner/.cargo/bin/cargo-audit"), true],
+    ["rust-test's cache", step("actions/cache@v4", "  path: |\n    ~/.cargo/registry\n    ~/.cargo/git\n    src-tauri/target", "rust-test-x"), false],
+    ["a restore", step("actions/cache/restore@v4", "  path: ~/.cargo/bin/cargo-audit"), false],
+  ] as const)("%s", (_name, text, flagged) => {
+    expect(savesCargoAudit(text)).toBe(flagged);
   });
 });
 
@@ -175,12 +212,7 @@ describe("GH640 rust-audit-daily.yml is the one writer", () => {
       const workflow = read(file);
       for (const id of jobIds(workflow)) {
         steps(job(workflow, id)).forEach((step, i) => {
-          const uses = usesOf(step);
-          if (!uses.startsWith("actions/cache@") && !uses.startsWith("actions/cache/save@")) return;
-          const options = withOf(step);
-          if ((scalar(options, "path") ?? "").includes("cargo-audit") || (scalar(options, "key") ?? "").startsWith("cargo-audit-")) {
-            savers.push(`${file} ${id} step ${i}`);
-          }
+          if (savesCargoAudit(step)) savers.push(`${file} ${id} step ${i}`);
         });
       }
     }
@@ -194,10 +226,23 @@ describe("GH640 rust-audit-daily.yml is the one writer", () => {
     const save = s.all[s.save[0]];
     expect(usesOf(save)).toBe(SAVE);
     expect(ownKeys(save)).toEqual(["if", "uses", "with"]);
-    expect(scalar(save, "if")).toBe(scalar(s.all[s.install[0]], "if"));
-    expect(scalar(save, "if")).toBe(`steps.${scalar(s.all[s.restore[0]], "id")}.outputs.cache-hit != 'true'`);
+    const miss = `steps.${scalar(s.all[s.restore[0]], "id")}.outputs.cache-hit != 'true'`;
+    expect(scalar(s.all[s.install[0]], "if")).toBe(miss);
+    expect(scalar(save, "if")).toBe(`${miss} && ${MASTER_ONLY}`);
     expect(s.save[0]).toBe(s.install[0] + 1);
     expect(ascending([s.toolchain, s.restore[0], s.install[0], s.save[0], s.check[0], s.audit[0]])).toBe(true);
+  });
+
+  it("saves only on a miss on master; any other ref or a hit never saves", () => {
+    const s = auditSteps(text);
+    const id = scalar(s.all[s.restore[0]], "id");
+    const expr = scalar(s.all[s.save[0]], "if") ?? "";
+    const hit = `steps.${id}.outputs.cache-hit`;
+    const saved: string[] = [];
+    for (const cacheHit of ["true", "", "false"])
+      for (const ref of ["refs/heads/master", "refs/heads/feature", "refs/pull/643/merge", "refs/tags/v1"])
+        if (evaluateIf(expr, { [hit]: cacheHit, "github.ref": ref })) saved.push(`${cacheHit || "(unset)"} ${ref}`);
+    expect(saved).toEqual(["(unset) refs/heads/master", "false refs/heads/master"]);
   });
 
   it("saves the same path and key it restores", () => {

@@ -1,0 +1,42 @@
+{
+  "id": "GH638-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T09:17:45.845Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml is the one writer\",\"saves exactly once, with actions/cache/save@v4, right after a miss install and before the audit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 231
+      },
+      "message": "AssertionError: expected 'steps.cargo-audit-cache.outputs.cache…' to be 'steps.cargo-audit-cache.outputs.cache…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml is the one writer\",\"saves only on a miss on master; any other ref or a hit never saves\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 245
+      },
+      "message": "AssertionError: expected [ '(unset) refs/heads/master', …(7) ] to deeply equal [ '(unset) refs/heads/master', …(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH638-S5/20261104T091745845Z/tests",
+    "tree": "4a5bb277b6772fad9873943f6ed5333886c3de67"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh640-cargo-audit-cache.test.ts": "91ef44c85b5f64743d9a5ef6ea073c0d3ee95895"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh640-cargo-audit-cache.test.ts": "91ef44c85b5f64743d9a5ef6ea073c0d3ee95895"
+  }
+}

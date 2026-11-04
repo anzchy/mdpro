@@ -36,8 +36,9 @@ permissions:
 
 # GH640: rust-audit restores this cargo-audit from actions/cache and compiles
 # it (137–172 s) only on a miss. ci.yml and rust-audit-daily.yml pin the same
-# version and cache key. Only the daily run on master saves the entry; this
-# workflow restores it and never saves. Bump both files together.
+# version and cache key. This workflow restores the entry and never saves it;
+# master's entry is written only by the daily job on master. Bump both files
+# together.
 env:
   CARGO_AUDIT_VERSION: "0.22.2"
 
@@ -204,9 +205,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       # Only the binary: the rest of ~/.cargo/bin is rustup's proxies. No
-      # restore-keys, so a version bump never restores the old binary. Restore
-      # only: a pull-request run never saves, so no PR can seed a binary that a
-      # later run executes; with no entry of its own it reads master's.
+      # restore-keys, so a version bump never restores the old binary. This file
+      # only restores: master's entry is written only by rust-audit-daily.yml on
+      # master, and a PR with no entry of its own reads master's. A PR's own
+      # earlier revisions can still write its own scope, which a later run of
+      # that PR restores; that residual is accepted and tracked on #645.
       - id: cargo-audit-cache
         uses: actions/cache/restore@v4
         with:
@@ -218,8 +221,9 @@ jobs:
         run: cargo install cargo-audit --locked --version "$CARGO_AUDIT_VERSION"
 
       # A mismatched binary fails here, not as a vacuous audit. It cannot catch a
-      # tampered binary that prints the right string; the cache's only writer is
-      # the daily job on master. The subcommand answers as `cargo-audit-audit`.
+      # tampered binary that prints the right string: master's entry is written
+      # only by the daily job on master, but a PR's own earlier revisions can
+      # write its own scope (#645). The subcommand answers as `cargo-audit-audit`.
       - name: Check the cargo-audit version
         run: |
           actual="$(cargo audit --version)"
