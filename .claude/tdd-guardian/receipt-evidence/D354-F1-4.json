@@ -1,0 +1,33 @@
+{
+  "id": "D354-F1-4",
+  "lane": "rust",
+  "recorded_at": "2026-11-04T11:12:46.519Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "d354_forwarding::panicking_route_does_not_strand_the_next_request",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/tests/d354_forwarding.rs",
+        "line": 104
+      },
+      "message": "test route panic"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-F1-4/20261104T111246519Z/tests",
+    "tree": "3441eb3b8c94d8770f46859b47ce858d91fd517e"
+  },
+  "spec_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "c68159c88a5f50cb5f1f3d43afa639e8120ca89e"
+  },
+  "settled_blobs": {
+    "src-tauri/tests/d354_forwarding.rs": "c68159c88a5f50cb5f1f3d43afa639e8120ca89e"
+  }
+}

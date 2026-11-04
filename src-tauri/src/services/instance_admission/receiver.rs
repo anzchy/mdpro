@@ -1,9 +1,10 @@
-//! Private listener with a bounded queue and coordinated retirement.
+//! Private listener with a bounded queue, coordinated retirement, and panic isolation.
 
 use super::codec::{read_request, ForwardRequest};
 use std::collections::VecDeque;
 use std::io::{self, Write};
 use std::os::unix::net::UnixListener;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
@@ -127,9 +128,27 @@ impl ForwardingHandle {
                         state.active_routes += 1;
                     }
                     let active = ActiveRoute(self.state.clone());
-                    let PendingRequest { request, .. } = queued;
-                    route(request);
+                    let PendingRequest { request, accepted } = queued;
+                    let result = catch_unwind(AssertUnwindSafe(|| route(request)));
                     drop(active);
+                    if result.is_err() {
+                        accepted.store(false, Ordering::Release);
+                        let mut state = self.state.lock().unwrap();
+                        if state
+                            .route
+                            .as_ref()
+                            .is_some_and(|current| Arc::ptr_eq(current, &route))
+                        {
+                            state.route = None;
+                        }
+                        let resume = state.route.is_some() && !state.pending.is_empty();
+                        state.draining = false;
+                        drop(state);
+                        if resume {
+                            self.drain();
+                        }
+                        return;
+                    }
                 }
                 None => return,
             }

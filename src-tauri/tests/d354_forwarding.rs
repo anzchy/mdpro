@@ -86,6 +86,50 @@ fn private_owner_eof_without_ack_refuses_after_full_frame() {
 }
 
 #[test]
+fn panicking_route_does_not_strand_the_next_request() {
+    use std::sync::{Arc, Mutex};
+    use tauri_app_lib::services::instance_admission::{encode, ForwardRequest, ForwardingServer};
+
+    let key = format!(
+        "com.d354.{}",
+        &uuid::Uuid::new_v4().simple().to_string()[..12]
+    );
+    let namespace = Namespace::for_identifier(&key).unwrap();
+    let owner = match admit(&key, b"").unwrap() {
+        Admission::Owner(owner) => owner,
+        _ => panic!("first process must own the endpoint"),
+    };
+    let mut server = ForwardingServer::start(owner.listener()).unwrap();
+    let handle = server.handle();
+    handle.publish(Arc::new(|_| panic!("test route panic")));
+    let first = ForwardRequest {
+        cwd: "/tmp".to_string(),
+        argv: vec!["mdpro".to_string(), "first.md".to_string()],
+    };
+    let first_outcome = admit(&key, &encode(&first).unwrap()).unwrap();
+    let routed = Arc::new(Mutex::new(Vec::new()));
+    let journal = routed.clone();
+    handle.publish(Arc::new(move |request| {
+        journal.lock().unwrap().push(request)
+    }));
+    let second = ForwardRequest {
+        cwd: "/tmp".to_string(),
+        argv: vec!["mdpro".to_string(), "second.md".to_string()],
+    };
+    let second_outcome = admit(&key, &encode(&second).unwrap()).unwrap();
+    let actual = routed.lock().unwrap().clone();
+    server.retire();
+    drop(owner);
+    let _ = fs::remove_file(&namespace.socket);
+    let _ = fs::remove_file(&namespace.public_alias);
+    let _ = fs::remove_file(&namespace.lock);
+    let _ = fs::remove_dir(&namespace.directory);
+    assert!(matches!(second_outcome, Admission::Forwarded));
+    assert_eq!(actual, vec![second]);
+    assert!(matches!(first_outcome, Admission::Refused));
+}
+
+#[test]
 fn old_wire_round_trips_multibyte_paths_and_keeps_argv_zero() {
     use tauri_app_lib::services::instance_admission::{decode, encode, ForwardRequest};
     for cwd in ["/tmp/工作 文 件", "/tmp/one", ""] {
