@@ -2,6 +2,8 @@
 
 ## Status
 
+Current text: `docs/guide/receipt-evidence.md#who-rules`; folded and changed by `docs/agents/decisions/20261104-receipts-are-audit-evidence.md` (2026-11-04, decisions 2–4 and 6–7's mandatory replay, digest and clearing path; the replay tool and decision 5's recording advice remain).
+
 **Accepted, 2026-10-29. Decided by the user:** 「Accept (Recommended)」, after plan review round 1 (gpt-auditor C0 H5 M2, opus-auditor C0 H5 M7 L3), round 2 (opus-auditor C0 H0 M14 L1, gpt-auditor C0 H4) and gpt-auditor's post-cap confirm of revision 3 (C0 H0 M0 L0; `herdr-spike/gpt-auditor/ADR-0149-pc.md`). Recorded by herdr-delegator.
 
 **Proposed, 2026-10-29, by herdr-delegator (Claude route). Revision 2, after plan review round 1** (gpt-auditor

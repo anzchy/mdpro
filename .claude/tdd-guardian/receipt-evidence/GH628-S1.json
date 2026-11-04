@@ -1,0 +1,52 @@
+{
+  "id": "GH628-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T21:24:20.529Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh628-cutover.test.ts\",\"GH628-S1 receipt verdict cutover\",\"gives the Claude and Codex routes the same post-master boundary\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-cutover.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to contain 'verifiers dispatched after this commi…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh628-cutover.test.ts\",\"GH628-S1 receipt verdict cutover\",\"has no live instruction that makes a receipt verdict, replay or exception decide landing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-cutover.test.ts",
+        "line": 55
+      },
+      "message": "AssertionError: expected [ …(6) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/gh628-cutover.test.ts\",\"GH628-S1 receipt verdict cutover\",\"keeps parent bytes and shape as a PASS check while focused verdicts are information\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-cutover.test.ts",
+        "line": 35
+      },
+      "message": "AssertionError: expected '---\\nname: mdpro-landing-verifier\\nde…' to match /info: FOCUSED-RECEIPTS/"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH628-S1/20261103T212420529Z/tests",
+    "tree": "872bb32a21bee66e9b40867fe305935bd310e11a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh628-cutover.test.ts": "a7a5b749a23734b87521992f9f3cec79fc063ad3"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh628-cutover.test.ts": "a7a5b749a23734b87521992f9f3cec79fc063ad3"
+  }
+}

@@ -43,6 +43,7 @@ High tier there.
 
 ## Entries
 
+- [20261104-receipts-are-audit-evidence.md](20261104-receipts-are-audit-evidence.md): RED receipt verdicts become advisory audit evidence while `keep-check` remains a landing condition; one policy commit cuts over the verifier.
 - [20261104-adr-bar-raised.md](20261104-adr-bar-raised.md): an ADR needs scope and significance; doubt goes below the
   bar, a correction takes no number, an amendment takes one only when the contract changes, one page at most.
 - [20261102-receipts-per-item-files.md](20261102-receipts-per-item-files.md): each receipt and evidence entry is

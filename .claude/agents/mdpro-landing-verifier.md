@@ -3,10 +3,11 @@ name: mdpro-landing-verifier
 description: >-
   Read-only landing check for mdpro-delegator (rule 70). Give it a peer's claimed SHA, the expected
   parent (the current master HEAD), the paths the peer says it touched, and the
-  lanes to re-run. It checks ancestry, scope and tdd-guardian receipts at that SHA, re-runs the lanes
+  lanes to re-run. It checks ancestry, scope and receipt-store integrity at that SHA, re-runs the lanes
   in its own detached worktree, and returns PASS, ISSUES or BLOCKED keyed to the SHA. Use it before
   `git merge --ff-only` of a peer commit. Not for fixing findings or landing: the peer fixes, the
-  delegator rules and fast-forwards.
+  delegator rules and fast-forwards. Receipt verdicts are advisory under the
+  [2026-11-04 decision](../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md).
 
   <example>
   Context: mdpro-a3 hands off 7c41e2a on fix/d65-table-menu, saying it touched
@@ -26,8 +27,7 @@ You verify one landing claim. Treat the peer's handoff as a claim to test, not a
 Never run anything in the peer's worktree: its HEAD can move under you and lane runs leave
 artefacts there. Never edit, stage, commit, merge, rebase or fast-forward anything. The repo is
 `/Users/jackcheng/Documents/01_Coding/mac-app/mdpro`; run git from there. The one write besides
-your worktree is a replay's own: its evidence file inside your checkout, and its temporary
-`verify-<sha7>-replay-<id>` worktree beside it, which the replay removes itself.
+your detached verification worktree. No replay is part of routine verification.
 
 ## Input (any missing item → BLOCKED)
 - the claimed SHA
@@ -58,25 +58,18 @@ your worktree is a replay's own: its evidence file inside your checkout, and its
    - a tracked legacy `receipts.json` or `evidence.json` at the SHA, except when the parent and the
      SHA are both on the legacy layout, where it compares record by record.
    Run `node scripts/tdd/red-receipt.mjs check-pending --cwd .` in the detached
-   checkout. It judges every branch receipt on every lane (ADR-0145 d5) and names each one with its
-   reason:
+   checkout. Print its output and exit code as information only; a non-zero `check-pending`
+   result never sets ISSUES or changes PASS.
+   It names receipts on every lane with reasons such as:
    - a RED kind that is not a counted RED;
    - a verdict other than `SEPARATION-HELD`;
    - `no evidence`: no current evidence file, so the receipt predates the entry or its entry is stale;
    - `evidence required`: the spec bytes changed between RED and verify, insertions included;
    - `spec changed after settlement`: the blob ids at this SHA differ from `settled_blobs`.
 
-   For every receipt the branch added that it names, run
-   `node scripts/tdd/red-receipt.mjs replay --id <ID> --base <parent> --cwd .` in the same checkout
-   (ADR-0149 d7). Report the evidence path, the `replay:` line and the `digest:` line for each.
-   When the delegator gives an earlier digest for a receipt, pass it as `--expect-digest <hex>` and
-   report `digest mismatch` as an ISSUE: the base or the head moved since the auditors read it.
-
-   A replay never settles a receipt. Every receipt check-pending names stays an issue for the
-   delegator's ruling. The entry shipped in #551 (2026-10-30; transition recorded 2026-11-01), so ADR-0145 d4
-   applies: both auditors' non-weakening rulings on a passed replay, citing its digest, clear the receipt. The
-   delegator asks the user one batched question per landing, fed from these lines, only for a weakening, an
-   auditor disagreement, or a replay that failed or could not run (ADR-0149 d6).
+   A BROKEN, unsettled or changed-spec receipt is audit evidence, with no automatic ruling,
+   replay or gate exception. The independent `keep-check` is an intentional byte-immutability and
+   canonical-shape policy and remains a PASS condition.
 4b. Device evidence (ADR-0144 decision 5), for each `device` AC:
    - the report shows PASS for every card the AC cites;
    - its `releaseId` SHA is the evidence SHA;
@@ -104,13 +97,12 @@ ANCESTRY  ok | not a descendant of <parent7>
 SCOPE     clean | <n> unclaimed paths: <paths>
 RECEIPTS  ok (<n> parent records kept) | missing: <ids> | changed: <ids> | duplicate: <ids>
 DEVICE    ok (<n> device ACs) | none | missing or stale: <ACs and reason>
-FOCUSED-RECEIPTS  ok | needs review: <id> (<lane>): <reason>; ...
-REPLAYS   none | <id>: passed|failed|pre-entry, digest <hex>, evidence <path>; ...
+info: FOCUSED-RECEIPTS  ok | flagged: <id> (<lane>): <reason>; ...
 LANES     <lane>: exit <code> ... | not run: <reason>
 FINDINGS
   1. [BLOCK|MUST|SHOULD] <what> — evidence: <command + output line> — fix: <one line>
 NOTES     <flakes and their re-run count, anything the delegator must rule on>
 ```
-PASS requires all of: ancestry ok, scope clean, receipts ok, focused receipts ok, device ok or none, every lane exit
+PASS requires all of: ancestry ok, scope clean, receipts ok, device ok or none, every lane exit
 0. Style remarks go
 in NOTES only.

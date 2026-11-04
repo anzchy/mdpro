@@ -37,7 +37,7 @@ Apply both in full.
 3. Check every AC and every matrix case, including the adversary's added cases, against an actual test.
    A case without a test is a missing-test finding.
 4. Read `.claude/tdd-guardian/receipts/<ID>.json` for each given id (one file per id). Report kind and verdict.
-   A `SEPARATION-BROKEN` result, an `implementation-already-present` record, or an opaque or weak RED must be named in the handoff, and you check that it is.
+   A `SEPARATION-BROKEN` result, an `implementation-already-present` record, or an opaque or weak RED must be named in the handoff as audit evidence. Its verdict alone is not a High or a landing condition (2026-11-04 decision).
 5. Check hygiene:
    - files under 300 lines;
    - no console.log, println! or eprintln!;

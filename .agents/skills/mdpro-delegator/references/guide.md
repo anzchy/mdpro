@@ -79,7 +79,11 @@ above 400k context, and a call above 600k costs about 3.5× one under 200k.
 9. **Fix** (`fix-brief-template.md`), then both auditors confirm (`confirm-request-template.md`), scoped.
 10. **Land** when the verifier passes, the merged blocking count is zero, and `ci-gate` is green on the PR head
     (`gh pr checks <pr> --required`). The checked scripts do not check verifier PASS or audit verdict.
-    Receipt exceptions need the user's word first. On Codex, use `node scripts/codex-rules/land-guard.mjs <sha>`;
+    For verifiers dispatched after the policy commit is on master, receipt verdicts do not require an exception;
+    the Codex verifier reports `check-pending` as information and requires `receipt-store.mjs keep-check` for PASS
+    ([decision](../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md)).
+    GH592, GH607 and D354 wait for this policy commit on master and receive fresh verification before landing.
+    On Codex, use `node scripts/codex-rules/land-guard.mjs <sha>`;
     for direct docs commits, `node scripts/codex-rules/land-guard.mjs --docs-only`, except `docs/agents/audit-dimensions.md` and `docs/agents/audit-policy-set.md` (ADR-0146 decision 1: High-tier PR under the old pin and both-auditor plan review); a gate-sensitive decision-log entry ([README § Gate-sensitive entries](../../../../docs/agents/decisions/README.md#gate-sensitive-entries)) goes this way only after both auditors' plan review of it and its rule edit. On Claude, use
     `git merge --ff-only <sha>` and `git push origin master`, then `references/templates/landing-docs-checklist.md`.
 

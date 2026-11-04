@@ -83,11 +83,14 @@ Decision 8). The delegator records each one when it is granted, whatever the rou
 - **Closed**: set when a this-landing-only exception lands, or when an until-condition first holds.
 - An open `until` row is listed at every release checkpoint.
 
-**Receipt clearing switched on, 2026-11-01** (user: 「Switch on now (Recommended)」). The receipt entry shipped in #551
-(2026-10-30), so ADR-0149 decision 6's second half applies (ADR-0145 decision 4): a receipt whose `replay` passed and
-that both auditors rule not weakened, citing the same digest, is cleared by those rulings and still gets a row here,
-with no user question. The user is asked only about a weakening, an auditor disagreement, or a replay that failed or
-could not run. Rows before this date record the earlier user-per-landing path.
+**Receipt clearing switched on, 2026-11-01** (user: 「Switch on now (Recommended)」). From then until the
+[2026-11-04 decision](../agents/decisions/20261104-receipts-are-audit-evidence.md) takes effect, ADR-0149 decision 6's
+second half applied (ADR-0145 decision 4): a receipt whose `replay` passed and that both auditors ruled not weakened,
+citing the same digest, was cleared by those rulings and got a row here, with no user question. A weakening,
+disagreement, or failed replay went to the user. Earlier rows record the user-per-landing path.
+
+**2026-11-04 cutover:** receipt verdicts are advisory audit evidence; they no longer create a gate exception row.
+`keep-check` and other actual landing gates still do. Historical rows stay as recorded.
 
 | Id | PR | Gate waived | Scope | Owner | Ruling | Closed |
 |---|---|---|---|---|---|---|

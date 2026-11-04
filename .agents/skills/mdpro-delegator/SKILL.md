@@ -73,7 +73,7 @@ the request. ADR and decision-log review follows guide §6 (ADR-0165; [decision 
    a blob other than <B> or <P>; a policy-routed report without <P> (a review pinned to a <B> that
    still holds § policy names no <P>); or a traced runtime High without why tests miss it. Ask only for the
    missing lines. A re-ask is not a new round (ADR-0146 decision 3).
-8. **Land** when verifier PASS, merged blocking C0 H0, `ci-gate` green, and any receipt exception approved by the user:
+8. **Land** when verifier PASS, merged blocking C0 H0 and `ci-gate` green. Receipt verdicts are advisory; `keep-check` remains part of verifier PASS ([decision](../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md#current-rule)):
    on Codex, `node scripts/codex-rules/land-guard.mjs <sha>`; for direct docs commits,
    `node scripts/codex-rules/land-guard.mjs --docs-only` (never for `docs/agents/audit-dimensions.md` or `docs/agents/audit-policy-set.md`,
    which require a High-tier PR audited under the old pin and plan review of the proposed blob by both auditors).

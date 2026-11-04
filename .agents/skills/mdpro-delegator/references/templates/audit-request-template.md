@@ -22,7 +22,7 @@
 - **Acceptance criteria:** AC-1… in the brief, plus: <the specific properties to attack>.
 - **Unproved AC:** cite any recorded ADR-0146 decision 4 acceptance in this request, including its ground (a), (b)
   or (c). Otherwise send the handoff back before audit.
-- **Known qualifications** (not findings by themselves): <receipt states, file-size notes, out-of-grant lane results>.
+- **Known qualifications** (not findings by themselves): <file-size notes, out-of-grant lane results; advisory `check-pending` flagged ids and the RED-pin → head diff of their spec files>. Receipt flags need no ruling or gate exception ([decision](../../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md#current-rule)).
 - **Read barrier:** round one. Do not read PR comments, `herdr-spike/delegator/`, or the other auditor's folder.
 - **Output:** `~/.mdpro-redesign/herdr-spike/<auditor>/<ID>-r1.md`, headed
   `## <Codex audit (<model> <effort>) | Opus audit> — <ID> @ <sha7> · tier <T> · round 1`.

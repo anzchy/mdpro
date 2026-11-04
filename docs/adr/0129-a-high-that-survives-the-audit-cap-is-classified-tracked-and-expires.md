@@ -2,6 +2,8 @@
 
 ## Status
 
+Current text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#after-the-cap`; folded and changed by `docs/agents/decisions/20261104-receipts-are-audit-evidence.md` (2026-11-04, decision 8's receipt-verdict exception class only; the general register remains).
+
 Extended 2026-10-22 by [ADR-0132](0132-d294-secondary-window-close-crash-ships-as-a-known-issue-with-a-0-3-7-fix-by.md): D294, a device-found defect, joins decision 5's tracked set by name, with a stricter "absent" rule. Nothing in this ADR is superseded.
 
 Accepted, 2026-10-21. Decided by the user, recorded by herdr-delegator. The user's words: 「采纳 (Recommended)」.

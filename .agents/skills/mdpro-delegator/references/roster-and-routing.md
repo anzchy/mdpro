@@ -90,9 +90,10 @@ holds an unlanded item or the user names another implementor. Items already assi
 ## Subagents
 
 <!-- moved-from: rule 70 § Sessions (ADR-0147) -->
-`mdpro-landing-verifier` re-checks a handoff (ancestry, scope, that
-`receipt-store.mjs keep-check` finds every receipt and evidence file of the parent kept, the named lanes in a
-detached `verify-<sha7>` worktree) before `git merge --ff-only`;
+`mdpro-landing-verifier` re-checks a handoff before `git merge --ff-only`: ancestry, scope,
+`receipt-store.mjs keep-check` for every parent receipt and evidence file, and the named lanes in a
+detached `verify-<sha7>` worktree. `check-pending` is informational under the
+[2026-11-04 decision](../../../../docs/agents/decisions/20261104-receipts-are-audit-evidence.md);
 `mdpro-fable-auditor` runs an `opus-auditor` request file when the opus-auditor pane cannot start; and `mdpro-number-registrar` finds the next free ADR number (new items take GitHub issue numbers, not D numbers).
 None of them merges, rules on the gate or reserves; the delegator does.
 Every one of them runs on Opus (rule 70 § Sessions; ADR-0137 moved the second auditor to the `opus-auditor` pane).
