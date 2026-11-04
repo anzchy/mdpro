@@ -74,5 +74,12 @@
   },
   "settled_blobs": {
     "tests/tooling/gh592-brief-rules-check.test.ts": "6739ac39e2ff24c253f4385c15a6ac06f6da0df1"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH592-S3.json",
+    "digest": "4319bb2107570b177fcd98d8df64f26638cf2ace845c3eb2b4f4c4195c52ae63",
+    "result": "passed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
   }
 }
