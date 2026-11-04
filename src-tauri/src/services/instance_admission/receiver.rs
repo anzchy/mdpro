@@ -1,22 +1,50 @@
-//! Private listener with a bounded pre-routing queue.
+//! Private listener with a bounded queue and coordinated retirement.
 
 use super::codec::{read_request, ForwardRequest};
 use std::collections::VecDeque;
 use std::io::{self, Write};
 use std::os::unix::net::UnixListener;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 pub const MAX_PENDING: usize = 64;
 type Route = Arc<dyn Fn(ForwardRequest) + Send + Sync + 'static>;
 
+struct PendingRequest {
+    request: ForwardRequest,
+    accepted: Arc<AtomicBool>,
+}
+
 #[derive(Default)]
 struct State {
-    pending: VecDeque<ForwardRequest>,
+    pending: VecDeque<PendingRequest>,
     route: Option<Route>,
     draining: bool,
     retiring: bool,
+    active_routes: usize,
+    idle: Arc<Condvar>,
+    #[cfg(test)]
+    before_route: Option<Arc<dyn Fn() + Send + Sync>>,
+}
+
+impl State {
+    fn refuse_pending(&mut self) {
+        for queued in self.pending.drain(..) {
+            queued.accepted.store(false, Ordering::Release);
+        }
+    }
+}
+
+struct ActiveRoute(Arc<Mutex<State>>);
+
+impl Drop for ActiveRoute {
+    fn drop(&mut self) {
+        let mut state = self.0.lock().unwrap();
+        state.active_routes -= 1;
+        state.idle.notify_all();
+    }
 }
 
 #[derive(Clone)]
@@ -42,15 +70,19 @@ impl ForwardingHandle {
     }
 
     fn receive(&self, request: ForwardRequest) -> bool {
+        let accepted = Arc::new(AtomicBool::new(true));
         {
             let mut state = self.state.lock().unwrap();
             if state.retiring || state.pending.len() >= MAX_PENDING {
                 return false;
             }
-            state.pending.push_back(request);
+            state.pending.push_back(PendingRequest {
+                request,
+                accepted: accepted.clone(),
+            });
         }
         self.drain();
-        true
+        accepted.load(Ordering::Acquire)
     }
 
     fn drain(&self) {
@@ -65,12 +97,12 @@ impl ForwardingHandle {
             let next = {
                 let mut state = self.state.lock().unwrap();
                 if state.retiring {
-                    state.pending.clear();
+                    state.refuse_pending();
                     state.draining = false;
                     return;
                 }
                 match state.pending.pop_front() {
-                    Some(request) => Some((state.route.as_ref().unwrap().clone(), request)),
+                    Some(queued) => Some((state.route.as_ref().unwrap().clone(), queued)),
                     None => {
                         state.draining = false;
                         None
@@ -78,7 +110,27 @@ impl ForwardingHandle {
                 }
             };
             match next {
-                Some((route, request)) => route(request),
+                Some((route, queued)) => {
+                    #[cfg(test)]
+                    let hook = { self.state.lock().unwrap().before_route.clone() };
+                    #[cfg(test)]
+                    if let Some(hook) = hook {
+                        hook();
+                    }
+                    {
+                        let mut state = self.state.lock().unwrap();
+                        if state.retiring {
+                            queued.accepted.store(false, Ordering::Release);
+                            state.draining = false;
+                            return;
+                        }
+                        state.active_routes += 1;
+                    }
+                    let active = ActiveRoute(self.state.clone());
+                    let PendingRequest { request, .. } = queued;
+                    route(request);
+                    drop(active);
+                }
                 None => return,
             }
         }
@@ -87,8 +139,12 @@ impl ForwardingHandle {
     pub fn retire(&self) {
         let mut state = self.state.lock().unwrap();
         state.retiring = true;
-        state.pending.clear();
+        state.refuse_pending();
         state.route = None;
+        let idle = state.idle.clone();
+        while state.active_routes != 0 {
+            state = idle.wait(state).unwrap();
+        }
     }
 }
 
@@ -147,3 +203,7 @@ impl Drop for ForwardingServer {
         self.retire();
     }
 }
+
+#[cfg(test)]
+#[path = "receiver_tests.rs"]
+mod tests;

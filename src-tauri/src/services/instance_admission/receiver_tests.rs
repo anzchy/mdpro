@@ -1,0 +1,77 @@
+use super::*;
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
+
+fn handle() -> ForwardingHandle {
+    ForwardingHandle {
+        state: Arc::new(Mutex::new(State::default())),
+    }
+}
+
+fn request() -> ForwardRequest {
+    ForwardRequest {
+        cwd: "/tmp".to_string(),
+        argv: vec!["mdpro".to_string(), "file.md".to_string()],
+    }
+}
+
+#[test]
+fn popped_request_is_refused_if_retirement_wins_before_route() {
+    let handle = handle();
+    let (popped_tx, popped_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let release_rx = Arc::new(Mutex::new(release_rx));
+    handle.state.lock().unwrap().before_route = Some(Arc::new(move || {
+        popped_tx.send(()).unwrap();
+        release_rx.lock().unwrap().recv().unwrap();
+    }));
+    let (routed_tx, routed_rx) = mpsc::channel();
+    handle.publish(Arc::new(move |request| routed_tx.send(request).unwrap()));
+    let sender = handle.clone();
+    let receiving = thread::spawn(move || sender.receive(request()));
+    popped_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+    handle.retire();
+    release_tx.send(()).unwrap();
+    assert!(
+        !receiving.join().unwrap(),
+        "retired request must be refused"
+    );
+    assert!(
+        routed_rx.try_recv().is_err(),
+        "retired owner received a request"
+    );
+}
+
+#[test]
+fn retirement_waits_for_an_active_route_callback() {
+    let handle = handle();
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let release_rx = Arc::new(Mutex::new(release_rx));
+    handle.publish(Arc::new(move |_| {
+        entered_tx.send(()).unwrap();
+        release_rx.lock().unwrap().recv().unwrap();
+    }));
+    let sender = handle.clone();
+    let receiving = thread::spawn(move || sender.receive(request()));
+    entered_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+    let retiring = handle.clone();
+    let (done_tx, done_rx) = mpsc::channel();
+    let retirement = thread::spawn(move || {
+        retiring.retire();
+        done_tx.send(()).unwrap();
+    });
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while !handle.state.lock().unwrap().retiring {
+        assert!(Instant::now() < deadline, "retirement did not start");
+        thread::sleep(Duration::from_millis(1));
+    }
+    assert!(
+        done_rx.recv_timeout(Duration::from_millis(150)).is_err(),
+        "retire returned while a route callback was still running"
+    );
+    release_tx.send(()).unwrap();
+    retirement.join().unwrap();
+    receiving.join().unwrap();
+    assert!(done_rx.try_recv().is_ok());
+}
