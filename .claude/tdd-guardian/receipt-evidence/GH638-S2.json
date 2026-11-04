@@ -1,0 +1,96 @@
+{
+  "id": "GH638-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T05:30:02.951Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit caches a pinned cargo-audit\",\"installs the pinned version with --locked only when the cache missed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 87
+      },
+      "message": "AssertionError: expected 'cargo install cargo-audit --locked' to be 'cargo install cargo-audit --locked --…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit caches a pinned cargo-audit\",\"orders toolchain, cache, install, then the audit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 95
+      },
+      "message": "AssertionError: expected [ 1, undefined, 2, 3 ] to deeply equal [ 1, 2, 3, undefined ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit caches a pinned cargo-audit\",\"pins CARGO_AUDIT_VERSION once, at the workflow level, to an exact version\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected null to be '0.22.2' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 ci.yml rust-audit caches a pinned cargo-audit\",\"restores only the cargo-audit binary from actions/cache@v4, keyed by OS and version, with no prefix fallback\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 69
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit caches a pinned cargo-audit\",\"installs the pinned version with --locked only when the cache missed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 87
+      },
+      "message": "AssertionError: expected 'cargo install cargo-audit --locked' to be 'cargo install cargo-audit --locked --…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit caches a pinned cargo-audit\",\"orders toolchain, cache, install, then the audit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 95
+      },
+      "message": "AssertionError: expected [ 1, undefined, 2, 3 ] to deeply equal [ 1, 2, 3, undefined ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit caches a pinned cargo-audit\",\"pins CARGO_AUDIT_VERSION once, at the workflow level, to an exact version\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected null to be '0.22.2' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh640-cargo-audit-cache.test.ts\",\"GH640 rust-audit-daily.yml rust-audit caches a pinned cargo-audit\",\"restores only the cargo-audit binary from actions/cache@v4, keyed by OS and version, with no prefix fallback\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh640-cargo-audit-cache.test.ts",
+        "line": 69
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH638-S2/20261104T053002951Z/tests",
+    "tree": "b351ba4e846edfd365a8a37cabc2ee9385863741"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh640-cargo-audit-cache.test.ts": "533d8336054aaffecda287275edc61a9c2fbc987"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh640-cargo-audit-cache.test.ts": "533d8336054aaffecda287275edc61a9c2fbc987"
+  }
+}

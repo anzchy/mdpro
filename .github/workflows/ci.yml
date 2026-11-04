@@ -34,6 +34,13 @@ concurrency:
 permissions:
   contents: read
 
+# GH640: rust-audit restores this cargo-audit from actions/cache and compiles
+# it (137–172 s) only on a miss. ci.yml and rust-audit-daily.yml pin the same
+# version and cache key, so the daily run on master seeds the cache that
+# pull-request runs restore. Bump both files together.
+env:
+  CARGO_AUDIT_VERSION: "0.22.2"
+
 # ADR-0095: branch protection requires one check, `ci-gate`. `scope` decides
 # whether the PR touches anything but prose; `frontend` and `rust-test` skip
 # for a prose-only PR, and `ci-gate` reports every job's result as one check,
@@ -196,8 +203,17 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # Only the binary: the rest of ~/.cargo/bin is rustup's proxies. No
+      # restore-keys, so a version bump never restores the old binary.
+      - id: cargo-audit-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}-${{ env.CARGO_AUDIT_VERSION }}
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        if: steps.cargo-audit-cache.outputs.cache-hit != 'true'
+        run: cargo install cargo-audit --locked --version "$CARGO_AUDIT_VERSION"
 
       - name: Security audit (Rust)
         run: cargo audit
