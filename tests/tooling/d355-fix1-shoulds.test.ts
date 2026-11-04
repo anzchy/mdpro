@@ -2,7 +2,7 @@
 // D355 fix 1, shoulds: see d355-fix1-lib.ts for the shared scanner.
 import { describe, expect, it } from "vitest";
 import {
-  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, heldBody, currentText, addStatusParagraph, LATER_FOLD,
+  read, flat, count, sha, ISSUE_592, rawSection, section, normalise, sentences, SK, REF, LA, RR, CP, R70, R71, R12, IMPL, FOLD_IN, BRIEF_T, FIX_T, ADR, liveHomes, hitsIn, anchorExists, unresolvedSectionRefs, SECTION_PLACEHOLDERS, heldBody, currentText, addStatusParagraph, LATER_FOLD, isForwardLink, unresolvedForwardLinks,
 } from "./d355-fix1-lib";
 // D3's pins (#629): ADR-0085's and ADR-0134's bodies, and each one's forward-link paragraphs at 22ffe5ea by sha256
 // (0085: its 2026-10-28 partially superseded and D355's Current text; 0134: decision 7's partially superseded and D355's)
@@ -125,6 +125,44 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
           expect(heldBody(changed, D3_BASE[n]).missing, `${n} paragraph ${i}`).toEqual([D3_BASE[n][i]]);
         }
       }
+    }
+  });
+
+  it("D3 #629 fix 2: a forward link added to ADR-0085 is the whole paragraph and names a real, newer record", () => {
+    const rel = ADR("0085");
+    const file = rel.slice("docs/adr/".length);
+    const text = read(rel);
+    // each case: the paragraph, and what the target check reports for it (empty where only the form's shape is wrong)
+    const cases: [string, string, string[]][] = [
+      ["a missing ADR", "Superseded by [ADR-9999](9999-does-not-exist.md).",
+        [`${file}: ADR-9999: no such record`, `${file}: 9999-does-not-exist.md: file missing`]],
+      ["trailing prose", "Superseded by ADR-0165. Decision 1 is now void.", []],
+      ["a dated trailing clause", "2026-11-04 Superseded by ADR-0165; decision 1 is now void.", []],
+      ["a single-newline heading", "Superseded by ADR-0165.\n## Decision\n1. Nothing is audited.", []],
+      ["an older ADR", "Superseded by [ADR-0001](0001-wysiwyg-link-scheme-allowlist.md).",
+        [`${file}: ADR-0001: not newer than ADR-0085`]],
+      ["a Drifted with missing evidence", "2026-11-04 Drifted: the code no longer does this ([evidence](../test/does-not-exist.md)).",
+        [`${file}: ../test/does-not-exist.md: file missing`]],
+      ["a False in practice with missing evidence", "2026-11-04 False in practice: [evidence](../test/does-not-exist.md).",
+        [`${file}: ../test/does-not-exist.md: file missing`]],
+    ];
+    for (const [name, para, target] of cases) {
+      const changed = addStatusParagraph(text, para);
+      expect(changed, name).not.toBe(text);
+      expect(isForwardLink(para, "0085"), name).toBe(false);
+      expect(sha(heldBody(changed, D3_BASE["0085"]).body), name).not.toBe(D3_BODIES["0085"]);
+      expect(unresolvedForwardLinks(file, changed).bad, name).toEqual(target);
+    }
+    // the same forms, well made, are free and resolve
+    for (const para of [
+      "Superseded by [ADR-0165](0165-adrs-record-architecture-and-product-decisions-only.md), 2026-11-04.",
+      "2026-11-04 Drifted: the code no longer does this ([evidence](../test/20260921-d5-d6-real-device-measurement.md)).",
+      "2026-11-04 False in practice: [evidence](../test/20260921-d5-d6-real-device-measurement.md).",
+    ]) {
+      const changed = addStatusParagraph(text, para);
+      expect(isForwardLink(para, "0085"), para).toBe(true);
+      expect(heldBody(changed, D3_BASE["0085"]), para).toEqual({ body: heldBody(text, D3_BASE["0085"]).body, missing: [] });
+      expect(unresolvedForwardLinks(file, changed).bad, para).toEqual([]);
     }
   });
 

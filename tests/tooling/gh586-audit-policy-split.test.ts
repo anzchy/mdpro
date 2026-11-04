@@ -256,9 +256,12 @@ describe("GH586 fix 1: the entry supersedes ADR-0147 decision 5's caps, and ADR-
   it("#629: a later permitted forward-link paragraph does not break the pin", () => {
     const adr = read(adrPath);
     expect(adr0147Holds(addStatusParagraph(adr, LATER_FOLD))).toBe(true);
-    const changed = "**Current text: `docs/guide/load-guard.md#admission`; folded and changed by [`docs/agents/decisions/20261104-x.md`](../agents/decisions/20261104-x.md)**, 2026-11-04.";
+    // a real target and decision file: a form whose target does not resolve is not free (#629 fix 2)
+    const changed = "**Current text: `docs/guide/load-guard.md#admission-and-runtime`; folded and changed by [`docs/agents/decisions/20261104-adr-bar-raised.md`](../agents/decisions/20261104-adr-bar-raised.md)**, 2026-11-04.";
     expect(adr0147Holds(addStatusParagraph(adr, changed))).toBe(true);
-    expect(adr0147Holds(addStatusParagraph(adr, "2026-11-04 Drifted: see [evidence](../test/x.md)."))).toBe(true);
+    expect(adr0147Holds(addStatusParagraph(adr, "2026-11-04 Drifted: see [evidence](../test/20260921-d5-d6-real-device-measurement.md)."))).toBe(true);
+    // ... and one whose evidence is missing is not (#629 fix 2)
+    expect(adr0147Holds(addStatusParagraph(adr, "2026-11-04 Drifted: see [evidence](../test/x.md)."))).toBe(false);
   });
 
   it("#629: a body byte, a non-permitted Status edit or a missing fold line still fails it (mutation guard)", () => {
