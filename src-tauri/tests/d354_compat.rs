@@ -4,9 +4,12 @@ use std::fs;
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::os::unix::net::UnixListener;
+use std::sync::Mutex;
 use tauri_app_lib::services::instance_admission::{admit, Admission, Namespace};
 
 const UNQUALIFIED_PEER_DEADLINE: std::time::Duration = std::time::Duration::from_secs(3);
+// Serialize child spawns and listener creation within this test binary.
+static COMPAT_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 fn assert_zero_request_bytes_then_closed(listener: &UnixListener, until: std::time::Instant) {
     use std::io::Read;
@@ -68,6 +71,7 @@ fn cleanup(namespace: &Namespace) {
 
 #[test]
 fn unrelated_public_file_remains_intact_and_prevents_private_owner_setup() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let (key, namespace) = unique_namespace();
     let marker = b"not a socket";
     fs::write(&namespace.public_alias, marker).unwrap();
@@ -89,6 +93,7 @@ fn unrelated_public_file_remains_intact_and_prevents_private_owner_setup() {
 
 #[test]
 fn same_uid_stale_public_socket_is_preserved_and_refused() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let (key, namespace) = unique_namespace();
     let listener = UnixListener::bind(&namespace.public_alias).unwrap();
     let inode = fs::symlink_metadata(&namespace.public_alias).unwrap().ino();
@@ -106,6 +111,7 @@ fn same_uid_stale_public_socket_is_preserved_and_refused() {
 
 #[test]
 fn late_stale_legacy_socket_retries_until_deadline_without_replacement() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::time::{Duration, Instant};
     use tauri_app_lib::services::instance_admission::{
         admit_with_alias_creation_hook_for_test, LEGACY_COMPATIBLE_IMAGES,
@@ -145,6 +151,7 @@ fn late_stale_legacy_socket_retries_until_deadline_without_replacement() {
 
 #[test]
 fn public_alias_bound_after_classification_wins_exclusive_creation() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::os::unix::fs::symlink;
     use std::os::unix::net::UnixStream;
     use tauri_app_lib::services::instance_admission::{
@@ -215,6 +222,7 @@ fn public_alias_bound_after_classification_wins_exclusive_creation() {
 
 #[test]
 fn unqualified_same_uid_listener_receives_no_request_bytes() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::time::Instant;
 
     let (key, namespace) = unique_namespace();
@@ -291,6 +299,7 @@ fn finish_nc(mut child: std::process::Child) -> Vec<u8> {
 #[test]
 #[ignore = "run only as an ad hoc signed subprocess fixture"]
 fn signed_listener_fixture() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::io::{Read, Write};
 
     let socket = std::env::var_os("D354_SIGNED_LISTENER_SOCKET").expect("fixture socket path");
@@ -314,6 +323,7 @@ fn signed_listener_fixture() {
 
 #[test]
 fn late_compatible_legacy_socket_forwards_one_bounded_frame() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::io::Read;
     use std::os::fd::AsRawFd;
     use std::os::unix::fs::PermissionsExt;
@@ -416,6 +426,7 @@ fn late_compatible_legacy_socket_forwards_one_bounded_frame() {
 
 #[test]
 fn signed_connected_peer_requires_exact_running_cdhash_before_receiving_bytes() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::io::Write;
     use std::net::Shutdown;
     use tauri_app_lib::services::instance_admission::{qualify_connected_peer, CompatibleImage};
@@ -443,6 +454,7 @@ fn signed_connected_peer_requires_exact_running_cdhash_before_receiving_bytes() 
 
 #[test]
 fn qualified_forwarder_sends_one_frame_and_wrong_hash_sends_no_bytes() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::time::{Duration, Instant};
     use tauri_app_lib::services::instance_admission::{forward_if_qualified, CompatibleImage};
 
@@ -466,7 +478,8 @@ fn qualified_forwarder_sends_one_frame_and_wrong_hash_sends_no_bytes() {
                 Instant::now() + Duration::from_secs(3),
                 &[CompatibleImage { cdhash }],
             ),
-            expected_success
+            expected_success,
+            "forwarder result for cdhash {cdhash}"
         );
         let received = finish_nc(child);
         assert_eq!(
@@ -483,6 +496,7 @@ fn qualified_forwarder_sends_one_frame_and_wrong_hash_sends_no_bytes() {
 
 #[test]
 fn running_signature_survives_replacement_of_the_connected_peer_path() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::os::unix::fs::PermissionsExt;
     use std::process::Command;
     use tauri_app_lib::services::instance_admission::{qualify_connected_peer, CompatibleImage};
@@ -562,6 +576,7 @@ impl Drop for SuspendedLegacy {
 
 #[test]
 fn installed_035_running_image_matches_only_its_approved_hash() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::ffi::CString;
     use tauri_app_lib::services::instance_admission::{
         running_image_allowed, CompatibleImage, LEGACY_COMPATIBLE_IMAGES,
@@ -609,6 +624,7 @@ fn installed_035_running_image_matches_only_its_approved_hash() {
 
 #[test]
 fn foreign_uid_public_entry_does_not_block_private_owner_or_change_foreign_inode() {
+    let _guard = COMPAT_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     use std::os::unix::net::UnixStream;
     use std::path::Path;
     use tauri_app_lib::services::instance_admission::admit_with_public_alias_for_test;
