@@ -1,0 +1,51 @@
+{
+  "id": "GH624-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T05:11:28.102Z",
+  "head_sha": "f9a014864a00b32bbceb55ea2b01be4c476fdd72",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/t567-receipt-wrapper-timeouts.test.ts": {
+      "state": "ok",
+      "sha": "4d8565908bba58cbc6081e90ba732c6e05c5249ef5e90d633a5f29cb1a4031eb",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "c110ad21c643bc95",
+        "efb2893cf8a54a66",
+        "08b72b9bcd8f617b",
+        "33d0f18f60255202",
+        "4b9422533098bee8",
+        "9021cb26e0c1dcb7",
+        "6f18bf72a6ce2213",
+        "ea2e73678cc0f7f7",
+        "f8f9ea18f54e8440",
+        "29b61a3e443f59cc",
+        "2f4a5652a4a1053c",
+        "80f402f82ae3542b",
+        "232eb062dd7519fe",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf",
+        "16f3e2df524361e9",
+        "df3982fd61017359",
+        "d5833291c076ad37",
+        "1fd4f92681797b35",
+        "55c51b9015248c18",
+        "5238f5a6460e379b",
+        "f5d4b5e85749f6f7",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T05:13:56.852Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

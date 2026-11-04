@@ -1,0 +1,34 @@
+{
+  "id": "GH624-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T05:11:28.102Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper-timeouts.test.ts\",\"GH624-S3 keeps every spawn-heavy case in the unit file with an explicit timeout\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper-timeouts.test.ts",
+        "line": 26
+      },
+      "message": "AssertionError: W5 must occur once in the unit file: expected [] to have a length of 1 but got +0"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH624-S3/20261104T051128102Z/tests",
+    "tree": "98166cd2123a6f650075202121c8a52779a1f236"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper-timeouts.test.ts": "75ef351267809adf461d37e79522128f149c5489"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper-timeouts.test.ts": "75ef351267809adf461d37e79522128f149c5489"
+  }
+}
