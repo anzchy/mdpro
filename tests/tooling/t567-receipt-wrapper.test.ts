@@ -46,14 +46,14 @@ describe("T567 r5 receipt wrapper: each mode runs its command", () => {
       "entry record --id T-W --test tests/a.test.ts",
     ]);
     expect(run.status).toBe(0);
-  });
+  }, 30000);
 
   it("W2 frontend-verify reaches the entry through the guard with the id only", async () => {
     const repo = stubRepo(made);
     const run = await runWrapper(["frontend-verify", "--id", "T-W"], { cwd: repo.top, env: repo.env() });
     expect(calls(repo.records())).toEqual([`guard --guard-only node ${ENTRY} verify --id T-W`, `node ${ENTRY} verify --id T-W`, "entry verify --id T-W"]);
     expect(run.status).toBe(0);
-  });
+  }, 30000);
 
   it("W3 rust-record reaches the entry directly, with the rust lane, never through the guard", async () => {
     const repo = stubRepo(made);
@@ -87,14 +87,14 @@ describe("T567 r5 receipt wrapper: each mode runs its command", () => {
     await runWrapper(RECORD_W1, { cwd: repo.top, env: repo.env() });
     const entry = repo.records().find((r) => r.who === "entry")!;
     expect({ script: entry.script, cwd: entry.cwd }).toEqual({ script: path.join(repo.top, ENTRY), cwd: repo.top });
-  });
+  }, 30000);
 
   it("W7 exits with the entry's status, through the guard and directly", async () => {
     for (const args of [RECORD_W1, ["rust-verify", "--id", "T-W"]]) {
       const repo = stubRepo(made);
       expect((await runWrapper(args, { cwd: repo.top, env: repo.env({ T567_ENTRY_EXIT: "7" }) })).status).toBe(7);
     }
-  });
+  }, 30000);
 
   it("W8 exits 76 when the load guard stops before running anything", async () => {
     const repo = stubRepo(made);
@@ -113,13 +113,13 @@ describe("T567 r5 receipt wrapper: each mode runs its command", () => {
     const repo = stubRepo(made);
     await runWrapper(["frontend-record", "--id", "T567-S99b", "--test", "tests/测试 a b.test.ts"], { cwd: repo.top, env: repo.env() });
     expect(repo.records().find((r) => r.who === "entry")!.argv).toEqual(["record", "--id", "T567-S99b", "--test", "tests/测试 a b.test.ts"]);
-  });
+  }, 30000);
 
   it("W11 takes --test before --id the same way", async () => {
     const repo = stubRepo(made);
     await runWrapper(["frontend-record", "--test", "tests/a.test.ts", "--id", "T-W"], { cwd: repo.top, env: repo.env() });
     expect(calls(repo.records())).toEqual(W1_CALLS);
-  });
+  }, 30000);
 
   it("W12 runs no shell: metacharacters in the id and the path arrive as bytes and run nothing", async () => {
     const id = "T-$(touch pwned)";
@@ -131,7 +131,7 @@ describe("T567 r5 receipt wrapper: each mode runs its command", () => {
       expect(entries.map((r) => r.argv)).toEqual([["record", "--id", id, ...lane, "--test", test]]);
       expect(fs.existsSync(path.join(repo.top, "pwned"))).toBe(false);
     }
-  });
+  }, 30000);
 
   it("W13 never exits 0 when the receipt command is killed by a signal", async () => {
     const direct = stubRepo(made);
@@ -139,7 +139,7 @@ describe("T567 r5 receipt wrapper: each mode runs its command", () => {
     const guarded = stubRepo(made);
     const run = await runWrapper(RECORD_W1, { cwd: guarded.top, env: guarded.env({ T567_ENTRY_SIGKILL: "1" }) });
     expect(run.status === null || run.status === 0).toBe(false);
-  });
+  }, 30000);
 
   it("W14 passes a 2 MiB stdout through whole and keeps the status", async () => {
     const repo = stubRepo(made);
@@ -232,7 +232,7 @@ describe("T567 r5 receipt wrapper: the repository is its cwd's git top level", (
     await runWrapper(RECORD_W1, { cwd: path.join(linked, "sub"), env: repo.env() });
     const entry = repo.records().find((r) => r.who === "entry");
     expect({ script: entry?.script, cwd: entry?.cwd }).toEqual({ script: path.join(linked, ENTRY), cwd: linked });
-  });
+  }, 30000);
 
   it("P5 ignores look-alike scripts in a non-git subdirectory between the cwd and the top", async () => {
     const repo = stubRepo(made);
@@ -244,7 +244,7 @@ describe("T567 r5 receipt wrapper: the repository is its cwd's git top level", (
     fs.mkdirSync(path.join(repo.top, "sub/dir"));
     await runWrapper(RECORD_W1, { cwd: path.join(repo.top, "sub/dir"), env: repo.env() });
     expect(calls(repo.records())).toEqual(W1_CALLS);
-  });
+  }, 30000);
 
   it("R6 refuses to run outside a git repository", async () => {
     const repo = stubRepo(made);

@@ -1,0 +1,34 @@
+{
+  "id": "GH624-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T08:01:31.201Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-receipt-wrapper-timeouts.test.ts\",\"GH624-S4 keeps measured cases active with exact titles and explicit timeouts\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/t567-receipt-wrapper-timeouts.test.ts",
+        "line": 60
+      },
+      "message": "TypeError: actual value must be number or bigint, received \"undefined\""
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH624-S4/20261104T080131201Z/tests",
+    "tree": "f8c5cd0ce60b5d10c6eac7bbc4acb1aac81a5a81"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-receipt-wrapper-timeouts.test.ts": "812f61c7eab8636eb374ab1ea54836779bcae573"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-receipt-wrapper-timeouts.test.ts": "812f61c7eab8636eb374ab1ea54836779bcae573"
+  }
+}
