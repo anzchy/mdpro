@@ -4,7 +4,8 @@
 // additions are free; `unresolvedCurrentText` checks every Current text target (#629 and its fix 1; their own tests are
 // adr-forward-links.test.ts). Fix 2: each form is the whole paragraph and its ADRs, links and targets resolve
 // (`forwardLinkTargets`, `unresolvedForwardLinks`); four unpinned live lines (0135, 0150, 0165 x2) are exempt from the
-// live form check by exact sha256 (`isFormExempt`), which no pin relies on.
+// live form check by exact sha256 (`isFormExempt`), which no pin relies on. GH629-T2 fix 3 accepts the dated
+// changed-fold Current text form with one nonempty scope parenthetical and a terminal period.
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -145,7 +146,8 @@ export function unresolvedSectionRefs(file: string, text: string): string[] {
 // date is allowed. Anything else, the `**Status**:` line and a backward `Supersedes …` included, is not a forward link.
 // Fix 2: each form is the whole paragraph (WHOLE, anchored at the end): its own fields, an optional date, and for Current
 // text an optional `(#NNN)` or `(DNNN, ADR-NNNN WI-N; [entry](…))` source, `for decision(s) N` scope and `as amended by
-// ADR-…` list, then terminal punctuation. A paragraph with a line starting `#` is never one. The free text of a
+// ADR-…` list, then terminal punctuation. The changed-fold decision form has exactly one `(date, scope)` parenthetical
+// and a terminal period. A paragraph with a line starting `#` is never one. The free text of a
 // partially superseded clause and of a Drifted / False in practice description is the README form's own, an accepted
 // limit. FORMS, the same forms anchored at the start only, finds the paragraphs whose targets must resolve.
 const DATE = String.raw`\(?\d{4}-\d{2}-\d{2}\)?`;
@@ -154,10 +156,13 @@ const ADR_REF = String.raw`(?:\*\*)?\[?ADR-\d{4}\b`;
 const TARGET = "`[^`\\s#]+#[^`\\s#]+`";
 const DECISION = "`docs/agents/decisions/[^`\\s]+\\.md`";
 const ROUTE = String.raw`folded (?:by ADR-0165\b|and changed by (?:\[${DECISION}\]\(\.\./agents/decisions/[^)\s]+\.md\)|${DECISION}))`;
+const CHANGED_ROUTE = String.raw`folded and changed by ${DECISION}`;
+const CHANGED_SCOPE = String.raw`\((?<date2>\d{4}-\d{2}-\d{2}), [^()\n]+\)`;
 const FORMS: RegExp[] = [
   new RegExp(String.raw`${LEAD}superseded(?:\*\*)?(?:,?\s+${DATE})?\s+by\s+${ADR_REF}`, "i"),
   new RegExp(String.raw`${LEAD}partially superseded(?:\*\*)?:\s+\S[\s\S]*?\s+by\s+${ADR_REF}`, "i"),
   new RegExp(String.raw`${LEAD}current text: ${TARGET}(?:[;,] ${TARGET})*; ${ROUTE}(?:\*\*)?(?:,\s+(?<date2>\d{4}-\d{2}-\d{2}))?`, "i"),
+  new RegExp(String.raw`${LEAD}current text: ${TARGET}; ${CHANGED_ROUTE} ${CHANGED_SCOPE}\.$`, "i"),
   new RegExp(String.raw`${LEAD}(?:drifted|false in practice)(?:\*\*)?(?:,?\s+(?<date2>${DATE}))?[:,][\s\S]*\]\([^)\s]+\)`, "i"),
 ];
 const BY = String.raw`(?:\[ADR-\d{4}\]\([^)\s]+\)|ADR-\d{4}\b)`;
@@ -168,6 +173,7 @@ const WHOLE: RegExp[] = [
   new RegExp(String.raw`${LEAD}superseded(?:\*\*)?(?: ${DATE})? by ${BY}(?:\*\*)?(?:(?:,| —| -)? ${DATE})?${END}`, "i"),
   new RegExp(String.raw`${LEAD}partially superseded(?:\*\*)?: \S.*? by ${BY}(?:\*\*)?(?:,? ${DATE})?${END}`, "i"),
   new RegExp(String.raw`${LEAD}current text: ${TARGET}(?:[;,] ${TARGET})*; ${ROUTE}(?:\*\*)?(?:, (?<date2>\d{4}-\d{2}-\d{2}))?${SOURCE}${SCOPE}${END}`, "i"),
+  new RegExp(String.raw`${LEAD}current text: ${TARGET}; ${CHANGED_ROUTE} ${CHANGED_SCOPE}\.$`, "i"),
   new RegExp(String.raw`${LEAD}(?:drifted|false in practice)(?:\*\*)?(?:,? (?<date2>${DATE}))?[:,] [^[\]]*?\[[^\]]+\]\([^)\s]+\)\)?${END}`, "i"),
 ];
 // Four live Current text lines carry a prose tail no form has (fix 2 ruling 1, option a). Each is exempt from the live
@@ -181,7 +187,7 @@ const FORM_EXEMPT: readonly { record: string; sha256: string }[] = [
 ];
 /** True when `p` is one of the four exempt lines, byte for byte, on its own record `record`. */
 export const isFormExempt = (record: string, p: string) => FORM_EXEMPT.some((e) => e.record === record && e.sha256 === sha(p));
-const DATED = [false, false, true, true]; // the Current text and Drifted / False in practice forms must carry a date
+const DATED = [false, false, true, true, true]; // the Current text and Drifted / False in practice forms must carry a date
 const HEADING_LINE = /^ {0,3}#/m;
 /** The record number a text's `# NNNN.` title gives, or "" when it has none. */
 export const recordOf = (text: string) => text.match(/^# (\d{4})\./)?.[1] ?? "";
