@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S27",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:14:49.556Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d336-dialog-receipt-inventory.test.ts\",\"keeps the seven original dialog-receipt cases and titles\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d336-dialog-receipt-inventory.test.ts",
+        "line": 24
+      },
+      "message": "AssertionError: expected { caseCount: 6, …(1) } to deeply equal { caseCount: 7, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S27/20261105T031449556Z/tests",
+    "tree": "0a7fa428a98b4a1aa5a2333594030b5d395caeaf"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d336-dialog-receipt-inventory.test.ts": "ce491c53b990c0d7ee25213e3777a06ba8b9bc49"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d336-dialog-receipt-inventory.test.ts": "ce491c53b990c0d7ee25213e3777a06ba8b9bc49"
+  }
+}

@@ -50,7 +50,7 @@ async function issued(dir: string) {
   return { token: token as string, r: await record(dir) };
 }
 
-describe("D336 F7 a scoped receipt bridges modal entry without parent CDP", () => {
+describe.concurrent("D336 F7 a scoped receipt bridges modal entry without parent CDP", () => {
   it("is issued before modal entry with A's title restored, and a separate no-CDP invocation consumes it once, A only", async () => {
     const dir = await newStore();
     const producer = await issue(dir);
