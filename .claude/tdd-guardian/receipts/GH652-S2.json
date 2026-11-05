@@ -1,0 +1,80 @@
+{
+  "id": "GH652-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:21:53.313Z",
+  "head_sha": "937cf44787190b9a9c4b229d8d568d3530a0a69c",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": {
+      "state": "ok",
+      "sha": "b62c5091de9a44dde5e149051f9eb0361759bd251ddc0344f3aa21b1a84baa29",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "cbc5a753d2850234",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "7bcc1f462d5e52a5",
+        "2df46ae395cc4a31",
+        "0b0cbece65d858ae",
+        "dc20b5fdff00469a",
+        "42a093c6521faba5",
+        "d10b36aa74a59bcf",
+        "3ebb50a5f59687dd",
+        "d10b36aa74a59bcf",
+        "13b83abf05404343",
+        "ab127c97c664f201",
+        "b52ad59931c12ffd",
+        "12053325e25766c7",
+        "b011df9031acfabf",
+        "77b155f38ec54545",
+        "e23048b121847aeb",
+        "4c3b9ce519df2082",
+        "9e76aea1d94191fb",
+        "29576b54e255e3c9",
+        "d8ca83882ab09c7c",
+        "88c0a8e68efa7112",
+        "f447c304a7d8b9e1",
+        "5252dc5989913e5b",
+        "cc04c0a988c494b6",
+        "4286550b78631a0c",
+        "eba1b01832c0a709",
+        "fc60035a64c31432",
+        "91057aa0c120b107",
+        "86fb4b8c51bf9f75",
+        "cb1be625dcb99333",
+        "8160f38ce89366ea",
+        "0dbb684133a04dcc",
+        "46165d51dd31dce3",
+        "6b096979c0cf3343",
+        "ba75c5f88b66a332",
+        "336a604065750e6f",
+        "63c3d4fece15c437",
+        "d10b36aa74a59bcf",
+        "edb430e6bc996320",
+        "7b453f9ff3cfd88b",
+        "ebbfbdbb18d116c2",
+        "aff4158fac77efc4",
+        "40f3030186df9e3c",
+        "ebbfbdbb18d116c2"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T05:24:14.664Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

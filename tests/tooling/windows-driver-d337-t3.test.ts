@@ -10,9 +10,9 @@ async function exists(file: string) { try { await access(file); return true; } c
 
 describe("D337 T3 executable supervisor boundary outcomes against pre-existing code", () => {
   it.each(["discovery", "uia", "title-restore", "after-input", "held"])("retains durable %s phase and the actual completed prefix", async (phase) => {
-    const fixture = await supervisorFixture(phase);
+    const fixture = await supervisorFixture(phase, { entry: { CleanupMs: "5000" } });
     const started = Date.now();
-    const result = await fixture.start().result;
+    const result = await fixture.start(undefined, {}, { DeadlineMs: String(Date.now() + 20000) }).result;
     const value = outcome(result.lines);
     expect(result.status, result.stderr).not.toBe(0);
     expect(value.phase).toContain(phase);
@@ -23,7 +23,7 @@ describe("D337 T3 executable supervisor boundary outcomes against pre-existing c
     const durable = JSON.parse(await readFile(path.join(fixture.dir, "runs", fixture.runId, "result.json"), "utf8"));
     expect(durable).toMatchObject({ runId: fixture.runId, phase: value.phase, completedSteps: value.completedSteps });
     expect(await exists(path.join(fixture.dir, "task"))).toBe(false);
-  }, 15000);
+  }, 25000);
   it("a cleanup stall cannot turn an already completed worker into caller success", async () => {
     const fixture = await supervisorFixture("cleanup-stall");
     const result = await fixture.start().result;

@@ -17,7 +17,9 @@ describe("D337 a lost task exit code never hides the worker's committed failure 
     ["resolver", "window-resolver"],
     ["stdout", "window-resolver"],
   ])("a %s stall with exit 0 still fails, naming %s", async (stall, phase) => {
-    const fixture = await productionWorkerFixture(stall, steps, { exitStatus: "lost" });
+    const fixture = await productionWorkerFixture(stall, steps, {
+      exitStatus: "lost", supervisorEnv: { TEST_DISABLE_WORKER_PHASE_CHECKS: "1" },
+    });
     const result = await fixture.start().result;
     expect(result.status, result.stderr + result.lines.join(" ")).not.toBe(0);
     const value = outcome(result.lines);

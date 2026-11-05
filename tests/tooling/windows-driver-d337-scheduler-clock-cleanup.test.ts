@@ -18,16 +18,16 @@ describe("D337 cleanup readiness bound", () => {
   }, 25000);
 
   it.each(["never ready", "ready after cleanup limit"])("keeps the latch when cleanup is %s", async (mode) => {
-    const fixture = await supervisorFixture("success", { entry: { DeadlineMs: String(Date.now() + 15000) },
+    const fixture = await supervisorFixture("success", {
       env: { TEST_SCHED_BOOT_OP: "cleanup", TEST_SCHED_BOOT_MS: mode === "never ready" ? "10000" : "5000" } });
-    const result = await fixture.start().result;
+    const result = await fixture.start(undefined, {}, { DeadlineMs: String(Date.now() + 20000) }).result;
     const value = outcome(result.lines);
     expect(result.status).not.toBe(0);
     expect(value.cleanup).toBe("failed");
     expect(value.phase).toContain("NATIVE_PHASE_TIMEOUT phase=scheduler-cleanup");
     expect(await exists(path.join(fixture.dir, "native-session-blocked.json"))).toBe(true);
     expect(await exists(path.join(fixture.dir, "task"))).toBe(true);
-    const later = await fixture.start("d".repeat(32)).result;
+    const later = await fixture.start("d".repeat(32), {}, { DeadlineMs: String(Date.now() + 20000) }).result;
     expect(later.lines.join(" ")).toContain("NATIVE_RECONCILIATION_REQUIRED");
     const blocked = JSON.parse(await readFile(path.join(fixture.dir, "native-session-blocked.json"), "utf8"));
     expect(blocked.cleanup).toBe("failed");

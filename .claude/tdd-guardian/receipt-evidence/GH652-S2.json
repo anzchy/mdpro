@@ -1,0 +1,42 @@
+{
+  "id": "GH652-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:21:53.313Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts\",\"GH652-S1 labels an unread ready marker before a later worker deadline\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=uia worker…' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts\",\"GH652-S2 labels the boot ceiling before a later worker deadline\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=uia worker…' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH652-S2/20261105T052153313Z/tests",
+    "tree": "374040a332c79a8bb02bc64d263c50dde1285016"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": "c5686fc062f824ceb2fe81d0128d9198baa98bd5"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": "c5686fc062f824ceb2fe81d0128d9198baa98bd5"
+  }
+}

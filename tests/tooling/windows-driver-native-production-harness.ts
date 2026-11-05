@@ -67,6 +67,8 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
   scenario?: object;
   /** Stands in for the host's dialog receipt store; a fresh folder by default. */
   receiptDir?: string;
+  /** Isolate the committed-result path from the supervisor's earlier phase timeout. */
+  supervisorEnv?: Record<string, string>;
 } = {}) {
   const prepared = await prepareNative([], {}, { receiptDir: options.receiptDir });
   let script = await readFile(prepared.scriptPath, "utf8");
@@ -82,7 +84,7 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
     .replace("$TS = $null", "$TS = [System.Windows.Automation.TreeScope]");
   const fixture = await supervisorFixture("production", {
     // The absolute deadline is set at start, after fixture setup, without widening it.
-    steps, entry: { PhaseMs: "3000", ...options.entry },
+    steps, entry: { PhaseMs: "3000", ...options.entry }, env: options.supervisorEnv,
   });
   const bin = path.join(fixture.dir, "bin");
   const trace = path.join(fixture.dir, "trace.txt");
