@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S24",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:55:39.599Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-post-exit-order.test.ts\",\"gives the worker its earlier deadline after a Scheduler child exits and result reading crosses both limits\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-post-exit-order.test.ts",
+        "line": 19
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=scheduler-…' to contain 'NATIVE_PHASE_TIMEOUT phase=uia'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S24/20261105T005539599Z/tests",
+    "tree": "6161398714656a9b4c34b52c31b0cb99777d1edb"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-post-exit-order.test.ts": "2317aadd789c7271510ef9dab8f517f58d25d586"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-post-exit-order.test.ts": "2317aadd789c7271510ef9dab8f517f58d25d586"
+  }
+}

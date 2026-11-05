@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S19",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:51:31.740Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-marker-guards.test.ts\",\"rejects a pid marker and starts the operation clock only at the later valid marker\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-marker-guards.test.ts",
+        "line": 26
+      },
+      "message": "AssertionError: expected 976 to be greater than or equal to 2400"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S19/20261105T005131740Z/tests",
+    "tree": "f7eb1475f59f3b0746c9de8bafcdc8db70df0690"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-marker-guards.test.ts": "e6339eaa12bd6783521f8addf07ac4d96f041079"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-marker-guards.test.ts": "e6339eaa12bd6783521f8addf07ac4d96f041079"
+  }
+}

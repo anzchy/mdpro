@@ -1,0 +1,58 @@
+{
+  "id": "GH637-S18",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:51:09.966Z",
+  "head_sha": "fe597bef72d7d097914193cc4ecea037e39097c0",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-marker-guards.test.ts": {
+      "state": "ok",
+      "sha": "bfa2f3fc4c9ca95f10d81dd0957ce564167b01a1e7e4710761d02e50b930cffd",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "4cc89111028d3645",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "80cb3df54ce1c198",
+        "571c84ad9074d2ba",
+        "de813cb7f83b8e4f",
+        "0655e1b81458dfd0",
+        "2252683d27a9c5d6",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "9e257199f8572c35",
+        "564bf010ff6aa159",
+        "a5631744b33f3919",
+        "556c8b02451f62d0",
+        "38a923a55f15ae4b",
+        "3ef53ab4c80ec258",
+        "4c39dc8f7403f5dd",
+        "41fe4405867d1d8f",
+        "86f88e7c2a1c4cd6",
+        "3d7686ee660dc289",
+        "22393fbe0f265ff3",
+        "b9781b4592814353",
+        "ac5507a0dee97ea8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T00:52:20.726Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

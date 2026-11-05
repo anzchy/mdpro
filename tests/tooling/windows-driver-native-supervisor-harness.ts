@@ -32,7 +32,11 @@ public sealed class NativeJobScope : IDisposable {
    }
    var info = new ProcessStartInfo("pwsh", args.Replace("powershell.exe", "pwsh"));
    info.UseShellExecute = false; info.RedirectStandardOutput = true; info.RedirectStandardError = true;
-   var p = Process.Start(info); children.Add(p.Id); File.AppendAllText(Path.Combine(Root,"scheduler-pids"),p.Id.ToString() + Environment.NewLine); return p;
+   var p = Process.Start(info); children.Add(p.Id); File.AppendAllText(Path.Combine(Root,"scheduler-pids"),p.Id.ToString() + Environment.NewLine);
+   if (request.Success && File.ReadAllText(request.Groups[1].Value).Contains("\"op\":\"poll\"") &&
+       Environment.GetEnvironmentVariable("TEST_RECORD_FIRST_POLL_START") == "1" && !File.Exists(Path.Combine(Root,"first-poll-start")))
+     File.WriteAllText(Path.Combine(Root,"first-poll-start"),DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+   return p;
  }
  public NativeJobMember[] Snapshot() {
    var result = new List<NativeJobMember>();
@@ -136,6 +140,10 @@ $partial=$phase -eq "after-input" -or $phase -eq "held" -or $phase -eq "lost-pro
 $state=@{ runId=$env:TEST_RUN_ID; phase=$phase; phaseStartedMs=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); phaseComplete=$false;
  step=1; op="clickat"; elapsedMs=0; completedSteps=$(if($partial){1}else{0}); inputOutcome=$(if($partial){"partial"}else{"none"});
  heldInput=$(if($phase -eq "held"){"uncertain"}else{"released"}); cleanup="pending"; log=@("phase:start $phase") }
+if ($env:TEST_WORKER_EXPIRY_BEFORE_WORK_LIMIT_MS) {
+ $state.phaseStartedMs = [long]$env:MDPRO_NATIVE_CLEANUP_DEADLINE_MS - [int]$env:TEST_CLEANUP_MS -
+   [int]$env:TEST_WORKER_PHASE_MS - [int]$env:TEST_WORKER_EXPIRY_BEFORE_WORK_LIMIT_MS
+}
 $script:progressWrites=0
 function Write-FakeProgress {
  $script:progressWrites++
@@ -149,6 +157,14 @@ function Write-FakeProgress {
  if($env:TEST_ATOMIC_PAUSE_WRITE -and $script:progressWrites -eq [int]$env:TEST_ATOMIC_PAUSE_WRITE) {
   [IO.File]::WriteAllText("$env:TEST_ROOT/atomic-published", "ready")
  }
+}
+if($env:TEST_PROGRESS_ANCHOR_FIRST_POLL_START) {
+ $until=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 8000
+ while(-not (Test-Path "$env:TEST_ROOT/first-poll-start")) {
+  if([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() -ge $until) { throw "first poll start not observed" }
+  [Threading.Thread]::Sleep(10)
+ }
+ $state.phaseStartedMs=[long][IO.File]::ReadAllText("$env:TEST_ROOT/first-poll-start") - [int]$env:TEST_PROGRESS_ANCHOR_FIRST_POLL_START
 }
 if($env:TEST_PROGRESS_AFTER_FIRST_POLL) {
  $until=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 8000
@@ -211,12 +227,24 @@ export async function supervisorFixture(scenario: string, options: {
   let scheduler = await readFile(path.join(dir, "native-scheduler.ps1"), "utf8");
   scheduler = scheduler.replace("try {", schedulerBoundary + `
 if (-not $env:TEST_SCHED_BOOT_OP -or $env:TEST_SCHED_BOOT_OP -eq $r.op) {
+  if ($env:TEST_SCHED_RACE_AFTER_SAMPLE) {
+    $until=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 5000
+    while(-not (Test-Path "$env:TEST_ROOT/supervisor-sampled")) {
+      if([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() -ge $until) { throw "supervisor sample not observed" }
+      [Threading.Thread]::Sleep(10)
+    }
+  }
+  if ($env:TEST_SCHED_READY_AFTER_BOOT_MS) { [Threading.Thread]::Sleep([int]$env:TEST_SCHED_READY_AFTER_BOOT_MS) }
   if ($env:TEST_SCHED_BAD_MARKER -and $r.readyPath) {
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $nonce = if ($env:TEST_SCHED_BAD_MARKER -eq "nonce") { "wrong" } else { $r.readyNonce }
     $pidValue = if ($env:TEST_SCHED_BAD_MARKER -eq "pid") { $PID + 1 } else { $PID }
     $time = if ($env:TEST_SCHED_BAD_MARKER -eq "stale") { $now - 60000 } elseif ($env:TEST_SCHED_BAD_MARKER -eq "future") { $now + 60000 } else { $now }
     @{ nonce=$nonce; pid=$pidValue; readyUtcMs=$time } | ConvertTo-Json -Compress | Set-Content -LiteralPath $r.readyPath -Encoding UTF8
+    if ($env:TEST_SCHED_BAD_MARKER_GAP_MS) {
+      [Threading.Thread]::Sleep([int]$env:TEST_SCHED_BAD_MARKER_GAP_MS)
+      Remove-Item -LiteralPath $r.readyPath
+    }
   }
   if ($env:TEST_SCHED_BOOT_MODE -eq "exit") { exit 8 }
   if ($env:TEST_SCHED_BOOT_MS) { [Threading.Thread]::Sleep([int]$env:TEST_SCHED_BOOT_MS) }
@@ -226,17 +254,74 @@ try {`)
   const reconcileScript = await readFile(path.join(dir, "native-reconcile.ps1"), "utf8");
   let supervisorScript = await readFile(path.join(dir, "native-supervisor.ps1"), "utf8");
   if (process.env.TEST_DISABLE_OUTER_WORKER_CHECK === "1") {
-    const original = 'if ($value -and -not $value.phaseComplete -and $now - [long]$value.phaseStartedMs -ge $PhaseMs)';
+    const original = 'if ($workerEnd -le $effectiveLimit -and $now -ge $workerEnd)';
     if (!supervisorScript.includes(original)) throw new Error("outer worker check changed shape");
-    supervisorScript = supervisorScript.replace(original, original.replace('if ($value', 'if ($false -and $value'));
+    supervisorScript = supervisorScript.replace(original, original.replace('if ($workerEnd', 'if ($false -and $workerEnd'));
+  }
+  for (const [name, guard] of [["NONCE", '$ready.nonce -ceq $ReadyNonce'], ["PID", '[long]$ready.pid -eq $ChildId'],
+    ["STALE", '$stamp -ge $Launch']] as const) {
+    if (process.env[`TEST_DISABLE_MARKER_${name}_CHECK`] === "1") {
+      if (!supervisorScript.includes(guard)) throw new Error(`marker ${name} check changed shape`);
+      supervisorScript = supervisorScript.replace(guard, "$true");
+    }
+  }
+  if (process.env.TEST_DISABLE_DEADLINE_PRECEDENCE === "1") {
+    const guard = '$workerEnd -le $schedulerEnd -and $Now -ge $workerEnd';
+    if (!supervisorScript.includes(guard)) throw new Error("deadline precedence check changed shape");
+    supervisorScript = supervisorScript.replace(guard, "$false -and " + guard);
+  }
+  if (process.env.TEST_DISABLE_POST_EXIT_WORKER_PRECEDENCE === "1") {
+    const anchor = 'Assert-SchedulerDeadline $Name $now $Limit $end\n    if ($child.ExitCode -ne 0';
+    if (!supervisorScript.includes(anchor)) throw new Error("post-exit precedence check changed shape");
+    supervisorScript = supervisorScript.replace(anchor,
+      'if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }\n    if ($child.ExitCode -ne 0');
+  }
+  if (options.env?.TEST_SUPERVISOR_READY_EXIT_RACE) {
+    const anchor = '$now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()';
+    if (!supervisorScript.includes(anchor)) throw new Error("scheduler tick changed shape");
+    supervisorScript = supervisorScript.replace(anchor, anchor + `
+      if ($Name -eq "scheduler-start" -and -not (Test-Path "$env:TEST_ROOT/supervisor-sampled")) {
+        [IO.File]::WriteAllText("$env:TEST_ROOT/supervisor-sampled", "sampled")
+        while (-not $child.HasExited) { [Threading.Thread]::Sleep(10) }
+      }`);
+  }
+  if (options.env?.TEST_SUPERVISOR_WAIT_FOR_LATE_READY) {
+    const anchor = 'while ($true) {\n      $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()';
+    if (!supervisorScript.includes(anchor)) throw new Error("scheduler wait changed shape");
+    supervisorScript = supervisorScript.replace(anchor, `while ($true) {
+      if ($Name -eq "scheduler-start" -and -not $script:lateReadyObserved) {
+        $script:lateReadyObserved = $true
+        while (-not $child.HasExited) { [Threading.Thread]::Sleep(10) }
+      }
+      $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()`);
+  }
+  if (options.env?.TEST_SUPERVISOR_DELAY_POLL_TICK_PAST_LIMIT) {
+    const anchor = 'while ($true) {\n      $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()';
+    if (!supervisorScript.includes(anchor)) throw new Error("scheduler wait changed shape");
+    supervisorScript = supervisorScript.replace(anchor, `while ($true) {
+      if ($Name -eq "scheduler-poll" -and $null -ne $end -and -not $script:pollTickDelayed) {
+        $script:pollTickDelayed = $true
+        while ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() -lt $Limit + 150) { [Threading.Thread]::Sleep(10) }
+      }
+      $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()`);
+  }
+  if (options.env?.TEST_SUPERVISOR_DELAY_OUTER_PAST_WORK_END) {
+    const anchor = '$lastPoll = $now';
+    if (!supervisorScript.includes(anchor)) throw new Error("outer poll cadence changed shape");
+    supervisorScript = supervisorScript.replace(anchor, anchor + `
+        if (-not $script:outerTickDelayed) {
+          $script:outerTickDelayed = $true
+          while ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() -lt $workEnd + 150) { [Threading.Thread]::Sleep(10) }
+        }`);
   }
   if (process.env.TEST_DISABLE_WORKER_PHASE_CHECKS === "1") {
-    const predicate = '-not $value.phaseComplete -and $now - [long]$value.phaseStartedMs -ge $PhaseMs';
-    if (supervisorScript.split(predicate).length !== 3) throw new Error("worker phase checks changed shape");
-    supervisorScript = supervisorScript.replaceAll(predicate, '$false -and ' + predicate);
+    const inWait = '$workerEnd -le $schedulerEnd -and $Now -ge $workerEnd';
+    const outer = '$workerEnd -le $effectiveLimit -and $now -ge $workerEnd';
+    if (!supervisorScript.includes(inWait) || !supervisorScript.includes(outer)) throw new Error("worker phase checks changed shape");
+    supervisorScript = supervisorScript.replace(inWait, '$false -and ' + inWait).replace(outer, '$false -and ' + outer);
   }
   if (process.env.TEST_SKIP_POST_EXIT_LIMIT_CHECK === "1") {
-    const check = '$now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()\n    if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }\n    ';
+    const check = 'Assert-SchedulerDeadline $Name $now $Limit $end\n    ';
     const resultAnchor = 'if (-not (Test-Path -LiteralPath $resultPath))';
     const answerAnchor = 'if ($child.ExitCode -ne 0';
     if (!supervisorScript.includes(check + resultAnchor) || !supervisorScript.includes(check + answerAnchor)) {

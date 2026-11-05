@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S21",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:45:31.526Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-ready-exit.test.ts\",\"GH637-S21 rereads a valid marker published after the tick timestamp before an exited child is judged\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-ready-exit.test.ts",
+        "line": 13
+      },
+      "message": "AssertionError: phase:start success OUTCOME {\"elapsedMs\":1050,\"inputOutcome\":\"none\",\"op\":\"clickat\",\"heldInput\":\"released\",\"completedSteps\":0,\"phase\":\"NATIVE_SCHEDULER_FAILED phase=scheduler-start no ready marker worker-phase=success\",\"step\":1,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"cleanup\":\"complete\",\"status\":\"failed\"}: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S21/20261105T004531526Z/tests",
+    "tree": "d72fba44f8bb5ed3c5470b8582970681ee0e6829"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-ready-exit.test.ts": "5eaa9ff9638c9a39b65074f4410747e5cb9fdd6d"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-ready-exit.test.ts": "5eaa9ff9638c9a39b65074f4410747e5cb9fdd6d"
+  }
+}

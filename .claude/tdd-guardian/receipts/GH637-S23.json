@@ -1,0 +1,49 @@
+{
+  "id": "GH637-S23",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:55:22.578Z",
+  "head_sha": "fe597bef72d7d097914193cc4ecea037e39097c0",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-outer-order.test.ts": {
+      "state": "ok",
+      "sha": "93602fe510b30c02f698094425524c2070cf1e6909812e9b93cc174f3595bf29",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1418de43faada7b4",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "92f62e05462bb386",
+        "12053325e25766c7",
+        "ae14d449e822538f",
+        "ce96aaed03205b1e",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "66f13dd0a376a16e",
+        "42f3b3d55e109a60",
+        "45d11a355461c1a0",
+        "216f55f65a21712e",
+        "ac5507a0dee97ea8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T00:55:56.189Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "GH637-S21",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:45:31.526Z",
+  "head_sha": "fe597bef72d7d097914193cc4ecea037e39097c0",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-ready-exit.test.ts": {
+      "state": "ok",
+      "sha": "a7a3d1c3feb4b1eae9ff033e743f4042bb7f57cd4cb7a6746cd7bb2e1f5a078c",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "7daee2ca570b9ae9",
+        "571c84ad9074d2ba",
+        "1303b27eb668dae8",
+        "d91bde6e014bb2b2",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "46431912571ead3d",
+        "41398cd36dd4cdd8",
+        "ac5507a0dee97ea8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T00:46:06.271Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

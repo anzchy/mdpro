@@ -10,7 +10,8 @@ function alive(pid: number) { try { process.kill(pid, 0); return true; } catch {
 it("GH637-S9 observes a worker phase expiry while a poll child blocks and drains that child", async () => {
   const fixture = await supervisorFixture("uia", {
     entry: { DeadlineMs: "0", TimeoutSec: "10" },
-    env: { TEST_SCHED_STALL_OP: "poll", TEST_SCHED_STALL_MS: "2500" },
+    env: { TEST_SCHED_STALL_OP: "poll", TEST_SCHED_STALL_MS: "2500",
+      TEST_RECORD_FIRST_POLL_START: "1", TEST_PROGRESS_ANCHOR_FIRST_POLL_START: "900" },
   });
   const result = await fixture.start().result;
   const value = outcome(result.lines);

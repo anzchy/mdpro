@@ -1,0 +1,65 @@
+{
+  "id": "GH637-S17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:47:00.354Z",
+  "head_sha": "fe597bef72d7d097914193cc4ecea037e39097c0",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts": {
+      "state": "ok",
+      "sha": "f8357d9d2daf20bbaecad54b8ce8ed251dcfef9e48c6705065b7ff858c8bccb0",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "4cc89111028d3645",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "42cce646c12270f9",
+        "3397efc2ab99b2e7",
+        "12053325e25766c7",
+        "e565ebff28f1d410",
+        "4737767b51e289d8",
+        "f518b86f3a4d744b",
+        "e01615fc75978e34",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "87b3589b29208ba0",
+        "9e257199f8572c35",
+        "cfa8e73363d06403",
+        "564bf010ff6aa159",
+        "02d5d5521828ffa8",
+        "028bd5c7af8bdea4",
+        "534293e616ab2bd0",
+        "b6f0f005a816fa87",
+        "42f3b3d55e109a60",
+        "9b97fc115f3e141b",
+        "f4d32ee1c65c781a",
+        "9f8e25c734225a78",
+        "ac5507a0dee97ea8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T00:54:12.875Z",
+  "verdict": "SEPARATION-BROKEN",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    },
+    {
+      "severity": "high",
+      "code": "spec-changed-under-green",
+      "message": "1 specification file(s) had a recorded line changed or removed between red and green: tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts. The implementation edited its own acceptance criteria. Either restore the assertions, or state explicitly why the original specification was wrong."
+    }
+  ]
+}

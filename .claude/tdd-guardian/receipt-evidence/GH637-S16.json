@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:45:20.179Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-ready-bound.test.ts\",\"GH637-S16 rejects a valid marker stamped after the boot ceiling even if the child succeeds\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-ready-bound.test.ts",
+        "line": 19
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S16/20261105T004520179Z/tests",
+    "tree": "d72fba44f8bb5ed3c5470b8582970681ee0e6829"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-ready-bound.test.ts": "1d5f0274e084a760da26a36f831232e70414d7ae"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-ready-bound.test.ts": "1d5f0274e084a760da26a36f831232e70414d7ae"
+  }
+}

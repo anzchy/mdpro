@@ -1,0 +1,43 @@
+{
+  "id": "GH637-S16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:45:20.179Z",
+  "head_sha": "fe597bef72d7d097914193cc4ecea037e39097c0",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-ready-bound.test.ts": {
+      "state": "ok",
+      "sha": "cf4a4257e1eb90fb1b19e17344f1fb8fa3ecaf3fb493c2f0caff868b9bc69778",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1418de43faada7b4",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "e940a679aae1b1bd",
+        "571c84ad9074d2ba",
+        "dc1de8bdfe308514",
+        "4c909199a7c18441",
+        "55c951d29f17d3a2",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "87b3589b29208ba0",
+        "44e64365f0918efa",
+        "1b5eb08327f494a1",
+        "2dbb46854595fcee",
+        "312e6c5d39ae4cde",
+        "5e9a61e538c1259c"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T00:46:11.740Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

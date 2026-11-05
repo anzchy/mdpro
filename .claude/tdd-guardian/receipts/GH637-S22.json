@@ -1,0 +1,60 @@
+{
+  "id": "GH637-S22",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:49:34.332Z",
+  "head_sha": "fe597bef72d7d097914193cc4ecea037e39097c0",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts": {
+      "state": "ok",
+      "sha": "ad74a5d0c0ffa987840a9b11e2378f3c792c57841086dc3dc0d3fe4301d88cc8",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "4cc89111028d3645",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "42cce646c12270f9",
+        "3397efc2ab99b2e7",
+        "12053325e25766c7",
+        "35a468ceaccae6a2",
+        "4737767b51e289d8",
+        "a054d95d45b42607",
+        "e01615fc75978e34",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "87b3589b29208ba0",
+        "9e257199f8572c35",
+        "cfa8e73363d06403",
+        "564bf010ff6aa159",
+        "02d5d5521828ffa8",
+        "028bd5c7af8bdea4",
+        "534293e616ab2bd0",
+        "b6f0f005a816fa87",
+        "42f3b3d55e109a60",
+        "3f07279e5275b950",
+        "f4d32ee1c65c781a",
+        "9f8e25c734225a78",
+        "ac5507a0dee97ea8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T00:49:58.314Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

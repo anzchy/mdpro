@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S23",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:55:22.578Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-outer-order.test.ts\",\"gives the worker its earlier deadline when the outer loop resumes after workEnd\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-outer-order.test.ts",
+        "line": 18
+      },
+      "message": "AssertionError: expected 'NATIVE_TRANSACTION_TIMEOUT phase=uia …' to contain 'NATIVE_PHASE_TIMEOUT phase=uia'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S23/20261105T005522578Z/tests",
+    "tree": "6161398714656a9b4c34b52c31b0cb99777d1edb"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-outer-order.test.ts": "a89582fcab655f12c2d93033b061c91bd59d0a11"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-outer-order.test.ts": "a89582fcab655f12c2d93033b061c91bd59d0a11"
+  }
+}

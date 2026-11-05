@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S22",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T00:49:34.332Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts\",\"GH637-S17 gives the earlier worker expiry its phase when a poll tick sees both deadlines expired\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts",
+        "line": 28
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=scheduler-…' to contain 'NATIVE_PHASE_TIMEOUT phase=uia'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S22/20261105T004934332Z/tests",
+    "tree": "c6652de14560e76fdfa169cf3ae783d9375552d4"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts": "f57ce784933d7ef0e36502f0ab225fe763c97305"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-fix1-deadline-order.test.ts": "f57ce784933d7ef0e36502f0ab225fe763c97305"
+  }
+}
