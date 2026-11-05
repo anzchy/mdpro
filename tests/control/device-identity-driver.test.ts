@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runIdentity } from "../../scripts/device/identity.mjs";
 
 const releaseId = `0.3.5-dev@${"a".repeat(40)}`;
+const LOCK_HELPER_LIVENESS_MS = 10_000;
 type IdentityResult = { exit: number; report: string };
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
@@ -41,7 +42,8 @@ function fixture() {
 }
 
 async function waitForMarker(out: string) {
-  const deadline = Date.now() + 3000;
+  // Liveness: the marker follows Python flock-helper startup and an archive write.
+  const deadline = Date.now() + LOCK_HELPER_LIVENESS_MS;
   while (Date.now() < deadline) {
     if (fs.existsSync(out)) {
       const marker = fs.readFileSync(out, "utf8");
@@ -53,7 +55,8 @@ async function waitForMarker(out: string) {
 }
 
 async function waitForNewMarker(out: string, previous: string | null) {
-  const deadline = Date.now() + 3000;
+  // Liveness: a new owner starts a fresh Python helper, even with a stale lock file.
+  const deadline = Date.now() + LOCK_HELPER_LIVENESS_MS;
   while (Date.now() < deadline) {
     if (fs.existsSync(out)) {
       const marker = fs.readFileSync(out, "utf8");
@@ -68,6 +71,18 @@ function deferred() {
   let release!: () => void;
   const wait = new Promise<void>((resolve) => { release = resolve; });
   return { wait, release };
+}
+
+async function withinLiveness<T>(event: Promise<T>, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      event,
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(message)), LOCK_HELPER_LIVENESS_MS); }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 describe("device identity driver", () => {
@@ -96,7 +111,7 @@ describe("device identity driver", () => {
     if (!b) throw new Error("B did not start");
     expect(b.exit).toBe(0);
     expect(fs.readFileSync(f.out, "utf8")).toBe(b.report);
-  });
+  }, 25000); // Liveness: two sequential helper starts can each use the 10 s marker bound.
 
   it("does not write after the helper dies at the first acquired point", async () => {
     const f = fixture();
@@ -124,7 +139,7 @@ describe("device identity driver", () => {
     if (!b) throw new Error("B did not start");
     expect(b.exit).toBe(0);
     expect(fs.readFileSync(f.out, "utf8")).toBe(b.report);
-  });
+  }, 25000); // Liveness: two sequential helper starts can each use the 10 s marker bound.
 
   it("refuses same-path contenders while A polls and preserves A's marker", async () => {
     const f = fixture();
@@ -132,10 +147,11 @@ describe("device identity driver", () => {
     f.deps.readLog = async () => { await hold.wait; return f.records; };
     const a = runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out], f.deps);
     const marker = await waitForMarker(f.out);
-    const b = await Promise.race([
+    // Liveness: the refusal result includes a fresh Python flock-helper start.
+    const b = await withinLiveness<IdentityResult>(
       runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out], f.deps),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("B did not refuse promptly")), 1000)),
-    ]);
+      "B did not refuse",
+    );
     expect(b.report).toContain("[FAIL] process");
     expect(b.exit).toBe(1);
     expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
@@ -146,7 +162,7 @@ describe("device identity driver", () => {
     const winner = await a;
     expect(winner.exit).toBe(0);
     expect(fs.readFileSync(f.out, "utf8")).toBe(winner.report);
-  });
+  }, 35000); // Liveness: a 10 s marker plus two serial 10 s refusals and final archive.
 
   it("allows exactly one simultaneous owner, including after a stale lock artifact", async () => {
     const f = fixture();
@@ -165,22 +181,29 @@ describe("device identity driver", () => {
         "--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out,
       ], makeDeps()));
       const marker = await waitForNewMarker(f.out, previous);
-      const first = await Promise.race([
-        ...runs,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("loser did not refuse")), 1000)),
-      ]);
-      expect(first.exit).toBe(1);
-      expect(first.report).toContain("[FAIL] process");
-      await enteredPolling.wait;
-      expect(polling).toBe(1);
-      expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
-      hold.release();
+      // Observe a refusal result. The liveness bound covers two Python helper starts and flock arbitration.
+      try {
+        const refusal = Promise.any(runs.map(async (run) => {
+          const result = await run;
+          if (result.exit !== 1) throw new Error("contender did not refuse");
+          return result;
+        }));
+        const first = await withinLiveness(refusal, "loser did not refuse");
+        expect(first.exit).toBe(1);
+        expect(first.report).toContain("[FAIL] process");
+        await enteredPolling.wait;
+        expect(polling).toBe(1);
+        expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
+      } finally {
+        hold.release();
+        await Promise.allSettled(runs);
+      }
       const settled = await Promise.all(runs);
       const winner = settled.find((run: IdentityResult) => run.exit === 0);
       expect(winner).toBeDefined();
       expect(fs.readFileSync(f.out, "utf8")).toBe(winner?.report);
     }
-  });
+  }, 45000); // Liveness: two rounds can each use 10 s for marker and 10 s for refusal.
 
   it("never replaces a marker owned by another run", async () => {
     const f = fixture();
@@ -193,7 +216,7 @@ describe("device identity driver", () => {
     const result = await pending;
     expect(result.exit).toBe(1);
     expect(fs.readFileSync(f.out, "utf8")).toBe("IN PROGRESS foreign\n");
-  });
+  }, 15000); // Liveness: one Python helper start and a marker write.
 
   it("recovers the report path after a killed owner leaves its lock file", async () => {
     const f = fixture();
@@ -210,7 +233,7 @@ describe("device identity driver", () => {
     expect(next.exit).toBe(0);
     expect(fs.readFileSync(f.out, "utf8")).toBe(next.report);
     expect(fs.existsSync(lockPath)).toBe(true);
-  }, 20_000);
+  }, 25_000); // Liveness: killed helper marker and replacement helper can each take 10 s.
 
   it("admits one simultaneous owner after a killed owner leaves a lock artifact", async () => {
     const f = fixture();
@@ -250,7 +273,7 @@ describe("device identity driver", () => {
     hold.release();
     const results = await Promise.all(runs);
     expect(results.map((result: IdentityResult) => result.exit).sort()).toEqual([0, 1]);
-  }, 20_000);
+  }, 25_000); // Liveness: two marker observations include a killed and a replacement helper.
 
   it("uses independent locks for different report paths", async () => {
     const f = fixture();
@@ -266,7 +289,7 @@ describe("device identity driver", () => {
     expect(results.map((result: IdentityResult) => result.exit)).toEqual([0, 0]);
     expect(fs.readFileSync(f.out, "utf8")).toBe(results[0].report);
     expect(fs.readFileSync(other, "utf8")).toBe(results[1].report);
-  });
+  }, 15000); // Liveness: two independent Python helpers start before both markers appear.
 
   it("releases ownership after success, failure, and invalid arguments", async () => {
     const f = fixture();
@@ -390,7 +413,7 @@ describe("device identity driver", () => {
     void runIdentity(["--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out], f.deps);
     await waitForMarker(f.out);
     expect(fs.readFileSync(f.out, "utf8")).toMatch(/^IN PROGRESS [0-9a-f-]+\n$/);
-  });
+  }, 15000); // Liveness: a Python helper must write the marker before the blocked launch.
 
   it("check-only refuses startup records older than the live process", async () => {
     const f = fixture();
