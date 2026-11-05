@@ -1,0 +1,44 @@
+{
+  "id": "GH637-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T21:59:47.169Z",
+  "head_sha": "1e3a794f9eef061f7afd51eef3d3b4ca8ddf12f1",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-worker-check-mutant.test.ts": {
+      "state": "ok",
+      "sha": "36a9ef0999b301f3f9e7906752e80ca591ef7e96a582790a8d81ffc7cce2b5bf",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "901295d9a455cbe8",
+        "e7be554165727058",
+        "2d1181af0ca87d02",
+        "2dbb46854595fcee",
+        "216f55f65a21712e",
+        "8c3dfdfb0e916953",
+        "d4711283aad8139c"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T22:00:02.201Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

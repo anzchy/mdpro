@@ -1,0 +1,58 @@
+{
+  "id": "GH637-S15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T22:27:31.916Z",
+  "head_sha": "1e3a794f9eef061f7afd51eef3d3b4ca8ddf12f1",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-outer-between-polls.test.ts": {
+      "state": "ok",
+      "sha": "6f9e126fbf8bae746e75e55041ad6d7ce2e0d2604216bc515764725f36ceb60e",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "4cc89111028d3645",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "989010c3d5b4821f",
+        "12053325e25766c7",
+        "e7dd7feab015b9b2",
+        "85f88f021ef8c603",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "70a3b3a7b48dfb77",
+        "9e257199f8572c35",
+        "cfa8e73363d06403",
+        "f5527639abaece6e",
+        "0743b56bdf47aa69",
+        "564bf010ff6aa159",
+        "8866ba771926fb5c",
+        "ae364c6940314efb",
+        "e7386cf32e7de590",
+        "2dbb46854595fcee",
+        "216f55f65a21712e",
+        "04fcb0f85545e3a6",
+        "d4711283aad8139c"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T22:27:49.851Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

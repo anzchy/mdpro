@@ -1,0 +1,51 @@
+{
+  "id": "GH637-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T13:42:42.931Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts\",\"D337 Scheduler operation clock\",\"lets the shorter absolute work limit win over the poll phase\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts",
+        "line": 15
+      },
+      "message": "TypeError: The \"path\" argument must be of type string or an instance of Buffer or URL. Received undefined"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts\",\"D337 Scheduler operation clock\",\"times a blocked poll operation from child readiness\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts",
+        "line": 15
+      },
+      "message": "TypeError: The \"path\" argument must be of type string or an instance of Buffer or URL. Received undefined"
+    },
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts\",\"D337 Scheduler operation clock\",\"times a blocked start operation from child readiness\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts",
+        "line": 15
+      },
+      "message": "TypeError: The \"path\" argument must be of type string or an instance of Buffer or URL. Received undefined"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S6/20261104T134242931Z/tests",
+    "tree": "e8ca479d6b46cfd4aef048f767f194f517311e3d"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts": "602dc2f157ee6dfb9c7fd28b18422b3de976146b"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-deadline.test.ts": "602dc2f157ee6dfb9c7fd28b18422b3de976146b"
+  }
+}

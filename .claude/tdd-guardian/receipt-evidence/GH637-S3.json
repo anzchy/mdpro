@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T12:17:29.928Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-inventory.test.ts\",\"GH637-S3 pins every D337 supervisor case, full matcher, fixture input and local helper\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-inventory.test.ts",
+        "line": 47
+      },
+      "message": "AssertionError: expected { cases: 5, assertions: 30, …(2) } to deeply equal { cases: 6, assertions: 33, …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S3/20261104T121729928Z/tests",
+    "tree": "a888a76d81e5a0adf9440bae468d6725c03d86cd"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-inventory.test.ts": "6e64468fb58ae508c276ba4adcfdc4e9d68da2f5"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-inventory.test.ts": "6e64468fb58ae508c276ba4adcfdc4e9d68da2f5"
+  }
+}

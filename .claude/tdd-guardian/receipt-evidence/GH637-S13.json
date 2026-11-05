@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S13",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T22:02:16.142Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-post-exit-limit-proof.test.ts\",\"GH637-S13 rejects a Scheduler result that becomes readable past its limit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-post-exit-limit-proof.test.ts",
+        "line": 14
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=scheduler-…' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S13/20261104T220216142Z/tests",
+    "tree": "60944af1148ead2a189d0956225b74bc7ec7341f"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-post-exit-limit-proof.test.ts": "ddaab9988a3942c27156e80fac80030861d76c55"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-post-exit-limit-proof.test.ts": "ddaab9988a3942c27156e80fac80030861d76c55"
+  }
+}

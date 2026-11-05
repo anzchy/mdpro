@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T13:39:00.461Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-scheduler-clock-cleanup.test.ts\",\"D337 cleanup readiness bound\",\"allows a short cleanup op after boot beyond the phase budget\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-scheduler-clock-cleanup.test.ts",
+        "line": 15
+      },
+      "message": "AssertionError: phase:start success OUTCOME {\"inputOutcome\":\"none\",\"cleanup\":\"failed\",\"elapsedMs\":2427,\"step\":1,\"heldInput\":\"released\",\"op\":\"clickat\",\"phase\":\"; cleanup: NATIVE_PHASE_TIMEOUT phase=scheduler-cleanup\",\"status\":\"failed\",\"completedSteps\":0,\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S7/20261104T133900461Z/tests",
+    "tree": "15216e9c4a2dbd78a0956b99da47594b3f003bcd"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-cleanup.test.ts": "1d2084851aa2967cc16b5d9756bd4b50e97492c2"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-cleanup.test.ts": "1d2084851aa2967cc16b5d9756bd4b50e97492c2"
+  }
+}

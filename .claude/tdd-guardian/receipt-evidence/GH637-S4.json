@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T12:17:55.514Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-inventory.test.ts\",\"GH637-S4 pins every D337 production case, full matcher, fixture input and local helper\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-inventory.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected { …(4) } to deeply equal { …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S4/20261104T121755514Z/tests",
+    "tree": "9c721a1d808a3ccbd6d79dc6474fedc57709ca80"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-inventory.test.ts": "6e64468fb58ae508c276ba4adcfdc4e9d68da2f5"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-inventory.test.ts": "6e64468fb58ae508c276ba4adcfdc4e9d68da2f5"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S9",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T21:52:47.888Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-worker-during-poll.test.ts\",\"GH637-S9 observes a worker phase expiry while a poll child blocks and drains that child\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-worker-during-poll.test.ts",
+        "line": 29
+      },
+      "message": "AssertionError: expected 3458 to be less than 3200"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S9/20261104T215247888Z/tests",
+    "tree": "c40899f3ee2754255555e80e657b1e37b6426c10"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-worker-during-poll.test.ts": "c93fe0f509c6337f83bea1def62dd6af315c271e"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-worker-during-poll.test.ts": "c93fe0f509c6337f83bea1def62dd6af315c271e"
+  }
+}

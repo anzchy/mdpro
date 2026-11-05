@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S8",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T13:39:17.920Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-corrupt-progress-race.test.ts\",\"D337 corrupt progress fixture race\",\"never retains a valid progress state before the corrupt write\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-corrupt-progress-race.test.ts",
+        "line": 15
+      },
+      "message": "AssertionError: expected { inputOutcome: 'none', …(9) } to match object { inputOutcome: 'unknown', …(1) }\n(8 matching properties omitted from actual)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S8/20261104T133917920Z/tests",
+    "tree": "26ed559d59c22f7b724b19310d6023410a3a8e22"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-corrupt-progress-race.test.ts": "338313d6e97839dea9c4b0db7e08b9c2cca27fd7"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-corrupt-progress-race.test.ts": "338313d6e97839dea9c4b0db7e08b9c2cca27fd7"
+  }
+}

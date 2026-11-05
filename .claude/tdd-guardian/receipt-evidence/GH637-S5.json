@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T13:42:20.059Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-scheduler-clock-start.test.ts\",\"D337 Scheduler child readiness\",\"gives a short start operation its full phase after slow child boot\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-scheduler-clock-start.test.ts",
+        "line": 15
+      },
+      "message": "AssertionError: phase:start success OUTCOME {\"op\":\"clickat\",\"runId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"status\":\"failed\",\"elapsedMs\":2184,\"heldInput\":\"released\",\"phase\":\"NATIVE_PHASE_TIMEOUT phase=scheduler-start\",\"completedSteps\":0,\"inputOutcome\":\"none\",\"cleanup\":\"complete\",\"step\":1}: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S5/20261104T134220059Z/tests",
+    "tree": "e8ca479d6b46cfd4aef048f767f194f517311e3d"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-start.test.ts": "3a256d25ca3455dd283fb0113b07b6b6c0b6b884"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-start.test.ts": "3a256d25ca3455dd283fb0113b07b6b6c0b6b884"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T21:59:47.169Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-worker-check-mutant.test.ts\",\"GH637-S10 synthetic uia stall retains its worker-phase source assertion\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-worker-check-mutant.test.ts",
+        "line": 11
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=scheduler-…' to contain 'NATIVE_PHASE_TIMEOUT phase=uia'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S10/20261104T215947169Z/tests",
+    "tree": "f8450e8fd0db860d1c78feabc032c802e45c9ca1"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-worker-check-mutant.test.ts": "c30950f112316c40ff637375950ec2d22b7df4f3"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-worker-check-mutant.test.ts": "c30950f112316c40ff637375950ec2d22b7df4f3"
+  }
+}

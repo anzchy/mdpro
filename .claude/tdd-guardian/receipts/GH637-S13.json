@@ -1,0 +1,46 @@
+{
+  "id": "GH637-S13",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T22:02:16.142Z",
+  "head_sha": "1e3a794f9eef061f7afd51eef3d3b4ca8ddf12f1",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-post-exit-limit-proof.test.ts": {
+      "state": "ok",
+      "sha": "2f6138b7f97127513fba83b8ef48d973b6b30c19f3d71d5451ebe32f56d7e0cf",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "b29a7d6e9a0ca72a",
+        "571c84ad9074d2ba",
+        "aaa1e506f86423c1",
+        "e447c89fcf51c995",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "2dbb46854595fcee",
+        "3d7686ee660dc289",
+        "d4711283aad8139c"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T22:02:33.254Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

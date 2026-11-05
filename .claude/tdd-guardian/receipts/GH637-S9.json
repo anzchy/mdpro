@@ -1,0 +1,62 @@
+{
+  "id": "GH637-S9",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T21:52:47.888Z",
+  "head_sha": "1e3a794f9eef061f7afd51eef3d3b4ca8ddf12f1",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-worker-during-poll.test.ts": {
+      "state": "ok",
+      "sha": "1f953a3ac75ccad06b803b099e3cdf3ac65282383d962fffbd3875627ef7656d",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "4cc89111028d3645",
+        "aa2bc7cd756da3c4",
+        "efb2893cf8a54a66",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "42cce646c12270f9",
+        "014071efa77fe4b4",
+        "12053325e25766c7",
+        "6cdfde72b9b00c7c",
+        "037892a477c9bf5e",
+        "29576b54e255e3c9",
+        "2d1181af0ca87d02",
+        "87b3589b29208ba0",
+        "9e257199f8572c35",
+        "cfa8e73363d06403",
+        "c356956364e96a63",
+        "8485aad165b12e14",
+        "c008314588a39c9b",
+        "534293e616ab2bd0",
+        "b6f0f005a816fa87",
+        "3fb774f597deb48a",
+        "c61518fd68a17324",
+        "f4d32ee1c65c781a",
+        "cb7680ce8ac6630b",
+        "161baabb3d55004e",
+        "dfca9a24521ce15a",
+        "9f8e25c734225a78",
+        "d4711283aad8139c"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T21:53:53.667Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

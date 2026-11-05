@@ -1,0 +1,34 @@
+{
+  "id": "GH637-S15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T22:27:31.916Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-outer-between-polls.test.ts\",\"GH637-S15 catches worker expiry after a poll exits and before another poll starts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-outer-between-polls.test.ts",
+        "line": 26
+      },
+      "message": "AssertionError: expected [ { …(4) }, { …(4) } ] to have a length of 1 but got 2"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S15/20261104T222731916Z/tests",
+    "tree": "5f492590eec0afbcc03b1dd042d794ffaf0b6f10"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-outer-between-polls.test.ts": "1ce0bca2c192d15cc0be9675d3e939d70623c56a"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-outer-between-polls.test.ts": "1ce0bca2c192d15cc0be9675d3e939d70623c56a"
+  }
+}

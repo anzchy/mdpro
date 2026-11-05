@@ -1,0 +1,56 @@
+{
+  "id": "GH637-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T13:39:00.461Z",
+  "head_sha": "1e3a794f9eef061f7afd51eef3d3b4ca8ddf12f1",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-cleanup.test.ts": {
+      "state": "ok",
+      "sha": "e3556b92e821d023494702a380d7fde8ebdb88798df648072e6a63cef94d9701",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "95bb58be20a8d63e",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "2cf04835c899c56b",
+        "1604aa3c2bf4d898",
+        "1924164abb571e7a",
+        "52ead47af874059b",
+        "9d3a8133c6d177ba",
+        "2d1181af0ca87d02",
+        "46431912571ead3d",
+        "0d5440f52dd11a6a",
+        "76be4f406c1e9ba4",
+        "ed9438ccf17afac2",
+        "0e18306536ea8a0c",
+        "66d6b118ee78204b",
+        "239b23474a04f198",
+        "2d1181af0ca87d02",
+        "87b3589b29208ba0",
+        "2dbb46854595fcee",
+        "f7088e6dee55919e",
+        "6c3da23caf9539e8",
+        "d8e374dd8f7ea661",
+        "ae7ea8927270d333",
+        "5d9342c09eb0aeef",
+        "bdfe5984589df02d",
+        "a77e282c9e30e762",
+        "a13a921e7e5c154a",
+        "ed9438ccf17afac2",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T13:45:22.782Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

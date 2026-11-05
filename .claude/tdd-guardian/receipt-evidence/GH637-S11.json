@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T21:57:18.165Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-scheduler-limit-after-exit.test.ts\",\"GH637-S11 refuses a Scheduler result read after the absolute work limit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-scheduler-limit-after-exit.test.ts",
+        "line": 13
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S11/20261104T215718165Z/tests",
+    "tree": "e412d947e4499aaad49994a2c3bb510f3bdd261f"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-limit-after-exit.test.ts": "da8b17e7d2f95da8a8146381bf96b8c1b5af0685"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-scheduler-limit-after-exit.test.ts": "da8b17e7d2f95da8a8146381bf96b8c1b5af0685"
+  }
+}

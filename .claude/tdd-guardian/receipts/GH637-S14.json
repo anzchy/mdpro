@@ -1,0 +1,74 @@
+{
+  "id": "GH637-S14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T22:22:02.560Z",
+  "head_sha": "1e3a794f9eef061f7afd51eef3d3b4ca8ddf12f1",
+  "dirty_source": [
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1",
+    ".agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-empty-progress.test.ts": {
+      "state": "ok",
+      "sha": "c9fd85e4d0a30fe2248f0c3e58db04bb15cd0b0990a818cb5e212a0fedd92437",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "1ddd0c5deb717ae9",
+        "fa088916c3900c5a",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "640c24ebb776a7cb",
+        "efb2893cf8a54a66",
+        "4b3b772732d03639",
+        "e500e3b17d0cf6e0",
+        "330c1ac873940ed3",
+        "9ef0facd6ff3608f",
+        "1b19683e0e19dc90",
+        "a95afc8f058ba4bb",
+        "df7b4d9a14abb106",
+        "f4eb868f0b6f0191",
+        "2bb6ac71d5f916a8",
+        "daac7f476ed5de3f",
+        "03d9aba6351173e5",
+        "5dfa12cea15432ac",
+        "bded8bd70757c65e",
+        "dad92c420626d3a7",
+        "d10b36aa74a59bcf",
+        "02ed5974df08d930",
+        "aeff2a9440f5c547",
+        "bfaf512dd65ed4ad",
+        "181e1fee6190a6de",
+        "1c3ddd69ff87c65b",
+        "d10b36aa74a59bcf",
+        "b65bcae1e84bb14d",
+        "1a40d89250157506",
+        "cfa637bd3f122290",
+        "f9be879c57de25d4",
+        "591676a62e0604a4",
+        "0fd77cdb0761d7db",
+        "29576b54e255e3c9",
+        "39cbf1aa21e749ca",
+        "5b795ac487bec481",
+        "52b7f53627528849",
+        "5afe8aa33b5c6a18",
+        "082a748c3089f725",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-04T22:22:49.174Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.agents/skills/remote-windows-device-test/scripts/windows/native-scheduler.ps1, .agents/skills/remote-windows-device-test/scripts/windows/native-supervisor.ps1). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

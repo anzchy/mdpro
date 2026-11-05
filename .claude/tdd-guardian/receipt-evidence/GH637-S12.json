@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S12",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-04T22:00:35.152Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-post-exit-limit-mutant.test.ts\",\"GH637-S12 keeps the Scheduler phase limit after a child exits\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/windows-driver-native-supervisor-harness.ts",
+        "line": 223
+      },
+      "message": "Error: post-exit limit checks changed shape"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S12/20261104T220035152Z/tests",
+    "tree": "5d64dd7645f682271c8ba03b3444b5c713b1af1b"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-post-exit-limit-mutant.test.ts": "3cdcc6388248da1f8575b636338754edf0cb52fc"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-post-exit-limit-mutant.test.ts": "3cdcc6388248da1f8575b636338754edf0cb52fc"
+  }
+}

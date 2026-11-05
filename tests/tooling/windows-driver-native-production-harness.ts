@@ -81,8 +81,8 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
     .replace("$AE = $null", "$AE = [System.Windows.Automation.AutomationElement]")
     .replace("$TS = $null", "$TS = [System.Windows.Automation.TreeScope]");
   const fixture = await supervisorFixture("production", {
-    // A 3 s phase leaves room for a first exec of a new script; stalls block for 60 s.
-    steps, entry: { DeadlineMs: String(Date.now() + 30000), PhaseMs: "3000", ...options.entry },
+    // The absolute deadline is set at start, after fixture setup, without widening it.
+    steps, entry: { PhaseMs: "3000", ...options.entry },
   });
   const bin = path.join(fixture.dir, "bin");
   const trace = path.join(fixture.dir, "trace.txt");
@@ -105,7 +105,7 @@ export async function productionWorkerFixture(stall: ProductionStall, steps: unk
   if (options.titlePath) env.MDPRO_TEST_TITLE = options.titlePath;
   return {
     ...fixture, trace,
-    start: (id = fixture.runId) => fixture.start(id, env),
+    start: (id = fixture.runId) => fixture.start(id, env, { DeadlineMs: options.entry?.DeadlineMs ?? String(Date.now() + 30000) }),
     async traceLines() { return (await readFile(trace, "utf8")).split("\n").filter(Boolean); },
   };
 }

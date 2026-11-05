@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { ok } from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { access, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -70,6 +71,10 @@ describe("D337 production worker under the real supervisor", () => {
     expect(result.status, result.stderr + result.lines.join(" ")).not.toBe(0);
     const value = outcome(result.lines);
     expect(value.phase).toContain(phase);
+    expect(value.phase).not.toContain("phase=scheduler-start");
+    expect(value.phase).not.toContain("phase=scheduler-poll");
+    ok(result.lines.join(" ").includes("NATIVE_PHASE_TIMEOUT phase=" + phase), result.lines.join(" "));
+    ok(value.phase.startsWith(phase) || value.phase.startsWith("NATIVE_PHASE_TIMEOUT phase=" + phase), value.phase);
     expect(value).toMatchObject({ status: "failed", step: 1, op: "clickat", completedSteps: 0, inputOutcome: "none", heldInput: "released", cleanup: "complete" });
     expect(Date.now() - started).toBeLessThan(30000);
     expect(inputTrace(await fixture.traceLines())).toEqual([]);
@@ -89,6 +94,10 @@ describe("D337 production worker under the real supervisor", () => {
       expect(result.status, result.stderr + result.lines.join(" ")).not.toBe(0);
       const value = outcome(result.lines);
       expect(value.phase).toContain("title-bind");
+      expect(value.phase).not.toContain("phase=scheduler-start");
+      expect(value.phase).not.toContain("phase=scheduler-poll");
+      ok(result.lines.join(" ").includes("NATIVE_PHASE_TIMEOUT phase=title-bind"), result.lines.join(" "));
+      ok(value.phase.startsWith("title-bind") || value.phase.startsWith("NATIVE_PHASE_TIMEOUT phase=title-bind"), value.phase);
       expect(value).toMatchObject({ status: "failed", completedSteps: 0, inputOutcome: "none" });
       expect(inputTrace(await fixture.traceLines())).toEqual([]);
       expect(await membersGone(fixture.dir)).toBe(true);
@@ -105,6 +114,10 @@ describe("D337 production worker under the real supervisor", () => {
       expect(result.status, result.stderr + result.lines.join(" ")).not.toBe(0);
       const value = outcome(result.lines);
       expect(value.phase).toContain("title-restore");
+      expect(value.phase).not.toContain("phase=scheduler-start");
+      expect(value.phase).not.toContain("phase=scheduler-poll");
+      ok(result.lines.join(" ").includes("NATIVE_PHASE_TIMEOUT phase=title-restore"), result.lines.join(" "));
+      ok(value.phase.startsWith("title-restore") || value.phase.startsWith("NATIVE_PHASE_TIMEOUT phase=title-restore"), value.phase);
       expect(value.completedSteps).toBe(1);
       expect(["partial", "unknown"]).toContain(value.inputOutcome);
       expect(value.status).toBe("failed");

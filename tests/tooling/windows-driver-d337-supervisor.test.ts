@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { ok } from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { readFile, access } from "node:fs/promises";
 import path from "node:path";
@@ -15,11 +16,15 @@ function alive(pid: number) { try { process.kill(pid, 0); return true; } catch {
 
 describe("D337 real supervisor with controlled kernel/Scheduler observations", () => {
   it.each(["discovery", "uia", "title-restore", "after-input", "held"])("bounds %s with retained partial phase and drains the worker", async (phase) => {
-    const fixture = await supervisorFixture(phase);
+    // Measure the same ten-second run from ui-run's own start, excluding the caller's pwsh boot.
+    const fixture = await supervisorFixture(phase, { entry: { DeadlineMs: "0", TimeoutSec: "10" } });
     const result = await fixture.start().result;
     expect(result.status, result.stderr + result.lines.join(" ")).not.toBe(0);
     const value = outcome(result.lines);
     expect(value.phase).toContain(phase);
+    expect(value.phase).not.toContain("phase=scheduler-start");
+    expect(value.phase).not.toContain("phase=scheduler-poll");
+    ok(result.lines.join(" ").includes("NATIVE_PHASE_TIMEOUT phase=" + phase), result.lines.join(" "));
     expect(value.completedSteps).toBe(phase === "after-input" || phase === "held" ? 1 : 0);
     expect(value.inputOutcome).toBe(phase === "after-input" || phase === "held" ? "unknown" : "none");
     expect(value.cleanup).toBe("complete");
@@ -76,6 +81,7 @@ describe("D337 real supervisor with controlled kernel/Scheduler observations", (
     const result = await fixture.start().result;
     expect(result.status).not.toBe(0);
     expect(outcome(result.lines).cleanup).toBe("failed");
+    ok(result.lines.join(" ").includes("NATIVE_PHASE_TIMEOUT phase=scheduler-cleanup"), result.lines.join(" "));
     expect(await exists(path.join(fixture.dir, "native-session-blocked.json"))).toBe(true);
     const later = await fixture.start("c".repeat(32)).result;
     expect(later.lines.join(" ")).toContain("NATIVE_RECONCILIATION_REQUIRED");
