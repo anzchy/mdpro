@@ -44,6 +44,8 @@ const dir=process.env.CHILD_LIMIT_FIXTURE,command=process.argv.at(-1);
 fs.appendFileSync(p.join(dir,'commands.jsonl'),JSON.stringify(command)+'\n');
 if(Buffer.byteLength(command)>8000){process.stderr.write('SSH_EXEC_TOO_LONG\n');process.exit(255);}
 const script=". '"+dir+"/native-proxy.ps1'; "+command.replaceAll(process.env.REMOTE_PREFIX,dir);
+const upload=script.match(/\[IO\.File\]::(WriteAllText|AppendAllText)\('([^']+)','([^']*)'\)/);
+if(upload){fs.writeFileSync(upload[2],upload[3],{flag:upload[1]==='WriteAllText'?'w':'a'});process.exit(0);}
 const r=cp.spawnSync('pwsh',['-NoProfile','-Command',script],{encoding:'utf8',env:process.env});
 process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');process.exit(r.status??1);
 `, { mode: 0o755 });
