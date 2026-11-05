@@ -154,11 +154,12 @@ describe("device identity driver", () => {
       if (stale) fs.writeFileSync(`${f.out}.lock`, "old lock file\n");
       const previous = fs.existsSync(f.out) ? fs.readFileSync(f.out, "utf8") : null;
       const hold = deferred();
+      const enteredPolling = deferred();
       let polling = 0;
       const makeDeps = () => {
         let scans = 0;
         return { ...f.deps, scanProcesses: async () => ++scans === 1 ? [] : [f.process],
-          readLog: async () => { polling++; await hold.wait; return f.records; } };
+          readLog: async () => { polling++; enteredPolling.release(); await hold.wait; return f.records; } };
       };
       const runs = [0, 1].map(() => runIdentity([
         "--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out,
@@ -170,6 +171,7 @@ describe("device identity driver", () => {
       ]);
       expect(first.exit).toBe(1);
       expect(first.report).toContain("[FAIL] process");
+      await enteredPolling.wait;
       expect(polling).toBe(1);
       expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
       hold.release();
