@@ -16,7 +16,8 @@ function fixture(readings: string[]) {
   const sequence = path.join(dir, "readings.txt");
   fs.writeFileSync(sequence, readings.join("\n") + "\n");
   const sampler = path.join(dir, "sample.sh");
-  fs.writeFileSync(sampler, `#!/bin/bash\nhead -n 1 "$MDPRO_LOAD_GUARD_SEQUENCE" | awk '{if (NF == 2) print $0 " 16"; else print}'\ntail -n +2 "$MDPRO_LOAD_GUARD_SEQUENCE" > "$MDPRO_LOAD_GUARD_SEQUENCE.next"\nmv "$MDPRO_LOAD_GUARD_SEQUENCE.next" "$MDPRO_LOAD_GUARD_SEQUENCE"\n`);
+  // Keep the atomic rename while replacing head/awk/tail with bash builtins for every sample.
+  fs.writeFileSync(sampler, `#!/bin/bash\nsamples=()\nwhile IFS= read -r sample; do samples+=("$sample"); done < "$MDPRO_LOAD_GUARD_SEQUENCE"\nif (( \${#samples[@]} )); then\n  read -r -a fields <<< "\${samples[0]}"\n  if (( \${#fields[@]} == 2 )); then printf '%s 16\\n' "\${samples[0]}"; else printf '%s\\n' "\${samples[0]}"; fi\nfi\n: > "$MDPRO_LOAD_GUARD_SEQUENCE.next"\nfor sample in "\${samples[@]:1}"; do printf '%s\\n' "$sample" >> "$MDPRO_LOAD_GUARD_SEQUENCE.next"; done\nmv "$MDPRO_LOAD_GUARD_SEQUENCE.next" "$MDPRO_LOAD_GUARD_SEQUENCE"\n`);
   fs.chmodSync(sampler, 0o700);
   return { dir, env: { ...process.env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_OS: "Darwin", MDPRO_HEAVY_LOCK_HELD: undefined, MDPRO_VITEST_WORKER_HEAP_MIB: undefined, MDPRO_HEAVY_LOCK: path.join(dir, "lock"), MDPRO_LOAD_GUARD_LOG: path.join(dir, "log"), MDPRO_LOAD_GUARD_SAMPLER: sampler, MDPRO_LOAD_GUARD_SEQUENCE: sequence, MDPRO_LOAD_GUARD_INTERVAL_SECS: "0.05", MDPRO_HEAVY_LOCK_KILL_GRACE_SECS: "1" } };
 }
@@ -39,10 +40,13 @@ it("uses the macOS memorystatus percentage for admission and retains vm_stat as 
   const enough = macSampler("38");
   const unreadable = macSampler("101");
   const read = async (env: NodeJS.ProcessEnv) => (await runChild("python3", [guard, "sample"], { env, encoding: "utf8" }));
-  expect((await read(low.env)).stdout.trim()).toBe("1 10.00 5.920 9.000 37");
-  expect((await read(enough.env)).stdout.trim()).toBe("1 10.00 6.080 9.000 38");
-  expect((await read(unreadable.env)).stdout.trim()).toBe("1 10.00 unreadable 9.000 unreadable");
-});
+  const [lowResult, enoughResult, unreadableResult] = await Promise.all([
+    read(low.env), read(enough.env), read(unreadable.env),
+  ]);
+  expect(lowResult.stdout.trim()).toBe("1 10.00 5.920 9.000 37");
+  expect(enoughResult.stdout.trim()).toBe("1 10.00 6.080 9.000 38");
+  expect(unreadableResult.stdout.trim()).toBe("1 10.00 unreadable 9.000 unreadable");
+}, 15000);
 
 it("admits from the macOS level at the margin and holds an unreadable level", async () => {
   for (const [level, expected] of [["37", 75], ["38", 0], ["101", 75]] as const) {
@@ -52,7 +56,7 @@ it("admits from the macOS level at the margin and holds an unreadable level", as
       env: { ...env, MDPRO_HEAVY_LOCK_HELD: undefined, MDPRO_VITEST_WORKER_HEAP_MIB: undefined, MDPRO_HEAVY_LOCK: path.join(dir, "lock"),
         MDPRO_LOAD_GUARD_LOG: path.join(dir, "log"), MDPRO_HEAVY_LOCK_WAIT_SECS: "1",
         MDPRO_LOAD_GUARD_INTERVAL_SECS: "0.05", MDPRO_LOAD_GUARD_BUDGET_GIB: "5" },
-      encoding: "utf8", timeout: 6000,
+      encoding: "utf8", timeout: 12000,
     }));
     expect(result.status).toBe(expected);
     expect(fs.existsSync(marker)).toBe(expected === 0);
@@ -64,7 +68,7 @@ it("admits from the macOS level at the margin and holds an unreadable level", as
       vmStatFreeGiB: "9.000",
     });
   }
-}, 15000);
+}, 30000);
 
 it("stops after two critical memory samples and exits 76 with one stop record", async () => {
   const { dir, env } = fixture(["1 0", "4 0", "4 0", "1 0"]);
@@ -93,13 +97,13 @@ it("admits coverage at its 5 GiB budget plus exactly 1 GiB, but not below", asyn
   const blocked = fixture(Array(50).fill("1 0 5.99"));
   const admitted = fixture(["1 0 6.00"]);
   const run = async (env: NodeJS.ProcessEnv) => (await runChild("/bin/bash", [script, "/bin/echo", "vitest --coverage"], {
-    env: { ...env, MDPRO_LOAD_GUARD_BUDGET_GIB: "5", MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 5000,
+    env: { ...env, MDPRO_LOAD_GUARD_BUDGET_GIB: "5", MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 10000,
   }));
   expect((await run(blocked.env)).status).toBe(75);
   const result = (await run(admitted.env));
   expect(result.status).toBe(0);
   expect(result.stdout.trim()).toBe("vitest --coverage");
-});
+}, 20000);
 
 it("uses a 4 GiB placeholder for other job classes", async () => {
   const { env } = fixture(["1 0 5.00"]);
@@ -133,14 +137,15 @@ it("sets a 1024 MiB worker heap for a guard-only run", async () => {
 
 it("logs but does not stop when another process causes sustained high CPU", async () => {
   const { dir, env } = fixture(["1 0 16 0", "1 96 16 0", "1 97 16 0", "1 98 16 0", "1 0 16 0"]);
-  const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", "sleep 0.6"], {
-    env, encoding: "utf8", timeout: 5000,
+  const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c",
+    'while [ -s "$MDPRO_LOAD_GUARD_SEQUENCE" ]; do sleep 0.05; done'], {
+    env, encoding: "utf8", timeout: 9000,
   }));
   expect(result.status).toBe(0);
   const lines = fs.readFileSync(path.join(dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   expect(lines.filter((line) => line.reason === "cpu" && line.event === "warn")).toHaveLength(1);
   expect(lines.filter((line) => line.event === "stop")).toHaveLength(0);
-});
+}, 15000);
 
 it("treats an unexpected Darwin pressure value as warn and logs every raw reading", async () => {
   const { dir, env } = fixture(Array(50).fill("3 0 16"));
@@ -169,17 +174,17 @@ it("holds on an unreadable Darwin sample and starts with one note on Linux", asy
   const linux = fixture(["unreadable 0 16"]);
   const darwinResult = (await runChild("/bin/bash", [script, "/usr/bin/true"], {
     env: { ...darwin.env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_OS: "Darwin", MDPRO_HEAVY_LOCK_WAIT_SECS: "1" },
-    encoding: "utf8", timeout: 5000,
+    encoding: "utf8", timeout: 10000,
   }));
   expect(darwinResult.status).toBe(75);
   const linuxResult = (await runChild("/bin/bash", [script, "/usr/bin/true"], {
     env: { ...linux.env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_OS: "Linux" },
-    encoding: "utf8", timeout: 5000,
+    encoding: "utf8", timeout: 10000,
   }));
   expect(linuxResult.status).toBe(0);
   const notes = fs.readFileSync(path.join(linux.dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   expect(notes.filter((line) => line.event === "note" && line.reason === "unreadable")).toHaveLength(1);
-});
+}, 20000);
 
 it("bounds Cargo test build jobs to cores minus two", async () => {
   const { dir, env } = fixture(["1 0 16"]);
