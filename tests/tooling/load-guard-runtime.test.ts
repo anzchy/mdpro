@@ -72,26 +72,28 @@ it("admits from the macOS level at the margin and holds an unreadable level", as
 
 it("stops after two critical memory samples and exits 76 with one stop record", async () => {
   const { dir, env } = fixture(["1 0", "4 0", "4 0", "1 0"]);
-  const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", "sleep 5"], { env, encoding: "utf8", timeout: 9000 }));
+  // Liveness: the monitor must stop this otherwise long-lived child after two 50 ms samples.
+  const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", "sleep 12"], { env, encoding: "utf8", timeout: 15000 }));
   expect(result.status).toBe(76);
   expect(fs.existsSync(path.join(dir, "lock"))).toBe(false);
   const lines = fs.readFileSync(path.join(dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   expect(lines.filter((line) => line.event === "stop")).toHaveLength(1);
   expect(lines.find((line) => line.event === "stop")?.reason).toBe("memory");
-});
+}, 20000);
 
 it("never starts under critical pressure before the admission deadline", async () => {
   const { dir, env } = fixture(Array(80).fill("4 0"));
   const marker = path.join(dir, "started");
   const start = Date.now();
+  // Liveness: one second of admission waiting plus Bash, Python and sampler startup.
   const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", `touch "${marker}"`], {
-    env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 5000,
+    env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 12000,
   }));
   expect(result.status).toBe(75);
   expect(Date.now() - start).toBeGreaterThanOrEqual(900);
   expect(fs.existsSync(marker)).toBe(false);
   expect(fs.existsSync(path.join(dir, "lock"))).toBe(false);
-});
+}, 15000);
 
 it("admits coverage at its 5 GiB budget plus exactly 1 GiB, but not below", async () => {
   const blocked = fixture(Array(50).fill("1 0 5.99"));
@@ -107,36 +109,40 @@ it("admits coverage at its 5 GiB budget plus exactly 1 GiB, but not below", asyn
 
 it("uses a 4 GiB placeholder for other job classes", async () => {
   const { env } = fixture(["1 0 5.00"]);
+  // Liveness: a successful admission still starts the Bash wrapper and sampler.
   const result = (await runChild("/bin/bash", [script, "/bin/echo", "partial-run"], {
-    env, encoding: "utf8", timeout: 5000,
+    env, encoding: "utf8", timeout: 10000,
   }));
   expect(result.status).toBe(0);
   expect(result.stdout.trim()).toBe("partial-run");
-});
+}, 12000);
 
 it("never admits a job at warn pressure even after the old warn limit", async () => {
   const { dir, env } = fixture(Array(80).fill("2 0"));
   const marker = path.join(dir, "warn-started");
+  // Liveness: the one-second admission interval must finish despite sampler startup.
   const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", `touch "${marker}"`], {
     env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1", MDPRO_LOAD_GUARD_WARN_SECS: "0" },
-    encoding: "utf8", timeout: 5000,
+    encoding: "utf8", timeout: 12000,
   }));
   expect(result.status).toBe(75);
   expect(fs.existsSync(marker)).toBe(false);
   expect(fs.existsSync(path.join(dir, "lock"))).toBe(false);
-});
+}, 15000);
 
 it("sets a 1024 MiB worker heap for a guard-only run", async () => {
   const { env } = fixture(["1 0"]);
+  // Liveness: guard-only still starts Bash and samples once before running the child.
   const result = (await runChild("/bin/bash", [script, "--guard-only", "/bin/bash", "-c", "echo ${MDPRO_VITEST_WORKER_HEAP_MIB:-unset}"], {
-    env, encoding: "utf8", timeout: 5000,
+    env, encoding: "utf8", timeout: 10000,
   }));
   expect(result.status).toBe(0);
   expect(result.stdout.trim()).toBe("1024");
-});
+}, 12000);
 
 it("logs but does not stop when another process causes sustained high CPU", async () => {
   const { dir, env } = fixture(["1 0 16 0", "1 96 16 0", "1 97 16 0", "1 98 16 0", "1 0 16 0"]);
+  // Liveness: the child waits for all scripted samples; 9 s covers monitor startup and three high samples.
   const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c",
     'while [ -s "$MDPRO_LOAD_GUARD_SEQUENCE" ]; do sleep 0.05; done'], {
     env, encoding: "utf8", timeout: 9000,
@@ -150,24 +156,26 @@ it("logs but does not stop when another process causes sustained high CPU", asyn
 it("treats an unexpected Darwin pressure value as warn and logs every raw reading", async () => {
   const { dir, env } = fixture(Array(50).fill("3 0 16"));
   const marker = path.join(dir, "unexpected-started");
+  // Liveness: one-second admission plus repeated unreadable-pressure samples.
   const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", `touch "${marker}"`], {
-    env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 5000,
+    env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 12000,
   }));
   expect(result.status).toBe(75);
   expect(fs.existsSync(marker)).toBe(false);
   const lines = fs.readFileSync(path.join(dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   expect(lines.filter((line) => line.readings.pressure === "unreadable" && line.readings.rawPressure === "3").length).toBeGreaterThanOrEqual(2);
-});
+}, 15000);
 
 it("stops a CPU-bound group only when it causes over 80 percent of sustained busy CPU", async () => {
   const { dir, env } = fixture(["1 0 16 0", "1 96 16 90", "1 97 16 90", "1 98 16 90"]);
-  const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", "sleep 5"], {
-    env, encoding: "utf8", timeout: 7000,
+  // Liveness: three high samples must stop the otherwise long-lived child.
+  const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", "sleep 12"], {
+    env, encoding: "utf8", timeout: 15000,
   }));
   expect(result.status).toBe(76);
   const lines = fs.readFileSync(path.join(dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   expect(lines.filter((line) => line.event === "stop" && line.reason === "cpu")).toHaveLength(1);
-});
+}, 20000);
 
 it("holds on an unreadable Darwin sample and starts with one note on Linux", async () => {
   const darwin = fixture(Array(50).fill("unreadable 0 16"));
@@ -190,19 +198,21 @@ it("bounds Cargo test build jobs to cores minus two", async () => {
   const { dir, env } = fixture(["1 0 16"]);
   const cargo = path.join(dir, "cargo");
   fs.writeFileSync(cargo, "#!/bin/sh\necho ${CARGO_BUILD_JOBS:-unset}\n", { mode: 0o700 });
-  const result = (await runChild("/bin/bash", [script, cargo, "test"], { env, encoding: "utf8", timeout: 5000 }));
+  // Liveness: Bash, the sampler and the fake Cargo process must all complete.
+  const result = (await runChild("/bin/bash", [script, cargo, "test"], { env, encoding: "utf8", timeout: 10000 }));
   expect(result.status).toBe(0);
   expect(Number(result.stdout.trim())).toBeGreaterThan(0);
   expect(Number(result.stdout.trim())).toBeLessThanOrEqual(os.availableParallelism() - 2);
-});
+}, 12000);
 
 it("holds a Darwin job when the sampler returns no bytes", async () => {
   const { dir, env } = fixture([]);
   const marker = path.join(dir, "blank-started");
+  // Liveness: the one-second admission interval includes failed sampler reads.
   const result = (await runChild("/bin/bash", [script, "/bin/bash", "-c", `touch "${marker}"`], {
-    env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 5000,
+    env: { ...env, MDPRO_HEAVY_LOCK_WAIT_SECS: "1" }, encoding: "utf8", timeout: 12000,
   }));
   expect(result.status).toBe(75);
   expect(fs.existsSync(marker)).toBe(false);
   expect(fs.existsSync(path.join(dir, "lock"))).toBe(false);
-});
+}, 15000);
