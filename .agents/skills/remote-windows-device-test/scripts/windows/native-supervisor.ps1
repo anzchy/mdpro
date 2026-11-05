@@ -43,27 +43,24 @@ function Invoke-SchedulerPhase([string]$Name, $Request, [long]$Limit) {
   try {
     while ($true) {
       $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-      Assert-SchedulerDeadline $Name $now $Limit $end
       if ($null -eq $end) {
         $stamp = Read-SchedulerReadyStamp $readyPath $readyNonce $child.Id $launch $bootEnd $now
         if ($null -ne $stamp) { $end = [math]::Min($stamp + $PhaseMs, $Limit) }
       }
-      Assert-SchedulerDeadline $Name $now $Limit $end
+      Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })
       if ($child.HasExited) { break }
-      if ($null -eq $end -and $now -ge $bootEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
       [Threading.Thread]::Sleep($PollMs)
     }
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     if ($null -eq $end) {
       $stamp = Read-SchedulerReadyStamp $readyPath $readyNonce $child.Id $launch $bootEnd $now
       if ($null -ne $stamp) { $end = [math]::Min($stamp + $PhaseMs, $Limit) }
-      elseif ($now -ge $bootEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
     }
-    Assert-SchedulerDeadline $Name $now $Limit $end
+    Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })
     if (-not (Test-Path -LiteralPath $resultPath)) { throw "NATIVE_SCHEDULER_NO_RESULT phase=$Name" }
     $answer = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-    Assert-SchedulerDeadline $Name $now $Limit $end
+    Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })
     if ($child.ExitCode -ne 0 -or -not $answer.ok) { throw "NATIVE_SCHEDULER_FAILED phase=$Name $($answer.error)" }
     if ($null -eq $end) { throw "NATIVE_SCHEDULER_FAILED phase=$Name no ready marker" }
     return $answer.value
