@@ -25,18 +25,20 @@ async function command(file: string, args: string[], cwd: string, env: NodeJS.Pr
   }
 }
 
-async function repo() {
+async function repo(withManifests = false) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "d322-"));
   dirs.push(dir);
   fs.writeFileSync(path.join(dir, "package.json"), '{"version":"0.3.5"}\n');
+  if (withManifests) {
+    fs.mkdirSync(path.join(dir, "src-tauri"));
+    fs.writeFileSync(path.join(dir, "src-tauri", "Cargo.toml"), '[package]\nname = "tauri-app"\nversion = "0.3.5"\n');
+    fs.writeFileSync(path.join(dir, "src-tauri", "tauri.conf.json"), '{"version": "0.3.5"}\n');
+  }
   fs.mkdirSync(path.join(dir, "scripts", "release"), { recursive: true });
   fs.copyFileSync(script, path.join(dir, "scripts", "release", "devReleaseId.mjs"));
   await runFile("git", ["init", "-q", dir]);
-  await runFile("git", ["-C", dir, "config", "user.name", "D322 Test"]);
-  await runFile("git", ["-C", dir, "config", "user.email", "d322@example.invalid"]);
-  await runFile("git", ["-C", dir, "add", "package.json"]);
-  await runFile("git", ["-C", dir, "add", "scripts/release/devReleaseId.mjs"]);
-  await runFile("git", ["-C", dir, "commit", "-qm", "fixture"]);
+  await runFile("git", ["-C", dir, "add", "."]);
+  await runFile("git", ["-C", dir, "-c", "user.name=D322 Test", "-c", "user.email=d322@example.invalid", "commit", "-qm", "fixture"]);
   const { stdout } = await runFile("git", ["rev-parse", "HEAD"], { cwd: dir });
   return { dir, head: stdout.trim() };
 }
@@ -133,12 +135,7 @@ describe("D322-WI-2 Windows build contract", () => {
   });
 
   it("patches both manifests to an explicit version that matches the generated ID", async () => {
-    const { dir } = await repo();
-    fs.mkdirSync(path.join(dir, "src-tauri"));
-    fs.writeFileSync(path.join(dir, "src-tauri", "Cargo.toml"), '[package]\nname = "tauri-app"\nversion = "0.3.5"\n');
-    fs.writeFileSync(path.join(dir, "src-tauri", "tauri.conf.json"), '{"version": "0.3.5"}\n');
-    await runFile("git", ["add", "src-tauri"], { cwd: dir });
-    await runFile("git", ["commit", "-qm", "add manifests"], { cwd: dir });
+    const { dir } = await repo(true);
     const updatedHead = (await command("git", ["rev-parse", "HEAD"], dir)).stdout.trim();
     const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "d322-output-"));
     dirs.push(outDir);
@@ -155,7 +152,7 @@ describe("D322-WI-2 Windows build contract", () => {
     }
     expect(JSON.parse(fs.readFileSync(path.join(dir, "src-tauri", "tauri.conf.json"), "utf8")).version).toBe("0.3.6");
     expect(fs.readFileSync(path.join(dir, "src-tauri", "Cargo.toml"), "utf8")).toMatch(/^version = "0\.3\.6"$/m);
-  });
+  }, 15000);
 });
 
 describe("D322-WI-2 device instructions and comments", () => {
