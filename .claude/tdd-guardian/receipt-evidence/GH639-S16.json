@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:23:14.238Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"turns the writer step's string arguments into the metadata collect expects\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 318
+      },
+      "message": "Error: not implemented"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S16/20261105T032314238Z/tests",
+    "tree": "d6c3cca32b2188145cebd969eef4695e6682d979"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "2dce4bd8ee9ae81bd5d3ac5ea7fbaae0054dcf49"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "2dce4bd8ee9ae81bd5d3ac5ea7fbaae0054dcf49"
+  }
+}

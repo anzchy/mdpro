@@ -1,0 +1,96 @@
+{
+  "id": "GH639-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:16:34.868Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's .ci-shard.json when it is malformed, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 154
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /shard-2-attempt-1.*\\.ci-shard\\.json/ but got 'Expected property name or \\'}\\' in JS…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its attempt disagrees with the folder ({\\\"attempt\\\":2}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its count disagrees with the folder ({\\\"count\\\":4}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its os disagrees with the folder ({\\\"os\\\":\\\"macos-latest\\\"}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its profile disagrees with the folder ({\\\"profile\\\":\\\"\\\"}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its sha disagrees with the folder ({\\\"sha\\\":\\\"abc\\\"}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its shard disagrees with the folder ({\\\"shard\\\":3}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard 2's metadata when its shard disagrees with the folder ({\\\"shard\\\":\\\"2\\\"}), and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S6/20261105T031634868Z/tests",
+    "tree": "8226a5f1b9ae0b8091b830a94c9576eefb300722"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "5baa60cb99465f40ffd5b1d7201820b0ece9f061"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "5baa60cb99465f40ffd5b1d7201820b0ece9f061"
+  }
+}

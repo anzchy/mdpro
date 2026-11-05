@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S24",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:28:53.344Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"checks out the same commit as the shards on pull requests and on other events\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 85
+      },
+      "message": "AssertionError: expected [] to deeply equal [ [ …(2) ], [ …(2) ] ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S24/20261105T032853344Z/tests",
+    "tree": "7ce41d9490888f9bd7ee182b5aed9f850827f435"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "ac9f92aad2a17fca9bbd490db576863082d30d61"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "ac9f92aad2a17fca9bbd490db576863082d30d61"
+  }
+}

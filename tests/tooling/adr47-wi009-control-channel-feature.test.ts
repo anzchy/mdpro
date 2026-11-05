@@ -56,7 +56,7 @@ describe("ADR47-WI009-1 rust-test checks the feature build", () => {
     expect(check).toBeGreaterThan(test);
   });
 
-  it("leaves ci-gate's needs unchanged", () => {
-    expect((list(job(CI, "ci-gate"), "needs") ?? []).sort()).toEqual(["frontend", "prose-checks", "rust-test", "scope"]);
+  it("leaves ci-gate's needs without a job of its own (GH639 added frontend-merge)", () => {
+    expect((list(job(CI, "ci-gate"), "needs") ?? []).sort()).toEqual(["frontend", "frontend-merge", "prose-checks", "rust-test", "scope"]);
   });
 });

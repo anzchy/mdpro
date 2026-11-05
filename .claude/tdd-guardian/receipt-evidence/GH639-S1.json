@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:12:37.489Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"copies exactly one blob per shard and returns the shards' profile\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 52
+      },
+      "message": "Error: not implemented"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S1/20261105T031237489Z/tests",
+    "tree": "7322e39166b42a661c3815061ae34ed603bcdcd9"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "9378ffbd4981373d9ed32644182460dbf18881df"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "9378ffbd4981373d9ed32644182460dbf18881df"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:15:28.135Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses an empty blob file, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 120
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S5/20261105T031528135Z/tests",
+    "tree": "fc1d0b8d106853173c5fd32f1c1efdcf62f19ef7"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "67515b6a93262ce03ec769f67d26f0fb6e853925"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "67515b6a93262ce03ec769f67d26f0fb6e853925"
+  }
+}

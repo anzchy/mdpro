@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S26",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:31:51.611Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"feeds the shards' real metadata writer and upload layout through the collect step, for each runner\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 195
+      },
+      "message": "AssertionError: shard-reports collect FAIL: frontend-blob-ubuntu-latest-shard-1-attempt-1: unreadable .ci-shard.json (Unexpected end of JSON input)\n: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S26/20261105T033151611Z/tests",
+    "tree": "830efe49952336ee2a4aa7dbb8b37cc80bfd203e"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "267af65e6fcbf4ce9f448b5f221b40400fb3672f"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "267af65e6fcbf4ce9f448b5f221b40400fb3672f"
+  }
+}

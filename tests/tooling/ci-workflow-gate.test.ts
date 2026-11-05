@@ -28,8 +28,8 @@ const runFile = promisify(execFile);
 const runs = (id: string) => steps(job(TEXT, id)).map(stepRun).filter((r): r is string => r !== null);
 
 describe("ADR95-WI-1 ci.yml gate shape", () => {
-  it("has the scope, prose-checks, frontend, rust-test and ci-gate jobs", () => {
-    expect(jobIds(TEXT).sort()).toEqual(["ci-gate", "frontend", "prose-checks", "rust-audit", "rust-test", "scope"]);
+  it("has the scope, prose-checks, frontend, frontend-merge, rust-test and ci-gate jobs", () => {
+    expect(jobIds(TEXT).sort()).toEqual(["ci-gate", "frontend", "frontend-merge", "prose-checks", "rust-audit", "rust-test", "scope"]);
   });
 
   it("scope exposes the change-scope output", () => {
@@ -43,9 +43,10 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(job(TEXT, id), "if")).toBe("needs.scope.outputs.code == 'true'");
   });
 
-  it("frontend keeps build and test typecheck and runs the covered JSON unit lane", () => {
+  it("frontend keeps build and test typecheck and runs the covered unit lane in shards that frontend-merge merges to JSON", () => {
     const r = runs("frontend");
-    for (const cmd of ["pnpm build", "pnpm typecheck:tests", "pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json"]) expect(r).toContain(cmd);
+    for (const cmd of ["pnpm build", "pnpm typecheck:tests", "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/3 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --outputFile.json=.ci-vitest-results.json"]) expect(r).toContain(cmd);
+    expect(runs("frontend-merge")).toContain("pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json");
   });
 
   it("checks out the PR head while non-PR runs use the default checkout", () => {
@@ -61,9 +62,14 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
   it("preserves the ci-gate decision bytes from GH607's pinned base", async () => {
     const { stdout: baseline } = await runFile("git", ["show", "a3e9b7ec:.github/workflows/ci.yml"], { encoding: "utf8" });
     const decision = (text: string) => steps(job(text, "ci-gate")).find((step) => scalar(step, "name") === "Every job succeeded, or skipped for a prose-only change");
-    expect(decision(TEXT)).toBe(decision(baseline));
+    // GH639 adds frontend-merge to the success-or-scope-skipped list and its comment, and changes nothing else.
+    const withMerge = (step: string | undefined) => step
+      ?.replace("frontend and rust-test must\n", "frontend, frontend-merge and rust-test must\n")
+      .replace('[.frontend.result, .["rust-test"].result]', '[.frontend.result, .["frontend-merge"].result, .["rust-test"].result]');
+    expect(withMerge(decision(baseline))).not.toBe(decision(baseline));
+    expect(decision(TEXT)).toBe(withMerge(decision(baseline)));
     expect(scalar(job(TEXT, "ci-gate"), "continue-on-error")).toBeNull();
-    expect(list(job(TEXT, "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "rust-test"]);
+    expect(list(job(TEXT, "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "frontend-merge", "rust-test"]);
   }, 30_000);
 
   it("runs optional summary diagnostics after the decision without changing gate failures", () => {
@@ -105,26 +111,26 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(Number(scalar(gate, "timeout-minutes"))).toBe(5 + budgets.reduce((sum, budget) => sum + budget, 0));
   });
 
-  it("runs profile, coverage, critical checker and comparator as authoritative frontend steps", () => {
-    const frontend = steps(job(TEXT, "frontend"));
-    const commands = [
-      "node scripts/lint/conditional-tests.mjs",
-      "git rev-parse HEAD",
-      "pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json",
-      "node scripts/ci/check-critical-coverage.mjs",
-      'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.runner-profile.outputs.profile }}" "$PWD"',
+  it("runs profile and sharded coverage in frontend, and merged coverage, critical checker and comparator in frontend-merge, as authoritative steps", () => {
+    const commands: Array<[string, string]> = [
+      ["frontend", "node scripts/lint/conditional-tests.mjs"],
+      ["frontend", "git rev-parse HEAD"],
+      ["frontend", "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/3 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --outputFile.json=.ci-vitest-results.json"],
+      ["frontend-merge", "pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json"],
+      ["frontend-merge", "node scripts/ci/check-critical-coverage.mjs"],
+      ["frontend-merge", 'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.shards.outputs.profile }}" "$PWD"'],
     ];
-    for (const command of commands) {
-      const step = frontend.find((item) => stepRun(item) === command);
+    for (const [id, command] of commands) {
+      const step = steps(job(TEXT, id)).find((item) => stepRun(item) === command);
       expect(step, command).toBeDefined();
       expect(scalar(step ?? null, "continue-on-error"), command).toBeNull();
       expect(scalar(step ?? null, "if"), command).toBeNull();
     }
-    expect(frontend.some((step) => stepRun(step)?.includes("node scripts/ci/runner-profile.mjs"))).toBe(true);
+    expect(steps(job(TEXT, "frontend")).some((step) => stepRun(step)?.includes("node scripts/ci/runner-profile.mjs"))).toBe(true);
   });
 
-  it("retains the per-leg JSON report for the delegator's cross-host parity proof", () => {
-    const upload = steps(job(TEXT, "frontend")).find((step) => scalar(step, "uses") === "actions/upload-artifact@v4");
+  it("retains the merged per-leg JSON report for the delegator's cross-host parity proof", () => {
+    const upload = steps(job(TEXT, "frontend-merge")).find((step) => scalar(step, "uses") === "actions/upload-artifact@v4");
     expect(upload).toBeDefined();
     expect(scalar(upload ?? null, "if")).toBe("always()");
     const options = entry(upload ?? null, "with")?.body ?? null;
@@ -133,7 +139,7 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
   });
 
   it("includes the hidden JSON report in the upload action's selected files", () => {
-    const upload = steps(job(TEXT, "frontend")).find((step) => scalar(step, "uses") === "actions/upload-artifact@v4");
+    const upload = steps(job(TEXT, "frontend-merge")).find((step) => scalar(step, "uses") === "actions/upload-artifact@v4");
     const options = entry(upload ?? null, "with")?.body ?? null;
     expect(scalar(options, "path")).toBe(".ci-vitest-results.json");
     expect(scalar(options, "include-hidden-files")).toBe("true");
@@ -171,7 +177,7 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
   it("ci-gate always runs, needs every job but rust-audit, and rejects failed or cancelled results", () => {
     const gate = job(TEXT, "ci-gate");
     expect(scalar(gate, "if")).toBe("always()");
-    expect((list(gate, "needs") ?? []).sort()).toEqual(["frontend", "prose-checks", "rust-test", "scope"]);
+    expect((list(gate, "needs") ?? []).sort()).toEqual(["frontend", "frontend-merge", "prose-checks", "rust-test", "scope"]);
     const script = runs("ci-gate").join("\n");
     expect(script).toContain("toJSON(needs)");
     expect(script).toMatch(/failure/);

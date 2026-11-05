@@ -1,0 +1,123 @@
+{
+  "id": "GH639-S17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:23:47.585Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses attempt \\\"0\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses count \\\"x\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses os \\\"\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses profile \\\"\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses sha \\\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses sha \\\"\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses sha \\\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses shard \\\"0\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses shard \\\"1.5\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses shard \\\"4\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 describeShard\",\"refuses shard \\\"\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S17/20261105T032347585Z/tests",
+    "tree": "eb371e9ad2a8c20f2e99e4e418cc3ea6cca3645a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "e2f4418a4845fa1d312ddf98023ac6b107a87f53"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "e2f4418a4845fa1d312ddf98023ac6b107a87f53"
+  }
+}

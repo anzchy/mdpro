@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:21:57.396Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 checkMerged\",\"refuses a merged test count that differs from the shards' sum\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 278
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S14/20261105T032157396Z/tests",
+    "tree": "69e5e104f7248e8bf3f322b0a61fd1a499004ad1"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "1fecc15080fe278d043965d6578e6225638178b9"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "1fecc15080fe278d043965d6578e6225638178b9"
+  }
+}

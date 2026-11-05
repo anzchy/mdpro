@@ -70,11 +70,12 @@ describe("ADR128 matrix completeness", () => {
       }
     } finally { fs.rmSync(emptyHome, { recursive: true, force: true }); }
   });
-  it("keeps workflow gate commands ordered and the frontend job failure authoritative", () => {
+  it("keeps workflow gate commands ordered and the frontend and frontend-merge job failures authoritative", () => {
     const text = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
-    const frontend = job(text, "frontend");
+    const frontend = job(text, "frontend-merge");
+    expect(scalar(job(text, "frontend"), "continue-on-error")).toBeNull();
     const commands = steps(frontend).map(stepRun);
-    const coverage = commands.indexOf("pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json");
+    const coverage = commands.indexOf("pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json");
     const critical = commands.indexOf("node scripts/ci/check-critical-coverage.mjs");
     const comparator = commands.findIndex((command) => command?.startsWith("node scripts/ci/compare-report.mjs ci "));
     expect(coverage).toBeGreaterThanOrEqual(0);

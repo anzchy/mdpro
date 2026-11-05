@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S18",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:24:28.553Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 shard-reports CLI\",\"collect prints only the profile on success, and nothing on stdout with exit 1 on failure\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 358
+      },
+      "message": "AssertionError: expected { status: 1, stdout: '', stderr: '' } to match object { status: +0, …(1) }\n(1 matching property omitted from actual)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S18/20261105T032428553Z/tests",
+    "tree": "dda96d8d04f43ee129bec633391617117abc1717"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "3fbab989380bdd67466bf4ba97832b183dcb3eb6"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "3fbab989380bdd67466bf4ba97832b183dcb3eb6"
+  }
+}

@@ -308,6 +308,6 @@ describe("GH640 the two workflows share one cache", () => {
   });
 
   it("keeps rust-audit out of ci-gate.needs (ADR-0107)", () => {
-    expect(list(job(read("ci.yml"), "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "rust-test"]);
+    expect(list(job(read("ci.yml"), "ci-gate"), "needs")).toEqual(["scope", "prose-checks", "frontend", "frontend-merge", "rust-test"]);
   });
 });

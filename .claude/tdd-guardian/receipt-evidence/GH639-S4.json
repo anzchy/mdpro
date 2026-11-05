@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:14:48.210Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses an artifact that holds no blob file, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 110
+      },
+      "message": "AssertionError: expected [ 'blob-1-3.json', 'blob-2-3.json' ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S4/20261105T031448210Z/tests",
+    "tree": "9d4ccc79647617cc790e4ede75c74b56e7822984"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "5fe37bdbefad927c7ef8bd24c077baf45592a4d7"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "5fe37bdbefad927c7ef8bd24c077baf45592a4d7"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:14:14.441Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses when a shard's artifact is missing, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /shard 2.*missing/ but got 'Cannot read properties of undefined (…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S3/20261105T031414441Z/tests",
+    "tree": "87d7a1eb8aa154d5142bdb226d6f334cca324179"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "482bfebaae44bbb1b509387f7f3b979a8f718a6f"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "482bfebaae44bbb1b509387f7f3b979a8f718a6f"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:19:38.318Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 checkMerged\",\"passes when the shards partition the listed files and the merge holds them all\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 245
+      },
+      "message": "Error: not implemented"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S10/20261105T031938318Z/tests",
+    "tree": "750faf993984b69ae33c383c541fc6b4cd7717b2"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "e356daaac4a1ba9a82a88a3e4f453043d61190f1"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "e356daaac4a1ba9a82a88a3e4f453043d61190f1"
+  }
+}

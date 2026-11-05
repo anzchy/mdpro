@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S22",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:27:39.119Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend shards\",\"always uploads each shard's own JSON for the failure summary, replacing an earlier attempt's\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected null not to be null"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S22/20261105T032739119Z/tests",
+    "tree": "f4887c4303c10ed29ab019bf331b70a729344536"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "f6448beb8e0ec347c7d72bffe4eee3bc9afa3858"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "f6448beb8e0ec347c7d72bffe4eee3bc9afa3858"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "GH639-S8",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:17:57.243Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses a junk name in the downloads, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 191
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses a shard index above the count in the downloads, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 191
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses another runner's artifact in the downloads, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 191
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shard zero in the downloads, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 191
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S8/20261105T031757243Z/tests",
+    "tree": "7b3bb116fe3a14587bd503852f4e905b9e5cb7c9"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "d67613355d7930fcaf11d275be007444daaa2951"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "d67613355d7930fcaf11d275be007444daaa2951"
+  }
+}

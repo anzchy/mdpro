@@ -1,0 +1,30 @@
+{
+  "id": "GH639-S25",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:29:34.025Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"downloads, collects, merges, then runs every check on the merged report, in that exact order\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 99
+      },
+      "message": "AssertionError: expected [ 'actions/checkout@v6', …(2) ] to deeply equal [ 'actions/checkout@v6', …(12) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S25/20261105T032934025Z/tests",
+    "tree": "81637e67a645dabb0c75df1661b258628b41147b"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "eb32d294a2e17acf9c5dc7a06882c723b4cbd7f6"
+  }
+}

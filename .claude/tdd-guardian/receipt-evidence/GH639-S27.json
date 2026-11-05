@@ -1,0 +1,60 @@
+{
+  "id": "GH639-S27",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:32:43.813Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 ci-gate\",\"decides the gate when the merge failed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: scope: success\nprose-checks: success\nfrontend: success\nfrontend-merge: failure\nrust-test: success\n: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 ci-gate\",\"decides the gate when the merge result is absent\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: scope: success\nprose-checks: success\nfrontend: success\nrust-test: success\n: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 ci-gate\",\"decides the gate when the merge skipped although scope said code\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: scope: success\nprose-checks: success\nfrontend: success\nfrontend-merge: skipped\nrust-test: success\n: expected +0 to be 1 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 ci-gate\",\"decides the gate when the merge was cancelled\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 229
+      },
+      "message": "AssertionError: scope: success\nprose-checks: success\nfrontend: success\nfrontend-merge: cancelled\nrust-test: success\n: expected +0 to be 1 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S27/20261105T033243813Z/tests",
+    "tree": "26a74a8ce9eb73d5419be2f1dae3a93cd5e3a0a0"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "03825974470fae594f225fd1447b9d7e17592552"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "03825974470fae594f225fd1447b9d7e17592552"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S19",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:25:06.224Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 shard-reports CLI\",\"describe prints the metadata JSON, and check reads the merged report and file list from disk\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 369
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S19/20261105T032506224Z/tests",
+    "tree": "3bfb22c2177fe6f987e8c0d0b6ca9c0bc2b89e72"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "b57ed8028453901982901ef5b5987c8ec0c70658"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "b57ed8028453901982901ef5b5987c8ec0c70658"
+  }
+}

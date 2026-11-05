@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S23",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:28:12.822Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"needs every shard, runs only on their success for code changes, and has a budget\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected null to deeply equal [ 'scope', 'frontend' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S23/20261105T032812822Z/tests",
+    "tree": "390dd44266665ae3577cfbfe07ca4e254cab7869"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "625045b0dc90ddf5b0ec7f4be389eafb8a7ace8a"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "625045b0dc90ddf5b0ec7f4be389eafb8a7ace8a"
+  }
+}

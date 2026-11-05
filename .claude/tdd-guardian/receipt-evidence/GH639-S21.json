@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S21",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:27:02.437Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend shards\",\"writes .ci-shard.json after the run and uploads the blob, metadata and JSON under an attempt-named artifact\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 44
+      },
+      "message": "AssertionError: expected -1 to be greater than 11"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S21/20261105T032702437Z/tests",
+    "tree": "3712dce6a9d832727a3016ef4c6e84a166606117"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "3a7f08c9a54ec8741fff13cdfbad7e2c6134990b"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "3a7f08c9a54ec8741fff13cdfbad7e2c6134990b"
+  }
+}

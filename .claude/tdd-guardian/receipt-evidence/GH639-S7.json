@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:17:14.770Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-shard-reports.test.ts\",\"GH639 collect\",\"refuses shards whose runner profiles differ, and writes nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-shard-reports.test.ts",
+        "line": 176
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S7/20261105T031714770Z/tests",
+    "tree": "bdb90e7d831cf875ca72532b73d8f16968538d64"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "db035d1b316356b6c402e65669fec6ae8532e73c"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-shard-reports.test.ts": "db035d1b316356b6c402e65669fec6ae8532e73c"
+  }
+}
