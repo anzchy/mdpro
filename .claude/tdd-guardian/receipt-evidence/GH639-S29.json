@@ -1,0 +1,41 @@
+{
+  "id": "GH639-S29",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:30:06.607Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"does not count a static skip as started, so it cannot mask a test no shard ran\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 57
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S29/20261105T053006607Z/tests",
+    "tree": "43e8ded75fc8778fd57323a05e808e3300533068"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "5a3be4c8528594e39f283f4a45ce3cb6fb86df14"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "301d93caf05eb042ff8cb5699de324caaa17d423"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH639-S29.json",
+    "digest": "2b58392fb16dff39a7252daf41c4fa314c5b21213bdbc427536bc4fbc9dc2302",
+    "result": "failed",
+    "base": "937cf44787190b9a9c4b229d8d568d3530a0a69c",
+    "head": "535a36abc95d0f0777cd3b5e8eb01af9704969f9"
+  }
+}

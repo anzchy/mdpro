@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S33",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:33:18.094Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 shard-reports count\",\"reads the merged report and the collection from disk, and fails with exit 1 and no stdout on a mismatch\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 154
+      },
+      "message": "AssertionError: expected [ 1, '', …(1) ] to deeply equal [ +0, …(2) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S33/20261105T053318094Z/tests",
+    "tree": "fd1be30b272a0b8cb9c1afafe62108c4749d0507"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "3acb5a156a72d5e19313caac0226a205057fafa1"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "3acb5a156a72d5e19313caac0226a205057fafa1"
+  }
+}

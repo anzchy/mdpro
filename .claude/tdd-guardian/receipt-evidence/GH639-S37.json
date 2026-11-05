@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S37",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:43:50.225Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 fix 1 ADR-0130 citation\",\"cites ADR-0130 above jobs:, above frontend-merge and above the shard list, and no comment still says three shards\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 334
+      },
+      "message": "AssertionError: jobs:: expected '# ADR-0095: branch protection require…' to contain 'ADR-0130'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S37/20261105T054350225Z/tests",
+    "tree": "54c6666909fd88753050d82573abbf444c86cf16"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "c0013e443d72340993751df566b31f74b119a8c8"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "c0013e443d72340993751df566b31f74b119a8c8"
+  }
+}

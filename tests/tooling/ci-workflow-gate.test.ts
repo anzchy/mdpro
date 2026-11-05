@@ -45,7 +45,7 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
 
   it("frontend keeps build and test typecheck and runs the covered unit lane in shards that frontend-merge merges to JSON", () => {
     const r = runs("frontend");
-    for (const cmd of ["pnpm build", "pnpm typecheck:tests", "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/3 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --outputFile.json=.ci-vitest-results.json"]) expect(r).toContain(cmd);
+    for (const cmd of ["pnpm build", "pnpm typecheck:tests", "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/4 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --outputFile.json=.ci-vitest-results.json"]) expect(r).toContain(cmd);
     expect(runs("frontend-merge")).toContain("pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json");
   });
 
@@ -115,10 +115,10 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     const commands: Array<[string, string]> = [
       ["frontend", "node scripts/lint/conditional-tests.mjs"],
       ["frontend", "git rev-parse HEAD"],
-      ["frontend", "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/3 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --outputFile.json=.ci-vitest-results.json"],
+      ["frontend", "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/4 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --outputFile.json=.ci-vitest-results.json"],
       ["frontend-merge", "pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json"],
       ["frontend-merge", "node scripts/ci/check-critical-coverage.mjs"],
-      ["frontend-merge", 'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.shards.outputs.profile }}" "$PWD"'],
+      ["frontend-merge", 'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "$PROFILE" "$PWD"'],
     ];
     for (const [id, command] of commands) {
       const step = steps(job(TEXT, id)).find((item) => stepRun(item) === command);

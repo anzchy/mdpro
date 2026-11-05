@@ -1,0 +1,60 @@
+{
+  "id": "GH639-S34",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:33:57.030Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 runner profile validation (opus L1)\",\"describeShard refuses the profile \\\"$(id)\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 165
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 runner profile validation (opus L1)\",\"describeShard refuses the profile \\\"ubuntu+rustfmt\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 165
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 runner profile validation (opus L1)\",\"describeShard refuses the profile \\\"ubuntu\\\\nx=1\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 165
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 runner profile validation (opus L1)\",\"describeShard refuses the profile \\\"windows\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 165
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S34/20261105T053357030Z/tests",
+    "tree": "b70aa18d18df19fdc801b97e75ea920bc14d839f"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "f6586c1667f3f1a025c3685949984e6c2fd29b1a"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "f6586c1667f3f1a025c3685949984e6c2fd29b1a"
+  }
+}

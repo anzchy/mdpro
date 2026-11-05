@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { profileFor } from "./compare-report.mjs";
 
 /** The shared prefix of one runner's blob artifacts; ci.yml's upload name and download pattern spell the same string. */
 const shardPrefix = (os) => `frontend-blob-${os}-shard-`;
@@ -14,12 +15,21 @@ const positive = (field, value) => {
   return Number(value);
 };
 
+/** One runner profile as compare-report.mjs reads it; a newline or a `$(` never reaches `$GITHUB_OUTPUT` or a shell. */
+function checkProfile(profile, label) {
+  try {
+    profileFor(typeof profile === "string" ? profile : "");
+  } catch {
+    throw Error(`${label} must be a runner profile that compare-report.mjs accepts, got ${JSON.stringify(profile)}`);
+  }
+}
+
 /** The `.ci-shard.json` a shard writes from its matrix values, run attempt, runner profile and `git rev-parse HEAD`. */
 export function describeShard({ os, shard, count, attempt, profile, sha }) {
   if (!/^[a-z0-9][a-z0-9.-]*$/.test(os ?? "")) throw Error(`os must be a runner label, got ${JSON.stringify(os)}`);
   const meta = { os, shard: positive("shard", shard), count: positive("count", count), attempt: positive("attempt", attempt), profile, sha };
   if (meta.shard > meta.count) throw Error(`shard ${meta.shard} is above count ${meta.count}`);
-  if (typeof profile !== "string" || profile === "") throw Error("profile is empty");
+  checkProfile(profile, "profile");
   if (!/^[0-9a-f]{40}$/.test(sha ?? "")) throw Error(`sha must be 40 lowercase hex digits, got ${JSON.stringify(sha)}`);
   return meta;
 }
@@ -56,7 +66,7 @@ function checkMeta({ shard, attempt, dir, meta }, count, os, sha) {
   for (const [field, value] of Object.entries(expected)) {
     if (meta?.[field] !== value) throw Error(`${path.basename(dir)}: .ci-shard.json ${field} is ${JSON.stringify(meta?.[field])}, expected ${JSON.stringify(value)}`);
   }
-  if (typeof meta.profile !== "string" || meta.profile === "") throw Error(`${path.basename(dir)}: .ci-shard.json profile is empty`);
+  checkProfile(meta.profile, `${path.basename(dir)}: .ci-shard.json profile`);
 }
 
 export function collect(downloads, dest, count, os, sha) {
@@ -106,14 +116,38 @@ export function checkMerged(downloads, count, os, merged, listed, root) {
   return { files: mergedFiles.length, tests };
 }
 
+/** ADR-0130 Decision 1: per test file, the unsharded collection (`vitest list --json`) equals the merged report's started tests. */
+export function checkCollected(merged, collected, root) {
+  if (!Array.isArray(collected) || !collected.every((item) => typeof item?.file === "string")) throw Error("malformed collection: expected vitest list's [{name, file}]");
+  if (!Array.isArray(merged?.testResults) || !merged.testResults.every((result) => typeof result?.name === "string" && Array.isArray(result.assertionResults))) throw Error("malformed merged report: expected testResults[{name, assertionResults}]");
+  const relative = relativeTo(root);
+  const counts = new Map();
+  const add = (file, side) => {
+    const count = counts.get(file) ?? { collected: 0, started: 0 };
+    count[side] += 1;
+    counts.set(file, count);
+  };
+  for (const item of collected) add(relative(item.file), "collected");
+  // A started test has a duration; a static skip or a todo has none, and the collection omits both.
+  for (const result of merged.testResults) for (const item of result.assertionResults) if (typeof item.duration === "number") add(relative(result.name), "started");
+  const differ = [...counts].filter(([, count]) => count.collected !== count.started).map(([file, count]) => `${file}: ${count.collected} collected, ${count.started} started`);
+  if (differ.length) throw Error(`the merged report differs from the unsharded collection: ${differ.join("; ")}`);
+  return { files: counts.size, tests: [...counts.values()].reduce((sum, count) => sum + count.started, 0) };
+}
+
+const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+
 const commands = {
   describe: ([os, shard, count, attempt, profile, sha]) => `${JSON.stringify(describeShard({ os, shard, count, attempt, profile, sha }))}\n`,
   collect: ([downloads, dest, count, os, sha]) => `${collect(downloads, dest, positive("count", count), os, sha)}\n`,
   check: ([downloads, count, os, mergedPath, listPath, root]) => {
     const shards = positive("count", count);
-    const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
     const result = checkMerged(downloads, shards, os, readJson(mergedPath), readJson(listPath), root);
     return `shard reports PASS (${result.files} files, ${result.tests} tests in ${shards} shards)\n`;
+  },
+  count: ([mergedPath, collectedPath, root]) => {
+    const result = checkCollected(readJson(mergedPath), readJson(collectedPath), root);
+    return `collected tests PASS (${result.files} files, ${result.tests} tests)\n`;
   },
 };
 

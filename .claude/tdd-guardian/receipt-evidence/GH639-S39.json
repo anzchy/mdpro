@@ -1,0 +1,60 @@
+{
+  "id": "GH639-S39",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:45:21.472Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 fix 1 runner profiles reach the shell through env (opus L1)\",\"passes each profile output through env, and no run: expands a profile expression\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 339
+      },
+      "message": "AssertionError: expected null to be '${{ steps.runner-profile.outputs.prof…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend shards\",\"writes .ci-shard.json after the run and uploads the blob, metadata and JSON under an attempt-named artifact\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected -1 to be greater than 11"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"downloads, collects, merges, then runs every check on the merged report, in that exact order\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 141
+      },
+      "message": "AssertionError: expected [ 'actions/checkout@v6', …(14) ] to deeply equal [ 'actions/checkout@v6', …(14) ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"feeds the shards' real metadata writer and upload layout through the collect step, for each runner\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 201
+      },
+      "message": "Error: ENOENT: no such file or directory, lstat '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh639-step-nLdgi6/shard-1-funhEX/.ci-shard.json'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S39/20261105T054521472Z/tests",
+    "tree": "a0ce7c328eda6a1cfb27f26783b52e702d8199e4"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "bf4a60a77347fc835033cfe81c13efbc7635979a"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "bf4a60a77347fc835033cfe81c13efbc7635979a"
+  }
+}

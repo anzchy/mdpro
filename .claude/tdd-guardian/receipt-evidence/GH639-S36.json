@@ -1,0 +1,69 @@
+{
+  "id": "GH639-S36",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:43:03.640Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend shards\",\"runs four fail-slow shards, each with the exact blob-reporting vitest command\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 76
+      },
+      "message": "AssertionError: expected [ '1', '2', '3' ] to deeply equal [ '1', '2', '3', '4' ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend shards\",\"writes .ci-shard.json after the run and uploads the blob, metadata and JSON under an attempt-named artifact\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 90
+      },
+      "message": "AssertionError: expected -1 to be greater than or equal to 0"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"downloads, collects, merges, then runs every check on the merged report, in that exact order\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 139
+      },
+      "message": "AssertionError: expected [ 'actions/checkout@v6', …(12) ] to deeply equal [ 'actions/checkout@v6', …(12) ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 frontend-merge\",\"feeds the shards' real metadata writer and upload layout through the collect step, for each runner\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 196
+      },
+      "message": "Error: ENOENT: no such file or directory, lstat '/var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh639-step-6DES1J/shard-1-od7BHC/.ci-shard.json'"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-frontend-shard-shape.test.ts\",\"GH639 nothing else weakened\",\"keeps one shard count everywhere\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-frontend-shard-shape.test.ts",
+        "line": 264
+      },
+      "message": "AssertionError: expected [ '3', '4', '4', '4', '4' ] to deeply equal [ '4', '4', '4', '4', '4' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S36/20261105T054303640Z/tests",
+    "tree": "63ba238bc15488fb11f2e0f2551e2ec2218b3b05"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "01adfb816a3b0f25e5705325b48cf426bd336aa6"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-frontend-shard-shape.test.ts": "01adfb816a3b0f25e5705325b48cf426bd336aa6"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S30",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:30:28.318Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"counts a test that skipped at run time, which has a duration, as started\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 63
+      },
+      "message": "Error: tests/a.test.ts: 3 collected, 2 started"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S30/20261105T053028318Z/tests",
+    "tree": "40ca8b00585ca019667629352018e53b5da64d23"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "301d93caf05eb042ff8cb5699de324caaa17d423"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "301d93caf05eb042ff8cb5699de324caaa17d423"
+  }
+}

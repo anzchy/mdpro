@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S28",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:29:35.785Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"refuses a collected test that no shard ran\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S28/20261105T052935785Z/tests",
+    "tree": "6164d840d00088eeda59ab6871e0fc909d39e42a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "bc2a60c9880740fcd10bb7eadf9833e88e94c88b"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "bc2a60c9880740fcd10bb7eadf9833e88e94c88b"
+  }
+}

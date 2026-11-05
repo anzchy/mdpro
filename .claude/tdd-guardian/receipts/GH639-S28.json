@@ -1,0 +1,80 @@
+{
+  "id": "GH639-S28",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:29:35.785Z",
+  "head_sha": "535a36abc95d0f0777cd3b5e8eb01af9704969f9",
+  "dirty_source": [
+    "scripts/ci/shard-reports.d.mts",
+    "scripts/ci/shard-reports.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/gh639-fix1-collected.test.ts": {
+      "state": "ok",
+      "sha": "ffd7bf32a3df8ff9049be4b4fa02c6573aa36dfdace069ac16585c67f1eeded6",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "55e1f0c26510ece6",
+        "684888c0ebb17f37",
+        "48987100a3c74acb",
+        "c49e8b9fc6bee8e0",
+        "59a7aefbdbedaee7",
+        "7a6e9a17f7eba006",
+        "ed9623369ff082ab",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "9234ed86c2c3c22a",
+        "b488a330d6824a93",
+        "626237b5e5a51666",
+        "37d9a300c7b532bb",
+        "0a61e96eaaa34a01",
+        "29576b54e255e3c9",
+        "382bfd1f22ebf95e",
+        "61cca731f8265154",
+        "013cd0faeafe5d1e",
+        "752b9292757e9d86",
+        "d10b36aa74a59bcf",
+        "427c023fe8f70006",
+        "1637a0de85d3ab41",
+        "b0621ddc1972be98",
+        "c4c1a42669aa1039",
+        "dde44124f1ee421c",
+        "d7e1509935225cfb",
+        "ee0c98da63b42377",
+        "2bdaa310f5300c93",
+        "9b79114a274579e9",
+        "bf25f0f11c1730bd",
+        "5919f6ff6792a2df",
+        "9e6415245119df1a",
+        "df3982fd61017359",
+        "d10b36aa74a59bcf",
+        "2a5b5e2165881b56",
+        "9379fc937234ed00",
+        "31d8ba4cf0ae47c0",
+        "d10b36aa74a59bcf",
+        "0d9ce4a884354807",
+        "09a73167e6497e8d",
+        "e88890d015bb76a5",
+        "5171db256137966a",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T05:29:51.393Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (scripts/ci/shard-reports.d.mts, scripts/ci/shard-reports.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

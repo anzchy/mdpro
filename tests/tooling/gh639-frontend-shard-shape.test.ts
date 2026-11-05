@@ -2,7 +2,7 @@
 /**
  * GH639: ci.yml's sharded frontend lane.
  *
- * `frontend` runs the vitest suite in three shards per runner, each writing a blob report. `frontend-merge`
+ * `frontend` runs the vitest suite in four shards per runner (ADR-0130 Decision 1), each writing a blob report. `frontend-merge`
  * merges them, enforces the coverage thresholds and the inventory on the merged result only, and proves no
  * test file was lost. `ci-gate` needs both, so a failed, cancelled or skipped shard or merge fails the gate.
  */
@@ -16,18 +16,20 @@ import { entry, job, jobIds, keys as keysOf, list, scalar, steps, stepRun } from
 
 const ROOT = path.resolve(__dirname, "../..");
 const TEXT = fs.readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
-const SHARDS = 3;
-const SHARD_RUN = "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/3 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --outputFile.json=.ci-vitest-results.json";
+const SHARDS = 4;
+const SHARD_RUN = "pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/4 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --outputFile.json=.ci-vitest-results.json";
 
-const DESCRIBE_RUN = 'node scripts/ci/shard-reports.mjs describe "${{ matrix.os }}" "${{ matrix.shard }}" 3 "${{ github.run_attempt }}" "${{ steps.runner-profile.outputs.profile }}" "$(git rev-parse HEAD)" > .ci-shard.json';
+const DESCRIBE_RUN = 'node scripts/ci/shard-reports.mjs describe "${{ matrix.os }}" "${{ matrix.shard }}" 4 "${{ github.run_attempt }}" "$PROFILE" "$(git rev-parse HEAD)" > .ci-shard.json';
 const BLOB_NAME = "frontend-blob-${{ matrix.os }}-shard-${{ matrix.shard }}-attempt-${{ github.run_attempt }}";
 
-const COLLECT_RUN = 'profile="$(node scripts/ci/shard-reports.mjs collect .vitest-blobs .vitest-reports 3 "${{ matrix.os }}" "$(git rev-parse HEAD)")"\necho "profile=$profile" >> "$GITHUB_OUTPUT"';
+const COLLECT_RUN = 'profile="$(node scripts/ci/shard-reports.mjs collect .vitest-blobs .vitest-reports 4 "${{ matrix.os }}" "$(git rev-parse HEAD)")"\necho "profile=$profile" >> "$GITHUB_OUTPUT"';
 const MERGE_RUN = "pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json";
 const CRITICAL_RUN = "node scripts/ci/check-critical-coverage.mjs";
-const COMPARE_RUN = 'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.shards.outputs.profile }}" "$PWD"';
+const COMPARE_RUN = 'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "$PROFILE" "$PWD"';
 const LIST_RUN = "pnpm exec vitest list --filesOnly --json=.ci-vitest-files.json";
-const CHECK_RUN = 'node scripts/ci/shard-reports.mjs check .vitest-blobs 3 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"';
+const CHECK_RUN = 'node scripts/ci/shard-reports.mjs check .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"';
+const TESTS_LIST_RUN = "pnpm exec vitest list --json=.ci-vitest-tests.json";
+const COUNT_RUN = 'node scripts/ci/shard-reports.mjs count .ci-vitest-results.json .ci-vitest-tests.json "$PWD"';
 
 const BASE = "1acb988e";
 const runFile = promisify(execFile);
@@ -57,6 +59,8 @@ async function checkout() {
   dirs.push(dir);
   fs.mkdirSync(path.join(dir, "scripts/ci"), { recursive: true });
   fs.copyFileSync(path.join(ROOT, "scripts/ci/shard-reports.mjs"), path.join(dir, "scripts/ci/shard-reports.mjs"));
+  // shard-reports.mjs imports compare-report.mjs for the runner profile check (GH639 fix 1).
+  fs.copyFileSync(path.join(ROOT, "scripts/ci/compare-report.mjs"), path.join(dir, "scripts/ci/compare-report.mjs"));
   const git = ["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"];
   const init = "git init -q && git add -A && git " + git.join(" ") + " commit -q -m init && git rev-parse HEAD";
   const { status, stdout } = await bash(init, dir, {});
@@ -70,8 +74,8 @@ const uploads = (id: string) => steps(job(TEXT, id)).filter((step) => scalar(ste
 const findRun = (id: string, run: string) => steps(job(TEXT, id)).find((step) => stepRun(step) === run) ?? null;
 
 describe("GH639 frontend shards", () => {
-  it("runs three fail-slow shards, each with the exact blob-reporting vitest command", () => {
-    expect(list(matrix("frontend"), "shard")).toEqual(["1", "2", "3"]);
+  it("runs four fail-slow shards, each with the exact blob-reporting vitest command", () => {
+    expect(list(matrix("frontend"), "shard")).toEqual(["1", "2", "3", "4"]);
     expect(scalar(entry(job(TEXT, "frontend"), "strategy")?.body ?? null, "fail-fast")).toBe("false");
     const step = findRun("frontend", SHARD_RUN);
     expect(step, SHARD_RUN).not.toBeNull();
@@ -147,17 +151,20 @@ describe("GH639 frontend-merge", () => {
       COMPARE_RUN,
       LIST_RUN,
       CHECK_RUN,
+      TESTS_LIST_RUN,
+      COUNT_RUN,
       "actions/upload-artifact@v4",
     ]);
     const collectStep = findRun("frontend-merge", COLLECT_RUN);
     expect(scalar(collectStep, "id")).toBe("shards");
-    for (const run of [COLLECT_RUN, MERGE_RUN, CRITICAL_RUN, COMPARE_RUN, LIST_RUN, CHECK_RUN]) {
+    for (const run of [COLLECT_RUN, MERGE_RUN, CRITICAL_RUN, COMPARE_RUN, LIST_RUN, CHECK_RUN, TESTS_LIST_RUN, COUNT_RUN]) {
       const step = findRun("frontend-merge", run);
       expect(scalar(step, "if"), run).toBeNull();
       expect(scalar(step, "continue-on-error"), run).toBeNull();
-      expect(entry(step, "env"), run).toBeNull();
+      // opus L1: the comparator takes the shards' profile through env, never as an expression inside run:.
+      expect(keysOf(entry(step, "env")?.body ?? null), run).toEqual(run === COMPARE_RUN ? ["PROFILE"] : []);
     }
-    for (const run of [SHARD_RUN, DESCRIBE_RUN, MERGE_RUN, CRITICAL_RUN, COMPARE_RUN, LIST_RUN, CHECK_RUN]) {
+    for (const run of [SHARD_RUN, DESCRIBE_RUN, MERGE_RUN, CRITICAL_RUN, COMPARE_RUN, LIST_RUN, CHECK_RUN, TESTS_LIST_RUN, COUNT_RUN]) {
       expect(run).not.toMatch(/\|\||\||;|&&|set \+e|exit 0/);
     }
     expect(steps(job(TEXT, "frontend-merge")).some((step) => /(^|[\s"'])coverage\//.test(step))).toBe(false);
@@ -170,7 +177,7 @@ describe("GH639 frontend-merge", () => {
     fs.writeFileSync(output, "");
     const result = await bash(COLLECT_RUN, dir, { "matrix.os": "ubuntu-latest" }, { GITHUB_OUTPUT: output });
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toMatch(/shard 1 of 3.*missing/);
+    expect(result.stderr).toMatch(/shard 1 of 4.*missing/);
     expect(fs.readFileSync(output, "utf8")).toBe("");
   });
 
@@ -180,14 +187,14 @@ describe("GH639 frontend-merge", () => {
     const paths = (entry(withOf(upload), "path")?.body ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
     for (const [runner, profile] of [["ubuntu-latest", "ubuntu+rustfmt"], ["macos-latest", "macos+rustfmt"]]) {
       const { dir, sha } = await checkout();
-      for (const index of [1, 2, 3]) {
-        const values = { "matrix.os": runner, "matrix.shard": String(index), "github.run_attempt": "1", "steps.runner-profile.outputs.profile": profile };
+      for (const index of [1, 2, 3, 4]) {
+        const values = { "matrix.os": runner, "matrix.shard": String(index), "github.run_attempt": "1" };
         const work = fs.mkdtempSync(path.join(dir, `shard-${index}-`));
         fs.mkdirSync(path.join(work, ".vitest-reports"));
-        fs.writeFileSync(path.join(work, ".vitest-reports", `blob-${index}-3.json`), `bytes ${runner} ${index}`);
+        fs.writeFileSync(path.join(work, ".vitest-reports", `blob-${index}-4.json`), `bytes ${runner} ${index}`);
         fs.writeFileSync(path.join(work, ".ci-vitest-results.json"), "{}");
         fs.symlinkSync(path.join(dir, "scripts"), path.join(work, "scripts"));
-        const written = await bash(stepRun(writer ?? "") ?? "", work, values);
+        const written = await bash(stepRun(writer ?? "") ?? "", work, values, { PROFILE: profile });
         expect(written.status, written.stderr).toBe(0);
         const name = Object.entries(values).reduce((acc, [expr, value]) => acc.replaceAll(`\${{ ${expr} }}`, value), BLOB_NAME);
         // upload-artifact stores each path relative to the paths' common ancestor, the workspace.
@@ -198,8 +205,8 @@ describe("GH639 frontend-merge", () => {
       const collected = await bash(COLLECT_RUN, dir, { "matrix.os": runner }, { GITHUB_OUTPUT: output });
       expect(collected.status, collected.stderr).toBe(0);
       expect(fs.readFileSync(output, "utf8")).toBe(`profile=${profile}\n`);
-      expect(fs.readdirSync(path.join(dir, ".vitest-reports")).sort()).toEqual(["blob-1-3.json", "blob-2-3.json", "blob-3-3.json"]);
-      expect(fs.readFileSync(path.join(dir, ".vitest-reports", "blob-2-3.json"), "utf8")).toBe(`bytes ${runner} 2`);
+      expect(fs.readdirSync(path.join(dir, ".vitest-reports")).sort()).toEqual(["blob-1-4.json", "blob-2-4.json", "blob-3-4.json", "blob-4-4.json"]);
+      expect(fs.readFileSync(path.join(dir, ".vitest-reports", "blob-2-4.json"), "utf8")).toBe(`bytes ${runner} 2`);
       expect(sha).toMatch(/^[0-9a-f]{40}$/);
     }
   });
@@ -314,6 +321,45 @@ describe("GH639 nothing else weakened", () => {
     expect(scalar(withOf(upload ?? null), "include-hidden-files")).toBe("true");
     expect(scalar(withOf(upload ?? null), "if-no-files-found")).toBe("error");
     expect(scalar(withOf(upload ?? null), "overwrite")).toBe("true");
+  });
+});
+
+/** The `#` comment block directly above the line `marker` in ci.yml. */
+function commentAbove(marker: string) {
+  const lines = TEXT.split("\n");
+  const at = lines.indexOf(marker);
+  expect(at, marker).toBeGreaterThan(0);
+  let start = at;
+  while (start > 0 && lines[start - 1].trim().startsWith("#")) start--;
+  return lines.slice(start, at).join("\n");
+}
+
+describe("GH639 fix 1 runner profiles reach the shell through env (opus L1)", () => {
+  it("passes each profile output through env, and no run: expands a profile expression", () => {
+    expect(scalar(entry(findRun("frontend", DESCRIBE_RUN), "env")?.body ?? null, "PROFILE")).toBe("${{ steps.runner-profile.outputs.profile }}");
+    expect(scalar(entry(findRun("frontend-merge", COMPARE_RUN), "env")?.body ?? null, "PROFILE")).toBe("${{ steps.shards.outputs.profile }}");
+    const runs = jobIds(TEXT).flatMap((id) => steps(job(TEXT, id)).map((step) => stepRun(step) ?? ""));
+    expect(runs.filter((run) => /\$\{\{[^}]*outputs\.profile/.test(run))).toEqual([]);
+  });
+
+  it("runs the real describe and compare steps with a $( in the profile without executing it", async () => {
+    const { dir } = await checkout();
+    const values = { "matrix.os": "ubuntu-latest", "matrix.shard": "1", "github.run_attempt": "1" };
+    const described = await bash(DESCRIBE_RUN, dir, values, { PROFILE: "$(touch pwned)" });
+    expect(described.status).not.toBe(0);
+    expect(described.stderr).toMatch(/profile/);
+    const compared = await bash(COMPARE_RUN, dir, {}, { PROFILE: "ubuntu$(touch pwned)" });
+    expect(compared.status).not.toBe(0);
+    expect(fs.existsSync(path.join(dir, "pwned"))).toBe(false);
+  });
+});
+
+describe("GH639 fix 1 ADR-0130 citation", () => {
+  it("cites ADR-0130 above jobs:, above frontend-merge and above the shard list, and no comment still says three shards", () => {
+    for (const marker of ["jobs:", "  frontend-merge:", "        shard: [1, 2, 3, 4]"]) expect(commentAbove(marker), marker).toContain("ADR-0130");
+    const comments = ["frontend", "frontend-merge"].flatMap((id) => (job(TEXT, id) ?? "").split("\n")).concat(commentAbove("  frontend-merge:").split("\n")).filter((line) => line.trim().startsWith("#"));
+    expect(comments.length).toBeGreaterThan(0);
+    expect(comments.filter((line) => /\/3\b|three shards|every `3`/i.test(line))).toEqual([]);
   });
 });
 

@@ -1,0 +1,60 @@
+{
+  "id": "GH639-S32",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:32:35.495Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"refuses a collected row without a file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /malformed/ but got 'The \"to\" argument must be of type str…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"refuses a collection given as a string\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /malformed/ but got 'The \"to\" argument must be of type str…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"refuses a collection that is not an array\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /malformed/ but got 'collected is not iterable'"
+    },
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 checkCollected\",\"refuses a merged report without testResults\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected [Function] to throw error matching /malformed/ but got 'merged.testResults is not iterable'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S32/20261105T053235495Z/tests",
+    "tree": "0aa0064db23bf6c59bf10a8d45b099d6758c793c"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "9c6bb3afcefd62c433787b135d2e4549972caf14"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "9c6bb3afcefd62c433787b135d2e4549972caf14"
+  }
+}

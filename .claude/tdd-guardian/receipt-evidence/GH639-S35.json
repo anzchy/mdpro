@@ -1,0 +1,33 @@
+{
+  "id": "GH639-S35",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T05:38:14.601Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh639-fix1-collected.test.ts\",\"GH639 fix 1 runner profile validation (opus L1)\",\"collect refuses a shard whose metadata profile would inject a line into $GITHUB_OUTPUT, and copies no blob\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh639-fix1-collected.test.ts",
+        "line": 193
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH639-S35/20261105T053814601Z/tests",
+    "tree": "9e8fb3459a07a84899283bdb9972d6491a84d6f9"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "880d13f042912d335d59d04836d8d660d246cc0f"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh639-fix1-collected.test.ts": "880d13f042912d335d59d04836d8d660d246cc0f"
+  }
+}
