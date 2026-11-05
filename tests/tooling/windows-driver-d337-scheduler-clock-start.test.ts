@@ -23,17 +23,17 @@ describe("D337 Scheduler child readiness", () => {
   }, 25000);
 
   it.each(["nonce", "pid", "stale", "future"])("rejects a %s marker before the child is ready", async (badMarker) => {
-    const fixture = await supervisorFixture("missing-progress", { entry: { DeadlineMs: String(Date.now() + 20000) },
+    const fixture = await supervisorFixture("missing-progress", {
       env: { TEST_SCHED_BOOT_OP: "start", TEST_SCHED_BAD_MARKER: badMarker, TEST_SCHED_BOOT_MS: "10000" } });
     const started = Date.now();
-    const result = await fixture.start().result;
+    const result = await fixture.start(undefined, {}, { DeadlineMs: String(Date.now() + 20000) }).result;
     const value = outcome(result.lines);
     expect(result.status).not.toBe(0);
     expect(value.phase).toContain("NATIVE_PHASE_TIMEOUT phase=scheduler-start");
     expect(Date.now() - started).toBeLessThan(10000);
     expect(await exists(path.join(fixture.dir, "native-session-blocked.json"))).toBe(true);
     expect(await schedulerChildrenGone(fixture.dir)).toBe(true);
-    const later = await fixture.start("d".repeat(32)).result;
+    const later = await fixture.start("d".repeat(32), {}, { DeadlineMs: String(Date.now() + 20000) }).result;
     expect(later.lines.join(" ")).toContain("NATIVE_RECONCILIATION_REQUIRED");
     const manifest = JSON.parse(await readFile(path.join(fixture.dir, "runs", fixture.runId, "owned-processes.json"), "utf8"));
     expect(Array.isArray(manifest) || typeof manifest === "object").toBe(true);

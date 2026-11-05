@@ -1,0 +1,33 @@
+{
+  "id": "GH652-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T08:20:12.751Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts\",\"GH652-S1 labels an unread ready marker before a later worker deadline\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=uia worker…' to contain 'NATIVE_PHASE_TIMEOUT phase=scheduler-…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH652-S4/20261105T082012751Z/tests",
+    "tree": "c4aa98ad29caef0b48797a765a6648fdf072b24d"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": "acab8bd8cdeb0f68a9264b237bd4c2abf6704714"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": "acab8bd8cdeb0f68a9264b237bd4c2abf6704714"
+  }
+}

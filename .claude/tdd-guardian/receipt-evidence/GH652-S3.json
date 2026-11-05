@@ -1,0 +1,33 @@
+{
+  "id": "GH652-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T08:17:46.409Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts\",\"GH652-S3 labels the worker after poll exit when its deadline precedes boot\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected 'NATIVE_PHASE_TIMEOUT phase=scheduler-…' to contain 'NATIVE_PHASE_TIMEOUT phase=uia'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH652-S3/20261105T081746409Z/tests",
+    "tree": "11b7c583b87bde19087ed802ddb4f511754e97f0"
+  },
+  "spec_blobs": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": "2e7962103b869889da282dda17971ab7e95ade4e"
+  },
+  "settled_blobs": {
+    "tests/tooling/windows-driver-d337-gh652-deadline-label.test.ts": "2e7962103b869889da282dda17971ab7e95ade4e"
+  }
+}

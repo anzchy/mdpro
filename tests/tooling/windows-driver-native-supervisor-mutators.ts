@@ -18,6 +18,19 @@ export function mutateSupervisorScript(source: string, fixtureEnv?: Record<strin
       }
       $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()`);
   }
+  if (fixtureEnv?.TEST_SUPERVISOR_HOLD_POST_EXIT_POLL) {
+    const anchor = '    }\n    $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()\n    if ($null -eq $end) {';
+    if (!supervisorScript.includes(anchor)) throw new Error("scheduler post-exit clock changed shape");
+    supervisorScript = supervisorScript.replace(anchor, `    }
+    if ($Name -eq "scheduler-poll") {
+      @{ bootEnd=$bootEnd; limit=$Limit; readyPath=$readyPath } | ConvertTo-Json -Compress |
+        Set-Content -LiteralPath "$env:TEST_ROOT/post-exit-clock.json" -Encoding UTF8
+      [IO.File]::WriteAllText("$env:TEST_ROOT/post-exit-held", "held")
+      while (-not (Test-Path -LiteralPath "$env:TEST_ROOT/release-post-exit")) { [Threading.Thread]::Sleep(10) }
+    }
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    if ($null -eq $end) {`);
+  }
   if (process.env.TEST_REVERT_UNREAD_MARKER_ORDER === "1") {
     const old = 'Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })';
     const marker = 'if ($null -eq $end) {\n        $stamp = Read-SchedulerReadyStamp';
@@ -28,6 +41,27 @@ export function mutateSupervisorScript(source: string, fixtureEnv?: Record<strin
     const fixed = 'Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })';
     if (!supervisorScript.includes(fixed)) throw new Error("boot effective end changed shape");
     supervisorScript = supervisorScript.replace(fixed, 'Assert-SchedulerDeadline $Name $now $Limit $end');
+  }
+  if (process.env.TEST_REVERT_POST_EXIT_BLOCK === "1") {
+    const breakAnchor = '      if ($child.HasExited) { break }';
+    const breakAt = supervisorScript.indexOf(breakAnchor);
+    const fixed = `    if ($null -eq $end) {
+      $stamp = Read-SchedulerReadyStamp $readyPath $readyNonce $child.Id $launch $bootEnd $now
+      if ($null -ne $stamp) { $end = [math]::Min($stamp + $PhaseMs, $Limit) }
+    }
+    Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })`;
+    if (breakAt < 0) throw new Error("post-exit break changed shape");
+    const before = supervisorScript.slice(0, breakAt + breakAnchor.length);
+    const postExit = supervisorScript.slice(breakAt + breakAnchor.length);
+    if (!postExit.includes(fixed)) throw new Error("post-exit deadline block changed shape");
+    supervisorScript = before + postExit.replace(fixed, `    if ($null -eq $end) {
+      $stamp = Read-SchedulerReadyStamp $readyPath $readyNonce $child.Id $launch $bootEnd $now
+      if ($null -ne $stamp) { $end = [math]::Min($stamp + $PhaseMs, $Limit) }
+      elseif ($now -ge $bootEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+    }
+    Assert-SchedulerDeadline $Name $now $Limit $end`)
+      .replace('    Assert-SchedulerDeadline $Name $now $Limit $(if ($null -eq $end) { $bootEnd } else { $end })\n    if ($child.ExitCode -ne 0',
+        '    Assert-SchedulerDeadline $Name $now $Limit $end\n    if ($child.ExitCode -ne 0');
   }
   if (process.env.TEST_DISABLE_OUTER_WORKER_CHECK === "1") {
     const original = 'if ($workerEnd -le $effectiveLimit -and $now -ge $workerEnd)';

@@ -1,0 +1,81 @@
+{
+  "id": "GH652-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T08:21:16.569Z",
+  "head_sha": "2f4cf86d9d2673f4b0786988d0caf12a967caa66",
+  "dirty_source": [
+    ".claude/settings.json",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "4 of 6 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/windows-driver-d337-scheduler-clock-start.test.ts": {
+      "state": "ok",
+      "sha": "6c6e4828f3e2e20a5a52b7223542e1d777b3239e82e332820203985cf92aa6e8",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "95bb58be20a8d63e",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "323f24a37742b20d",
+        "13b83abf05404343",
+        "2cf04835c899c56b",
+        "42cce646c12270f9",
+        "cb2cff5650fbe344",
+        "d12140f3e917b4c2",
+        "24ce279a68aa6b2b",
+        "d10b36aa74a59bcf",
+        "7e34bd673cfb967e",
+        "4a0b264e2a2ddc04",
+        "81449206eabed146",
+        "072d8019a37ebd43",
+        "2d1181af0ca87d02",
+        "46431912571ead3d",
+        "41398cd36dd4cdd8",
+        "76be4f406c1e9ba4",
+        "ed9438ccf17afac2",
+        "54b2d47c3f130c5f",
+        "8af9501a6dfab3a6",
+        "1ebf5d36670e1d61",
+        "23cfbd9b48dded85",
+        "ae6dfee52ed649b6",
+        "87b3589b29208ba0",
+        "2dbb46854595fcee",
+        "312e6c5d39ae4cde",
+        "94d428e7190d6e68",
+        "d8e374dd8f7ea661",
+        "82e11e23343f6e12",
+        "70d24f82793e7fb7",
+        "bdfe5984589df02d",
+        "228f6c458ccb71e9",
+        "fd3a0d6ca1242da7",
+        "ac5507a0dee97ea8",
+        "e079f13afb51c0c1",
+        "ceab4f21b85842d7",
+        "2d1181af0ca87d02",
+        "2dbb46854595fcee",
+        "b9b067fd7a480093",
+        "d8e374dd8f7ea661",
+        "82e11e23343f6e12",
+        "d4711283aad8139c",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T08:23:09.663Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (.claude/settings.json, scripts/load-guard/__pycache__/backstop.cpython-314.pyc, scripts/load-guard/__pycache__/guard.cpython-314.pyc, scripts/load-guard/__pycache__/policy.cpython-314.pyc). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
