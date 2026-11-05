@@ -43,9 +43,10 @@ env:
   CARGO_AUDIT_VERSION: "0.22.2"
 
 # ADR-0095: branch protection requires one check, `ci-gate`. `scope` decides
-# whether the PR touches anything but prose; `frontend` and `rust-test` skip
-# for a prose-only PR, and `ci-gate` reports every job's result as one check,
-# so a skipped job never leaves a required check pending.
+# whether the PR touches anything but prose; `frontend` (with its merge job,
+# `frontend-merge`) and `rust-test` skip for a prose-only PR, and `ci-gate`
+# reports every job's result as one check, so a skipped job never leaves a
+# required check pending.
 jobs:
   scope:
     timeout-minutes: 5
@@ -90,6 +91,10 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ (startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "macos-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+        # GH639: three shards per runner, merged by frontend-merge. Vitest
+        # splits by file count; keep this list, every `/3` and every `3`
+        # passed to shard-reports.mjs equal.
+        shard: [1, 2, 3]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -129,12 +134,103 @@ jobs:
         name: Detect frontend runner prerequisites
         run: echo "profile=$(node scripts/ci/runner-profile.mjs)" >> "$GITHUB_OUTPUT"
 
-      - run: pnpm exec vitest run --coverage --reporter=default --reporter=json --outputFile=.ci-vitest-results.json
+      # A shard checks vitest's global thresholds against its own partial
+      # coverage, so its thresholds are 0 here; frontend-merge enforces
+      # vitest.config.ts's thresholds on the merged coverage.
+      - run: pnpm exec vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.branches=0 --coverage.thresholds.statements=0 --shard=${{ matrix.shard }}/3 --reporter=default --reporter=blob --reporter=json --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-3.json --outputFile.json=.ci-vitest-results.json
+
+      # The merge job checks this metadata against the artifact's name and its
+      # own commit before merging the blob.
+      - run: node scripts/ci/shard-reports.mjs describe "${{ matrix.os }}" "${{ matrix.shard }}" 3 "${{ github.run_attempt }}" "${{ steps.runner-profile.outputs.profile }}" "$(git rev-parse HEAD)" > .ci-shard.json
+
+      # Success only, so frontend-merge never sees a failed shard's blob. The
+      # name carries the run attempt: a re-run shard adds a newer artifact
+      # instead of colliding, and shard-reports.mjs takes the newest attempt.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-blob-${{ matrix.os }}-shard-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
+          path: |
+            .vitest-reports
+            .ci-shard.json
+            .ci-vitest-results.json
+          include-hidden-files: true
+          if-no-files-found: error
+
+      # ci-gate's failure summary reads every frontend-vitest-* artifact, so a
+      # failed shard's tests are listed. One name per shard; a re-run replaces it.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-vitest-${{ matrix.os }}-shard-${{ matrix.shard }}
+          path: .ci-vitest-results.json
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+
+  # GH639: merges each runner's shard blobs. With no status function in `if`,
+  # GitHub adds success(): a failed, cancelled or skipped shard skips this job,
+  # and ci-gate fails on that skip because scope said code=true. The coverage
+  # thresholds, the critical floors and the inventory run here, on the merged
+  # result only, never on one shard's.
+  frontend-merge:
+    needs: [scope, frontend]
+    if: needs.scope.outputs.code == 'true'
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ (startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "macos-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      # The same commit the shards ran, so the inventory, the critical globs
+      # and the test file list match their tree. No history is needed here.
+      - uses: actions/checkout@v6
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/checkout@v6
+        if: github.event_name != 'pull_request'
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Every attempt's blob artifacts for this runner, one folder each.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: frontend-blob-${{ matrix.os }}-*
+          path: .vitest-blobs
+
+      # Fails unless each shard has a blob from this commit; takes each
+      # shard's newest attempt and the profile the shards ran under. The
+      # assignment, not `echo "$(...)"`, lets a failed collect fail the step.
+      - id: shards
+        name: Collect the newest blob of each shard
+        run: |
+          profile="$(node scripts/ci/shard-reports.mjs collect .vitest-blobs .vitest-reports 3 "${{ matrix.os }}" "$(git rev-parse HEAD)")"
+          echo "profile=$profile" >> "$GITHUB_OUTPUT"
+
+      # Enforces vitest.config.ts's coverage thresholds on the merged coverage.
+      - run: pnpm exec vitest --merge-reports --coverage --reporter=default --reporter=json --outputFile.json=.ci-vitest-results.json
 
       - run: node scripts/ci/check-critical-coverage.mjs
 
-      - run: node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.runner-profile.outputs.profile }}" "$PWD"
+      - run: node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "${{ steps.shards.outputs.profile }}" "$PWD"
 
+      # Every test file vitest would run, so a file no shard ran fails the check.
+      - run: pnpm exec vitest list --filesOnly --json=.ci-vitest-files.json
+
+      - run: node scripts/ci/shard-reports.mjs check .vitest-blobs 3 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"
+
+      # The merged per-leg report, under the name the single job used, for the
+      # delegator's cross-host parity proof and the failure summary. A re-run
+      # merge replaces it.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -142,6 +238,7 @@ jobs:
           path: .ci-vitest-results.json
           include-hidden-files: true
           if-no-files-found: error
+          overwrite: true
 
   rust-test:
     needs: [scope]
@@ -235,7 +332,7 @@ jobs:
         working-directory: src-tauri
 
   ci-gate:
-    needs: [scope, prose-checks, frontend, rust-test]
+    needs: [scope, prose-checks, frontend, frontend-merge, rust-test]
     if: always()
     timeout-minutes: 10
     runs-on: ubuntu-latest
@@ -244,7 +341,7 @@ jobs:
         shell: bash
         env:
           NEEDS: ${{ toJSON(needs) }}
-        # scope and prose-checks must succeed. frontend and rust-test must
+        # scope and prose-checks must succeed. frontend, frontend-merge and rust-test must
         # succeed, or be skipped because scope said code=false. A failure,
         # a cancellation, or a skip that scope did not ask for fails the gate.
         run: |
@@ -253,7 +350,7 @@ jobs:
           echo "$NEEDS" | jq -e '
             (.scope.result == "success") and
             (.["prose-checks"].result == "success") and
-            ([.frontend.result, .["rust-test"].result] | all(. == "success" or
+            ([.frontend.result, .["frontend-merge"].result, .["rust-test"].result] | all(. == "success" or
               (. == "skipped" and $code == "false")))
           ' --arg code "$(echo "$NEEDS" | jq -r '.scope.outputs.code')" >/dev/null \
             || { echo "ci-gate: a job ended in failure, was cancelled, or skipped without scope's code=false"; exit 1; }
