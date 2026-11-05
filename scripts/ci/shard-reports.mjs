@@ -4,7 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const artifactName = (os, shard, attempt) => `frontend-blob-${os}-shard-${shard}-attempt-${attempt}`;
+/** The shared prefix of one runner's blob artifacts; ci.yml's upload name and download pattern spell the same string. */
+const shardPrefix = (os) => `frontend-blob-${os}-shard-`;
+
+export const artifactName = (os, shard, attempt) => `${shardPrefix(os)}${shard}-attempt-${attempt}`;
 
 const positive = (field, value) => {
   if (!/^[1-9]\d*$/.test(value ?? "")) throw Error(`${field} must be a positive integer, got ${JSON.stringify(value)}`);
@@ -22,7 +25,7 @@ export function describeShard({ os, shard, count, attempt, profile, sha }) {
 }
 
 export function selectShards(downloads, count, os) {
-  const prefix = `frontend-blob-${os}-shard-`;
+  const prefix = shardPrefix(os);
   const newest = new Map();
   for (const name of fs.readdirSync(downloads)) {
     const match = name.startsWith(prefix) ? /^([1-9]\d*)-attempt-([1-9]\d*)$/.exec(name.slice(prefix.length)) : null;

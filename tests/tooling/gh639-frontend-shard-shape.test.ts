@@ -6,12 +6,11 @@
  * merges them, enforces the coverage thresholds and the inventory on the merged result only, and proves no
  * test file was lost. `ci-gate` needs both, so a failed, cancelled or skipped shard or merge fails the gate.
  */
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { entry, job, jobIds, keys as keysOf, list, scalar, steps, stepRun } from "../support/workflowBlocks";
 
