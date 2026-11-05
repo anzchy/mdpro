@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Purpose: Select, check and collect the frontend vitest shards' blob reports for the merge job (#639). */
+/** Purpose: Select, check and collect the frontend vitest shards' blob reports for the merge job, validate their runner profiles, and compare the merged report with an unsharded collection (#639, ADR-0130 Decision 1). */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

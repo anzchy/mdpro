@@ -238,11 +238,12 @@ jobs:
 
       - run: node scripts/ci/shard-reports.mjs check .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"
 
-      # gpt H1: an unsharded collection of every test, without running one.
-      # File by file, the merged report's started tests (those with a
-      # duration) must equal it, so a test that no shard ran fails here.
-      # vitest list omits static skips and todos; ADR-0128's comparator above
-      # already accounts for every skip.
+      # An unsharded collection of every test, without running one. File by
+      # file, the merged report's started tests (those with a duration) must
+      # equal it, so a test that no shard ran fails here. vitest list omits
+      # static skips and todos; ADR-0128's comparator above accounts for every
+      # skip. Collection-time skip conditions are evaluated on this runner,
+      # the same image as the shards; a difference fails here, never passes.
       - run: pnpm exec vitest list --json=.ci-vitest-tests.json
 
       - run: node scripts/ci/shard-reports.mjs count .ci-vitest-results.json .ci-vitest-tests.json "$PWD"
