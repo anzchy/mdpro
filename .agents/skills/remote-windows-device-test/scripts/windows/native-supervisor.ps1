@@ -1,6 +1,32 @@
 # Purpose: bounded Scheduler phases and kernel lifetime cleanup for one invocation.
 # Loaded by ui-run; all blocking cmdlets run in owned control processes, never this supervisor.
 $SchedulerBootMs = 5000
+function Read-SchedulerReadyStamp([string]$ReadyPath, [string]$ReadyNonce, [int]$ChildId, [long]$Launch, [long]$BootEnd, [long]$Now) {
+  if (-not (Test-Path -LiteralPath $ReadyPath)) { return $null }
+  try {
+    $ready = Get-Content -LiteralPath $ReadyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $stamp = [long]$ready.readyUtcMs
+    if ($ready.nonce -ceq $ReadyNonce -and [long]$ready.pid -eq $ChildId -and
+        $stamp -ge $Launch -and $stamp -le $BootEnd -and $stamp -le $Now) { return $stamp }
+  } catch { }
+  return $null
+}
+function Assert-SchedulerDeadline([string]$Name, [long]$Now, [long]$Limit, $End) {
+  $schedulerEnd = if ($null -eq $End) { $Limit } else { [math]::Min($Limit, [long]$End) }
+  if ($Name -eq "scheduler-start" -or $Name -eq "scheduler-poll") {
+    $value = Read-WorkerProgress
+    if ($value) {
+      $script:lastProgress = $value
+      if (-not $value.phaseComplete) {
+        $workerEnd = [long]$value.phaseStartedMs + $PhaseMs
+        if ($workerEnd -le $schedulerEnd -and $Now -ge $workerEnd) {
+          throw "NATIVE_PHASE_TIMEOUT phase=$($value.phase)"
+        }
+      }
+    }
+  }
+  if ($Now -ge $schedulerEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+}
 function Invoke-SchedulerPhase([string]$Name, $Request, [long]$Limit) {
   $requestPath = Join-Path $runDir ("scheduler-" + [guid]::NewGuid().ToString("N") + ".json")
   $resultPath = "$requestPath.result"
@@ -17,36 +43,27 @@ function Invoke-SchedulerPhase([string]$Name, $Request, [long]$Limit) {
   try {
     while ($true) {
       $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-      if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
-      if ($Name -eq "scheduler-start" -or $Name -eq "scheduler-poll") {
-        $value = Read-WorkerProgress
-        if ($value) {
-          $script:lastProgress = $value
-          if (-not $value.phaseComplete -and $now - [long]$value.phaseStartedMs -ge $PhaseMs) {
-            throw "NATIVE_PHASE_TIMEOUT phase=$($value.phase)"
-          }
-        }
+      Assert-SchedulerDeadline $Name $now $Limit $end
+      if ($null -eq $end) {
+        $stamp = Read-SchedulerReadyStamp $readyPath $readyNonce $child.Id $launch $bootEnd $now
+        if ($null -ne $stamp) { $end = [math]::Min($stamp + $PhaseMs, $Limit) }
       }
-      if ($null -eq $end -and (Test-Path -LiteralPath $readyPath)) {
-        try {
-          $ready = Get-Content -LiteralPath $readyPath -Raw -Encoding UTF8 | ConvertFrom-Json
-          $stamp = [long]$ready.readyUtcMs
-          if ($ready.nonce -ceq $readyNonce -and [long]$ready.pid -eq $child.Id -and $stamp -ge $launch -and $stamp -le $now) {
-            $end = [math]::Min($stamp + $PhaseMs, $Limit)
-          }
-        } catch { }
-      }
-      if ($null -ne $end -and $now -ge $end) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+      Assert-SchedulerDeadline $Name $now $Limit $end
       if ($child.HasExited) { break }
       if ($null -eq $end -and $now -ge $bootEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
       [Threading.Thread]::Sleep($PollMs)
     }
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-    if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+    if ($null -eq $end) {
+      $stamp = Read-SchedulerReadyStamp $readyPath $readyNonce $child.Id $launch $bootEnd $now
+      if ($null -ne $stamp) { $end = [math]::Min($stamp + $PhaseMs, $Limit) }
+      elseif ($now -ge $bootEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+    }
+    Assert-SchedulerDeadline $Name $now $Limit $end
     if (-not (Test-Path -LiteralPath $resultPath)) { throw "NATIVE_SCHEDULER_NO_RESULT phase=$Name" }
     $answer = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-    if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+    Assert-SchedulerDeadline $Name $now $Limit $end
     if ($child.ExitCode -ne 0 -or -not $answer.ok) { throw "NATIVE_SCHEDULER_FAILED phase=$Name $($answer.error)" }
     if ($null -eq $end) { throw "NATIVE_SCHEDULER_FAILED phase=$Name no ready marker" }
     return $answer.value
@@ -80,9 +97,14 @@ function Invoke-NativeSupervisor {
       $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
       $value = Read-WorkerProgress
       if ($value) { $script:lastProgress = $value }
+      $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+      $effectiveLimit = if (-not $value -or $value.cleanup -eq "pending") { $workEnd } else { $DeadlineMs }
+      if ($value -and -not $value.phaseComplete) {
+        $workerEnd = [long]$value.phaseStartedMs + $PhaseMs
+        if ($workerEnd -le $effectiveLimit -and $now -ge $workerEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$($value.phase)" }
+      }
       if ($now -ge $workEnd -and (-not $value -or $value.cleanup -eq "pending")) { throw "NATIVE_TRANSACTION_TIMEOUT phase=$($value.phase)" }
       if ($now -ge $DeadlineMs) { throw "NATIVE_TRANSACTION_TIMEOUT phase=cleanup" }
-      if ($value -and -not $value.phaseComplete -and $now - [long]$value.phaseStartedMs -ge $PhaseMs) { throw "NATIVE_PHASE_TIMEOUT phase=$($value.phase)" }
       if ($now - $lastPoll -ge [math]::Max(100, $PollMs)) {
         $state = Invoke-SchedulerPhase "scheduler-poll" @{ op = "poll"; name = $taskName } $workEnd
         $lastPoll = $now
