@@ -63,7 +63,8 @@ it("GH652-S3 labels the worker after poll exit when its deadline precedes boot",
   const phaseMs = 2000;
   const fixture = await supervisorFixture("uia", {
     entry: { DeadlineMs: "0", TimeoutSec: "22", PhaseMs: String(phaseMs), CleanupMs: "4000", PollMs: "1000" },
-    env: { TEST_SUPERVISOR_HOLD_POST_EXIT_POLL: "1", TEST_SUPERVISOR_BOOT_WINDOW_MS: "15000",
+    // A 10 s boot window leaves room both to reach the held poll and before the 18 s work limit.
+    env: { TEST_SUPERVISOR_HOLD_POST_EXIT_POLL: "1", TEST_SUPERVISOR_BOOT_WINDOW_MS: "10000",
       TEST_SCHED_BOOT_OP: "poll", TEST_SCHED_BOOT_MODE: "exit",
       TEST_WORKER_PHASE_START_FUTURE_MS: "20000" },
   });
