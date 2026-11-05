@@ -1,0 +1,39 @@
+{
+  "id": "D354-F2-1",
+  "lane": "rust",
+  "recorded_at": "2026-11-04T22:09:39.763Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "tauri_app_lib::services::file_watcher::baseline::live_race_tests::l7_same_path_watch_unwatch_contention_is_fail_safe",
+      "kind": "panic",
+      "location": {
+        "file": "src-tauri/src/services/file_watcher_baseline_live_race_tests.rs",
+        "line": 54
+      },
+      "message": "thread 1 of 3 did not finish: timed out waiting on channel"
+    },
+    {
+      "id": "tauri_app_lib::services::instance_admission::receiver::tests::acked_request_is_not_dropped_by_retirement_during_drain",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/src/services/instance_admission/receiver_tests.rs",
+        "line": 81
+      },
+      "message": "assertion `left != right` failed\n  left: Some(1)\n right: Some(1)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-F2-1/20261104T220939763Z/tests",
+    "tree": "2880fe3ce8e459a645d2acde4ddd438a87407ed1"
+  },
+  "spec_blobs": {
+    "src-tauri/src/services/instance_admission/receiver_tests.rs": "94031993688c2786539190b0ceb4fd467fb50532"
+  }
+}

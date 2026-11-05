@@ -1,0 +1,48 @@
+{
+  "id": "D354-F2-3",
+  "lane": "rust",
+  "recorded_at": "2026-11-04T22:25:09.740Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "tauri_app_lib::services::instance_admission::receiver::tests::acked_request_is_not_dropped_by_retirement_during_drain",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/src/services/instance_admission/receiver_tests.rs",
+        "line": 81
+      },
+      "message": "assertion `left != right` failed\n  left: Some(1)\n right: Some(1)"
+    },
+    {
+      "id": "tauri_app_lib::services::instance_admission::receiver::tests::queued_request_is_refused_after_route_panic",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/src/services/instance_admission/receiver_tests.rs",
+        "line": 107
+      },
+      "message": "route failed"
+    },
+    {
+      "id": "tauri_app_lib::services::instance_admission::receiver::tests::request_queued_before_publish_is_refused_visibly_on_retirement",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/src/services/instance_admission/receiver_tests.rs",
+        "line": 93
+      },
+      "message": "assertion `left != right` failed\n  left: Some(1)\n right: Some(1)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/D354-F2-3/20261104T222509740Z/tests",
+    "tree": "7008dcfce43462cfa0e8b73c63a17335311bdccd"
+  },
+  "spec_blobs": {
+    "src-tauri/src/services/instance_admission/receiver_tests.rs": "328e33d614f33eb3e3e9e2b38b2ca06de3fc2d12"
+  }
+}

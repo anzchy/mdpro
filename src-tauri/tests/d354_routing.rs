@@ -31,17 +31,22 @@ fn queued_requests_resolve_against_each_senders_cwd_and_open_each_file_once() {
     };
     let mut server = ForwardingServer::start(owner.listener()).unwrap();
     let handle = server.handle();
-    for cwd in [&first, &second] {
+    let mut contenders = Vec::new();
+    for (index, cwd) in [&first, &second].into_iter().enumerate() {
         let frame =
             encode_with_cwd(cwd, vec!["mdpro".to_string(), "文 件.md".to_string()]).unwrap();
-        assert!(matches!(admit(&key, &frame).unwrap(), Admission::Forwarded));
+        let contender_key = key.clone();
+        contenders.push(thread::spawn(move || admit(&contender_key, &frame)));
+        let until = Instant::now() + Duration::from_secs(5);
+        while handle.pending_count() != index + 1 && Instant::now() < until {
+            thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(handle.pending_count(), index + 1);
     }
     let no_file = encode_with_cwd(&second, vec!["mdpro".to_string()]).unwrap();
-    assert!(matches!(
-        admit(&key, &no_file).unwrap(),
-        Admission::Forwarded
-    ));
-    let until = Instant::now() + Duration::from_secs(3);
+    let contender_key = key.clone();
+    contenders.push(thread::spawn(move || admit(&contender_key, &no_file)));
+    let until = Instant::now() + Duration::from_secs(5);
     while handle.pending_count() != 3 && Instant::now() < until {
         thread::sleep(Duration::from_millis(5));
     }
@@ -52,6 +57,12 @@ fn queued_requests_resolve_against_each_senders_cwd_and_open_each_file_once() {
         let filtered = single_instance_args(request.argv, &request.cwd);
         journal.lock().unwrap().extend(filtered.paths);
     }));
+    for contender in contenders {
+        assert!(matches!(
+            contender.join().unwrap().unwrap(),
+            Admission::Forwarded
+        ));
+    }
     assert_eq!(
         *opened.lock().unwrap(),
         vec![

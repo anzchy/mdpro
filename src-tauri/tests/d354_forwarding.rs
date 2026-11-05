@@ -198,8 +198,9 @@ fn real_socket_queues_before_route_publication_then_drains_once() {
         argv: vec!["mdpro".to_string(), "相 对.md".to_string()],
     };
     let frame = encode(&request).unwrap();
-    assert!(matches!(admit(&key, &frame).unwrap(), Admission::Forwarded));
-    let until = Instant::now() + Duration::from_secs(3);
+    let contender_key = key.clone();
+    let contender = thread::spawn(move || admit(&contender_key, &frame));
+    let until = Instant::now() + Duration::from_secs(5);
     while handle.pending_count() != 1 && Instant::now() < until {
         thread::sleep(Duration::from_millis(5));
     }
@@ -207,6 +208,10 @@ fn real_socket_queues_before_route_publication_then_drains_once() {
     let received = Arc::new(Mutex::new(Vec::new()));
     let journal = received.clone();
     handle.publish(Arc::new(move |value| journal.lock().unwrap().push(value)));
+    assert!(matches!(
+        contender.join().unwrap().unwrap(),
+        Admission::Forwarded
+    ));
     assert_eq!(*received.lock().unwrap(), vec![request]);
     handle.publish(Arc::new(|_| panic!("already drained request was repeated")));
     server.retire();
@@ -311,15 +316,17 @@ fn overflow_refuses_and_capacity_returns_after_queue_drain() {
     };
     let mut server = ForwardingServer::start(owner.listener()).unwrap();
     let handle = server.handle();
+    let mut contenders = Vec::with_capacity(MAX_PENDING);
     for index in 0..MAX_PENDING {
         let frame = encode(&ForwardRequest {
             cwd: "/tmp/工作 目录".to_string(),
             argv: vec!["mdpro".to_string(), format!("文 件-{index}.md")],
         })
         .unwrap();
-        assert!(matches!(admit(&key, &frame).unwrap(), Admission::Forwarded));
+        let contender_key = key.clone();
+        contenders.push(thread::spawn(move || admit(&contender_key, &frame)));
     }
-    let until = Instant::now() + Duration::from_secs(3);
+    let until = Instant::now() + Duration::from_secs(5);
     while handle.pending_count() != MAX_PENDING && Instant::now() < until {
         thread::sleep(Duration::from_millis(5));
     }
@@ -335,6 +342,12 @@ fn overflow_refuses_and_capacity_returns_after_queue_drain() {
     handle.publish(Arc::new(move |request| {
         journal.lock().unwrap().push(request)
     }));
+    for contender in contenders {
+        assert!(matches!(
+            contender.join().unwrap().unwrap(),
+            Admission::Forwarded
+        ));
+    }
     assert_eq!(routed.lock().unwrap().len(), MAX_PENDING);
     assert_eq!(handle.pending_count(), 0);
     let fresh = encode(&ForwardRequest {

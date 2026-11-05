@@ -1,11 +1,12 @@
-//! Private listener with a bounded queue, coordinated retirement, and panic isolation.
+//! Private listener with a bounded queue, decision-time ACKs, coordinated retirement, and panic isolation.
 
 use super::codec::{read_request, ForwardRequest};
 use std::collections::VecDeque;
+#[cfg(test)]
+use std::io::Read;
 use std::io::{self, Write};
-use std::os::unix::net::UnixListener;
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -15,7 +16,21 @@ type Route = Arc<dyn Fn(ForwardRequest) + Send + Sync + 'static>;
 
 struct PendingRequest {
     request: ForwardRequest,
-    accepted: Arc<AtomicBool>,
+    responder: Responder,
+}
+
+struct Responder(UnixStream);
+
+impl Responder {
+    fn new(stream: UnixStream) -> io::Result<Self> {
+        stream.set_write_timeout(Some(Duration::from_secs(2)))?;
+        Ok(Self(stream))
+    }
+
+    fn taken(mut self) {
+        // Every 1 the contender reads corresponds to a completed route call.
+        let _ = self.0.write_all(&[1]);
+    }
 }
 
 #[derive(Default)]
@@ -32,9 +47,7 @@ struct State {
 
 impl State {
     fn refuse_pending(&mut self) {
-        for queued in self.pending.drain(..) {
-            queued.accepted.store(false, Ordering::Release);
-        }
+        self.pending.clear();
     }
 }
 
@@ -70,20 +83,49 @@ impl ForwardingHandle {
         self.state.lock().unwrap().pending.len()
     }
 
+    #[cfg(test)]
     fn receive(&self, request: ForwardRequest) -> bool {
-        let accepted = Arc::new(AtomicBool::new(true));
-        {
+        let (owner, mut contender) = UnixStream::pair().unwrap();
+        contender
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        self.receive_with_stream(request, owner);
+        let mut byte = [0];
+        matches!(contender.read(&mut byte), Ok(1) if byte[0] == 1)
+    }
+
+    fn receive_with_stream(&self, request: ForwardRequest, stream: UnixStream) {
+        let Ok(responder) = Responder::new(stream) else {
+            return;
+        };
+        let should_spawn = {
             let mut state = self.state.lock().unwrap();
             if state.retiring || state.pending.len() >= MAX_PENDING {
-                return false;
+                drop(responder);
+                return;
             }
-            state.pending.push_back(PendingRequest {
-                request,
-                accepted: accepted.clone(),
-            });
+            state
+                .pending
+                .push_back(PendingRequest { request, responder });
+            if state.route.is_some() && !state.draining {
+                state.draining = true;
+                true
+            } else {
+                false
+            }
+        };
+        if should_spawn {
+            let worker = self.clone();
+            if thread::Builder::new()
+                .name("mdpro-forward-drain".into())
+                .spawn(move || worker.drain_loop())
+                .is_err()
+            {
+                let mut state = self.state.lock().unwrap();
+                state.refuse_pending();
+                state.draining = false;
+            }
         }
-        self.drain();
-        accepted.load(Ordering::Acquire)
     }
 
     fn drain(&self) {
@@ -94,6 +136,10 @@ impl ForwardingHandle {
             }
             state.draining = true;
         }
+        self.drain_loop();
+    }
+
+    fn drain_loop(&self) {
         loop {
             let next = {
                 let mut state = self.state.lock().unwrap();
@@ -121,18 +167,17 @@ impl ForwardingHandle {
                     {
                         let mut state = self.state.lock().unwrap();
                         if state.retiring {
-                            queued.accepted.store(false, Ordering::Release);
                             state.draining = false;
                             return;
                         }
                         state.active_routes += 1;
                     }
                     let active = ActiveRoute(self.state.clone());
-                    let PendingRequest { request, accepted } = queued;
+                    let PendingRequest { request, responder } = queued;
                     let result = catch_unwind(AssertUnwindSafe(|| route(request)));
                     drop(active);
                     if result.is_err() {
-                        accepted.store(false, Ordering::Release);
+                        drop(responder);
                         let mut state = self.state.lock().unwrap();
                         if state
                             .route
@@ -140,6 +185,7 @@ impl ForwardingHandle {
                             .is_some_and(|current| Arc::ptr_eq(current, &route))
                         {
                             state.route = None;
+                            state.refuse_pending();
                         }
                         let resume = state.route.is_some() && !state.pending.is_empty();
                         state.draining = false;
@@ -149,6 +195,7 @@ impl ForwardingHandle {
                         }
                         return;
                     }
+                    responder.taken();
                 }
                 None => return,
             }
@@ -188,8 +235,7 @@ impl ForwardingServer {
                 Ok((mut stream, _)) => {
                     if stream.set_nonblocking(false).is_ok() {
                         if let Ok(request) = read_request(&mut stream) {
-                            let accepted = worker.receive(request);
-                            let _ = stream.write_all(&[u8::from(accepted)]);
+                            worker.receive_with_stream(request, stream);
                         }
                     }
                 }
