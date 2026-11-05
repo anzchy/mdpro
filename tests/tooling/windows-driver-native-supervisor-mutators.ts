@@ -1,6 +1,11 @@
 // Native supervisor fixture mutations stay separate from orchestration so every test uses the same real PowerShell path.
 export function mutateSupervisorScript(source: string, fixtureEnv?: Record<string, string>): string {
   let supervisorScript = source;
+  if (fixtureEnv?.TEST_SUPERVISOR_BOOT_WINDOW_MS) {
+    const anchor = '$SchedulerBootMs = 5000';
+    if (!supervisorScript.includes(anchor)) throw new Error("scheduler boot window changed shape");
+    supervisorScript = supervisorScript.replace(anchor, `$SchedulerBootMs = ${Number(fixtureEnv.TEST_SUPERVISOR_BOOT_WINDOW_MS)}`);
+  }
   if (fixtureEnv?.TEST_SUPERVISOR_HOLD_UNREAD_POLL) {
     const clock = '$bootEnd = [math]::Min($launch + $SchedulerBootMs, $Limit)';
     if (!supervisorScript.includes(clock)) throw new Error("scheduler boot clock changed shape");
