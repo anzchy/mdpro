@@ -3,6 +3,11 @@ param([string]$Request, [string]$Result)
 $ErrorActionPreference = "Stop"
 $r = Get-Content -LiteralPath $Request -Raw -Encoding UTF8 | ConvertFrom-Json
 try {
+  # Signals this child has parsed its request. It is a clock origin, not proof of Scheduler state.
+  $readyTemp = "$($r.readyPath).$PID.tmp"
+  @{ nonce = $r.readyNonce; pid = $PID; readyUtcMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() } |
+    ConvertTo-Json -Compress | Set-Content -LiteralPath $readyTemp -Encoding UTF8
+  Move-Item -LiteralPath $readyTemp -Destination $r.readyPath
   # Only a definite not-found proves absence (by category: the message is localized). Any other error refuses.
   function Test-NativeTask([string]$Name) {
     try { return [bool](Get-ScheduledTask -TaskName $Name -ErrorAction Stop) }

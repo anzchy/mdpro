@@ -1,27 +1,64 @@
 # Purpose: bounded Scheduler phases and kernel lifetime cleanup for one invocation.
 # Loaded by ui-run; all blocking cmdlets run in owned control processes, never this supervisor.
+$SchedulerBootMs = 5000
 function Invoke-SchedulerPhase([string]$Name, $Request, [long]$Limit) {
   $requestPath = Join-Path $runDir ("scheduler-" + [guid]::NewGuid().ToString("N") + ".json")
   $resultPath = "$requestPath.result"
+  $readyPath = "$requestPath.ready"
+  $readyNonce = [guid]::NewGuid().ToString("N")
+  $Request.readyPath = $readyPath
+  $Request.readyNonce = $readyNonce
   $Request | ConvertTo-Json -Compress -Depth 6 | Set-Content -LiteralPath $requestPath -Encoding UTF8
   $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSScriptRoot + '\native-scheduler.ps1" -Request "' + $requestPath + '" -Result "' + $resultPath + '"'
   $child = $controlJob.StartOwned($powershellExe, $args)
-  $end = [math]::Min([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + $PhaseMs, $Limit)
+  $launch = [DateTimeOffset]::new($child.StartTime.ToUniversalTime()).ToUnixTimeMilliseconds()
+  $bootEnd = [math]::Min($launch + $SchedulerBootMs, $Limit)
+  $end = $null
   try {
-    while (-not $child.HasExited) {
-      if ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() -ge $end) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+    while ($true) {
+      $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+      if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+      if ($Name -eq "scheduler-start" -or $Name -eq "scheduler-poll") {
+        $value = Read-WorkerProgress
+        if ($value) {
+          $script:lastProgress = $value
+          if (-not $value.phaseComplete -and $now - [long]$value.phaseStartedMs -ge $PhaseMs) {
+            throw "NATIVE_PHASE_TIMEOUT phase=$($value.phase)"
+          }
+        }
+      }
+      if ($null -eq $end -and (Test-Path -LiteralPath $readyPath)) {
+        try {
+          $ready = Get-Content -LiteralPath $readyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          $stamp = [long]$ready.readyUtcMs
+          if ($ready.nonce -ceq $readyNonce -and [long]$ready.pid -eq $child.Id -and $stamp -ge $launch -and $stamp -le $now) {
+            $end = [math]::Min($stamp + $PhaseMs, $Limit)
+          }
+        } catch { }
+      }
+      if ($null -ne $end -and $now -ge $end) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
+      if ($child.HasExited) { break }
+      if ($null -eq $end -and $now -ge $bootEnd) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
       [Threading.Thread]::Sleep($PollMs)
     }
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
     if (-not (Test-Path -LiteralPath $resultPath)) { throw "NATIVE_SCHEDULER_NO_RESULT phase=$Name" }
     $answer = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    if ($now -ge $Limit -or ($null -ne $end -and $now -ge $end)) { throw "NATIVE_PHASE_TIMEOUT phase=$Name" }
     if ($child.ExitCode -ne 0 -or -not $answer.ok) { throw "NATIVE_SCHEDULER_FAILED phase=$Name $($answer.error)" }
+    if ($null -eq $end) { throw "NATIVE_SCHEDULER_FAILED phase=$Name no ready marker" }
     return $answer.value
   } finally { $child.Dispose() }
 }
 function Read-WorkerProgress {
   if (Test-Path -LiteralPath "$outPath.progress.json") {
     try {
-      $value = Get-Content -LiteralPath "$outPath.progress.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+      $content = Get-Content -LiteralPath "$outPath.progress.json" -Raw -Encoding UTF8
+      if ([string]::IsNullOrWhiteSpace($content)) { return $script:lastProgress }
+      $value = $content | ConvertFrom-Json
+      if ($null -eq $value) { return $script:lastProgress }
       if ($value.runId -cne $RunId) { throw "NATIVE_PROGRESS_RUN_MISMATCH" }
       return $value
     } catch { if ($_.Exception.Message -like "NATIVE_*") { throw }; return $script:lastProgress }
