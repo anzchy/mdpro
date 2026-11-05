@@ -1,0 +1,33 @@
+{
+  "id": "GH637-S26",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:11:21.029Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr128-conditional-lint-inventory.test.ts\",\"keeps the 78 original conditional-lint cases and titles\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr128-conditional-lint-inventory.test.ts",
+        "line": 34
+      },
+      "message": "AssertionError: expected { caseCount: 77, …(1) } to deeply equal { caseCount: 78, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH637-S26/20261105T031121029Z/tests",
+    "tree": "953410c73f6c348ea2e37dea46bc07fd57d0981c"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr128-conditional-lint-inventory.test.ts": "ee1540e55efeb61243ed4dc7d5514114ee43df80"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr128-conditional-lint-inventory.test.ts": "ee1540e55efeb61243ed4dc7d5514114ee43df80"
+  }
+}

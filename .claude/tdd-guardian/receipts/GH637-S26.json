@@ -1,0 +1,59 @@
+{
+  "id": "GH637-S26",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-05T03:11:21.029Z",
+  "head_sha": "1acb988ecf988766754c1438b58b3cec9d3eff8f",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/adr128-conditional-lint-inventory.test.ts": {
+      "state": "ok",
+      "sha": "a2e0f3a536bcdaba9bbc3b27cbeef2efa7d1caf7f93f1a0be85f84f62aedc0fc",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "dd2896d2982c094c",
+        "7571c7236d81e917",
+        "f84a38b0fd7dfc39",
+        "c110ad21c643bc95",
+        "efb2893cf8a54a66",
+        "e933b06bb1fdd691",
+        "4bc9867a9cdb558d",
+        "53dc5d49dc1a3ebc",
+        "cfc105b70479ed77",
+        "923f5c6658682013",
+        "bc114de74bb64e9e",
+        "97a89a581be15e49",
+        "82d59ba926b6a570",
+        "7d17a8429c17c6b4",
+        "a1bf90f3c3cb287d",
+        "9a12ea5fa5d50f53",
+        "605bbb5e26e1491c",
+        "b3387c631779f19e",
+        "2d962677cbf87cf5",
+        "1cc5a52258b93078",
+        "53dc189cb62cea98",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf",
+        "16f3e2df524361e9",
+        "d10b36aa74a59bcf",
+        "52ee385135ee9506",
+        "75cd917d747fc32c",
+        "d10b36aa74a59bcf",
+        "d89c6c79f2dda712",
+        "37b2180f7698ab93",
+        "9c53b920bb5fec17",
+        "5e5649f2e25f0bc8",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-05T03:12:10.527Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

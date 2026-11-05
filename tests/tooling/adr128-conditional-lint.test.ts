@@ -3,12 +3,66 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "adr128-lint-"));
 const script = path.resolve("scripts/lint/conditional-tests.mjs");
 afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+const batched = new Map<string, { status: number; stderr: string }>();
+
+// The original it.each tables are the single source of fixture bytes. Feed them to one real CLI
+// invocation, then attribute each diagnostic to its own file rather than using the batch exit code.
+function batchCases() {
+  const file = fileURLToPath(import.meta.url);
+  const tree = ts.createSourceFile(file, fs.readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
+  const cases: Array<{ source: string; rejects: boolean }> = [];
+  function visit(node: ts.Node) {
+    if (ts.isCallExpression(node) && ts.isCallExpression(node.expression) &&
+        ts.isPropertyAccessExpression(node.expression.expression) &&
+        ts.isIdentifier(node.expression.expression.expression) && node.expression.expression.expression.text === "it" &&
+        node.expression.expression.name.text === "each" && ts.isArrayLiteralExpression(node.expression.arguments[0])) {
+      const title = node.arguments[0];
+      const rejects = ts.isStringLiteral(title) && title.text.startsWith("rejects ");
+      for (const value of node.expression.arguments[0].elements) {
+        if (!ts.isStringLiteral(value)) throw new Error("ADR128 batch fixture must be a string literal");
+        cases.push({ source: value.text, rejects });
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(tree);
+  return cases;
+}
+
+beforeAll(() => {
+  const cases = batchCases();
+  const files = cases.map(({ source }, index) => {
+    const file = path.join(root, `batch-${index}.test.ts`);
+    fs.writeFileSync(file, source);
+    return file;
+  });
+  const run = spawnSync(process.execPath, [script, ...files], { encoding: "utf8" });
+  if (run.error || run.signal || ![0, 1].includes(run.status ?? -1)) throw new Error(`ADR128 batch CLI failed: ${run.error ?? run.stderr}`);
+  const diagnostics = new Map(files.map((file) => [file, [] as string[]]));
+  for (const line of run.stderr.split("\n").filter(Boolean)) {
+    const file = files.find((candidate) => line.startsWith(`${candidate}:`));
+    if (!file) throw new Error(`ADR128 unassigned diagnostic: ${line}`);
+    diagnostics.get(file)!.push(line);
+  }
+  const diagnosed = files.filter((file) => diagnostics.get(file)!.length > 0);
+  const expected = files.filter((_, index) => cases[index].rejects);
+  expect(diagnosed).toEqual(expected);
+  for (const [index, { source }] of cases.entries()) {
+    const lines = diagnostics.get(files[index])!;
+    batched.set(source, { status: lines.length ? 1 : 0, stderr: lines.join("\n") });
+  }
+});
+
 function check(source: string) {
+  const cached = batched.get(source);
+  if (cached) return cached;
   const file = path.join(root, "case.test.ts");
   fs.writeFileSync(file, source);
   return spawnSync(process.execPath, [script, file], { encoding: "utf8" });
