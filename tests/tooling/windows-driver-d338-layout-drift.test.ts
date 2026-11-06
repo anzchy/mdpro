@@ -15,13 +15,16 @@ import { CN, DE, US, finalHkl, hex, identity, layoutScene, requests, runLayout, 
 vi.setConfig({ testTimeout: 60_000 });
 
 const PHASE_MS = 1500;
+// Two native operations, each with its own phase, plus PowerShell startup and cleanup.
+// The transaction clock is fixture liveness, not an assertion about execution speed.
+const PIN_TRANSACTION_MS = 30_000;
 const set = { op: "setLayout", window: "A", klid: "00000407", _identity: identity };
 const chord = { op: "physicalChord", window: "A", keys: ["AltRight", "KeyQ"], hkl: hex(DE), nofocus: true, _identity: identity };
 const replacedRestore = new RegExp(`LAYOUT_RESTORE_FAILED input=111 thread=9 prior=${hex(CN)} observed=unknown reason=.*LAYOUT_INPUT_REPLACED`);
 
 describe("D338 K4 the activated input child is pinned for the run", () => {
   it("pins 111 before the request and removes the pin after the last key", async () => {
-    const result = await runLayout([set, chord], layoutScene(), {}, { phaseMs: PHASE_MS });
+    const result = await runLayout([set, chord], layoutScene(), {}, { phaseMs: PHASE_MS, deadlineMs: PIN_TRANSACTION_MS });
     expect(result.status, result.log.join("\n")).toBe(0);
     const pin = result.trace.indexOf("layout-pin:111");
     const unpin = result.trace.lastIndexOf("layout-unpin:111");

@@ -29,7 +29,7 @@ export const LAYOUT_DEADLINE_MS = 15_000;
 
 /** `pageB` lets label B bind in-run too (its own fake page and title), for two-context batches. */
 export async function runLayout(steps: unknown[], layout: Layout, scenario: NativeScenario = {},
-  options: Pick<NativeOptions, "phaseMs"> & { pageB?: boolean } = {}) {
+  options: Pick<NativeOptions, "phaseMs" | "deadlineMs"> & { pageB?: boolean } = {}) {
   return runDialog(steps, { ...scenario, layout } as NativeScenario, { deadlineMs: LAYOUT_DEADLINE_MS, ...options });
 }
 
