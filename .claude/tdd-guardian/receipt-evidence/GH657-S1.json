@@ -1,0 +1,106 @@
+{
+  "id": "GH657-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-06T06:19:12.101Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"does not collapse repeated full names within a shard\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 105
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: expected on…' to match /…/a\\.test\\.ts: suite > a.*2 listed, 1 started"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"fails closed if the selected shard has no list, even when an older attempt has one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 76
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"names a duplicate identity and both shards\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 85
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: expected on…' to match /…/a\\.test\\.ts: suite > a.*shards 1 and 4"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"names a listed test that never started and a started test that was never listed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: expected on…' to contain 'tests/b.test.ts: suite > ghost'"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"passes four lists whose file and full-name identities equal the started report\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 57
+      },
+      "message": "AssertionError: expected [ 1, '', …(1) ] to deeply equal [ +0, …(2) ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"refuses a malformed shard list with a named shard\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 113
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: expected on…' to match /shard-2-attempt-1.*malformed.*name/"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"shows the old equal-count false pass but names both sides of an inverse-condition swap\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 68
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: expected on…' to contain 'tests/a.test.ts: suite > skipped-on-s…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 workflow\",\"collects the test list after build and before the shard run, and uploads that list with the blob\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 124
+      },
+      "message": "AssertionError: expected [ true, false, true ] to deeply equal [ true, true, true ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 workflow\",\"runs no serial full test list in merge and checks shard identities after merging\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 132
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH657-S1/20261106T061912101Z/tests",
+    "tree": "aa16d03bb631e4708f6e96c3cd588901ceffc17d"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh657-shard-local-list.test.ts": "7c9977c66e02d3d2023bfa2ec893264b0812bc6e"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh657-shard-local-list.test.ts": "7c9977c66e02d3d2023bfa2ec893264b0812bc6e"
+  }
+}

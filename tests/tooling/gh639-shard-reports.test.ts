@@ -28,7 +28,7 @@ function tmp() {
 
 interface ShardOptions { os?: string; count?: number; profile?: string; sha?: string; blob?: string; meta?: Record<string, unknown> | null; results?: unknown }
 
-/** Lays out one downloaded blob artifact the way upload-artifact stores the shard's three paths. */
+/** Lays out one downloaded blob artifact the way upload-artifact stores the shard's four paths. */
 function shard(downloads: string, index: number, attempt: number, options: ShardOptions = {}) {
   const runner = options.os ?? "ubuntu-latest";
   const count = options.count ?? 3;
@@ -37,7 +37,7 @@ function shard(downloads: string, index: number, attempt: number, options: Shard
   fs.writeFileSync(path.join(folder, ".vitest-reports", `blob-${index}-${count}.json`), options.blob ?? `blob ${index} attempt ${attempt}`);
   const meta = { os: runner, shard: index, count, attempt, profile: options.profile ?? "ubuntu+rustfmt", sha: options.sha ?? SHA, ...options.meta };
   if (options.meta !== null) fs.writeFileSync(path.join(folder, ".ci-shard.json"), JSON.stringify(meta));
-  fs.writeFileSync(path.join(folder, ".ci-vitest-results.json"), JSON.stringify(options.results ?? { success: true, numTotalTests: 0, testResults: [] }));
+  fs.writeFileSync(path.join(folder, ".ci-vitest-results.json"), JSON.stringify(options.results ?? { success: true, numTotalTests: 0, testResults: [] })); fs.writeFileSync(path.join(folder, ".ci-vitest-tests.json"), "[]");
   return folder;
 }
 

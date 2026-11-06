@@ -7,3 +7,4 @@ export declare function selectShards(downloads: string, count: number, os: strin
 export declare function collect(downloads: string, dest: string, count: number, os: string, sha: string): string;
 export declare function checkMerged(downloads: string, count: number, os: string, merged: unknown, listed: unknown, root: string): { files: number; tests: number };
 export declare function checkCollected(merged: unknown, collected: unknown, root: string): { files: number; tests: number };
+export declare function checkShardLists(downloads: string, count: number, os: string, merged: unknown, root: string): { files: number; tests: number };

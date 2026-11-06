@@ -136,6 +136,10 @@ jobs:
         name: Detect frontend runner prerequisites
         run: echo "profile=$(node scripts/ci/runner-profile.mjs)" >> "$GITHUB_OUTPUT"
 
+      # Collect on the same built runner as the shard run. Static skipIf
+      # predicates can read build outputs, so the merge runner cannot collect.
+      - run: pnpm exec vitest list --json=.ci-vitest-tests.json --shard=${{ matrix.shard }}/4
+
       # A shard checks vitest's global thresholds against its own partial
       # coverage, so its thresholds are 0 here; frontend-merge enforces
       # vitest.config.ts's thresholds on the merged coverage.
@@ -159,6 +163,7 @@ jobs:
             .vitest-reports
             .ci-shard.json
             .ci-vitest-results.json
+            .ci-vitest-tests.json
           include-hidden-files: true
           if-no-files-found: error
 
@@ -174,8 +179,8 @@ jobs:
           overwrite: true
 
   # ADR-0130 Decision 1 (GH639): merges each runner's shard blobs, and proves
-  # the merged report is the union of the shards and matches an unsharded
-  # collection, file by file. With no status function in `if`,
+  # the merged report is the union of the shards and matches their local
+  # test-list identities. With no status function in `if`,
   # GitHub adds success(): a failed, cancelled or skipped shard skips this job,
   # and ci-gate fails on that skip because scope said code=true. The coverage
   # thresholds, the critical floors and the inventory run here, on the merged
@@ -238,15 +243,9 @@ jobs:
 
       - run: node scripts/ci/shard-reports.mjs check .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"
 
-      # An unsharded collection of every test, without running one. File by
-      # file, the merged report's started tests (those with a duration) must
-      # equal it, so a test that no shard ran fails here. vitest list omits
-      # static skips and todos; ADR-0128's comparator above accounts for every
-      # skip. Collection-time skip conditions are evaluated on this runner,
-      # the same image as the shards; a difference fails here, never passes.
-      - run: pnpm exec vitest list --json=.ci-vitest-tests.json
-
-      - run: node scripts/ci/shard-reports.mjs count .ci-vitest-results.json .ci-vitest-tests.json "$PWD"
+      # Every selected shard artifact carries the list collected after its
+      # build. Compare their identity union with the merged started tests.
+      - run: node scripts/ci/shard-reports.mjs union .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json "$PWD"
 
       # The merged per-leg report, under the name the single job used, for the
       # delegator's cross-host parity proof and the failure summary. A re-run
