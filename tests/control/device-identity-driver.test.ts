@@ -267,10 +267,11 @@ describe("device identity driver", () => {
       expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
     } finally {
       hold.release();
-      const results = await Promise.all(runs);
-      expect(results.map((result: IdentityResult) => result.exit).sort()).toEqual([0, 1]);
+      await Promise.allSettled(runs);
     }
-  }, 35_000); // Liveness: killed helper, replacement marker, refusal, and final archive.
+    const results = await Promise.all(runs);
+    expect(results.map((result: IdentityResult) => result.exit).sort()).toEqual([0, 1]);
+  }, 4 * LOCK_HELPER_LIVENESS_MS + 5_000); // Liveness: killed helper, replacement marker, refusal, and poll, plus settlement slack.
 
   it("uses independent locks for different report paths", async () => {
     const f = fixture();
