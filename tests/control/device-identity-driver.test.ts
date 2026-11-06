@@ -254,26 +254,23 @@ describe("device identity driver", () => {
     const runs = [0, 1].map(() => runIdentity([
       "--bundle", f.bundle, "--expected-release-id", releaseId, "--out", f.out,
     ], makeDeps()));
-    const deadline = Date.now() + 3000;
-    let marker = previous;
-    while (marker === previous && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      marker = fs.readFileSync(f.out, "utf8");
+    try {
+      const marker = await waitForNewMarker(f.out, previous);
+      expect(marker).not.toBe(previous);
+      // The first completed contender must be an observed refusal while its peer is held.
+      const loser = await withinLiveness(Promise.any(runs), "loser did not refuse");
+      expect(loser.exit).toBe(1);
+      await withinLiveness((async () => {
+        while (polling === 0) await new Promise((resolve) => setTimeout(resolve, 10));
+      })(), "winner did not enter its held poll");
+      expect(polling).toBe(1);
+      expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
+    } finally {
+      hold.release();
+      const results = await Promise.all(runs);
+      expect(results.map((result: IdentityResult) => result.exit).sort()).toEqual([0, 1]);
     }
-    expect(marker).not.toBe(previous);
-    const loser = await Promise.race([...runs,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("loser did not refuse")), 1000))]);
-    expect(loser.exit).toBe(1);
-    const pollingDeadline = Date.now() + 3000;
-    while (polling === 0 && Date.now() < pollingDeadline) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-    expect(polling).toBe(1);
-    expect(fs.readFileSync(f.out, "utf8")).toBe(marker);
-    hold.release();
-    const results = await Promise.all(runs);
-    expect(results.map((result: IdentityResult) => result.exit).sort()).toEqual([0, 1]);
-  }, 25_000); // Liveness: two marker observations include a killed and a replacement helper.
+  }, 35_000); // Liveness: killed helper, replacement marker, refusal, and final archive.
 
   it("uses independent locks for different report paths", async () => {
     const f = fixture();
@@ -331,10 +328,7 @@ describe("device identity driver", () => {
     fs.writeFileSync(f.out, "[PASS] old run\n");
     const child = spawn(process.execPath, [path.resolve("tests/support/d326-interrupted-run.mjs"), f.bundle, f.out, releaseId], { stdio: "ignore" });
     try {
-      const deadline = Date.now() + 3000;
-      while (!fs.readFileSync(f.out, "utf8").startsWith("IN PROGRESS ") && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
+      await waitForNewMarker(f.out, "[PASS] old run\n");
       expect(fs.readFileSync(f.out, "utf8")).toMatch(/^IN PROGRESS [0-9a-f-]+\n$/);
     } finally {
       child.kill("SIGKILL");
