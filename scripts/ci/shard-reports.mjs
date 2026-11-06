@@ -153,7 +153,7 @@ export function checkShardReports(downloads, count, os, merged, root) {
       collected.set(key, { shard, count: (previous?.count ?? 0) + 1 });
       if (typeof assertion.duration === "number") {
         shardStarted.set(key, (shardStarted.get(key) ?? 0) + 1);
-      } else if (!["pending", "skipped", "todo"].includes(assertion.status)) {
+      } else if (!["skipped", "todo"].includes(assertion.status)) {
         throw Error(`${label(key)}: collected but did not start and is not statically skipped or todo`);
       }
     }

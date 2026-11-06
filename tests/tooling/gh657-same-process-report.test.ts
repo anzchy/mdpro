@@ -71,13 +71,23 @@ it("names duplicate identities collected by different shards", async () => {
 it("allows duration-less static skips and todos, but counts only started tests", async () => {
   const f = fixture();
   f.report.testResults[0].assertionResults.push(
-    { ancestorTitles: ["suite"], title: "static skip", status: "pending" },
+    { ancestorTitles: ["suite"], title: "static skip", status: "skipped" },
     { ancestorTitles: ["suite"], title: "todo", status: "todo" },
   );
   fs.writeFileSync(path.join(f.downloads, artifactName("ubuntu-latest", 1, 1), ".ci-vitest-results.json"), JSON.stringify(f.report));
   fs.writeFileSync(f.merged, JSON.stringify(f.report));
   const result = await run(f);
   expect([result.status, result.stdout, result.stderr]).toEqual([0, "shard test reports PASS (1 files, 1 tests in 2 shards)\n", ""]);
+});
+
+it("names a duration-less pending assertion that never started", async () => {
+  const f = fixture();
+  f.report.testResults[0].assertionResults.push({ ancestorTitles: ["suite"], title: "queued but unstarted", status: "pending" });
+  fs.writeFileSync(path.join(f.downloads, artifactName("ubuntu-latest", 1, 1), ".ci-vitest-results.json"), JSON.stringify(f.report));
+  fs.writeFileSync(f.merged, JSON.stringify(f.report));
+  const result = await run(f);
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("tests/dynamic.test.ts: suite > queued but unstarted");
 });
 
 it("names a collected assertion that did not start and is not a static skip", async () => {

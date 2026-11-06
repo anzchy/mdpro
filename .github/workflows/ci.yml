@@ -136,9 +136,6 @@ jobs:
         name: Detect frontend runner prerequisites
         run: echo "profile=$(node scripts/ci/runner-profile.mjs)" >> "$GITHUB_OUTPUT"
 
-      # The JSON reporter records collection and execution in this shard's
-      # process. Test names can contain paths generated during collection.
-
       # A shard checks vitest's global thresholds against its own partial
       # coverage, so its thresholds are 0 here; frontend-merge enforces
       # vitest.config.ts's thresholds on the merged coverage.
@@ -177,8 +174,8 @@ jobs:
           overwrite: true
 
   # ADR-0130 Decision 1 (GH639): merges each runner's shard blobs, and proves
-  # the merged report is the union of the shards and matches their local
-  # test-list identities. With no status function in `if`,
+  # the merged started identities equal the union of the shards' same-process
+  # JSON reports. With no status function in `if`,
   # GitHub adds success(): a failed, cancelled or skipped shard skips this job,
   # and ci-gate fails on that skip because scope said code=true. The coverage
   # thresholds, the critical floors and the inventory run here, on the merged
@@ -241,8 +238,8 @@ jobs:
 
       - run: node scripts/ci/shard-reports.mjs check .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"
 
-      # Every selected shard artifact carries the list collected after its
-      # build. Compare their identity union with the merged started tests.
+      # Every selected shard artifact carries its run's JSON report. Compare
+      # its started identity union with the merged started tests.
       - run: node scripts/ci/shard-reports.mjs union .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json "$PWD"
 
       # The merged per-leg report, under the name the single job used, for the

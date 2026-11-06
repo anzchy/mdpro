@@ -1,0 +1,34 @@
+{
+  "id": "GH657-S4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-06T14:03:31.403Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"names a duration-less pending assertion that never started\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 89
+      },
+      "message": "AssertionError: expected +0 to be 1 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH657-S4/20261106T140331403Z/tests",
+    "tree": "60de78a1e507f0d5cd38a6d4bda3e84a7615349b"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh657-same-process-report.test.ts": "36539470636912156e4b88b7f0787d3b32edab33"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh657-same-process-report.test.ts": "36539470636912156e4b88b7f0787d3b32edab33"
+  }
+}
