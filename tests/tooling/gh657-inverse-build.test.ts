@@ -5,10 +5,25 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { artifactName, checkCollected, checkShardLists } from "../../scripts/ci/shard-reports.mjs";
+import { artifactName, checkShardLists } from "../../scripts/ci/shard-reports.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SHA = "a".repeat(40);
+
+/** Test-local replay of the retired GH639 comparator: it only counted rows per file. */
+function oldCountOracle(report: { testResults: Array<{ name: string; assertionResults: Array<{ duration?: number }> }> }, listed: Array<{ file: string }>) {
+  const counts = new Map<string, { listed: number; started: number }>();
+  const increment = (file: string, side: "listed" | "started") => {
+    const value = counts.get(file) ?? { listed: 0, started: 0 };
+    value[side]++;
+    counts.set(file, value);
+  };
+  for (const row of listed) increment(row.file, "listed");
+  for (const result of report.testResults) for (const row of result.assertionResults) {
+    if (typeof row.duration === "number") increment(result.name, "started");
+  }
+  return [...counts.values()].every(({ listed, started }) => listed === started);
+}
 
 function vitest(args: string[]) {
   return new Promise<{ status: number | null; stderr: string }>((resolve, reject) => {
@@ -39,7 +54,7 @@ it("shows an equal-count false pass when two inverse skipIf predicates read a bu
     const listed = JSON.parse(fs.readFileSync(listedPath, "utf8")) as Array<{ file: string; name: string }>;
     const report = JSON.parse(fs.readFileSync(reportPath, "utf8")) as unknown;
     expect(listed.map((row) => row.name)).toEqual(["build-dependent > listed-only without build"]);
-    expect(checkCollected(report, listed, ROOT)).toEqual({ files: 1, tests: 1 });
+    expect(oldCountOracle(report as Parameters<typeof oldCountOracle>[0], listed)).toBe(true);
     const downloads = path.join(scratch, "downloads");
     for (let shard = 1; shard <= 4; shard++) {
       const dir = path.join(downloads, artifactName("ubuntu-latest", shard, 1));

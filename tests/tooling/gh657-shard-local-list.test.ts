@@ -5,13 +5,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { artifactName, checkCollected, collect } from "../../scripts/ci/shard-reports.mjs";
+import { artifactName, collect } from "../../scripts/ci/shard-reports.mjs";
 import { entry, job, scalar, steps, stepRun } from "../support/workflowBlocks";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SCRIPT = path.join(ROOT, "scripts/ci/shard-reports.mjs");
 const WORKFLOW = fs.readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
 const SHA = "a".repeat(40);
+type ReportAssertion = { ancestorTitles: string[]; title: string; status: string; duration?: number };
 const temporary: string[] = [];
 afterEach(() => {
   for (const dir of temporary.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
@@ -31,7 +32,7 @@ function fixture() {
     fs.writeFileSync(path.join(dir, ".ci-shard.json"), JSON.stringify({ os: "ubuntu-latest", shard: i, count: 4, attempt: 1, profile: "ubuntu+rustfmt", sha: SHA }));
     fs.writeFileSync(path.join(dir, ".ci-vitest-tests.json"), JSON.stringify([{ file: path.join(root, files[i - 1]), name: names[i - 1] }]));
   }
-  const report = {
+  const report: { testResults: Array<{ name: string; assertionResults: ReportAssertion[] }> } = {
     testResults: files.map((file, i) => ({ name: path.join(root, file), assertionResults: [{ ancestorTitles: ["suite"], title: names[i].slice(8), status: "passed", duration: i === 0 ? 0 : 1 }] })),
   };
   fs.writeFileSync(mergedPath, JSON.stringify(report));
@@ -64,12 +65,10 @@ describe("GH657 shard-local identity union", () => {
     expect([result.status, result.stdout, result.stderr]).toEqual([0, "shard test lists PASS (4 files, 4 tests in 4 shards)\n", ""]);
   });
 
-  it("shows the old equal-count false pass but names both sides of an inverse-condition swap", async () => {
+  it("names both sides of an equal-count inverse-condition swap", async () => {
     const f = fixture();
     const file = path.join(f.root, f.files[0]);
     setList(f, 1, [{ file, name: "suite > skipped-on-shard" }]);
-    const old = checkCollected({ testResults: [{ name: file, assertionResults: [{ ancestorTitles: ["suite"], title: "a", duration: 1 }] }] }, [{ file, name: "suite > skipped-on-shard" }], f.root);
-    expect(old).toEqual({ files: 1, tests: 1 });
     const result = await cli(f);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("tests/a.test.ts: suite > skipped-on-shard");
@@ -110,6 +109,30 @@ describe("GH657 shard-local identity union", () => {
     const result = await cli(f);
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/tests\/a\.test\.ts: suite > a.*2 listed, 1 started/);
+  });
+
+  it("ignores static skips and todos without durations while retaining started assertions", async () => {
+    const f = fixture();
+    f.report.testResults[0].assertionResults.push(
+      { ancestorTitles: ["suite"], title: "static skip", status: "skipped" },
+      { ancestorTitles: ["suite"], title: "todo", status: "todo" },
+    );
+    fs.writeFileSync(f.mergedPath, JSON.stringify(f.report));
+    const result = await cli(f);
+    expect([result.status, result.stdout, result.stderr]).toEqual([0, "shard test lists PASS (4 files, 4 tests in 4 shards)\n", ""]);
+  });
+
+  it("rejects the retired count CLI", async () => {
+    const f = fixture();
+    const result = await new Promise<{ status: number | null; stderr: string }>((resolve, reject) => {
+      const child = spawn(process.execPath, [SCRIPT, "count", f.mergedPath, f.mergedPath, f.root]);
+      let stderr = "";
+      child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
+      child.on("error", reject);
+      child.on("close", (status) => resolve({ status, stderr }));
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("expected one of describe, collect, check, union");
   });
 
   it("refuses a malformed shard list with a named shard", async () => {

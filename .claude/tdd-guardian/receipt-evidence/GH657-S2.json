@@ -1,0 +1,34 @@
+{
+  "id": "GH657-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-06T07:02:18.380Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh657-shard-local-list.test.ts\",\"GH657 shard-local identity union\",\"rejects the retired count CLI\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-shard-local-list.test.ts",
+        "line": 134
+      },
+      "message": "AssertionError: expected 'shard-reports count FAIL: malformed c…' to contain 'expected one of describe, collect, ch…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH657-S2/20261106T070218380Z/tests",
+    "tree": "cc18406f7bb21f344f28a9806ecbf82396bf5e7d"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh657-shard-local-list.test.ts": "7768077360ef15e1c7cacd2e460095bd4ad78b33"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh657-shard-local-list.test.ts": "7768077360ef15e1c7cacd2e460095bd4ad78b33"
+  }
+}

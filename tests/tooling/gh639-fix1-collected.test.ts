@@ -1,19 +1,11 @@
 // @vitest-environment node
-/**
- * GH639 fix 1: the merge job's unsharded count check (`checkCollected`, gpt H1) and ADR-0130 Decision 1's union clauses.
- *
- * `vitest list --json` collects every test file without sharding and omits static skips and todos. A test that
- * started (passed, failed, or skipped at run time) carries a numeric `duration` in the JSON report; a static skip or a
- * todo does not. So, file by file, the collection must equal the merged report's started tests: a test that exists in
- * the collection but never ran in any shard fails the merge job.
- */
-import { spawn } from "node:child_process";
+/** GH639 fix 1: runner profile validation and four-shard file partition checks retained after the obsolete count CLI was removed. */
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { profileFor } from "../../scripts/ci/compare-report.mjs";
-import { artifactName, checkCollected, checkMerged, collect, describeShard } from "../../scripts/ci/shard-reports.mjs";
+import { artifactName, checkMerged, collect, describeShard } from "../../scripts/ci/shard-reports.mjs";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -41,132 +33,6 @@ function merged(root: string, files: Record<string, Assertion[]>) {
     })),
   };
 }
-
-/** `vitest list --json` output: `count` rows per file, absolute paths. */
-function collected(root: string, files: Record<string, number | string[]>) {
-  return Object.entries(files).flatMap(([file, rows]) => (typeof rows === "number" ? Array.from({ length: rows }, (_, i) => `t${i}`) : rows).map((name) => ({ name, file: path.join(root, file) })));
-}
-
-describe("GH639 fix 1 checkCollected", () => {
-  it("refuses a collected test that no shard ran", () => {
-    const root = tmp();
-    expect(() => checkCollected(merged(root, { "tests/a.test.ts": [passed(), passed()] }), collected(root, { "tests/a.test.ts": 3 }), root)).toThrow(/tests\/a\.test\.ts.*3.*2/);
-  });
-
-  it("does not count a static skip as started, so it cannot mask a test no shard ran", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a.test.ts": [passed(), passed(), { status: "skipped" }] });
-    expect(() => checkCollected(report, collected(root, { "tests/a.test.ts": 3 }), root)).toThrow(/tests\/a\.test\.ts.*3.*2/);
-  });
-
-  it("counts a test that skipped at run time, which has a duration, as started", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a.test.ts": [passed(), passed(), { status: "skipped", duration: 0.2 }] });
-    expect(checkCollected(report, collected(root, { "tests/a.test.ts": 3 }), root)).toEqual({ files: 1, tests: 3 });
-  });
-
-  it("compares file by file, so a surplus in one file cannot hide a test missing from another", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a.test.ts": [passed(), passed(), passed()], "tests/b.test.ts": [passed()] });
-    let message = "";
-    try {
-      checkCollected(report, collected(root, { "tests/a.test.ts": 2, "tests/b.test.ts": 2 }), root);
-    } catch (error) {
-      message = String(error);
-    }
-    expect(message).toContain("tests/a.test.ts: 2 collected, 3 started");
-    expect(message).toContain("tests/b.test.ts: 2 collected, 1 started");
-  });
-
-  it("refuses a collected file the merged report lacks, and a merged file with started tests the collection lacks", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a.test.ts": [passed()] });
-    expect(() => checkCollected(report, collected(root, { "tests/a.test.ts": 1, "tests/gone.test.ts": 2 }), root)).toThrow("tests/gone.test.ts: 2 collected, 0 started");
-    const extra = merged(root, { "tests/a.test.ts": [passed()], "tests/extra.test.ts": [passed()] });
-    expect(() => checkCollected(extra, collected(root, { "tests/a.test.ts": 1 }), root)).toThrow("tests/extra.test.ts: 0 collected, 1 started");
-  });
-
-  it("passes a realistic mix of passed, static skip, todo and run-time skip across CJK and spaced paths", () => {
-    const root = tmp();
-    const report = merged(root, {
-      "tests/a.test.ts": [passed(), passed(), { status: "skipped" }, { status: "todo" }],
-      "tests/中文 b.test.ts": [passed(), { status: "skipped", duration: 0.1 }],
-      "tests/tooling/c d.test.ts": [passed()],
-    });
-    expect(checkCollected(report, collected(root, { "tests/a.test.ts": 2, "tests/中文 b.test.ts": 2, "tests/tooling/c d.test.ts": 1 }), root)).toEqual({ files: 3, tests: 5 });
-  });
-
-  it("passes a file whose every test is a static skip or a todo, which the collection omits", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a.test.ts": [passed(), passed()], "tests/mac-only.test.ts": [{ status: "skipped" }, { status: "skipped" }, { status: "skipped" }, { status: "todo" }] });
-    expect(checkCollected(report, collected(root, { "tests/a.test.ts": 2 }), root)).toEqual({ files: 1, tests: 2 });
-  });
-
-  it("counts rows, not distinct titles, so a dropped repeat of a parameterised title fails", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/p.test.ts": [{ ...passed("case"), ancestorTitles: ["x"] }, { ...passed("case"), ancestorTitles: ["x"] }] });
-    expect(() => checkCollected(report, collected(root, { "tests/p.test.ts": ["x > case", "x > case", "x > case"] }), root)).toThrow("tests/p.test.ts: 3 collected, 2 started");
-  });
-
-  it("keys files by their path under the root, not their basename", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a/x.test.ts": [passed()], "tests/b/x.test.ts": [passed(), passed()] });
-    let message = "";
-    try {
-      checkCollected(report, collected(root, { "tests/a/x.test.ts": 2, "tests/b/x.test.ts": 1 }), root);
-    } catch (error) {
-      message = String(error);
-    }
-    expect(message).toContain("tests/a/x.test.ts: 2 collected, 1 started");
-    expect(message).toContain("tests/b/x.test.ts: 1 collected, 2 started");
-    expect(message).not.toContain(root);
-  });
-
-  it("counts a started test timed at zero", () => {
-    const root = tmp();
-    const report = merged(root, { "tests/a.test.ts": [{ title: "z", status: "passed", duration: 0 }, { title: "y", status: "passed", duration: 3 }] });
-    expect(checkCollected(report, collected(root, { "tests/a.test.ts": 2 }), root)).toEqual({ files: 1, tests: 2 });
-  });
-
-  it.each([
-    ["a collection that is not an array", (root: string) => [merged(root, {}), { file: "x" }]],
-    ["a collected row without a file", (root: string) => [merged(root, {}), [{ name: "t" }]]],
-    ["a collection given as a string", (root: string) => [merged(root, {}), "tests/a.test.ts"]],
-    ["a merged report without testResults", (root: string) => [{ success: true }, collected(root, { "tests/a.test.ts": 1 })]],
-  ] as const)("refuses %s", (_label, inputs) => {
-    const root = tmp();
-    const [report, list] = inputs(root);
-    expect(() => checkCollected(report, list, root)).toThrow(/malformed/);
-  });
-});
-
-const SCRIPT = path.resolve(__dirname, "../../scripts/ci/shard-reports.mjs");
-function cli(args: string[]) {
-  return new Promise<{ status: number | null; stdout: string; stderr: string }>((resolve, reject) => {
-    const child = spawn(process.execPath, [SCRIPT, ...args], { stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "", stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
-    child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
-    child.on("error", reject);
-    child.on("close", (status) => resolve({ status, stdout, stderr }));
-  });
-}
-
-describe("GH639 fix 1 shard-reports count", () => {
-  it("reads the merged report and the collection from disk, and fails with exit 1 and no stdout on a mismatch", async () => {
-    const root = tmp();
-    const write = (name: string, value: unknown) => {
-      fs.writeFileSync(path.join(root, name), JSON.stringify(value));
-      return path.join(root, name);
-    };
-    const report = write("merged.json", merged(root, { "tests/a.test.ts": [passed(), passed()], "tests/mac-only.test.ts": [{ status: "skipped" }] }));
-    const ok = await cli(["count", report, write("tests.json", collected(root, { "tests/a.test.ts": 2 })), root]);
-    expect([ok.status, ok.stdout, ok.stderr]).toEqual([0, "collected tests PASS (1 files, 2 tests)\n", ""]);
-    const bad = await cli(["count", report, write("tests.json", collected(root, { "tests/a.test.ts": 3 })), root]);
-    expect([bad.status, bad.stdout]).toEqual([1, ""]);
-    expect(bad.stderr).toMatch(/^shard-reports count FAIL: .*tests\/a\.test\.ts: 3 collected, 2 started/);
-  });
-});
 
 const FIELDS = { os: "ubuntu-latest", shard: "2", count: "4", attempt: "1", profile: "ubuntu+rustfmt", sha: "a".repeat(40) };
 

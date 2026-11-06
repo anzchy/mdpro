@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Purpose: Select and check frontend vitest shard blobs and their runner-local test lists, validate profiles, and compare list identities with the merged report (#639, #657, ADR-0130 Decision 1). */
+/** Purpose: Select and check frontend vitest shard blobs and runner-local test lists, validate profiles, and compare started test identities with the merged report (#639, #657, ADR-0130 Decision 1). */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -118,25 +118,6 @@ export function checkMerged(downloads, count, os, merged, listed, root) {
   return { files: mergedFiles.length, tests };
 }
 
-/** ADR-0130 Decision 1: per test file, the unsharded collection (`vitest list --json`) equals the merged report's started tests. */
-export function checkCollected(merged, collected, root) {
-  if (!Array.isArray(collected) || !collected.every((item) => typeof item?.file === "string")) throw Error("malformed collection: expected vitest list's [{name, file}]");
-  if (!Array.isArray(merged?.testResults) || !merged.testResults.every((result) => typeof result?.name === "string" && Array.isArray(result.assertionResults))) throw Error("malformed merged report: expected testResults[{name, assertionResults}]");
-  const relative = relativeTo(root);
-  const counts = new Map();
-  const add = (file, side) => {
-    const count = counts.get(file) ?? { collected: 0, started: 0 };
-    count[side] += 1;
-    counts.set(file, count);
-  };
-  for (const item of collected) add(relative(item.file), "collected");
-  // A started test has a duration; a static skip or a todo has none, and the collection omits both.
-  for (const result of merged.testResults) for (const item of result.assertionResults) if (typeof item.duration === "number") add(relative(result.name), "started");
-  const differ = [...counts].filter(([, count]) => count.collected !== count.started).map(([file, count]) => `${file}: ${count.collected} collected, ${count.started} started`);
-  if (differ.length) throw Error(`the merged report differs from the unsharded collection: ${differ.join("; ")}`);
-  return { files: counts.size, tests: [...counts.values()].reduce((sum, count) => sum + count.started, 0) };
-}
-
 /** Compare the multiset of shard-local collected identities with started merged-report identities. */
 export function checkShardLists(downloads, count, os, merged, root) {
   if (!Array.isArray(merged?.testResults) || !merged.testResults.every((result) => typeof result?.name === "string" && Array.isArray(result.assertionResults))) {
@@ -194,10 +175,6 @@ const commands = {
     const shards = positive("count", count);
     const result = checkMerged(downloads, shards, os, readJson(mergedPath), readJson(listPath), root);
     return `shard reports PASS (${result.files} files, ${result.tests} tests in ${shards} shards)\n`;
-  },
-  count: ([mergedPath, collectedPath, root]) => {
-    const result = checkCollected(readJson(mergedPath), readJson(collectedPath), root);
-    return `collected tests PASS (${result.files} files, ${result.tests} tests)\n`;
   },
   union: ([downloads, count, os, mergedPath, root]) => {
     const shards = positive("count", count);
