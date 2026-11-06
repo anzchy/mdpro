@@ -8,6 +8,8 @@ const { logs, openControl, windowListeners, launchPathChecks } = vi.hoisted(() =
   windowListeners: new Map<string, (event: { payload: unknown }) => void>(),
   launchPathChecks: { count: 0 },
 }));
+// Liveness: App retries an empty launch-path reply after 300 ms; allow loaded jsdom scheduling and IPC mock work.
+const LAUNCH_PATH_RETRY_LIVENESS_MS = 5_000;
 
 vi.mock("@tauri-apps/api/core", async () => ({
   ...(await import("./support/tauriCoreMock")).createTauriCoreMock(),
@@ -63,7 +65,7 @@ const editorOf = (workspace: HTMLElement) => within(workspace).queryByRole("text
 
 async function settleLaunchPaths() {
   // App retries one empty result after 300 ms; let the second state update finish before jsdom cleanup.
-  await waitFor(() => expect(launchPathChecks.count).toBe(2));
+  await waitFor(() => expect(launchPathChecks.count).toBe(2), { timeout: LAUNCH_PATH_RETRY_LIVENESS_MS });
   await act(async () => { await Promise.resolve(); });
 }
 
