@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { artifactName, checkShardLists } from "../../scripts/ci/shard-reports.mjs";
+import { artifactName, checkShardReports } from "../../scripts/ci/shard-reports.mjs";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SHA = "a".repeat(40);
@@ -60,12 +60,15 @@ it("shows an equal-count false pass when two inverse skipIf predicates read a bu
       const dir = path.join(downloads, artifactName("ubuntu-latest", shard, 1));
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, ".ci-shard.json"), JSON.stringify({ os: "ubuntu-latest", shard, count: 4, attempt: 1, profile: "ubuntu+rustfmt", sha: SHA }));
-      fs.writeFileSync(path.join(dir, ".ci-vitest-tests.json"), JSON.stringify(shard === 1 ? listed : []));
+      fs.writeFileSync(path.join(dir, ".ci-vitest-results.json"), JSON.stringify(shard === 1 ? report : { testResults: [] }));
     }
-    let error = "";
-    try { checkShardLists(downloads, 4, "ubuntu-latest", report, ROOT); } catch (cause) { error = String(cause); }
-    expect(error).toContain("listed-only without build");
-    expect(error).toContain("started-only with build");
+    const checked = checkShardReports(downloads, 4, "ubuntu-latest", report, ROOT);
+    expect(checked).toEqual({ files: 1, tests: 1 });
+    const changed = structuredClone(report as { testResults: Array<{ name: string; assertionResults: Array<{ title: string; duration?: number }> }> });
+    const started = changed.testResults[0].assertionResults.find((row) => typeof row.duration === "number");
+    expect(started).toBeDefined();
+    started!.title = "different started name";
+    expect(() => checkShardReports(downloads, 4, "ubuntu-latest", changed, ROOT)).toThrow(/started-only with build.*1 shard, 0 merged.*different started name.*0 shard, 1 merged/);
   } finally {
     fs.rmSync(fixtureDir, { recursive: true, force: true });
     fs.rmSync(scratch, { recursive: true, force: true });

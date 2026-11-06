@@ -28,7 +28,6 @@ const CRITICAL_RUN = "node scripts/ci/check-critical-coverage.mjs";
 const COMPARE_RUN = 'node scripts/ci/compare-report.mjs ci .ci-vitest-results.json tests/ci-inventory.json "$PROFILE" "$PWD"';
 const LIST_RUN = "pnpm exec vitest list --filesOnly --json=.ci-vitest-files.json";
 const CHECK_RUN = 'node scripts/ci/shard-reports.mjs check .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json .ci-vitest-files.json "$PWD"';
-const SHARD_LIST_RUN = "pnpm exec vitest list --json=.ci-vitest-tests.json --shard=${{ matrix.shard }}/4";
 const UNION_RUN = 'node scripts/ci/shard-reports.mjs union .vitest-blobs 4 "${{ matrix.os }}" .ci-vitest-results.json "$PWD"';
 
 const BASE = "1acb988e";
@@ -98,7 +97,7 @@ describe("GH639 frontend shards", () => {
     }
     const options = withOf(all[upload]);
     expect(scalar(all[upload], "uses")).toBe("actions/upload-artifact@v4");
-    expect(entry(options, "path")?.body.split("\n").map((line) => line.trim()).filter(Boolean)).toEqual([".vitest-reports", ".ci-shard.json", ".ci-vitest-results.json", ".ci-vitest-tests.json"]);
+    expect(entry(options, "path")?.body.split("\n").map((line) => line.trim()).filter(Boolean)).toEqual([".vitest-reports", ".ci-shard.json", ".ci-vitest-results.json"]);
     expect(scalar(options, "include-hidden-files")).toBe("true");
     expect(scalar(options, "if-no-files-found")).toBe("error");
     expect(scalar(options, "overwrite")).toBeNull();
@@ -163,7 +162,7 @@ describe("GH639 frontend-merge", () => {
       // opus L1: the comparator takes the shards' profile through env, never as an expression inside run:.
       expect(keysOf(entry(step, "env")?.body ?? null), run).toEqual(run === COMPARE_RUN ? ["PROFILE"] : []);
     }
-    for (const run of [SHARD_LIST_RUN, SHARD_RUN, DESCRIBE_RUN, MERGE_RUN, CRITICAL_RUN, COMPARE_RUN, LIST_RUN, CHECK_RUN, UNION_RUN]) {
+    for (const run of [SHARD_RUN, DESCRIBE_RUN, MERGE_RUN, CRITICAL_RUN, COMPARE_RUN, LIST_RUN, CHECK_RUN, UNION_RUN]) {
       expect(run).not.toMatch(/\|\||\||;|&&|set \+e|exit 0/);
     }
     expect(steps(job(TEXT, "frontend-merge")).some((step) => /(^|[\s"'])coverage\//.test(step))).toBe(false);
@@ -191,7 +190,7 @@ describe("GH639 frontend-merge", () => {
         const work = fs.mkdtempSync(path.join(dir, `shard-${index}-`));
         fs.mkdirSync(path.join(work, ".vitest-reports"));
         fs.writeFileSync(path.join(work, ".vitest-reports", `blob-${index}-4.json`), `bytes ${runner} ${index}`);
-        fs.writeFileSync(path.join(work, ".ci-vitest-results.json"), "{}"); fs.writeFileSync(path.join(work, ".ci-vitest-tests.json"), "[]");
+        fs.writeFileSync(path.join(work, ".ci-vitest-results.json"), "{}");
         fs.symlinkSync(path.join(dir, "scripts"), path.join(work, "scripts"));
         const written = await bash(stepRun(writer ?? "") ?? "", work, values, { PROFILE: profile });
         expect(written.status, written.stderr).toBe(0);

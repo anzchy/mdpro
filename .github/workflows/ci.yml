@@ -136,9 +136,8 @@ jobs:
         name: Detect frontend runner prerequisites
         run: echo "profile=$(node scripts/ci/runner-profile.mjs)" >> "$GITHUB_OUTPUT"
 
-      # Collect on the same built runner as the shard run. Static skipIf
-      # predicates can read build outputs, so the merge runner cannot collect.
-      - run: pnpm exec vitest list --json=.ci-vitest-tests.json --shard=${{ matrix.shard }}/4
+      # The JSON reporter records collection and execution in this shard's
+      # process. Test names can contain paths generated during collection.
 
       # A shard checks vitest's global thresholds against its own partial
       # coverage, so its thresholds are 0 here; frontend-merge enforces
@@ -163,7 +162,6 @@ jobs:
             .vitest-reports
             .ci-shard.json
             .ci-vitest-results.json
-            .ci-vitest-tests.json
           include-hidden-files: true
           if-no-files-found: error
 

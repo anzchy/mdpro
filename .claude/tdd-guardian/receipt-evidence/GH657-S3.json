@@ -1,0 +1,78 @@
+{
+  "id": "GH657-S3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-06T07:37:30.483Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"accepts a per-process temporary path in a name using the run report\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected [ 1, '', …(1) ] to deeply equal [ +0, …(2) ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"allows duration-less static skips and todos, but counts only started tests\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected [ 1, '', …(1) ] to deeply equal [ +0, …(2) ]"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"fails if the selected shard JSON report is missing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 59
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: shard list …' to match /shard-1-attempt-1.*ci-vitest-results\\…/"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"fails when the merged started set omits a shard's started identity\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: shard list …' to contain 'tests/dynamic.test.ts: suite > cwd /v…'"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"names a collected assertion that did not start and is not a static skip\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 90
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: shard list …' to contain 'tests/dynamic.test.ts: suite > never …'"
+    },
+    {
+      "id": "[\"tests/tooling/gh657-same-process-report.test.ts\",\"names duplicate identities collected by different shards\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh657-same-process-report.test.ts",
+        "line": 68
+      },
+      "message": "AssertionError: expected 'shard-reports union FAIL: shard list …' to contain 'shards 1 and 2'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH657-S3/20261106T073730483Z/tests",
+    "tree": "bfdd4d9101519467b24f6850b0d48587a761e88a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh657-same-process-report.test.ts": "6a545348f06a3758871d59b2cd44b6177d00bef0"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh657-same-process-report.test.ts": "6a545348f06a3758871d59b2cd44b6177d00bef0"
+  }
+}

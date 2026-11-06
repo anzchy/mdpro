@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Purpose: Select and check frontend vitest shard blobs and runner-local test lists, validate profiles, and compare started test identities with the merged report (#639, #657, ADR-0130 Decision 1). */
+/** Purpose: Select frontend Vitest shard blobs and same-process JSON reports, validate profiles, and compare started test identities with the merged report (#639, #657, ADR-0130 Decision 1). */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,8 +79,8 @@ export function collect(downloads, dest, count, os, sha) {
     const source = path.join(dir, ".vitest-reports", name);
     if (!fs.existsSync(source)) throw Error(`${path.basename(dir)}: no .vitest-reports/${name}`);
     if (fs.statSync(source).size === 0) throw Error(`${path.basename(dir)}: .vitest-reports/${name} is empty`);
-    const list = path.join(dir, ".ci-vitest-tests.json");
-    if (!fs.existsSync(list) || fs.statSync(list).size === 0) throw Error(`${path.basename(dir)}: .ci-vitest-tests.json missing or empty`);
+    const report = path.join(dir, ".ci-vitest-results.json");
+    if (!fs.existsSync(report) || fs.statSync(report).size === 0) throw Error(`${path.basename(dir)}: .ci-vitest-results.json missing or empty`);
     return { source, name };
   });
   if (fs.existsSync(dest) && fs.readdirSync(dest).length) throw Error(`${dest} is not empty; refusing to mix blobs`);
@@ -118,8 +118,8 @@ export function checkMerged(downloads, count, os, merged, listed, root) {
   return { files: mergedFiles.length, tests };
 }
 
-/** Compare the multiset of shard-local collected identities with started merged-report identities. */
-export function checkShardLists(downloads, count, os, merged, root) {
+/** Prove each shard's collection and run identities from one process, then conserve started identities across the merge. */
+export function checkShardReports(downloads, count, os, merged, root) {
   if (!Array.isArray(merged?.testResults) || !merged.testResults.every((result) => typeof result?.name === "string" && Array.isArray(result.assertionResults))) {
     throw Error("malformed merged report: expected testResults[{name, assertionResults}]");
   }
@@ -129,23 +129,33 @@ export function checkShardLists(downloads, count, os, merged, root) {
     const [file, name] = JSON.parse(key);
     return `${file}: ${name}`;
   };
-  const listed = new Map();
+  const collected = new Map();
+  const shardStarted = new Map();
   const selected = selectShards(downloads, count, os);
   for (const { shard, dir } of selected) {
-    const file = path.join(dir, ".ci-vitest-tests.json");
-    let rows;
+    const file = path.join(dir, ".ci-vitest-results.json");
+    let report;
     try {
-      rows = JSON.parse(fs.readFileSync(file, "utf8"));
+      report = JSON.parse(fs.readFileSync(file, "utf8"));
     } catch (error) {
-      throw Error(`${path.basename(dir)}: unreadable .ci-vitest-tests.json (${error instanceof Error ? error.message : String(error)})`);
+      throw Error(`${path.basename(dir)}: unreadable .ci-vitest-results.json (${error instanceof Error ? error.message : String(error)})`);
     }
-    if (!Array.isArray(rows)) throw Error(`${path.basename(dir)}: malformed .ci-vitest-tests.json: expected an array`);
-    for (const row of rows) {
-      if (typeof row?.file !== "string" || typeof row.name !== "string") throw Error(`${path.basename(dir)}: malformed .ci-vitest-tests.json row: expected file and name strings`);
-      const key = identity(row.file, row.name);
-      const previous = listed.get(key);
-      if (previous && previous.shard !== shard) throw Error(`${label(key)} listed in shards ${previous.shard} and ${shard}`);
-      listed.set(key, { shard, count: (previous?.count ?? 0) + 1 });
+    if (!Array.isArray(report?.testResults) || !report.testResults.every((result) => typeof result?.name === "string" && Array.isArray(result.assertionResults))) {
+      throw Error(`${path.basename(dir)}: malformed .ci-vitest-results.json: expected testResults[{name, assertionResults}]`);
+    }
+    for (const result of report.testResults) for (const assertion of result.assertionResults) {
+      if (!Array.isArray(assertion?.ancestorTitles) || !assertion.ancestorTitles.every((part) => typeof part === "string") || typeof assertion.title !== "string") {
+        throw Error(`${path.basename(dir)}: malformed assertion in ${relative(result.name)}`);
+      }
+      const key = identity(result.name, [...assertion.ancestorTitles, assertion.title].join(" > "));
+      const previous = collected.get(key);
+      if (previous && previous.shard !== shard) throw Error(`${label(key)} collected in shards ${previous.shard} and ${shard}`);
+      collected.set(key, { shard, count: (previous?.count ?? 0) + 1 });
+      if (typeof assertion.duration === "number") {
+        shardStarted.set(key, (shardStarted.get(key) ?? 0) + 1);
+      } else if (!["pending", "skipped", "todo"].includes(assertion.status)) {
+        throw Error(`${label(key)}: collected but did not start and is not statically skipped or todo`);
+      }
     }
   }
   const started = new Map();
@@ -159,10 +169,10 @@ export function checkShardLists(downloads, count, os, merged, root) {
       started.set(key, (started.get(key) ?? 0) + 1);
     }
   }
-  const differences = [...new Set([...listed.keys(), ...started.keys()])]
-    .filter((key) => (listed.get(key)?.count ?? 0) !== (started.get(key) ?? 0))
-    .map((key) => `${label(key)}: ${listed.get(key)?.count ?? 0} listed, ${started.get(key) ?? 0} started`);
-  if (differences.length) throw Error(`shard list identities differ from started tests: ${differences.join("; ")}`);
+  const differences = [...new Set([...shardStarted.keys(), ...started.keys()])]
+    .filter((key) => (shardStarted.get(key) ?? 0) !== (started.get(key) ?? 0))
+    .map((key) => `${label(key)}: ${shardStarted.get(key) ?? 0} shard, ${started.get(key) ?? 0} merged`);
+  if (differences.length) throw Error(`merged started identities differ from shard reports: ${differences.join("; ")}`);
   return { files: new Set([...started.keys()].map((key) => JSON.parse(key)[0])).size, tests: [...started.values()].reduce((sum, n) => sum + n, 0) };
 }
 
@@ -178,8 +188,8 @@ const commands = {
   },
   union: ([downloads, count, os, mergedPath, root]) => {
     const shards = positive("count", count);
-    const result = checkShardLists(downloads, shards, os, readJson(mergedPath), root);
-    return `shard test lists PASS (${result.files} files, ${result.tests} tests in ${shards} shards)\n`;
+    const result = checkShardReports(downloads, shards, os, readJson(mergedPath), root);
+    return `shard test reports PASS (${result.files} files, ${result.tests} tests in ${shards} shards)\n`;
   },
 };
 
