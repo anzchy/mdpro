@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { logs, openControl, windowListeners } = vi.hoisted(() => ({
+const { logs, openControl, windowListeners, launchPathChecks } = vi.hoisted(() => ({
   logs: [] as Array<Record<string, unknown>>,
   openControl: { pending: null as Promise<unknown> | null, calls: 0 },
   windowListeners: new Map<string, (event: { payload: unknown }) => void>(),
+  launchPathChecks: { count: 0 },
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -20,7 +21,11 @@ vi.mock("@tauri-apps/api/core", async () => ({
       openControl.calls += 1;
       return openControl.pending;
     }
-    if (command === "list_drafts" || command === "get_launch_paths") return [];
+    if (command === "get_launch_paths") {
+      launchPathChecks.count += 1;
+      return [];
+    }
+    if (command === "list_drafts") return [];
     throw new Error(`unavailable: ${command}`);
   }),
 }));
@@ -56,6 +61,12 @@ const workspaceOf = (container: HTMLElement) => {
 
 const editorOf = (workspace: HTMLElement) => within(workspace).queryByRole("textbox");
 
+async function settleLaunchPaths() {
+  // App retries one empty result after 300 ms; let the second state update finish before jsdom cleanup.
+  await waitFor(() => expect(launchPathChecks.count).toBe(2));
+  await act(async () => { await Promise.resolve(); });
+}
+
 beforeEach(() => {
   vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue("d297-test-action" as `${string}-${string}-${string}-${string}-${string}`);
   document.elementFromPoint = () => null;
@@ -65,6 +76,7 @@ beforeEach(() => {
   logs.length = 0;
   openControl.pending = null;
   openControl.calls = 0;
+  launchPathChecks.count = 0;
   windowListeners.clear();
   useDocumentStore.setState({ documents: [], activeDocumentId: null });
   useEditorStore.setState({ viewMode: "wysiwyg", editorView: null });
@@ -86,6 +98,7 @@ describe("D297 tabless editor column", () => {
     await user.keyboard("y");
     expect(useDocumentStore.getState().documents).toEqual([]);
     expect(workspace.contains(document.activeElement)).toBe(false);
+    await settleLaunchPaths();
   });
 
   it("leaves Source tabless typing unable to create or dirty a document", async () => {
@@ -101,6 +114,7 @@ describe("D297 tabless editor column", () => {
     expect(useDocumentStore.getState().documents).toEqual([]);
     expect(useDocumentStore.getState().activeDocumentId).toBeNull();
     expect(workspace.contains(document.activeElement)).toBe(false);
+    await settleLaunchPaths();
   });
 
   it("current Source readOnly wiring preserves the empty document store", async () => {
@@ -128,6 +142,7 @@ describe("D297 tabless editor column", () => {
     await waitFor(() => expect(useDocumentStore.getState().getActiveDocument()?.content).toContain("y"));
     expect(useDocumentStore.getState().getActiveDocument()?.isModified).toBe(true);
     expect(workspace.contains(document.activeElement)).toBe(true);
+    await settleLaunchPaths();
   });
 
   it("opens a file into a tabless Source window and lets the active document be edited", async () => {
@@ -147,6 +162,7 @@ describe("D297 tabless editor column", () => {
     await waitFor(() => expect(useDocumentStore.getState().getActiveDocument()?.content).toContain("z"));
     expect(useDocumentStore.getState().getActiveDocument()?.isModified).toBe(true);
     expect(workspace.contains(document.activeElement)).toBe(true);
+    await settleLaunchPaths();
   });
 
   it("keeps the tabless column inert while a routed file open awaits its reply", async () => {
@@ -167,6 +183,7 @@ describe("D297 tabless editor column", () => {
     await waitFor(() => expect(useDocumentStore.getState().activeDocumentId).toBe(opened.id));
     await waitFor(() => expect(editorOf(workspace)).toHaveAttribute("contenteditable", "true"));
     expect(useDocumentStore.getState().getActiveDocument()?.content).toBe("from disk");
+    await settleLaunchPaths();
   });
 
   it("unmounts the editor after the main window's last tab closes", async () => {
@@ -181,6 +198,7 @@ describe("D297 tabless editor column", () => {
     expect(useDocumentStore.getState().documents).toEqual([]);
     expect(useDocumentStore.getState().activeDocumentId).toBeNull();
     expect(workspace.contains(document.activeElement)).toBe(false);
+    await settleLaunchPaths();
   });
 
   it("keeps both view modes empty across mode changes and stale active IDs", async () => {
@@ -200,6 +218,7 @@ describe("D297 tabless editor column", () => {
     await user.keyboard("x");
     expect(editorOf(workspace)).toBeNull();
     expect(useDocumentStore.getState().documents).toEqual([doc]);
+    await settleLaunchPaths();
   });
 
   it("logs once per resolved no-document transition, including unresolved ID changes", async () => {
@@ -232,5 +251,6 @@ describe("D297 tabless editor column", () => {
       });
       expect(Object.keys(entry.context as Record<string, unknown>)).toEqual(["state"]);
     }
+    await settleLaunchPaths();
   });
 });
