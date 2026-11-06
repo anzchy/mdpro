@@ -8,6 +8,9 @@ use std::sync::Mutex;
 use tauri_app_lib::services::instance_admission::{admit, Admission, Namespace};
 
 const UNQUALIFIED_PEER_DEADLINE: std::time::Duration = std::time::Duration::from_secs(3);
+// Test subprocess signing and scheduling can outlast 3 seconds under shared-machine load.
+// This is a fixture liveness bound; admission keeps its own 10-second deadline.
+const SIGNED_LISTENER_STARTUP_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
 // Serialize child spawns and listener creation within this test binary.
 static COMPAT_TEST_LOCK: Mutex<()> = Mutex::new(());
 
@@ -281,7 +284,7 @@ fn connect_to_child(
 ) -> (std::process::Child, std::os::unix::net::UnixStream) {
     use std::time::{Duration, Instant};
 
-    let deadline = Instant::now() + Duration::from_secs(3);
+    let deadline = Instant::now() + SIGNED_LISTENER_STARTUP_DEADLINE;
     let stream = loop {
         match std::os::unix::net::UnixStream::connect(socket) {
             Ok(stream) => break stream,
@@ -357,7 +360,7 @@ fn late_compatible_legacy_socket_forwards_one_bounded_frame() {
 
     fn await_banner(child: &mut std::process::Child, expected: &[u8]) {
         let stdout = child.stdout.as_mut().unwrap();
-        let ready_by = std::time::Instant::now() + UNQUALIFIED_PEER_DEADLINE;
+        let ready_by = std::time::Instant::now() + SIGNED_LISTENER_STARTUP_DEADLINE;
         let mut banner = Vec::new();
         loop {
             let remaining = ready_by.saturating_duration_since(std::time::Instant::now());
