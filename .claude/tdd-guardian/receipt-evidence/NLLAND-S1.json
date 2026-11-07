@@ -1,0 +1,42 @@
+{
+  "id": "NLLAND-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-07T01:19:26.311Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"every route, on both runtimes, fits its cap; only a named known exception may not, and it must still fail (B2, B20, B31, B36)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/always-on-budget.test.ts",
+        "line": 141
+      },
+      "message": "AssertionError: delegator (claude)             47955 / 50000\ndelegator (codex)              45888 / 50000\nimplementor-brief (claude)     48573 / 48500\nimplementor-brief (codex)      46506 / 48500\nimplementor-fix (claude)       44502 / 48500\nimplementor-fix (codex)        42435 / 48500\nauditor-audit (claude)         45962 / 50000\nauditor-audit (codex)          43895 / 50000\nauditor-confirm (claude)       45236 / 50000\nauditor-confirm (codex)        43169 / 50000\nauditor-challenge (claude)     45237 / 50000\nauditor-challenge (codex)      43170 / 50000\nauditor-plan (claude)          45425 / 50000\nauditor-plan (codex)           43358 / 50000\ndevice (claude)                33370 / 42000\ndevice (codex)                 31303 / 42000\nauditor-audit-policy (claude)   52155 / 56000\nauditor-audit-policy (codex)   50088 / 56000\nauditor-confirm-policy (claude)   51429 / 56000\nauditor-confirm-policy (codex)   49362 / 56000\nauditor-challenge-policy (claude)   51430 / 56000\nauditor-challenge-policy (codex)   49363 / 56000\nauditor-plan-policy (claude)   51618 / 56000\nauditor-plan-policy (codex)    49551 / 56000: expected [ 'implementor-brief (claude)' ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/NLLAND-S1/20261107T011926311Z/tests",
+    "tree": "60de78a1e507f0d5cd38a6d4bda3e84a7615349b"
+  },
+  "spec_blobs": {
+    "tests/tooling/always-on-budget.test.ts": "a1bdf77fdec5ae6a032c7d13d64ac82611f538be"
+  },
+  "settled_blobs": {
+    "tests/tooling/always-on-budget.test.ts": "4ef87e642befd0ebe29c956bb7b9e036a9fbc462"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/NLLAND-S1.json",
+    "digest": "da78fbf946112dfc20869f061a04963e86d5322f4eb213100b0c74218c8132de",
+    "result": "failed",
+    "base": "42e5faac4ad1cab04c4a3e9f05625716b74cf03b",
+    "head": "42e5faac4ad1cab04c4a3e9f05625716b74cf03b"
+  }
+}

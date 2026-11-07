@@ -1,0 +1,65 @@
+{
+  "id": "NLLAND-S1",
+  "lane": "unit-red",
+  "mode": "entry",
+  "base": "42e5faac4ad1cab04c4a3e9f05625716b74cf03b",
+  "head": "42e5faac4ad1cab04c4a3e9f05625716b74cf03b",
+  "test_diff": "",
+  "prod_diff": "",
+  "replay": {
+    "result": "failed",
+    "reasons": [
+      "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"every route, on both runtimes, fits its cap; only a named known exception may not, and it must still fail (B2, B20, B31, B36)\"]: passed at base"
+    ],
+    "ids": {
+      "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"every route, on both runtimes, fits its cap; only a named known exception may not, and it must still fail (B2, B20, B31, B36)\"]": {
+        "base": {
+          "status": "passed",
+          "kind": null,
+          "location": null,
+          "message": ""
+        },
+        "head": {
+          "status": "passed",
+          "kind": null,
+          "location": null,
+          "message": ""
+        }
+      }
+    }
+  },
+  "digest_input": {
+    "id": "NLLAND-S1",
+    "recorded_at": "2026-11-07T01:19:26.311Z",
+    "tests_tree": "60de78a1e507f0d5cd38a6d4bda3e84a7615349b",
+    "base": "42e5faac4ad1cab04c4a3e9f05625716b74cf03b",
+    "head": "42e5faac4ad1cab04c4a3e9f05625716b74cf03b",
+    "head_tests_tree": "60de78a1e507f0d5cd38a6d4bda3e84a7615349b",
+    "spec_blobs": {
+      "tests/tooling/always-on-budget.test.ts": "a1bdf77fdec5ae6a032c7d13d64ac82611f538be"
+    },
+    "replay": {
+      "result": "failed",
+      "reasons": [
+        "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"every route, on both runtimes, fits its cap; only a named known exception may not, and it must still fail (B2, B20, B31, B36)\"]: passed at base"
+      ],
+      "ids": {
+        "[\"tests/tooling/always-on-budget.test.ts\",\"always-on budget (live tree)\",\"every route, on both runtimes, fits its cap; only a named known exception may not, and it must still fail (B2, B20, B31, B36)\"]": {
+          "base": {
+            "status": "passed",
+            "kind": null,
+            "location": null,
+            "message": ""
+          },
+          "head": {
+            "status": "passed",
+            "kind": null,
+            "location": null,
+            "message": ""
+          }
+        }
+      }
+    }
+  },
+  "digest": "da78fbf946112dfc20869f061a04963e86d5322f4eb213100b0c74218c8132de"
+}
