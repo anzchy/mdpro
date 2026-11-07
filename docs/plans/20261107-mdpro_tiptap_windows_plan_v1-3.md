@@ -1,6 +1,6 @@
 # mdpro：Milkdown 7 → Tiptap 3 迁移与架构、CI 优化整合实施计划
 
-> **版本**：v1.2（2026-11-07，按第一轮双审计修订；v1.1 见 commit `49a33906`）  
+> **版本**：v1.3（2026-11-07，按第二轮双审计修订；v1.2 见 commit `e19736f7`，v1.1 见 `49a33906`）  
 > **项目**：[anzchy/mdpro](https://github.com/anzchy/mdpro) · 默认分支 `master`  
 > **对标参考**：[xiaolai/vmark](https://github.com/xiaolai/vmark) · 默认分支 `main`  
 > **依据文档**：`docs/plans/20261107-plan-architecture-restructure-ci.md`（v1.0，460 行，即 `mdpro_architecture_ci_optimization_plan_2026-11-07.md`）；`mdpro_cross_platform_development_release_assessment_2026-11-07.md`  
@@ -21,6 +21,21 @@
 | TP-5 EditorPort 过薄 | Port 增加命令/聚焦、定向与聚合 Flush、destroy/discard、三类令牌；九个宿主调用点与入口合同表 | §4.2、MIG-005 |
 | TP-6 决策未记录 | 新增 §0A.0：引用两次用户原话，并在 WIN-001 规格之前写决策日志条目 | §0A.0 |
 
+### v1.3 修订摘要（对应第二轮审计 `MH1–MH3`、`MM1–MM14`）
+
+| 审计项 | v1.3 的处理 | 位置 |
+|---|---|---|
+| MH1 新的必过检查没有 GS 前置 | 新增 DEC-002：第一个新必过检查（Architecture Guard / IPC 清单）之前的 gate-sensitive 条目；MIG-007a/b 以它为前置，否则保持建议性；平台/WebKit 通道只用 `workflow_dispatch`/`schedule`，不新增 `pull_request` 作业；DAG 按现行 `ci-gate` needs 重画（含 `rust-test`、`prose-checks`） | MIG-003、MIG-007、§12 M7-B、§15 |
+| MH2 Mac 切换经 §15 依赖 #582 | MIG-022 拆成 MIG-022-mac 与 WIN-005 的 Windows 部分；MIG-023/024、MIG-025 不再依赖任何 WIN 项；新增 WIN-B2/B3/B4 里程碑批次；WIN-003→MIG-008 边；WIN-002 首次运行的引导步骤 | §0A、§15、Mermaid |
+| MH3 MIG-001/002 的门控 | 改为 G（多于一个 PR，且新增提取工具/fixture 树/device AC）；每个标签一份规格快照，每个子 PR 一张 ticket | §15 |
+| MM1–MM3 Port 事实 | 令牌按现有含义重写；整体替换的两步顺序；`getEditor()` 宿主位置补到十一个；`save-settle` | §1.1、§4.2、MIG-005 |
+| MM4 rule 50 无 `src/plugins/tiptap/` | 新增 DEC-003（rule 50 修订）作为 MIG-008 的前置 | §4.1、§15 |
+| MM5、MM8、MM9、MM12、MM13 Windows 事实与 WIN-001 | ADR-0144 决定 6 / 用户答复 3；方案 2 未被选中、手动卡片时长为候选；`data_dir` 更正；“新应用”定义；批次次数标候选值；WIN-001 的路径/基线/安装包 | WIN-000、W0、W2、WIN-002、§18 |
+| MM6 回滚比率 | 写明分母、窗口、最小样本与缺基线处理 | §17 |
+| MM7 ADR-0010 与依赖断言 | ADR-0010 为 Proposed；pnpm 结果改为待实验；`check-patched.mjs` 的证明范围 | MIG-004、§18 |
+| MM10、MM11 DEC-001 | 写明 ADR-0165 归类与理由、`changes:` 行；改为“WIN-001 开项与授予之前” | §0A.0、§15 |
+| MM14 档位 | `tests/` 下的应用行为套件为 High（未列路径）；设备记录为 Low | §15 |
+
 ---
 
 
@@ -33,14 +48,15 @@
 - 用户 2026-11-06：「Skip all windows related feature, 接下来所有的精力专注于MacOS平台相关功能」。
 - 用户 2026-11-07：「20261107-mdpro_tiptap_windows_plan_v1-1.md，这是更新之后的Plan，考虑了Windows相关部分迁移」。
 - **较新的一句只在“保留”范围内取代较旧的一句**：Windows 在本迁移中只做“保留已验证行为 + 不增加数据安全风险”；Windows 新功能与 polish 仍按 2026-11-06 的决定暂停（本节末尾“明确不在本次迁移范围”即新功能边界）。本迁移之外的工作仍只做 macOS。
-- delegator 在 WIN-001 的 `/to-spec` 之前写决策日志条目 `docs/agents/decisions/20261107-windows-preservation-not-features.md`，引用以上两句原话；第一轮审计的 PL-1 由该条目关闭，而不是由本计划关闭。
+- delegator 在 WIN-001 **开项与授予之前**写决策日志条目 `docs/agents/decisions/20261107-windows-preservation-not-features.md`，引用以上两句原话；第一轮审计的 PL-1 由该条目关闭，而不是由本计划关闭。
+- **归类（v1.3）**：ADR-0165 决定 1 把“平台与发布范围”列为 ADR 内容，但本条目只限定迁移内的 Windows 工作范围，不改变 ADR-0164 D4 的发布控制，也不触及决定 2 的 gate-sensitive 列表（落地/CI 条件、审计者集合、收据、发布控制、用户数据控制）。delegator 的拟定归类：**普通决策日志条目**，`changes:` 行写“迁移范围内的 Windows 工作：保留，不做新功能；取代 2026-11-06 决定的范围仅限于此”。若用户认为它属于“平台与发布范围”，改为 ADR（编号经 delegator 预留）加指针条目；起草前由用户确认归类（有疑问交用户）。
 
 ### WIN-000 — Windows 设备通道的入口门禁（v1.2 新增）
 
 - **Windows 设备证据的前提是 #582 的退出条件**（ADR-0164 D4）：#575（D342–D346）落地且 smoke PASS、W036b 在已验证的 Windows 构建上运行、任何产品 FAIL 已修复。未满足之前，自动化 Windows 设备 Journey 不能作为任何 PR 的门禁证据。
-- 在 #582 关闭之前，Windows Journey 以**用户手动执行的卡片**完成（ADR-0164 方案 2，约 1 小时/张），每个里程碑写明预算；或该里程碑记录豁免。
+- 在 #582 关闭之前，每个 Windows 批次二选一，**均需用户的话**：(a) 用户手动执行卡片——ADR-0164 方案 2 当时**未被选中**，其“约 1 小时”是 W036b 一次手动运行的估计，不是每张卡片；每张卡片的时长是候选估计，首个批次实测后再定预算；(b) 该批次的缺失 PASS 由用户批准、作为审计日志中的门禁例外记录（`landing-and-audit.md` 的例外流程），delegator 不能自行记录豁免。
 - **Windows 发布权限**：默认保留 ADR-0164 D4，即 Windows 只在 #582 退出后的第一个版本重新发布，WIN-006 以此为前置。若用户希望 Windows Preview 在 #582 关闭前发布，必须先有一份取代 ADR-0164 D4 的新 ADR，定义 Preview 的替代条件；本计划不默认这样做。
-- macOS Stable 的切换（M6）不依赖 WIN-000，可以独立推进。
+- macOS Stable 的切换（M6）不依赖 WIN-000，可以独立推进；§15 中 MIG-022-mac → MIG-023/024 → MIG-025 这条链不含任何 WIN 项（v1.3）。
 
 ### W0 — 先明确 Windows As-Is 功能与风险基线（M0 的必经工作）
 
@@ -54,7 +70,9 @@
 - **数据安全相关的 `Unknown`**：Windows Preview 发布前必须 PASS，或有记录在案的发布例外（用户原话）；“优先 smoke” 不是处置规则。W0 写明 W1 开始前必须转为 Confirmed 的最小行集（至少：打开/保存/另存为、脏状态关闭、外部修改防覆盖）。
 - **可执行的“保留 vs polish”边界**：每个 Windows AC 必须引用一个 Capability Matrix 行号；没有行号的 Windows 工作一律标 `WIN-POLISH`，审计者把它当作范围蔓延处理。
 
-**交付物**：`windows-capability-matrix.md`（逐个有边界的行为一行：历史测试 SHA、安装包哈希、环境、卡片、结果、当前基线处置）、证据索引、Known Defect 清单；范围冻结记录归入 0A.0 的决策日志条目和 MIG-004 的 ADR 影响表，不另起一份 ADR。
+**WIN-001 开项前须写明（v1.3）**：(1) 冻结基线 SHA = WIN-001 授予时的 `master` HEAD，写入 Issue（da993ff1 只是现状计数的来源，不是基线）；(2) 索引的安装包：现有 Windows 用户的 0.3.5 NSIS（Release 资产，作为历史证据）；当前基线的执行证据要求该 SHA 的验证构建，在 WIN-000 退出前写明“无当前可执行证据”；(3) 路径：`docs/test/windows-capability-matrix.md` 与 `docs/test/windows-evidence-index.md`。
+
+**交付物**：`docs/test/windows-capability-matrix.md`（逐个有边界的行为一行：历史测试 SHA、安装包哈希、环境、卡片、结果、当前基线处置）、证据索引、Known Defect 清单；范围冻结记录归入 0A.0 的决策日志条目和 MIG-004 的 ADR 影响表，不另起一份 ADR。
 
 ### W1 — 共享契约先建立；Windows 平台代码紧接着优先迁移（M1 子阶段）
 
@@ -64,14 +82,14 @@
 - 对现有 Windows 行为进行 **behavior-preserving move/refactor**：只调整依赖关系、入口和必要的测试接线，不夹带窗口 UI polish、键盘布局重设计、新平台功能或无关 Rust/React 大版本升级。
 - 迁移模块应保留稳定的宿主接口；新 Tiptap 只能从同一个公共接口调用，而不能创建 Windows 专属的第二套文档状态、Flush 或写盘流程。
 - **实际可搬的 Windows 代码很少**（da993ff1）：Rust 生产代码中 `target_os = "windows"` 只出现在 `commands/mcp.rs`（8 处）、`menu.rs`、`services/applied_shortcuts.rs`、`services/preferences_migration.rs`（各 1 处），`not(target_os = "macos")` 主要在 `services/quit_guard/`（6 处）与 `services/control_channel/mod.rs`（2 处）；TS 侧是 `src/commands/*` 快捷键表、`platformLabels.ts`、`imagePathUtils.ts`、`AdvancedSettings.tsx`。Windows 的主要风险在 WebView2 下的**共享编辑器**。因此 WIN-003 不再预设 “Window/Input/File 三个 PR”：要么每个 PR 写明上面列出的具体文件，要么并入 MIG-005/006，作为其 Windows AC。
-- 每个 Windows Adapter PR：Windows Native Compile/Clippy/Test（在 `ci-gate` 之外的手动或 nightly 通道，见 MIG-003）；对共有代码做 Mac 基础回归（Linux 在其支持范围内做检查）；更新 Windows 差异表。**真实 Windows App Journey 按里程碑批次执行**（ADR-0144 决定 6），单个 PR 的 Windows device AC 用记录在案的豁免（rule 70 落地条件“PASS 证据或已记录的豁免”）指向该批次。
+- 每个 Windows Adapter PR：Windows Native Compile/Clippy/Test（在 `ci-gate` 之外的手动或 nightly 通道，见 MIG-003）；对共有代码做 Mac 基础回归（Linux 在其支持范围内做检查）；更新 Windows 差异表。**真实 Windows App Journey 按里程碑批次执行**（ADR-0144 决定 6），单个 PR 的 Windows device AC 指向该批次；批次之前落地需要用户批准的门禁例外（rule 70 落地条件“PASS 证据或已记录的豁免”；豁免由用户给出，不由 delegator 自行记录）。
 - **不建议现在一次性移动全部 `src-tauri` 或 `src/`**。先迁移涉及 Windows 的垂直切片，M7 再完成全局 File Tree Reorganization，避免路径变化吞没功能变化。
 
 **门禁**：Windows `Confirmed Working` 100% 不退化；保存/关闭/MCP/文件覆盖等关键路径 0 个新增安全缺陷；`Known Defect` 没有扩大影响范围；未测范围如实标记。
 
 ### W2 — Tiptap 开发中每个里程碑都做 Windows 回归（M2–M4）
 
-> **容量约束（v1.2）**：只有一台 `win-desktop`，单人操作锁（`device-batches.md` § Win-desktop lock）；设备测试员是 device 模式下的 `gpt-auditor`，它同时参与每个 PR 的审计；Mac 与 Windows 的 GUI 工作不是两条独立并行通道。ADR-0144 决定 3、5 规定 device AC 绑定落地 SHA 的身份（含 `package.json` 与锁文件），所以**每个改依赖的 Tiptap PR 都会使此前的 Windows PASS 失效**。因此：每个里程碑一个 Windows 批次（M2 1 次、M3 1 次、M4 1–2 次、M5 候选 1 次，外加身份失效导致的重跑），每次先实测准备/Journey/清理时长再定预算；批次内容只覆盖受影响的矩阵行，里程碑末与切换前跑完整保留语料，数据安全检查即使对原 `Unknown` 行也必须执行。
+> **容量约束（v1.2）**：只有一台 `win-desktop`，单人操作锁（`device-batches.md` § Win-desktop lock）；设备测试员是 device 模式下的 `gpt-auditor`，它同时参与每个 PR 的审计；Mac 与 Windows 的 GUI 工作不是两条独立并行通道。ADR-0144 用户答复 3 明确“决定 3–5 适用于 macOS”，Windows `device` AC 保持批次方式；按决定 6，一个 Windows 批次绑定它自己运行的构建 SHA，不会被后续每个 PR 逐一作废。因此 Windows 的规则是：**一个批次在一个构建 SHA 上运行，每个里程碑重复一次**。每个里程碑一个 Windows 批次（M2 1 次、M3 1 次、M4 1–2 次、M5 1 次，均为候选值，WIN-001 的行数确定后再定；外加失败后的重跑），在 §15 中分别为 WIN-B2/B3/B4 与 WIN-005，每次先实测准备/Journey/清理时长再定预算；批次内容只覆盖受影响的矩阵行，里程碑末与切换前跑完整保留语料，数据安全检查即使对原 `Unknown` 行也必须执行。
 
 - M2 只读渲染：Windows WebView2 真实渲染、字体/选择/滚动/基本输入链路 Smoke；不得触碰真实文件。
 - M3 可写核心：Windows 上直接验证编辑→同步 Flush→保存/重开、Source↔WYSIWYG、Undo、MCP 写入、关闭与恢复，任何旧实例写回覆盖新内容均阻断。
@@ -115,7 +133,8 @@ M8–M9   分批依赖升级、旧框架退场、独立 Windows Polish Backlog
 | WIN-001 | Windows Capability Matrix + 原有 Windows 真机结果索引（只读整理，可立即开始） | 固定 Baseline SHA、0A.0 决策日志条目 | 按 W0 证据规则区分历史与当前；不虚报功能已验证 |
 | WIN-002 | Preview 应用身份（**应用代码 + ADR**，见下） | WIN-001、MIG-004 的 ADR 影响表 | Stable 哨兵文件/配置/草稿/MCP 发现文件在启动、保存、退出、安装/卸载、回滚全过程中不变 |
 | WIN-003 | Windows 平台代码边界迁移（具体文件见 W1；或并入 MIG-005/006） | MIG-005、WIN-001 | 仅做行为等价迁移；每个 AC 引用矩阵行号 |
-| WIN-005 | Tiptap Windows WebView2 核心编辑验收（M3–M4 的 Windows 批次） | WIN-000、M3–M4、WIN-002 | Flush/Save/Close/MCP/IME/Selection 关键行为不退化 |
+| WIN-B2/B3/B4 | M2 只读 smoke、M3 可写核心、M4 高风险功能的 Windows 批次（设备记录） | 各自里程碑的 PR 与 WIN-002；#582 未关闭时按 WIN-000 的 (a)/(b) | 只覆盖受影响的矩阵行；数据安全行必须执行 |
+| WIN-005 | Tiptap Windows WebView2 核心编辑验收（批次汇总 + MIG-022 的 Windows 部分） | WIN-B4、WIN-000 | Flush/Save/Close/MCP/IME/Selection 关键行为不退化 |
 | WIN-006 | Windows Preview Candidate / NSIS Smoke / 回滚路径 | WIN-000、M5、WIN-005 | 构建身份、安装启动与文件数据安全符合 Preview 范围；发布权限见 WIN-000 |
 | WIN-POLISH | 功能增强与体验打磨（独立后续 Epic） | WIN-006 | 每项新功能单独验收；不阻断保留现有功能的迁移 |
 
@@ -127,13 +146,13 @@ M8–M9   分批依赖升级、旧框架退场、独立 Windows Polish Backlog
 |---|---|
 | App Identifier `com.mdpro.app`（WebView2 profile 在 `%LOCALAPPDATA%\com.mdpro.app`） | `src-tauri/tauri.conf.json:5` |
 | 配置与日志 `~/.mdpro/config.json`、`~/.mdpro/mdpro.log` | `commands/preferences.rs:49`、`commands/logging.rs` |
-| 草稿与 MCP `server.port`/`server.token` 在 `dirs::config_dir()/mdpro` | `commands/mcp.rs:328,342`、`services/http_server.rs:95`；sidecar `bin/mdpro_mcp.rs` 读同一目录 |
+| 草稿与 MCP `server.port`/`server.token` 在 `dirs::data_dir()/mdpro`（Windows 为 `%APPDATA%\mdpro`） | `services/http_server.rs:94–95`、`commands/file.rs:1057`；sidecar `bin/mdpro_mcp.rs:265` 读同一目录 |
 | 旧版 `~/.mdpro/drafts` 迁移 | `services/draft/migration.rs` |
 | MCP 端口 `127.0.0.1:55045` | `services/mcp_controller/controller.rs:68` |
 | `.md`/`.markdown` 文件关联 | `tauri.conf.json` `fileAssociations` |
-| MCP 客户端注册（Claude Desktop/Gemini/Codex 配置中只有一个 server 条目） | `remote-windows-device-test/reference/config-isolation.md` |
+| MCP 客户端注册（Claude Desktop/Gemini/Codex 配置中只有一个 server 条目，位于 `dirs::config_dir()` 下的客户端配置） | `commands/mcp.rs:328,342`；`remote-windows-device-test/reference/config-isolation.md` |
 
-Windows 上环境变量无法移动这些路径（`dirs-sys` 使用 Known Folders），该 skill 已记录“真正的隔离需要应用代码”。因此 WIN-002：(1) 用**一个构建时 channel 常量**同时派生 identifier、目录名、端口、日志路径与 sidecar 目录，sidecar 与 `release_info.rs` 读同一常量；(2) 按 ADR-0165 作为 ADR 记录（持久化路径、App Identifier、端口都在 ADR 门槛内），rule-12 gated、High 档；(3) Preview 不接管文件关联，或明确其范围；(4) Preview 不对 Stable 数据执行旧草稿迁移；(5) 构建身份沿用已有的 `releaseId`（`scripts/release/devReleaseId.mjs`、`build-windows.yml`）；(6) Preview 无 Updater。任何新应用的 Windows 设备运行都以 WIN-002 落地为前置。
+Windows 上环境变量无法移动这些路径（`dirs-sys` 使用 Known Folders），该 skill 已记录“真正的隔离需要应用代码”。因此 WIN-002：(1) 用**一个构建时 channel 常量**同时派生 identifier、目录名、端口、日志路径与 sidecar 目录，sidecar 与 `release_info.rs` 读同一常量；(2) 按 ADR-0165 作为 ADR 记录（持久化路径、App Identifier、端口都在 ADR 门槛内），rule-12 gated、High 档；(3) Preview 不接管文件关联，或明确其范围；(4) Preview 不对 Stable 数据执行旧草稿迁移；(5) 构建身份沿用已有的 `releaseId`（`scripts/release/devReleaseId.mjs`、`build-windows.yml`）；(6) Preview 无 Updater。**“新应用”指 Tiptap 引擎的构建（M2 起）**：它的每次 Windows 设备运行都以 WIN-002 落地为前置。Milkdown 引擎的运行（WIN-000 的 W036b、WIN-003 的批次、WIN-001 的当前基线验证）使用测试员现有的快照/恢复流程（`config-isolation.md`），不以 WIN-002 为前置。**WIN-002 自身的首次运行**：在测试员快照的 Stable 配置旁安装 Preview 构建，按哨兵文件检查 Stable 的配置/草稿/日志/MCP 发现文件在启动、保存、退出、卸载前后字节不变，然后恢复快照；这一步写在 WIN-002 的规格中。
 
 **明确不在本次迁移范围**：立即修完 Windows 所有旧 Bug、实现 Mac/Windows 100% Feature Parity、重写所有 Rust 平台代码、增加完整 Windows 自动更新、重做所有快捷键与 UI 主题。若有可能造成用户数据丢失或安全问题的旧缺陷，应作为阻断或单独先修的高优先级例外。
 
@@ -193,7 +212,7 @@ Windows 上环境变量无法移动这些路径（`dirs-sys` 使用 Known Folder
 - `src/plugins/milkdown/table/` 是高复杂度区域，含 Ragged Table Widen、粘贴拒绝/补齐、表头修复、对齐规则、上下文菜单与行列编辑；`patches/prosemirror-tables@1.8.5.patch` 是**版本相关的依赖补丁**。
 - `src/plugins/milkdown/editSync/controller.ts` 已把关键写回/Flush 策略与 React、Milkdown 框架解耦，是**迁移优先复用的核心资产**；`editSync/plugin.ts` 负责把此控制器与 Milkdown 插件生命周期相连。
 - `src/stores/milkdownEditorStore.ts` 是 Flusher Registry 和编辑器重载/丢弃的重要协调入口；`documentStore.ts`、`App.tsx` 与 Hooks/Services 对它有外部依赖。
-- **状态与令牌的完整清单**（v1.2 补充）：除 `documentStore`/`editorStore`/`milkdownEditorStore` 外，还有 `externalChangeStore`（D171：保存/重载前的外部修改门）、`tabStore`、`tabMru`、`src/stores/baselineEpoch.ts`（D214：保存基线代次）、`src/stores/editorGeneration.ts`（菜单目标令牌）。Port 的 `generation` 不能成为与 `editorGenerations`、`baselineEpoch` 并列的第三个计数器（见 §4.2）。
+- **状态与令牌的完整清单**（v1.2 补充）：除 `documentStore`/`editorStore`/`milkdownEditorStore` 外，还有 `externalChangeStore`（D171：保存/重载前的外部修改门）、`tabStore`、`tabMru`、`src/stores/baselineEpoch.ts`（D214/D290：按 id 的 lifetime 与 replacement 计数器，加按 id / 按路径两张基线代次表；路径移动只盖路径戳，同路径保存后的 upsert 不使基线失效）、`src/stores/editorGeneration.ts`（窗口级“哪个编辑器在用户面前”的单调计数，供菜单目标令牌，D261）、`milkdownEditorStore.editorGenerations`（每文档的**重载**次数，不是每次挂载唯一的注册身份）。Port 不新增计数器，只引用这些现有令牌，并在 MIG-005 规格中冻结一张“捕获 / 检查 / 推进 / 重新基准”表，覆盖同文档保存（`saveService.ts` 保存后 upsert）、仅路径移动与被替换缓冲区的取消；绑定不得在一次成功保存后使自己永久失效，也不得把重载次数当作每次挂载的写权限（见 §4.2）。
 - mdpro 当前 CI 已有 Vitest **四分片 + Coverage Merge + 测试身份完整性核验**；已有 `scope` 作业负责变更分类（本计划对它做增量，而不是新建）；JS `pnpm audit` 是建议性作业；`rust-audit` 在 `ci-gate` 之外（ADR-0107）；macOS 只在 `v*` tag 上运行（ADR-0095 D7）；PR 前端测试只跑 Ubuntu。发布流程包含 Mac ARM64/Intel、Windows x64、Linux x64 构建矩阵（ADR-0164 的 `windows` 输入可关闭 Windows 行），但 Windows/Linux 发布与更新支持程度并不等同于 macOS。
 - `src/main.tsx` 当前**没有** `<StrictMode>`；`tsconfig` 没有 `paths`，Vite/Vitest 没有 `resolve.alias`，所有导入都是相对路径。
 - mdpro 仍在解决 Windows 设备自动化、窗口/键盘/定时器等问题，因此 **Mac 通过不能作为 Windows 行为正确的替代证据**。
@@ -292,7 +311,7 @@ src-tauri/
 这是**目标逻辑分区**，不是要求 M1 把全部 `src/` 移动完。M1 优先以新增接口与薄封装适配现有文件路径；M7 再统一整理旧的 `src/components/Editor`、`src/plugins/milkdown`、`src/hooks`、`src/stores`。
 
 **迁移期间（M0–M6）的目录约束（v1.2）**：
-- 遵守现行 rule 50 与 rule 10：Milkdown 实现留在 `src/plugins/milkdown/`，Tiptap 实现放在 `src/plugins/tiptap/`，Port/Coordinator 合同放在 rule 50 认可的现有位置（候选 `src/services/editor/`，属 High 档路径；若 rule 50 不认可，先修订再建），Store 仍在 `src/stores/`；**测试只放在 `tests/`**（`src/` 下的测试不会运行），语料 fixture 放在 `tests/fixtures/markdown-corpus/`，不放进 `src/`。上图的 `features/*` 结构只是 M7 的候选目标；要采用它，先用决策日志条目修订 rule 50/10，再移动。
+- 遵守现行 rule 50 与 rule 10：Milkdown 实现留在 `src/plugins/milkdown/`，Tiptap 实现放在 `src/plugins/tiptap/`——**现行 rule 50 只列出 core/Milkdown/CodeMirror 及其导出/注册合同，没有这个目录**，因此第一个 Tiptap 模块之前先由 DEC-003（rule 50 修订的 gate-sensitive 条目）加入该目录与注册约定，MIG-008 以它为前置；Port/Coordinator 合同放在 rule 50 认可的现有位置（候选 `src/services/editor/`，属 High 档路径；若 rule 50 不认可，先修订再建），Store 仍在 `src/stores/`；**测试只放在 `tests/`**（`src/` 下的测试不会运行），语料 fixture 放在 `tests/fixtures/markdown-corpus/`，不放进 `src/`。上图的 `features/*` 结构只是 M7 的候选目标；要采用它，先用决策日志条目修订 rule 50/10，再移动。
 - **只用相对导入**，不在迁移中引入路径别名；若 M7 决定使用别名，别名本身是一个独立的 High 档 PR，先于任何批量移动。
 - v1.0 §4 提议的 `tests/{architecture,contracts,integration,journeys}` 不采用：`journeys` 与现有 journey 目录冲突，其余沿用 rule 10 § File placement。
 
@@ -303,21 +322,24 @@ src-tauri/
 interface WysiwygEditorPort {
   readonly engine: "milkdown" | "tiptap";
   readonly documentId: string;
-  // 三类令牌各自独立，不合并为一个 generation：
-  //   editorInstance —— 编辑器实例代次（复用现有 editorGenerations）
-  //   documentLifetime —— 文档生命周期（关闭/重开/路径变化即失效）
-  //   baselineEpoch —— 保存/替换基线代次（复用 src/stores/baselineEpoch.ts）
+  // 只引用现有令牌，不新增计数器（v1.3，含义见 §1.1）：
+  //   lifetime / replacement —— baselineEpoch.ts 的按 id 计数器（打开/关闭/upsert 推进 lifetime；只有 upsert 推进 replacement）
+  //   baseline —— baselineEpoch.ts 按 id 与按路径的基线代次（路径移动只盖路径戳）
+  //   reload —— milkdownEditorStore.editorGenerations（每文档重载次数）
+  //   menuTarget —— editorGeneration.ts（窗口级，菜单目标令牌）
+  // 每个令牌的捕获/检查/推进/重新基准时机在 MIG-005 规格中逐项冻结。
   readonly tokens: EditorTokens;
   // 定向 Flush：只刷本文档；reason 是开放字符串，初始列表沿用现用值：
-  // "save" | "settle" | "tab-switch" | "tab-close" | "window-close" | "quit"
+  // "save" | "save-settle" | "tab-switch" | "tab-close" | "window-close" | "quit"
   // | "mcp-insert" | "mcp-table" | "draft-recovery" | "reload" | ...
   flush(reason: FlushReason): FlushResult;          // clean | written | failed，从不抛出
   // 外部整体替换（wholesale）：与普通编辑分开；同步完成 store 替换、旧 writer 失效、代次递增。
   replaceContent(input: { markdown: string; expected: EditorTokens }): ReplaceResult;
-  // 普通编辑命令：宿主今天经 getEditor() 直接调用 Milkdown 的九个位置改为经此处（封闭列表）。
+  // 普通编辑命令：宿主今天经 getEditor() 直接调用 Milkdown 的位置（§4.2 下文列表）改为经此处（封闭列表）。
   dispatch(command: EditorCommand): CommandResult;   // 表格动作、菜单/格式命令、图片与链接插入、高亮
   focus(carry?: FocusCarry): void;                   // D37 重载后焦点承接
   getSelectionSnapshot(): SelectionSnapshot | null;
+  getScrollAnchor(): ScrollAnchor | null;          // WYSIWYG→Source 切换时读取顶行锚点（scrollAnchor/capture.ts）
   restoreSelection(snapshot: SelectionSnapshot): RestoreResult;
   destroy(reason: string): void;   // 卸载：先 Flush 再终止（controller.ts:220–227 现有语义）
   discard(reason: string): void;   // 丢弃：须有有效的用户同意；不是 destroy 的别名
@@ -333,7 +355,7 @@ interface WysiwygRegistry {
 
 Port **不是**为了给所有 Tiptap API 套一层通用抽象；它只暴露宿主真正需要的跨引擎合同。Node/Mark Schema 保持在各自 Adapter 内；但**宿主今天直接调用的编辑命令必须经 `dispatch` 封闭列表**，否则 MIG-005 的验收无法成立。
 
-**宿主今天经 `getEditor()` 直接使用 Milkdown API 的九个位置**（da993ff1，MIG-005 验收逐个列出已迁移）：`src/App.tsx:776`（表格快捷键）、`src/components/Editor/TableContextMenu/index.tsx:95,217`、`src/hooks/mcpTableAction.ts:140`、`src/utils/editorMenuCommands.ts:67`、`src/hooks/windowCloseAttempt.ts:71`、`src/utils/focusActiveEditor.ts:43`、`src/utils/editorImageInsert.ts:65`、`src/utils/milkdownFocusCarry.ts:184`、`src/stores/editorStore.ts:133`。这是审计中逐行核对过的使用点；`src/` 中共有 14 个文件调用 `getEditor()`（含 store 自身与注册方），MIG-005 的规格以当时 `git grep -n 'getEditor()' src` 的完整结果为准。
+**宿主今天经 `getEditor()` 直接使用 Milkdown API 的十一个位置**（da993ff1；v1.3 补上第二轮审计指出的两处；MIG-005 验收逐个列出已迁移）：`src/utils/scrollAnchor/capture.ts:37`（模式切换时的滚动锚点，经 `getScrollAnchor`）、`src/utils/tableInsertTrigger.ts:53`（插入表格弹窗提交，经 `dispatch`）、`src/App.tsx:776`（表格快捷键）、`src/components/Editor/TableContextMenu/index.tsx:95,217`、`src/hooks/mcpTableAction.ts:140`、`src/utils/editorMenuCommands.ts:67`、`src/hooks/windowCloseAttempt.ts:71`、`src/utils/focusActiveEditor.ts:43`、`src/utils/editorImageInsert.ts:65`、`src/utils/milkdownFocusCarry.ts:184`、`src/stores/editorStore.ts:133`。另有 `src/plugins/milkdown/wysiwygKeymapEntries.ts:58` 属适配器内部，可留在 Milkdown Adapter 中。`src/` 中共有 14 个文件匹配 `getEditor()`（12 个调用点 + 2 处仅注释），MIG-005 的规格以当时 `git grep -n 'getEditor()' src` 的完整结果为准。
 
 **入口合同表**（每一行在改它的调用方之前，冻结入口、现有测试、缺失的负向用例、期望的失败/回滚、Owner 与 `unit`/`device` 证据）：
 
@@ -343,7 +365,7 @@ Port **不是**为了给所有 Tiptap API 套一层通用抽象；它只暴露�
 | Tab/模式切换：`documentStore.ts:125–147`；`editorStore.ts`；`flushRefusal.ts` | 读 flush 之后的状态；外出文档 flush 失败时两个 store 都拒绝切换，无关文档失败不拒绝；定向与聚合 flush 不能合并成一个布尔值（ADR-0071） |
 | Tab/窗口/退出：`App.tsx:709–761,810–816`；`useWindowCloseGuard.ts:244–303`；`useQuitGuard.ts` | 保留提示目标捕获、取消、复查与草稿排空/删除顺序；失败后不卸载唯一持有未序列化编辑的实例；discard 需要有效同意，普通 destroy 不是 discard |
 | 草稿定时器/恢复：`useAutoSave.ts:17–38`；`recoverIntoOpenTab.ts:112,154–161,271–294` | 定时器写 store 中的 Markdown 而不是 PM 快照；保留目标/claim/revision 归属、成功 rekey 前保留源草稿、定向 flush、陈旧恢复拒绝 |
-| 外部整体替换：`wholesaleReplace.ts:63–69`；`openWriteGuard.ts`；重载/恢复调用方 | store 替换、旧 writer 失效、代次递增是一个同步事务；焦点/选区/TOC 在新代次下捕获与恢复；无迟到的旧 flush |
+| 外部整体替换：`wholesaleReplace.ts:63–69`；`openWriteGuard.ts`；重载/恢复调用方 | 两步顺序（v1.3）：(1) 重载**之前**在旧的活视图上捕获焦点/选区/滚动锚点（Source 与 WYSIWYG 两种锚点都保留）；(2) store 替换、旧 writer 失效、代次递增作为一个同步事务完成后，在新代次下恢复。不得在旧视图消失后再捕获；无迟到的旧 flush |
 | MCP 写入/插入：`useMcpEvents.ts`；`mcpInsertContent.ts:110`；ADR-0044 | 审批/目标/版本检查不变；WYSIWYG 插入当前是全局 flush + 整体重建，后台/Source 路径不同，通用 replace 不得改变这些策略 |
 | MCP 表格：`mcpTableAction.ts:125–190`；ADR-0065 D1–5 | 只刷目标、重读、先校验并应用编辑器**再**写 store；拒绝时两边都不变；dispatch 后抛错要对账；这是保留历史/TOC 的普通编辑，不走整体替换路径 |
 | MCP 镜像：`useMcpSync.ts`；`shadow_store.rs`；`http_server.rs` | 保留 200ms 编辑器 / 300ms 镜像的最终一致性与现有 ACK 限制；MCP 关闭时的路由、取消重注册、UTF-16 偏移语义、Rust 侧独立同步/审批；Port flush 不是服务端确认 |
@@ -402,12 +424,12 @@ Port **不是**为了给所有 Tiptap API 套一层通用抽象；它只暴露�
 
 ### MIG-003：建立跨平台最小 CI 保护（不是完整 CI 重构）
 
-**CI 政策约束（v1.2，TP-2）**：本项**默认保留** ADR-0095 决定 7（“macOS 在 `v*` tag 上运行……没有检查移入 PR 运行”）与 ADR-0107 决定 1–3（`rust-audit` 是独立作业，`ci-gate` 不需要它；tag/手动运行时失败变红；每日 master 运行）。因此下面的 WebKit、原生 Runner 与 Windows smoke 通道都在 `ci-gate` 的 `needs` **之外**，以 `workflow_dispatch` / nightly / 路径触发的建议性作业运行，其结果作为交接与里程碑证据。若要把其中任何一项变成 PR 的必过检查，必须先写一份 gate-sensitive 决策日志条目（`docs/agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md` 的流程），点名被改的条款，给出 事件 × 范围 × 作业结果 的真值表（含 skipped/cancelled/missing 的处理），经双审计计划评审 + policy 评审与用户批准后，才能写 MIG-003 的 brief；本计划评审不等于那份条目的评审。
+**CI 政策约束（v1.2，TP-2）**：本项**默认保留** ADR-0095 决定 7（“macOS 在 `v*` tag 上运行……没有检查移入 PR 运行”）与 ADR-0107 决定 1–3（`rust-audit` 是独立作业，`ci-gate` 不需要它；tag/手动运行时失败变红；每日 master 运行）。因此下面的 WebKit、原生 Runner 与 Windows smoke 通道都在 `ci-gate` 的 `needs` **之外**，只以 `workflow_dispatch` / `schedule`（nightly）触发的建议性作业运行，**不新增 `pull_request` 触发的作业**（ADR-0095 D7“没有检查移入 PR 运行”对建议性作业同样适用），其结果作为交接与里程碑证据。若要把其中任何一项变成 PR 的必过检查，必须先写一份 gate-sensitive 决策日志条目（`docs/agents/decisions/20261102-changing-an-unfolded-process-adr-clause.md` 的流程），点名被改的条款，给出 事件 × 范围 × 作业结果 的真值表（含 skipped/cancelled/missing 的处理），经双审计计划评审 + policy 评审与用户批准后，才能写 MIG-003 的 brief；本计划评审不等于那份条目的评审。
 
 - 保留 mdpro 当前四分片、Coverage 合并、Test Identity Union 和 `ci-gate`；不触碰已证明有效的完整性判定。
 - 在现有 `scope` 作业上增量：将 `package.json`/pnpm-lock、编辑器适配器、PM/Markdown Pipeline、CI Config、Rust IPC Contract 变更纳入合适的必测路径（只改分类，不改 `ci-gate` 的 needs）。
 - 新增小规模 **Real WebKit** 编辑核心测试（建议性通道）；macOS WKWebView 真实设备验收走 ADR-0144 卡片，不能被 Linux Playwright WebKit 替代。
-- 与平台相关的 Rust/Tauri 代码变更，在 Windows、macOS 的对应 Runner 做最小 Compile/Clippy/Test（建议性通道）；Windows Runner 目前只在 `build-windows.yml`（手动触发，热缓存 10–12 分钟），触发条件写明为 `src-tauri/**` 路径。仍不接受“Linux 绿就代表 Windows 绿”：Windows 相关 PR 在交接中引用该通道的运行 ID。
+- 与平台相关的 Rust/Tauri 代码变更，在 Windows、macOS 的对应 Runner 做最小 Compile/Clippy/Test（建议性通道）；Windows Runner 目前只在 `build-windows.yml`（手动触发；热缓存可省去 10–12 分钟的编译）。`src-tauri/**` 变更只是交接中“需要引用一次手动/nightly 运行 ID”的判定条件，不是 PR 触发器；按输入/读取路径的完整风险分类在 MIG-003 规格中写明。仍不接受“Linux 绿就代表 Windows 绿”：Windows 相关 PR 在交接中引用该通道的运行 ID。
 - v1.1 的 WIN-004 并入本项。Preview 身份隔离不在本项（见 WIN-002）。
 
 **验收**：构造“分片漏测”“分类器失败”“未启动的 pending Test”故障注入，最终 Required Gate 必须为红；“某平台失败”故障注入使对应建议性通道为红且在交接模板中可见；CI 指标基线按 §17 的定义采集。
@@ -415,13 +437,13 @@ Port **不是**为了给所有 Tiptap API 套一层通用抽象；它只暴露�
 ### MIG-004：锁定依赖与决策档案
 
 - 记录 Milkdown 实际 PM 版本、Tiptap 候选 `@tiptap/pm` 版本和 pnpm 依赖解析结果；确认不会存在两个不兼容的 ProseMirror Runtime 互相传递 Node/Plugin/Schema 实例。
-- 记录 `prosemirror-tables@1.8.5` Patch 的行为和测试；迁移后不能原样假定补丁生效。`patchedDependencies` 以 `prosemirror-tables@1.8.5` 为键，而 `@tiptap/pm/tables` 会锁定自己的版本：pnpm 要么拒绝安装，要么留下两个版本且补丁只作用于其中一个。交付物包含 `pnpm why prosemirror-tables` 与 `scripts/deps/check-patched.mjs` 的输出。
-- 建立 `Tiptap Migration ADR`（编号经 delegator 预留）：解释选择、成功条件、已接受的写入限制、回滚路径、授权/第三方源码复用边界。**它取代 ADR-0010**：ADR-0010 的翻转条件 F3（“必须换编辑器内核 → 重开讨论……写新 ADR 取代本记录”）正是本计划的情形，新 ADR 引用 F3 并写明取代关系。
+- 记录 `prosemirror-tables@1.8.5` Patch 的行为和测试；迁移后不能原样假定补丁生效。`patchedDependencies` 以 `prosemirror-tables@1.8.5` 为键，而 `@tiptap/pm/tables` 会锁定自己的版本：选定 `@tiptap/pm` 版本之前，解析结果未知：可能共享被补丁的同一版本，也可能留下两个版本、补丁只作用于其中一个，或安装失败——由 MIG-004 的解析实验确定，不预设。交付物包含 `pnpm why prosemirror-tables` 与 `scripts/deps/check-patched.mjs` 的输出；注意 `check-patched.mjs:108–130` 只检查与配置的补丁版本一致的链接副本，它的绿色输出本身不证明 Tiptap 使用的表格运行时受补丁保护，需另有指向 Tiptap 路径的负向 fixture。
+- 建立 `Tiptap Migration ADR`（编号经 delegator 预留）：解释选择、成功条件、已接受的写入限制、回滚路径、授权/第三方源码复用边界。**它取代 ADR-0010**（ADR-0010 状态为 Proposed，2026-09-18；是历史提案与 F3 的引用来源，不是已接受的禁令）：ADR-0010 的翻转条件 F3（“必须换编辑器内核 → 重开讨论……写新 ADR 取代本记录”）正是本计划的情形，新 ADR 引用 F3 并写明取代关系。
 - **ADR 影响表（v1.2，TP-1）**：da993ff1 有 31 份 ADR 提到 Milkdown。MIG-004 交付一张表，每份一行：`ADR → 保留（与引擎无关的行为合同；其测试随适配器迁移）| 取代（新编号）| 合并`。不要求每份都被取代；只列实际改变的已接受条款，不重新讨论用户的引擎选择。至少明确处理：
 
   | ADR | 处理 |
   |---|---|
-  | ADR-0010（绞杀，不从零重写） | 由 Migration ADR 取代（F3） |
+  | ADR-0010（绞杀，不从零重写；Proposed） | 由 Migration ADR 取代（F3） |
   | ADR-0012（拒绝 remark 依赖） | 若 MIG-009 选方案 B（Remark/MDAST），须由新 ADR 取代或限定范围（如 remark 只在 pipeline 内）；选方案 A 则保持有效 |
   | ADR-0091 空段落、ADR-0094 链接定义 | 保留用户可见/磁盘约定与已接受限制；Milkdown 专属的 transformer/serializer 实现条款在替换时取代，写明保留的行为 |
   | ADR-0067/0052 不规则表格、ADR-0082 表格依赖补丁 | 保留解析时补齐与粘贴安全；补丁退役或版本变化须有负向 fixture 与相应的依赖决策 |
@@ -446,7 +468,7 @@ Port **不是**为了给所有 Tiptap API 套一层通用抽象；它只暴露�
 4. 规定 Owner：Document Store 是 Markdown 文本/脏状态权威；Editor Adapter 拥有 PM View 临时状态；Coordinator 拥有切换、Flush、Discard、Reload 事务。
 5. 新契约测试必须先对现有 Milkdown 运行通过，并包含重复注册、旧实例注销、异常、切换并发测试。
 
-**验收**：§4.2 列出的九个 `getEditor()` 使用点（及规格时 `git grep` 的完整结果）逐个迁移到 Port，并在验收中逐个列出；React UI、Document、MCP、Save、Quit 不必直接知道当前编辑器是 Milkdown；现有行为无回归。
+**验收**：§4.2 列出的十一个 `getEditor()` 宿主使用点（及规格时 `git grep` 的完整结果）逐个迁移到 Port，并在验收中逐个列出；React UI、Document、MCP、Save、Quit 不必直接知道当前编辑器是 Milkdown；现有行为无回归。
 
 **拆分**：Port 草图在第一个 Milkdown Adapter 切片中只实现该切片需要的操作和失败语义；不在 M1 预先设计所有未来的 Tiptap 命令。
 
@@ -461,6 +483,7 @@ Port **不是**为了给所有 Tiptap API 套一层通用抽象；它只暴露�
 ### MIG-007：Architecture Guard + IPC Contract 的最小闭环
 
 - dependency-cruiser 保护新的 Port/Coordinator、Adapter 与 Pipeline 目录（位置见 §4.1 约束）；不得新增反向依赖；Ratchet 规则见 §4.3。
+- **新必过检查的政策前置（v1.3，MH1）**：Architecture Guard 与 IPC 清单都是**新的**必过检查，不是对现有 `ci-gate`（scope、prose-checks、frontend、frontend-merge、rust-test）的保留。第一个这样的检查——无论是独立作业还是放进现有作业——之前，先落地 DEC-002：一份 gate-sensitive 决策日志条目，点名 ADR-0095 D7 的被改条款，给出 事件 × 范围 × 作业结果 的真值表并保留现有的 Rust/prose/coverage/identity 结果，经双审计计划评审与用户批准。DEC-002 落地之前，这些检查只以建议性方式运行。
 - **IPC 合约（v1.2，替换 v1.0 §5.2 的可选分层）**：
   - **必过层**：命令名清单检查——前端 `invoke()` 名称集合与 `src-tauri/src/commands/mod.rs` 注册集合比较，与路径无关，可在 M0 就落地（先例：`tests/draft-command-contract.test.ts` c9）。集合关系写明：前端调用 ⊆ 后端注册 ∪ Tauri 插件命令；仅后端命令（如只由 sidecar 或菜单调用的）列入显式白名单；`cfg` 条件编译的命令按目标平台分别列出；动态构造的命令名不允许。
   - **关键 IPC 的参数/结果/错误**：列出**现有**关键命令（至少 `open_file`、`save_file`、`save_draft`、`recover_draft`、`delete_draft`、`quit_guard_reply`、`mcp_confirm_reply`）及其参数、结果、错误与 null 的 fixture；Tiptap 适配器本身不增加 Rust 命令，所以“只检查新关键 IPC”会是空检查。
@@ -618,6 +641,8 @@ Pipeline 对外至少提供：`parse(markdown) → PM doc | typed refusal`、`se
 
 ### MIG-022：真实 Mac/Windows 验收
 
+> v1.3：本节的 macOS/Linux 部分是 §15 的 MIG-022-mac；Windows 部分并入 WIN-005，使 macOS 切换不依赖 Windows（第二轮审计 MH2）。
+
 - **macOS**：WKWebView 实际安装、输入、拖拽/粘贴、原生菜单、窗口切换、Quit Guard、文件权限、MCP Sidecar。
 - **Windows**：WebView2、IME/AltGr/快捷键、文件对话框、窗口焦点、Installer、文件关联、Save As/Watcher、MCP、测试构建 SHA/Process Identity。
 - **Linux**：对应的编译/测试及基础运行 Smoke；若 Linux 仍属于非正式验证平台，明确保留限制，不把编译通过说成完整 GUI 支持。
@@ -694,23 +719,26 @@ Pipeline 对外至少提供：`parse(markdown) → PM doc | typed refusal`、`se
 
 ```mermaid
 flowchart TD
-  PR[Pull request] --> Scope[scope（现有）: docs/frontend/rust/contracts/platform]
-  PR --> Static[static + architecture + IPC]
-  Scope --> Test[frontend tests ×4]
-  Test --> Merge[coverage merge + identity union]
-  Scope --> Build[production frontend build]
-  Static --> Gate[ci-gate: fail closed]
+  PR[Pull request] --> Scope[scope（现有）]
+  PR --> Prose[prose-checks（现有）]
+  Scope --> Test[frontend ×4（现有）]
+  Test --> Merge[frontend-merge: coverage + identity union（现有）]
+  Scope --> Rust[rust-test（现有）]
+  Scope --> Gate[ci-gate: fail closed]
+  Prose --> Gate
   Merge --> Gate
-  Build --> Gate
+  Rust --> Gate
+  Scope -.-> Arch[architecture + IPC 清单（DEC-002 落地前为建议性）]
+  Arch -.->|DEC-002 批准后| Gate
   Scope -.-> Audit[rust-audit / pnpm audit（建议性，ADR-0107）]
   Scope -.-> Native[macOS/Windows 原生检查（tag/手动/nightly，ADR-0095 D7）]
   Scope -.-> Webkit[real WebKit editor regression（nightly/手动）]
   Device[真实 App / Windows 设备批次] -.-> Evidence[交接与里程碑证据（ADR-0144）]
 ```
 
-把任何虚线通道接入 `ci-gate`，都要先走 MIG-003 所述的 gate-sensitive 决策日志条目（点名被改的 ADR-0095 D7 / ADR-0107 条款、真值表、双审计计划 + policy 评审、用户批准）。设备批次永远不是 CI 作业。
+实线即现行 `ci.yml` 中 `ci-gate` 的 needs（v1.3 按 `ci.yml:348–369` 重画，保留 `rust-test` 与 `prose-checks`）。把任何虚线通道（包括 architecture/IPC）接入 `ci-gate`，都要先走 MIG-003 所述的 gate-sensitive 决策日志条目（architecture/IPC 为 DEC-002）（点名被改的 ADR-0095 D7 / ADR-0107 条款、真值表、双审计计划 + policy 评审、用户批准）。设备批次永远不是 CI 作业。
 
-- `static`、`frontend tests`、`build` 尽可能并行；`coverage merge` 必须等待所有分片。
+- `prose-checks`、`frontend`、`rust-test` 尽可能并行；`coverage merge` 必须等待所有分片。
 - 对文档类 PR 仍运行文档/引用校验；`skipped` 只在 `changes` 明确允许时视为合法。
 - 保留现有四分片 JSON/Blob Coverage、Test Identity Union，以及 `ci-gate` 固定 Required Check。
 - Windows/macOS 编译/测试按跨平台风险触发（建议性通道）；真正有数据丢失风险的通用编辑器变化不得只在 Ubuntu 验证——其非 Ubuntu 证据来自建议性通道的运行 ID 或设备批次，在交接中引用。
@@ -746,51 +774,58 @@ flowchart TD
 
 ## 15. 建议的 PR / Issue 拆分（一个 PR 一个风险主题）
 
-**这是唯一权威的依赖表**（v1.2）：§0A 的 WIN 表、§0 的阶段图与下方 Mermaid 都以本表为准。列含义：**档位** = ADR-0121 审计档位（按路径，`package.json`、`src/services/**`、`src-tauri/**`、CI、依赖、门禁工具均为 High）；**门控** = rule 12 是否 gated（G）或豁免（E，仅限纯测试/文档且不增加能力或合同）；**记录** = ADR-0165 下的记录类型（ADR / GS = gate-sensitive 决策日志条目 / Issue = 门槛以下）；**设备** = 是否带 `device` AC（Mac / Win 批次 / —）。标签是计划内编号，落实时每行是一个 GitHub Issue。
+**这是唯一权威的依赖表**（v1.2，v1.3 修订）：§0A 的 WIN 表、§0 的阶段图与下方 Mermaid 都以本表为准。列含义：**档位** = ADR-0121 审计档位（按路径，`package.json`、`src/services/**`、`src-tauri/**`、CI、依赖、门禁工具均为 High）；**门控** = rule 12 是否 gated（G）或豁免（E，仅限纯测试/文档且不增加能力或合同）；**记录** = ADR-0165 下的记录类型（ADR / GS = gate-sensitive 决策日志条目 / Issue = 门槛以下）；**设备** = 是否带 `device` AC（Mac / Win 批次 / —）。标签是计划内编号，落实时每行是一个 GitHub Issue。
 
 | 标签 | 主题 | 依赖（全部落地后才授予） | 档位 | 门控 | 记录 | 设备 |
 |---|---|---|---|---|---|---|
-| DEC-001 | Windows 保留范围决策日志条目（0A.0） | 无 | — | E（文档） | GS | — |
+| DEC-001 | Windows 保留范围决策日志条目（0A.0） | 无 | Low（文档） | E（文档） | 决策日志条目（归类见 0A.0，用户确认；若改为 ADR 则加指针条目） | — |
+| DEC-002 | 新必过检查（Architecture Guard / IPC 清单）的 gate-sensitive 条目（MIG-007） | 无 | Low（文档） | E（文档） | GS（双审计计划评审 + 用户批准） | — |
+| DEC-003 | rule 50 修订：`src/plugins/tiptap/` 与 Port 位置（§4.1） | MIG-004 | Low（文档） | E（文档） | GS | — |
 | WIN-000 | #582 退出条件（复用现有 Issue） | 已有 #575 | High | 已授予 | ADR-0164 | Win |
-| WIN-001 | Windows Capability Matrix（只读整理） | DEC-001 | — | E（文档） | Issue | — |
-| MIG-001a…n | Golden Corpus 与特征化基线（按语法类别拆，每类一个 PR） | 无 | 中/High | E（测试）或 G（若加工具） | Issue | — |
-| MIG-002a…g | 状态安全合同（按 §4.2 合同表每行一个 PR：保存、切换、关闭/退出、草稿、外部替换、MCP 写入、MCP 表格） | MIG-001 中对应的语料 | High | E（测试） | Issue | Mac（App 级 journey） |
+| WIN-001 | Windows Capability Matrix（只读整理；基线 SHA、安装包、路径见 W0） | DEC-001 | Low（文档） | E（文档） | Issue | — |
+| MIG-001a…n | Golden Corpus 与特征化基线（按语法类别拆，每类一个 PR；规格中列出 a…n） | 无 | High（`tests/` 下应用行为套件属未列路径；提取脚本） | G（多于一个 PR；新增提取工具与 fixture 树） | Issue | — |
+| MIG-002a…g | 状态安全合同（按 §4.2 合同表每行一个 PR：保存、切换、关闭/退出、草稿、外部替换、MCP 写入、MCP 表格） | MIG-001 中对应的语料 | High | G（多于一个 PR；带 device AC） | Issue | Mac（App 级 journey） |
 | MIG-004 | 依赖矩阵 + Migration ADR + ADR 影响表 + 决策清单 | MIG-001 | High（依赖/ADR） | G | ADR | — |
-| MIG-003 | 最小 CI 保护（`scope` 增量 + 建议性平台/WebKit 通道；含原 WIN-004） | MIG-001；若要入 `ci-gate` 则另需 GS | High（CI） | G | Issue；入 gate 时 GS | — |
-| MIG-007a | IPC 命令名清单（必过层，路径无关） | 无（可在 M0 落地） | High | G | Issue | — |
-| MIG-005 | EditorPort + Milkdown Adapter（按 §4.2 九个使用点分批，建议 2–3 个 PR） | MIG-002 中对应合同行、MIG-004 | High | G | Issue（Port 合同写入规格） | Mac |
+| MIG-003 | 最小 CI 保护（`scope` 增量 + 建议性平台/WebKit 通道，只用 dispatch/schedule；含原 WIN-004） | MIG-001；若要入 `ci-gate` 或新增 PR 作业则另需 GS | High（CI） | G | Issue；入 gate 时 GS | — |
+| MIG-007a | IPC 命令名清单（路径无关；DEC-002 落地前为建议性） | 无（建议性可在 M0 落地）；接入 `ci-gate` 需 DEC-002 | High | G | Issue；必过依据 DEC-002 | — |
+| MIG-005 | EditorPort + Milkdown Adapter（按 §4.2 十一个宿主使用点分批，建议 2–3 个 PR） | MIG-002 中对应合同行、MIG-004 | High | G | Issue（Port 合同写入规格） | Mac |
 | MIG-006 | App/Editor Coordinator 最小抽取 | MIG-005 | High | G | Issue | Mac |
-| MIG-007b | 关键 IPC 参数/结果/错误 fixture + dependency-cruiser 新边界与 Ratchet | MIG-005、MIG-007a | High | G | Issue | — |
-| WIN-003 | Windows 平台代码边界迁移（或并入 MIG-005/006） | MIG-005、WIN-001 | High | G | Issue | Win 批次（WIN-000 后） |
+| MIG-007b | 关键 IPC 参数/结果/错误 fixture + dependency-cruiser 新边界与 Ratchet | MIG-005、MIG-007a；接入 `ci-gate` 需 DEC-002 | High | G | Issue；必过依据 DEC-002 | — |
+| WIN-003 | Windows 平台代码边界迁移（或并入 MIG-005/006；并入时在其 Issue 中记录 AC 已由 MIG-005/006 完成） | MIG-005、WIN-001 | High | G | Issue | Win 批次（Milkdown 构建，快照/恢复流程；#582 未关闭时按 WIN-000 (a)/(b)） |
 | WIN-002 | Preview 应用身份（应用代码） | WIN-001、MIG-004 | High | G | ADR | Win 批次 |
-| MIG-008 | Tiptap 只读 Runtime + 不可写安全壳（含原 MIG-011；同一 PR 引入运行时与禁写守护，避免不安全的中间产物） | MIG-003、MIG-004、MIG-005、MIG-006、MIG-007b | High（依赖） | G | ADR（依赖，经 MIG-004） | Mac（M2 smoke） |
+| MIG-008 | Tiptap 只读 Runtime + 不可写安全壳（含原 MIG-011；同一 PR 引入运行时与禁写守护，避免不安全的中间产物） | MIG-003、MIG-004、MIG-005、MIG-006、MIG-007b、WIN-003（或其并入记录）、DEC-003 | High（依赖） | G | ADR（依赖，经 MIG-004） | Mac（M2 smoke） |
+| WIN-B2 | M2 只读 Windows smoke（设备记录） | MIG-008、WIN-002 | Low（设备记录） | — | 设备记录 | Win |
 | MIG-009a | Markdown Pipeline 决策实验 + 节点映射（含原 MIG-010）+ 差异 harness 起步 | MIG-001、MIG-008 | High | G | ADR（选定依赖；必要时取代 ADR-0012） | — |
 | MIG-009b | 选定 Pipeline 的实现 | MIG-009a | High | G | Issue | — |
 | MIG-012 | 可编辑 Tiptap Adapter | MIG-009b | High | G | Issue | Mac |
 | MIG-013 | Sync / Flush 集成 | MIG-012、MIG-002 | High | G | Issue | Mac |
-| MIG-014a…d | Source / MCP / Save / Close 跨引擎事务（各一个 PR） | MIG-013 | High | G | Issue | Mac；M3 末 Win 批次 |
+| MIG-014a…d | Source / MCP / Save / Close 跨引擎事务（各一个 PR） | MIG-013 | High | G | Issue | Mac；Win 见 WIN-B3 |
+| WIN-B3 | M3 可写核心 Windows 批次（设备记录） | MIG-014、WIN-002 | Low（设备记录） | — | 设备记录 | Win |
 | MIG-015 | 基础 WYSIWYG 功能 | MIG-012、MIG-014 | High | G | Issue | Mac |
 | MIG-016 | Markdown 保真特例 | MIG-009b、MIG-013 | High | G | Issue | — |
-| MIG-017a…d | 表格专项（解析/序列化；补齐与表头；行列 CRUD 与导航；粘贴/选区/补丁决策） | MIG-016 | High | G | Issue；补丁变化 ADR | Mac；M4 Win 批次 |
+| MIG-017a…d | 表格专项（解析/序列化；补齐与表头；行列 CRUD 与导航；粘贴/选区/补丁决策） | MIG-016 | High | G | Issue；补丁变化 ADR | Mac；Win 见 WIN-B4 |
 | MIG-018 | Inline Reveal / 自定义 Mark | MIG-015 | High | G | Issue | Mac |
-| MIG-019 | IME / Keymap / Focus / Undo | MIG-014、MIG-018 | High | G | Issue | Mac + Win 批次 |
+| MIG-019 | IME / Keymap / Focus / Undo | MIG-014、MIG-018 | High | G | Issue | Mac；Win 见 WIN-B4 |
+| WIN-B4 | M4 高风险功能 Windows 批次（IME/AltGr/表格/剪贴板；设备记录） | MIG-017、MIG-019、WIN-002 | Low（设备记录） | — | 设备记录 | Win |
 | MIG-020 | 性能 / 恶意 Markdown（Mac mini 独立批次） | MIG-016、MIG-017 | High | G | Issue | Mac mini |
-| WIN-005 | Tiptap Windows 核心编辑验收（M3–M4 批次汇总） | WIN-000、WIN-002、MIG-014、MIG-019 | — | — | 设备记录 | Win |
+| WIN-005 | Tiptap Windows 核心编辑验收（B2–B4 汇总 + 原 MIG-022 的 Windows 部分） | WIN-B4、MIG-021、WIN-000 | Low（设备记录） | — | 设备记录 | Win |
 | MIG-021 | 差异 harness 完整运行与签收 | MIG-020 | High | G | Issue | — |
 | MIG-027 | 回滚与发布 Runbook **演练**（M0 起草，切换前演练） | MIG-021 | 文档 + High（发布） | G | Issue | Mac；Win（重装 NSIS） |
-| MIG-022 | Mac/Windows/Linux 设备验收 | MIG-021、MIG-003、WIN-005 | — | — | 设备记录 | Mac + Win |
-| MIG-023/024 | 候选包、Artifact Smoke 与切换就绪评审（合并为一个发布包） | MIG-022、MIG-027 | High（发布） | G | Issue | Mac + Win |
+| MIG-022-mac | Mac（及 Linux 编译/smoke）设备验收；Windows 部分在 WIN-005 | MIG-021、MIG-003 | Low（设备记录） | — | 设备记录 | Mac |
+| MIG-023/024 | 候选包、Artifact Smoke 与切换就绪评审（合并为一个发布包） | MIG-022-mac、MIG-027 | High（发布） | G | Issue | Mac；Win 见 WIN-006 |
 | WIN-006 | Windows Preview 候选 / NSIS Smoke | WIN-000、MIG-023/024、WIN-005 | High（发布） | G | ADR-0164 D4 或其取代 ADR | Win |
 | MIG-025 | 默认 Tiptap 切换（单独 PR） | MIG-023/024、MIG-027 | High | G | ADR（Migration ADR 的切换条款） | Mac |
-| MIG-026 | 稳定期观测（期限与触发条件见 §17） | MIG-025 | 中 | G | Issue | — |
+| MIG-026 | 稳定期观测（期限与触发条件见 §17） | MIG-025 | 中；若加日志/服务、改同步或失败行为、或实现发布控制则 High | G | Issue | — |
 | ARCH-008a…n | 文件树重组（每个 Feature 一个 PR；别名 PR 先行，若采用） | MIG-026 | High | G | GS（档位表、rule 50/10） | Mac |
 | CI-008a…n | CI 深度优化（每个作业一个 PR） | ARCH-008 | High（CI） | G | Issue；入 gate 时 GS | — |
 | STACK-001…004 | Zustand / Vitest / TypeScript / Vite 逐项升级 | CI-008；依次串行 | High（依赖） | G | ADR（依赖）或 Issue（推迟） | Mac |
 | CLEAN-001 | 退役 Milkdown（回滚窗口结束后） | MIG-026 的观测期满、STACK 不在同一 PR | High | G | ADR（取代条款的 Status 注记） | Mac |
 | ENH-001 | VMark 功能借鉴（不计入迁移完成） | MIG-026 | 视功能 | G | 视功能 | 视功能 |
-| AUDIT-001 | 收官独立审计 | CLEAN-001、STACK-004 | — | E | 审计报告 | — |
+| AUDIT-001 | 收官独立审计 | CLEAN-001、STACK-004 | Low（报告） | E | 审计报告 | — |
 
-**合并 / 拆分说明（v1.2）**：合并了原 WIN-004→MIG-003、MIG-010→MIG-009a、MIG-011→MIG-008、MIG-023+024；拆分了 MIG-002、MIG-005、MIG-009、MIG-014、MIG-017、ARCH-008、CI-008。MIG-027 的演练排在 MIG-025 之前（v1.1 中 MIG-027 依赖 MIG-025，顺序相反）。
+**Mac 与 Windows 的独立性（v1.3）**：MIG-025 的传递依赖（MIG-023/024 → MIG-022-mac、MIG-027 → MIG-021 → …）中没有任何 WIN-000/WIN-002/WIN-005 项；Windows 只约束 WIN-006（Preview 发布）。共享的数据安全证据（MIG-002、MIG-014）对两个平台都适用。规格中每一行的档位/门控/记录以 Issue 中的最终判定为准，本表不是豁免。
+
+**合并 / 拆分说明（v1.2）**：合并了原 WIN-004→MIG-003、MIG-010→MIG-009a、MIG-011→MIG-008、MIG-023+024；拆分了 MIG-002、MIG-005、MIG-009、MIG-014、MIG-017、ARCH-008、CI-008。MIG-027 的演练排在 MIG-025 之前（v1.1 中 MIG-027 依赖 MIG-025，顺序相反）。v1.3：MIG-022 拆成 MIG-022-mac 与 WIN-005 的 Windows 部分；新增 DEC-002、DEC-003、WIN-B2/B3/B4。
 
 **成本估计**：约 50–65 个落地单元（两位审计者的独立估计 50–60 与 50–65），其中绝大多数是 High 档，每个需要双审计（ADR-0143，最多两轮）。共享核心文件（`MilkdownEditor.tsx`、`documentStore.ts`、Port、`ci.yml`）的串行要求与三个实施槽位（ADR-0156）使**同时在途的迁移 PR 约为一个**，并行的只有不触碰这些文件的语料、文档与研究工作。仅 CI 门禁等待一项，按每次约 15 分钟计，50–65 次约 12.5–16 小时累计（不含重跑、本地 heavy-lock、审计与构建）；设备时间单独按批次预算（见 W2 与 §18）。这是规划用的数量级，不是交付承诺。
 
@@ -798,23 +833,31 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  D[DEC-001 + WIN-001<br/>决策记录+Windows矩阵] --> B
+  D[DEC-001/002 + WIN-001<br/>决策记录+Windows矩阵] --> B
   B[MIG-001/002/004 + MIG-003 + MIG-007a<br/>保真+安全+ADR+CI+IPC清单] --> E[MIG-005/006/007b + WIN-003<br/>Port + Coordinator]
   E --> P[MIG-008 + MIG-009a/b<br/>Tiptap只读+Pipeline+差异harness]
+  D3[DEC-003 rule 50] --> P
   P --> W[MIG-012/013/014/015<br/>可写+同步]
   W --> F[MIG-016/017/018/019/020<br/>Markdown保真/表格/IME]
-  F --> V[MIG-021/027/022/023-024<br/>对照/回滚演练/真实平台/候选]
+  F --> V[MIG-021/027/022-mac/023-024<br/>对照/回滚演练/Mac验收/候选]
   V --> C[MIG-025/026<br/>切换+稳定]
   C --> A[ARCH-008 + CI-008<br/>File Tree/CI优化]
   A --> U[STACK-001..004<br/>分批依赖升级]
   U --> Q[CLEAN-001 + AUDIT-001<br/>清理与收官]
   C --> ENH[ENH-001<br/>独立功能借鉴]
-  W0[WIN-000 #582] --> WB[WIN-005/006<br/>Windows批次与Preview]
-  F --> WB
-  WIN2[WIN-002 身份] --> WB
+  P --> B2[WIN-B2]
+  W --> B3[WIN-B3]
+  F --> B4[WIN-B4]
+  WIN2[WIN-002 身份] --> B2
+  WIN2 --> B3
+  WIN2 --> B4
+  B4 --> W5[WIN-005]
+  W0[WIN-000 #582] --> W5
+  W5 --> W6[WIN-006 Preview]
+  V --> W6
 ```
 
-Mermaid 为总依赖示意。严格串行的是**共享高风险核心文件的合并顺序**；rule 12 规定一个获批 ticket 对应一个 brief 与一个 PR，只有阻塞它的 ticket 全部落地后才授予下一个。
+Mermaid 为总依赖示意（v1.3 与上表一致：Windows 节点只指向 WIN-006，不指向 V 或 C）。严格串行的是**共享高风险核心文件的合并顺序**；rule 12 规定一个获批 ticket 对应一个 brief 与一个 PR，只有阻塞它的 ticket 全部落地后才授予下一个。
 
 ---
 
@@ -888,7 +931,8 @@ Mermaid 为总依赖示意。严格串行的是**共享高风险核心文件的�
 | Runner 分钟 | 各作业 `completed_at - started_at` 之和，按 runner OS 分列 |
 | 重跑 / Flake 率 | 同一 head SHA 的 `run_attempt > 1` 占比；flake = 重跑后同一测试身份由失败变通过 |
 | 稳定观测期（MIG-026） | 切换后至少两个发布版本或 30 天，取较长者（候选值，MIG-026 规格中确认）；期间任一数据安全事件即触发回滚评审 |
-| 回滚触发 | 任一确认的数据丢失、保存失败率或 Flush 失败率超过切换前基线、或无法在 Source Mode 降级的解析失败 |
+| 回滚触发 | 任一确认的数据丢失、或无法在 Source Mode 降级的解析失败（已有规则）；**新提议**（候选，MIG-003/026 规格中确认）：保存失败率或 Flush 失败率超过切换前基线 |
+| 保存 / Flush 失败率（候选定义） | 分子 = 结构化日志中的失败事件；分母 = 尝试次数——显式保存与显式 Flush 已有日志，**定时器 Flush 的成功目前不记录**（`editSync/controller.ts:47–49,191–194`），因此 MIG-003/026 先补一条成功计数事件才能算比率；按版本 × 14 天窗口比较，最少 200 次尝试（候选值），样本不足或无切换前基线时只按“任一确认的数据丢失”处理 |
 
 数据来源是 GitHub Actions API 与本地结构化日志 `~/.mdpro/mdpro.log` 的事件类型，**不含文件内容**；由谁在何时采集写在 MIG-003 的规格中。
 
@@ -908,8 +952,8 @@ Mermaid 为总依赖示意。严格串行的是**共享高风险核心文件的�
 | 中：双引擎依赖膨胀 | pnpm lockfile 多份 PM 包与相同插件 | `pnpm why`、Bundle Size、版本隔离 | 不发布双引擎正式包 |
 | 中：过早 File Tree 迁移 | 功能差异混入 import/路径修改 | M7 才大规模搬目录；独立 PR | 回滚目录 PR |
 | 中：版本升级混合 | TS/Vite/Vitest/Zustand 影响 Test/Editor | M8 分批升级；冻结 M2–M6 基础设施 | 锁文件与单升级 PR 回滚 |
-| **高（v1.2）**：设备与测试员容量 | 一台 `win-desktop`（单人锁）；设备测试员 = 也审计每个 PR 的 `gpt-auditor`；Windows 驱动尚无一次通过的运行（#582 未关闭）；每个改依赖的 PR 使此前的设备 PASS 失效（ADR-0144） | WIN-000 入口门禁；按里程碑批次（W2）；#582 关闭前用用户手动卡片（约 1 小时/张）；每个里程碑写明 Windows 运行次数预算；Mac 与 Windows GUI 串行排期 | 推迟 Windows Preview，不阻塞 macOS 切换 |
-| **高（v1.2）**：`prosemirror-tables` 补丁与版本 | `patchedDependencies` 以 `prosemirror-tables@1.8.5` 为键，`@tiptap/pm` 锁定自己的版本 | MIG-004 记录 `pnpm why` 与 `check-patched.mjs` 输出；补丁变化走 ADR-0082 的取代流程；负向 fixture 守护 | 保持 Milkdown 路径与原补丁，直到新版本证明安全 |
+| **高（v1.2）**：设备与测试员容量 | 一台 `win-desktop`（单人锁）；设备测试员 = 也审计每个 PR 的 `gpt-auditor`；Windows 驱动尚无一次通过的运行（#582 未关闭）；macOS 的 device PASS 绑定落地 SHA（ADR-0144 决定 3–5）；Windows 批次绑定自己的构建 SHA（决定 6） | WIN-000 入口门禁；按里程碑批次（W2，WIN-B2/B3/B4）；#582 关闭前由用户选择手动卡片（时长为候选，首批实测）或批准门禁例外；每个里程碑写明 Windows 运行次数预算；Mac 与 Windows GUI 串行排期 | 推迟 Windows Preview，不阻塞 macOS 切换 |
+| **高（v1.2）**：`prosemirror-tables` 补丁与版本 | `patchedDependencies` 以 `prosemirror-tables@1.8.5` 为键，`@tiptap/pm` 的解析结果待实验（可能共享，也可能两个版本） | MIG-004 记录 `pnpm why` 与 `check-patched.mjs` 输出；补丁变化走 ADR-0082 的取代流程；负向 fixture 守护 | 保持 Milkdown 路径与原补丁，直到新版本证明安全 |
 | 中（v1.2）：Windows 回滚 | Windows 无 Updater | 回滚 = 用户重装上一个 NSIS（保存在 Release 资产中，不依赖 30 天过期的 artifacts） | 停发 Preview |
 
 ---
@@ -927,14 +971,14 @@ Mermaid 为总依赖示意。严格串行的是**共享高风险核心文件的�
 
 按顺序建立（v1.2，依赖以 §15 为准）：
 
-0. **DEC-001**：Windows 保留范围决策日志条目（0A.0），以及 WIN-000 = 现有 #582 的状态确认。
+0. **DEC-001**：Windows 保留范围决策日志条目（0A.0，先请用户确认归类），以及 WIN-000 = 现有 #582 的状态确认；**DEC-002**（新必过检查的 GS 条目）可与之并行起草。
 1. **WIN-001**：Windows Capability Matrix（只读整理，可与 MIG-001 并行）。
 2. **MIG-001**：Markdown Golden Corpus、现有已知限制与关键行为基线（先定冻结的基线 SHA、输出路径 `tests/fixtures/markdown-corpus/`、正规化类别与已知限制政策）。
 3. **MIG-002**：按 §4.2 合同表逐行的安全合同与负向测试（经 `App.tsx` 的 journey）。
 4. **MIG-004**：Migration ADR（取代 ADR-0010）、ADR 影响表、决策清单、依赖矩阵与 Table Patch 检查。
-5. **MIG-007a**：IPC 命令名清单（路径无关，可在 M0 落地）。
+5. **MIG-007a**：IPC 命令名清单（路径无关，可在 M0 以建议性方式落地；接入 `ci-gate` 等 DEC-002）。
 6. **MIG-003**：最小 CI 保护——`scope` 增量与 `ci-gate` 之外的平台/WebKit 通道；若要接入 `ci-gate`，先有 gate-sensitive 条目。
-7. **MIG-005**：`WysiwygEditorPort` 与现有 Milkdown Adapter（旧行为不变），按九个使用点分批。
+7. **MIG-005**：`WysiwygEditorPort` 与现有 Milkdown Adapter（旧行为不变），按十一个宿主使用点分批。
 8. **MIG-008 / MIG-009a**：Tiptap **只读**运行时与禁写守护；双方案同语料对照实验。
 
 **第一批完成之前，不建议启动复杂表格重写、Tiptap Stable Cutover、全量目录搬迁或工具链大版本升级。**
