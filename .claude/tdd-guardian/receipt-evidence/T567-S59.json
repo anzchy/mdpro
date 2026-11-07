@@ -1,0 +1,33 @@
+{
+  "id": "T567-S59",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-07T02:09:30.531Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/adr0141-wi2-route-guard.test.ts\",\"ADR0141 WI2 target prompt guard (requires macos zsh)\",\"dispatches device briefs only to a device-mode gpt-auditor pane\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/adr0141-wi2-route-guard.test.ts",
+        "line": 304
+      },
+      "message": "AssertionError: expected { code: 2, prompts: [] } to deeply equal { code: +0, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S59/20261107T020930531Z/tests",
+    "tree": "40f26e04fa5eec443b7fdcb78401792776c6ee96"
+  },
+  "spec_blobs": {
+    "tests/tooling/adr0141-wi2-route-guard.test.ts": "f19cf32b5fd3212e259967dbbbfdedbe0e06dfa2"
+  },
+  "settled_blobs": {
+    "tests/tooling/adr0141-wi2-route-guard.test.ts": "f19cf32b5fd3212e259967dbbbfdedbe0e06dfa2"
+  }
+}

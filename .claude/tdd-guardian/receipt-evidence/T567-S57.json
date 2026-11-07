@@ -1,0 +1,33 @@
+{
+  "id": "T567-S57",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-07T01:31:50.949Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"gates a brief on the target runtime's cache, independently of the other cache\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mdpro-delegator-listener.test.ts",
+        "line": 154
+      },
+      "message": "AssertionError: expected [ { runtime: 'codex', …(4) }, …(9) ] to deeply equal [ { runtime: 'codex', …(4) }, …(9) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S57/20261107T013150949Z/tests",
+    "tree": "81bb827d199ad1a1604dc39802b4b1605b5a0d1e"
+  },
+  "spec_blobs": {
+    "tests/tooling/mdpro-delegator-listener.test.ts": "82a89cadb4efe1742b99c00ffbe2b790c549d7cc"
+  },
+  "settled_blobs": {
+    "tests/tooling/mdpro-delegator-listener.test.ts": "82a89cadb4efe1742b99c00ffbe2b790c549d7cc"
+  }
+}

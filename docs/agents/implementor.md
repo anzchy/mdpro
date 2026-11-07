@@ -19,10 +19,9 @@ A UI question goes to the delegator with each option's measurements, for a proto
 ## Matrix and attack
 
 A test matrix is attacked before any RED is recorded (user decision, 2026-10-20: 「加上，gpt-imple-1, gpt-imple-2都适用」).
-Until T-02's go-live (#570), Codex runs `$tdd-guardian:tdd-guardian-workflow`. Claude runs
-`jack-tdd-workflow` now: [1](../../.agents/skills/jack-tdd-workflow/SKILL.md#1-design-the-test-matrix), [2](../../.agents/skills/jack-tdd-workflow/SKILL.md#2-have-the-matrix-attacked) with a fresh subagent
-(`ATTACK-NOT-RUN` and stop), [3](../../.agents/skills/jack-tdd-workflow/SKILL.md#3-amend-the-matrix), [5](../../.agents/skills/jack-tdd-workflow/SKILL.md#5-cycles). From go-live, `jack-tdd-workflow` binds
-both (ADR-0161). The brief and the delegator's rulings win over the skill where they differ.
+On both runtimes, follow [jack-tdd-workflow](../../.agents/skills/jack-tdd-workflow/SKILL.md#1-design-the-test-matrix) with a fresh attacker
+(`ATTACK-NOT-RUN` and stop if it cannot run), then settle one RED per cycle (ADR-0161). The brief and the delegator's
+rulings win over the skill where they differ.
 
 ## Receipts
 
@@ -48,7 +47,7 @@ both (ADR-0161). The brief and the delegator's rulings win over the skill where 
 1. **A peer commits on its own branch**, after bringing it up to the current
    `master` HEAD: fast-forward if it has no unlanded
    commits, otherwise `git rebase master`. Its gates pass
-   before handoff (rule 60 and the tdd-guardian lanes are the author's job),
+   before handoff (rule 60 and rule 10's lanes are the author's job),
    and the handoff names the SHA and the lanes that passed. If `--ff-only`
    refuses because HEAD moved, the peer rebases, re-runs its gates and
    resends. **Re-runs are by tree identity**: if `git rev-parse <sha>:src`,
@@ -92,7 +91,7 @@ iterate by yourself: your next round starts from the delegator's ruling
 
 ## Gated items
 
-A rule-12 (gated) item follows rule 12 and its spec snapshot; its cycles are `jack-tdd-workflow`'s (Codex: tdd-guardian's until go-live). The snapshot wins over
+A rule-12 (gated) item follows rule 12 and its spec snapshot; its cycles are `jack-tdd-workflow`'s on both runtimes. The snapshot wins over
 the ticket, the brief and the card ([landing-and-audit.md](../../.agents/skills/mdpro-delegator/references/landing-and-audit.md#gated-items)).
 
 ## Commit splitting

@@ -23,7 +23,7 @@ tier's row alone.
 
 **Gate-tooling list.** A change to `docs/agents/audit-dimensions.md`, `docs/agents/audit-policy-set.md`,
 `.claude/agents/mdpro-*-auditor.md`, `.claude/agents/mdpro-landing-verifier.md`, `.agents/skills/mdpro-delegator/references/templates/landing-docs-checklist.md`,
-`.agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md`, or any `*-request-template.md` or
+`.agents/skills/jack-tdd-workflow/references/matrix-attack-prompt.md`, or any `*-request-template.md` or
 `merged-verdict-template.md` under `.agents/skills/mdpro-delegator/` keeps its tier's row and adds **policy**. These
 are gate tooling, High tier under ADR-0121, so they keep F1–F8, L and § Security review.
 

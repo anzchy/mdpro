@@ -38,7 +38,7 @@ Each case names its assertion, a document, state or IPC effect, never a bare boo
 
 ## 2. Have the matrix attacked
 
-Send the attack prompt, `.agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md`, filled in with your
+Send the attack prompt, `.agents/skills/jack-tdd-workflow/references/matrix-attack-prompt.md`, filled in with your
 brief and matrix paths.
 
 The attacker is fresh: never a fork and never a resumed agent, so it shares none of your context. On Claude it is a new
