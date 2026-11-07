@@ -37,6 +37,7 @@ and both auditors' plan review of its diff. Governing text: `.agents/skills/mdpr
 ## From tickets to landing
 - **One approved ticket is one brief and one PR**, granted only when every ticket that blocks it has landed.
 - **Precedence:** spec snapshot, then ticket, then brief, then card.
-- **Implementation** follows `jack-tdd-workflow` (Codex: tdd-guardian until go-live): matrix and attack first, then one cycle per RED receipt, then
-  `code-review` on the committed candidate (`docs/agents/implementor.md#gated-items`).
+- **Implementation** follows `jack-tdd-workflow` on both runtimes. A fresh attacker checks the matrix before any RED;
+  each RED settles in a cycle, followed by `code-review` on the committed candidate
+  (`docs/agents/implementor.md#gated-items`). A new seam, changed behaviour or changed AC meaning stops for the delegator.
 - **Never:** `/implement`, `/implement-spec`, or an integration branch.

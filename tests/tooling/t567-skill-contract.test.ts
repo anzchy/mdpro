@@ -6,6 +6,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const root = path.resolve(__dirname, "../..");
@@ -135,9 +137,52 @@ describe("T567 jack-tdd-workflow method text", () => {
     expect(missing(read(skillMd), [...caseClasses, "document, state or IPC effect", "test file"])).toEqual([]);
   });
 
-  it("names the attack prompt at its current path, which exists", () => {
-    const prompt = ".agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md";
-    expect({ named: read(skillMd).includes(prompt), present: fs.existsSync(path.join(root, prompt)) }).toEqual({ named: true, present: true });
+  it("keeps every active route on the common skill, its moved attack prompt, and its receipt wrapper", async () => {
+    const oldPrompt = [".agents/skills/mdpro-delegator/references/templates", "matrix-attack-prompt.md"].join("/");
+    const newPrompt = ".agents/skills/jack-tdd-workflow/references/matrix-attack-prompt.md";
+    const wrapper = ".agents/skills/jack-tdd-workflow/scripts/receipt.mjs";
+    const { stdout } = await promisify(execFile)("git", ["ls-files", "-z"], { cwd: root });
+    const tracked = stdout.split("\0").filter(Boolean);
+    const textFiles = tracked.filter((file) => /\.(?:md|ts|tsx|sh|toml|json)$/.test(file) && fs.existsSync(path.join(root, file)));
+    const stalePaths = textFiles.filter((file) => read(path.join(root, file)).includes(oldPrompt)
+      && file !== "docs/reference/20261027-rules-70-71-history.md"
+      && !/^docs\/specs\/567-tdd-skill\/r\d+\//.test(file));
+    const rules = fs.readdirSync(path.join(root, ".claude/rules")).filter((file) => file.endsWith(".md"))
+      .map((file) => `.claude/rules/${file}`);
+    const templates = skillFiles(path.join(root, ".agents/skills/mdpro-delegator/references/templates"))
+      .map((file) => `.agents/skills/mdpro-delegator/references/templates/${file}`);
+    const codex = skillFiles(path.join(root, ".codex"))
+      .map((file) => `.codex/${file}`).filter((file) => !file.startsWith(".codex/skills/mdpro-tdd-workflow/"));
+    const active = [...rules, ...templates, ".agents/skills/mdpro-delegator/scripts/prompt.sh", "AGENTS.md",
+      "docs/agents/implementor.md", ".agents/skills/mdpro-delegator/references/roster-and-routing.md",
+      ...skillFiles(skillDir).map((file) => `.agents/skills/jack-tdd-workflow/${file}`), ...codex];
+    const forbidden = active.filter((file) => fs.existsSync(path.join(root, file))
+      && pluginRoutes.some((pattern) => pattern.test(read(path.join(root, file)))));
+    const requiredSkill = ["AGENTS.md", ".claude/rules/12-feature-planning-gate.md",
+      ".claude/rules/71-herdr-mixed-roster.md", "docs/agents/implementor.md",
+      ".agents/skills/mdpro-delegator/references/templates/brief-template.md",
+      ".agents/skills/mdpro-delegator/references/roster-and-routing.md"];
+    const missingSkill = requiredSkill.filter((file) => !read(path.join(root, file)).includes("jack-tdd-workflow"));
+    const policy = read(path.join(root, "docs/agents/audit-policy-set.md"));
+    const rule10 = read(path.join(root, ".claude/rules/10-tdd.md"));
+    const rule12 = read(path.join(root, ".claude/rules/12-feature-planning-gate.md"));
+    const rule71 = read(path.join(root, ".claude/rules/71-herdr-mixed-roster.md"));
+    const brief = read(path.join(root, ".agents/skills/mdpro-delegator/references/templates/brief-template.md"));
+    expect({
+      oldPromptExists: fs.existsSync(path.join(root, oldPrompt)),
+      newPromptExists: fs.existsSync(path.join(root, newPrompt)),
+      skillNamesPrompt: read(skillMd).includes(newPrompt),
+      stalePaths, forbidden, missingSkill,
+      removedAgents: ["mdpro-spec-adversary.toml", "mdpro-spec-adversary-std.toml"]
+        .filter((file) => fs.existsSync(path.join(root, ".codex/agents", file))),
+      policyHasNewPath: policy.includes(newPrompt) && !policy.includes(oldPrompt),
+      commonAttack: rule71.includes("fresh") && rule71.includes("both runtimes") && brief.includes("both runtimes"),
+      newSeamStop: rule12.includes("new seam") && rule12.includes("delegator"),
+      cyclesForAll: rule71.includes("every implementor item"),
+      rule10NamesWrapper: rule10.includes(wrapper),
+    }).toEqual({ oldPromptExists: false, newPromptExists: true, skillNamesPrompt: true,
+      stalePaths: [], forbidden: [], missingSkill: [], removedAgents: [], policyHasNewPath: true,
+      commonAttack: true, newSeamStop: true, cyclesForAll: true, rule10NamesWrapper: true });
   });
 
   it("says who attacks the matrix on each runtime and what the attacker is given", () => {

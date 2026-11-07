@@ -24,6 +24,15 @@ function harness(kind: "codex" | "claude" = "codex", name = "gpt-imple-2") {
   dirs.push(root);
   const main = path.join(root, "main"), target = path.join(root, "Documents/mac-app/mdpro-wt", name), bin = path.join(root, "bin");
   for (const dir of [path.join(main, ".codex/rules"), path.join(target, ".codex/rules"), bin]) fs.mkdirSync(dir, { recursive: true });
+  const fixtures = path.resolve("tests/fixtures/t567/caches");
+  for (const [runtime, cache] of [
+    [".codex/plugins/cache/mattpocock/mattpocock-skills", "ok-132"],
+    [".claude/plugins/cache/claude-plugins-official/mattpocock-skills", "ok-131"],
+  ]) {
+    const dest = path.join(root, runtime);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.cpSync(path.join(fixtures, cache), dest, { recursive: true });
+  }
   const overlay = path.join(main, ".codex/rules/mdpro-role.rules");
   fs.writeFileSync(overlay, "# Local mdpro role: delegator\n");
   const targetOverlay = path.join(target, ".codex/rules/mdpro-role.rules");
@@ -288,13 +297,18 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard 
     expect(auditPane.code).toBe(2);
     expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toEqual([]);
     fs.writeFileSync(path.join(h.target, ".codex/rules/.started-at"), "w1:p7 mode=device\n");
+    for (const rel of [".codex/plugins/cache/mattpocock/mattpocock-skills", ".claude/plugins/cache/claude-plugins-official/mattpocock-skills"])
+      fs.rmSync(path.join(h.root, rel), { recursive: true, force: true });
     const devicePane = await run(path.join(scripts, "prompt.sh"), ["gpt-auditor", brief, "brief", "1000"], h.env);
-    expect(devicePane.code, devicePane.stderr).toBe(0);
-    expect(h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor")).toHaveLength(1);
+    const sent = h.calls().filter((call) => call[0] === "agent" && call[1] === "prompt" && call[2] === "gpt-auditor");
+    expect({ code: devicePane.code, prompts: sent.map((call) => call[3]) }).toEqual({ code: 0,
+      prompts: [`herdr-delegator: read ${brief} and everything it names, then do what it describes. Write the report it names and stop.`] });
   });
 
   it("dispatches audit requests only to an auditor-mode gpt-auditor pane", async () => {
     const h = harness("codex", "gpt-auditor");
+    for (const rel of [".codex/plugins/cache/mattpocock/mattpocock-skills", ".claude/plugins/cache/claude-plugins-official/mattpocock-skills"])
+      fs.rmSync(path.join(h.root, rel), { recursive: true, force: true });
     fs.writeFileSync(h.targetOverlay, "# Local mdpro role: auditor\n");
     const request = path.join(h.root, "audit-request.md");
     fs.writeFileSync(request, "# audit\n");

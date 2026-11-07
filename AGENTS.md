@@ -49,7 +49,7 @@ it is about to edit a matching path:
 |---|---|
 | `AskUserQuestion`, or `SendMessage` to the delegator | Stop and put the question in your final message. Never ask the user directly. |
 | A rule-25 confirmation | Same: stop and name the exact command and what it could lose. |
-| A skill (`jack-tdd-workflow`, `code-review`) | Use your installed copy; the brief names the skill and its version: `$tdd-guardian:tdd-guardian-workflow` until T-02's go-live, `jack-tdd-workflow` from it. |
+| A skill (`jack-tdd-workflow`, `code-review`) | Use your installed copy; the brief names its version. Both runtimes follow `jack-tdd-workflow`. |
 | `Agent` subagents | Run rule 10's lanes yourself, through `scripts/heavy-lock.sh`, and report each command and its result. |
 | Hooks (`.claude/hooks/*`) | Not run. `.codex/rules/mdpro.rules` covers the command guards. |
 | A handoff or report "in a file" | Write it under `~/.mdpro-redesign/herdr-spike/<your herdr agent name>/` and give the path. |
