@@ -3,7 +3,7 @@
 Use this instead of `jack-tdd-workflow`'s `references/matrix-template.md` when a briefed item changes text an agent
 loads and acts on: a rule, skill, agent definition, command, `CLAUDE.md` or `AGENTS.md`, a role doc under
 `docs/agents/`, or a brief, request or prompt template. An item that changes both code and such text writes two matrices.
-Decision: [20261103-nl-test-matrix-and-behaviour-evals](../../../../../docs/agents/decisions/20261103-nl-test-matrix-and-behaviour-evals.md).
+Decision: [20261103-nl-test-matrix-and-behaviour-evals](../../../../../docs/agents/decisions/20261103-nl-test-matrix-and-behaviour-evals.md#decision).
 
 Copy it to `~/.mdpro-redesign/herdr-spike/<your agent name>/<item>-nl-matrix.md` before the text changes.
 Header: the item id, the brief path, the branch and base SHA, the files whose text changes, and who loads each one
