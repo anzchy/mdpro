@@ -7,6 +7,7 @@
 **Tier: <High|Medium|Low>** (ADR-0121: why). **Difficulty: <routine|standard|hard>** (ADR-0138: why; it sets your
 effort and the adversary). Fresh session. On Codex, run `$tdd-guardian:tdd-guardian-workflow` for the whole item, including the
 matrix attack. On Claude, follow `docs/agents/implementor.md#matrix-and-attack`.
+<NL item: matrix from `nl-matrix-template.md`, eval results in the handoff (decision 20261103).>
 
 **Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
 named for that path in AGENTS.md. #592 checks it.

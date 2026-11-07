@@ -50,6 +50,8 @@ High tier there.
   Vitest inventory and runtime-skip rule, Rust cfg spelling, and route-budget reason.
 - [20261103-rule60-platform-prerequisite-line.md](20261103-rule60-platform-prerequisite-line.md): macOS-only tests declare
   `prerequisite: macos` or Rust `cfg(target_os)` without restricting Linux-supported tests.
+- [20261103-nl-test-matrix-and-behaviour-evals.md](20261103-nl-test-matrix-and-behaviour-evals.md): an item that
+  changes agent-loaded text writes an NL matrix; structural cases prove its ACs, behaviour evals are an advisory trial.
 - [20261102-receipts-per-item-files.md](20261102-receipts-per-item-files.md): each receipt and evidence entry is
   one file per id; `receipts.json` is a generated view, and `receipt-store.mjs keep-check` is the verifier's check.
 - [20261102-audit-policy-set-split.md](20261102-audit-policy-set-split.md): the policy set moves, unchanged, into
