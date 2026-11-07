@@ -5,6 +5,17 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const scripts = path.resolve(__dirname, "../../.agents/skills/mdpro-delegator/scripts");
+const cacheFixtures = path.resolve(__dirname, "../fixtures/t567/caches");
+
+function seedCache(home: string, runtime: "codex" | "claude", fixture: string): string {
+  const rel = runtime === "codex"
+    ? ".codex/plugins/cache/mattpocock/mattpocock-skills"
+    : ".claude/plugins/cache/claude-plugins-official/mattpocock-skills";
+  const dest = path.join(home, rel);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.cpSync(path.join(cacheFixtures, fixture), dest, { recursive: true });
+  return dest;
+}
 
 function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ status: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -56,6 +67,8 @@ function harness() {
   fs.writeFileSync(path.join(mainRules, "mdpro-role.rules"), "# Local mdpro role: delegator\n");
   fs.writeFileSync(path.join(target, ".codex/rules/mdpro-role.rules"), "# Local mdpro role: implementor\n");
   fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
+  seedCache(dir, "codex", "ok-132");
+  seedCache(dir, "claude", "ok-131");
   const env = {
     ...process.env,
     HOME: dir,
@@ -71,27 +84,17 @@ function harness() {
   const cleanup = () => {
     fs.rmSync(dir, { recursive: true, force: true });
   };
-  return { dir, log, env, calls, cleanup };
+  return { dir, log, env, calls, cleanup, seed: (runtime: "codex" | "claude", fixture: string) => {
+    const dest = runtime === "codex"
+      ? path.join(dir, ".codex/plugins/cache/mattpocock/mattpocock-skills")
+      : path.join(dir, ".claude/plugins/cache/claude-plugins-official/mattpocock-skills");
+    fs.rmSync(dest, { recursive: true, force: true });
+    return seedCache(dir, runtime, fixture);
+  } };
 }
 
 describe.skipIf(process.platform !== "darwin")("mdpro delegator completion listener (requires macos zsh)", () => {
-  it("dispatches implementor briefs with the installed TDD Guardian workflow", async () => {
-    const h = harness();
-    const brief = path.join(h.dir, "brief.md");
-    fs.writeFileSync(brief, "# fix brief\n");
-    try {
-      const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
-      expect(result.status).toBe(0);
-      const prompt = h.calls().find(args => args[2] === "agent" && args[3] === "prompt" && args[4] === "gpt-imple-1");
-      expect(prompt?.[5]).toContain("$tdd-guardian:tdd-guardian-workflow");
-      expect(prompt?.[5]).not.toContain("$mdpro-tdd-workflow");
-    } finally {
-      fs.unlinkSync(brief);
-      h.cleanup();
-    }
-  });
-
-  it("routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route", async () => {
+  it("routes both implementor runtimes to the same jack-tdd-workflow brief text", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");
     fs.writeFileSync(brief, "# brief\n");
@@ -101,14 +104,55 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
       const claude = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_TARGET_KIND: "claude", FAKE_INITIAL_STATE: "idle" });
       expect(claude.status).toBe(0);
       const sent = (agent: string) => h.calls().find(args => args[2] === "agent" && args[3] === "prompt" && args[4] === agent)?.[5];
-      expect(sent("gpt-imple-1")).toBe(`herdr-delegator: read ${brief} and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.`);
-      expect(sent("opus-imple-1")).toBe(`herdr-delegator: read ${brief} and everything it names, then do it by rule 71 § Briefs for Claude: design the test matrix yourself, have a fresh independent subagent attack it with .agents/skills/mdpro-delegator/references/templates/matrix-attack-prompt.md (ATTACK-NOT-RUN if it cannot run), and record each RED with the rule 10 receipt CLI, node scripts/tdd/red-receipt.mjs. Write the handoff it names and stop.`);
-      expect(sent("opus-imple-1")).not.toContain("tdd-guardian:");
+      const expected = `herdr-delegator: read ${brief} and everything it names, then do it with jack-tdd-workflow. Write the handoff it names and stop.`;
+      expect([sent("gpt-imple-1"), sent("opus-imple-1")]).toEqual([expected, expected]);
     } finally {
       fs.unlinkSync(brief);
       h.cleanup();
     }
   });
+
+  it("gates a brief on the target runtime's cache, independently of the other cache", async () => {
+    const rows: { runtime: "codex" | "claude"; cache: "missing" | "old" | "malformed" | "ok-131" | "ok-132"; otherValid: boolean }[] = [
+      { runtime: "codex", cache: "missing", otherValid: true },
+      { runtime: "codex", cache: "old", otherValid: true },
+      { runtime: "codex", cache: "malformed", otherValid: true },
+      { runtime: "codex", cache: "ok-131", otherValid: false },
+      { runtime: "codex", cache: "ok-132", otherValid: false },
+      { runtime: "claude", cache: "missing", otherValid: true },
+      { runtime: "claude", cache: "old", otherValid: true },
+      { runtime: "claude", cache: "malformed", otherValid: true },
+      { runtime: "claude", cache: "ok-131", otherValid: false },
+      { runtime: "claude", cache: "ok-132", otherValid: false },
+    ];
+    const observed = [];
+    for (const row of rows) {
+      const h = harness();
+      const brief = path.join(h.dir, "brief.md");
+      fs.writeFileSync(brief, "# brief\n");
+      const other = row.runtime === "codex" ? "claude" : "codex";
+      if (!row.otherValid) fs.rmSync(h.seed(other, "ok-131"), { recursive: true, force: true });
+      const target = h.seed(row.runtime, row.cache === "old" ? "old-130" : row.cache === "ok-132" ? "ok-132" : "ok-131");
+      if (row.cache === "missing") fs.rmSync(target, { recursive: true, force: true });
+      if (row.cache === "malformed") fs.writeFileSync(path.join(target, "1.3.1/.claude-plugin/plugin.json"), "{");
+      const agent = row.runtime === "codex" ? "gpt-imple-1" : "opus-imple-1";
+      const result = await run(path.join(scripts, "prompt.sh"), [agent, brief, "brief", "1000"], {
+        ...h.env, FAKE_TARGET_KIND: row.runtime, FAKE_INITIAL_STATE: "idle",
+      });
+      const prompts = h.calls().filter(args => args[2] === "agent" && args[3] === "prompt" && args[4] === agent);
+      observed.push({ runtime: row.runtime, cache: row.cache, status: result.status,
+        reason: result.stderr.match(/missing|too old|malformed/)?.[0] ?? "",
+        prompts: prompts.map(args => args[5] ?? "") });
+      h.cleanup();
+    }
+    const expected = rows.map(row => {
+      const valid = row.cache.startsWith("ok-");
+      return { runtime: row.runtime, cache: row.cache, status: valid ? 0 : 2,
+        reason: valid ? "" : row.cache === "old" ? "too old" : row.cache,
+        prompts: valid ? [expect.stringContaining("do it with jack-tdd-workflow. Write the handoff")] : [] };
+    });
+    expect(observed).toEqual(expected);
+  }, 60000);
 
   it("refuses an already idle agent without a duplicate notification", async () => {
     const h = harness();

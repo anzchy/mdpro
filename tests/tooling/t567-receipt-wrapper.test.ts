@@ -405,6 +405,31 @@ describe("T567 r5 SKILL.md routes receipts through the wrapper", () => {
     expect(calls.filter((c) => !skill().includes(`${WRAPPER_REL} ${c}`))).toEqual([]);
   });
 
+  it("K4 matches all four rule 10 receipt modes against the wrapper's actual child commands", async () => {
+    const rule10 = fs.readFileSync(path.join(ROOT, ".claude/rules/10-tdd.md"), "utf8");
+    const documented = [
+      "scripts/heavy-lock.sh --guard-only node scripts/tdd/red-receipt.mjs record --id <ID> --test tests/<file>.test.ts",
+      "after GREEN, run the same guarded command with `verify --id <ID>`",
+      "node scripts/tdd/red-receipt.mjs record --id <ID> --lane rust --test src-tauri/<file>.rs",
+      "node scripts/tdd/red-receipt.mjs verify --id <ID>",
+    ];
+    const actual = [];
+    for (const args of ALL_MODES) {
+      const repo = stubRepo(made);
+      await runWrapper(args, { cwd: repo.top, env: repo.env() });
+      actual.push(`node ${repo.records().find((record) => record.who === "node")?.argv?.join(" ") ?? ""}`);
+    }
+    expect({ documented: documented.filter((line) => !rule10.includes(line)), actual }).toEqual({
+      documented: [],
+      actual: [
+        `node ${ENTRY} record --id T-W --test tests/a.test.ts`,
+        `node ${ENTRY} verify --id T-W`,
+        `node ${ENTRY} record --id T-W --lane rust --test src-tauri/src/a.rs`,
+        `node ${ENTRY} verify --id T-W`,
+      ],
+    });
+  }, 30000);
+
   it("K3 keeps the cargo fmt step: before a Rust record, never between record and verify, and the wrapper never runs it", () => {
     const tokens = ["`cargo fmt`", "before", "Rust record", "never between record and verify"];
     const held = skill().split(/\n[ \t]*\n/).some((paragraph) => {

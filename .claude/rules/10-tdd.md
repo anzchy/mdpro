@@ -92,6 +92,10 @@ heap inherited from the outer guard; the full unit coverage
 lane still runs before commit. Using direct receipt.js bypasses the entry script's
 selection guard and is a residual risk, so it is not a supported frontend path.
 
+For Rust GREEN, run `node scripts/tdd/red-receipt.mjs verify --id <ID>`. On both runtimes,
+`jack-tdd-workflow`'s `.agents/skills/jack-tdd-workflow/scripts/receipt.mjs` wrapper runs these four
+record and verify modes; the commands here remain the source of truth.
+
 The entry keeps evidence for both lanes and runs the vendored receipt engine; `verify` routes any byte change of a spec
 file since RED to evidence. Governing text: `docs/guide/receipt-evidence.md#evidence-and-engine` (ADR-0145, ADR-0149, #566).
 

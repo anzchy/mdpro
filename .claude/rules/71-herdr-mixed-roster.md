@@ -39,9 +39,9 @@ Governing text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#
 ## Briefs and self-acceptance
 
 The implementor accepts its own work against the brief, and only then does the delegator confirm, by checking the table.
-A test matrix is attacked before any RED is recorded. Until T-02's go-live (#570), Codex runs
-`$tdd-guardian:tdd-guardian-workflow`. Claude runs the skill now, with a fresh attacker (`ATTACK-NOT-RUN`). From go-live,
-`jack-tdd-workflow` binds both (ADR-0161).
+On both runtimes, every implementor item follows `jack-tdd-workflow`: a fresh attacker checks the test matrix before any
+RED, then each case settles in its own cycle. If the attacker cannot run, record `ATTACK-NOT-RUN` and stop; a gap marked
+NEEDS RULING or still open after the re-attack goes to the delegator (ADR-0161).
 Governing text: `.agents/skills/mdpro-delegator/references/landing-and-audit.md#confirm-handoff`,
 `docs/agents/implementor.md#matrix-and-attack`.
 

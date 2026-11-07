@@ -1,0 +1,33 @@
+{
+  "id": "T567-S56",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-07T01:29:26.273Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"routes both implementor runtimes to the same jack-tdd-workflow brief text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mdpro-delegator-listener.test.ts",
+        "line": 108
+      },
+      "message": "AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S56/20261107T012926273Z/tests",
+    "tree": "d570d112e027a505fd83a9e752cc96d90ca2d5ec"
+  },
+  "spec_blobs": {
+    "tests/tooling/mdpro-delegator-listener.test.ts": "cc65c8461ef70d8a060ae6345eecb21cffb1980d"
+  },
+  "settled_blobs": {
+    "tests/tooling/mdpro-delegator-listener.test.ts": "cc65c8461ef70d8a060ae6345eecb21cffb1980d"
+  }
+}

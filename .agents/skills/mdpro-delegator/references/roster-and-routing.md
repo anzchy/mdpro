@@ -20,11 +20,11 @@ Replaced here:
 - who the two auditors are: `gpt-auditor` and `opus-auditor`, each in a fresh pane by request file, on every PR audit,
   ADR review and plan review ([ADR-0143](../../../../docs/adr/0143-every-audit-runs-gpt-auditor-and-opus-auditor-together-capped-at-two-rounds.md) decision 1).
 
-Added here, for Codex implementors:
+Added here, for implementors on both runtimes:
 - the brief;
 - the attacked test matrix;
 - the self-acceptance table;
-- `$tdd-guardian:tdd-guardian-workflow`, the installed plugin skill that runs the TDD stages.
+- `jack-tdd-workflow`, the project skill that runs the TDD stages.
 
 Unchanged from rule 70:
 - the slot cap, which is three everywhere since 2026-10-30 (ADR-0156, superseding ADR-0124's two);
@@ -113,10 +113,10 @@ least `standard`, a test-only change takes its invariant's difficulty; raise onl
 | Implementor | `gpt-6-luna` high, every implementor ([ADR-0139](../../../../docs/adr/0139-routine-implementor-items-run-on-gpt-6-luna-high-as-a-pilot.md), pilot) | medium | high |
 | gpt-auditor, any request | medium | medium | high |
 | gpt-auditor confirm or challenge touching a `hard` path, or after a round that found a new High | high | high | high |
-| `mdpro-spec-adversary` (every grant) | `mdpro-spec-adversary-std` (`gpt-6-sol` medium) | same | `mdpro-spec-adversary` (`gpt-6-astra` high) |
 
-The pilot (ADR-0138 decision 5) runs to the second High-tier PR's landing; from the next brief on, dispatch reverts to
-medium everywhere, the Astra adversary and full-file reading, until the user rules. `~/.codex/config.toml` is never edited for this. The new pane id goes into
+The pilot (ADR-0138 decision 5) runs to the second High-tier PR's landing; from the next brief on, implementor dispatch
+reverts to medium and full-file reading until the user rules. The matrix attacker uses `jack-tdd-workflow`'s fresh default
+dispatch regardless of difficulty (ADR-0161). `~/.codex/config.toml` is never edited for this. The new pane id goes into
 the heartbeat assignment.
 
 ## Planner
