@@ -43,6 +43,8 @@ High tier there.
 
 ## Entries
 
+- [20261107-windows-preservation-not-features.md](20261107-windows-preservation-not-features.md): inside the Tiptap
+  migration, Windows is preserved and gets no new features; the v1.3 plan governs Windows decisions; ADR-0164 D4 stands.
 - [20261104-receipts-are-audit-evidence.md](20261104-receipts-are-audit-evidence.md): RED receipt verdicts become advisory audit evidence while `keep-check` remains a landing condition; one policy commit cuts over the verifier.
 - [20261104-adr-bar-raised.md](20261104-adr-bar-raised.md): an ADR needs scope and significance; doubt goes below the
   bar, a correction takes no number, an amendment takes one only when the contract changes, one page at most.
