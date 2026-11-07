@@ -29,6 +29,7 @@ each block names where it came from. When this file and a rule disagree, the rul
      `device` and cites its cards in `docs/test/cards/`; the tester role runs the
      cards after round one's code report; the verifier checks the identity. NOT
      EXERCISED is not PASS. Windows `device` ACs stay in batches for now.
+   - during a short check's trial, [§ PR CI](#pr-ci)'s trial step also runs before the fast-forward.
 
    A red result from a registered intermittent test (D196) may be rerun once
    with `gh run rerun <id> --failed`. A second red blocks the landing.
@@ -64,6 +65,67 @@ needs the user's confirmation (rule 25). The one exception is a detached
 it removes that one when it finishes. **A landed item's worktree is removed at landing without asking**, under the checks in
 [ADR-0157](../../../../docs/adr/0157-a-landed-branchs-worktree-is-removed-at-landing-without-asking.md), which supersedes the
 worktree half of the confirmation above; branches still need it.
+
+## PR CI
+
+<!-- folded from ADR-0095 decision 7 and changed by docs/agents/decisions/20261108-short-checks-may-run-on-prs.md -->
+**Heavy checks stay later; a short check may run on a PR, advisory first**
+(user, 2026-11-08: 「Heavy checks only (Recommended)」, 「After an advisory trial (Recommended)」).
+
+- **What stands.** ADR-0095 decision 1's PR jobs and the coverage gate of ADR-0128 and ADR-0130 are unchanged. This
+  section governs new PR jobs only.
+- **Heavy checks stay off the PR run.** These are:
+  - macOS, which runs on `v*` tags;
+  - the slow lane, which runs locally on push;
+  - the installers, built by manual dispatch;
+  - the native platform lanes and the real-WebKit lane, which run on `schedule` and `workflow_dispatch` only (MIG-003).
+- **A short check** may be a new `pull_request` job when all three hold:
+  - its wall time, from the job's start to its end on GitHub's runner and including setup and cache restore, is at
+    most 2 minutes at p90;
+  - it needs no macOS, Windows or GPU runner and no device;
+  - it fails closed: a missing script, a parse error or zero items checked all fail.
+- **The values are fixed here:** the 2-minute ceiling, and the trial's minima of 10 PRs and 14 days. A check's spec
+  may tighten them; loosening them takes a gate-sensitive entry.
+- **A new short check enters advisory**, in ADR-0107's `rust-audit` shape:
+  - `needs: [scope]` and `if: code=='true'`;
+  - outside `ci-gate`'s `needs`;
+  - no `continue-on-error`;
+  - the PR that adds it shows a local timing of the check.
+- **The trial.** It runs for at least 10 PRs with `code=true` and at least 14 days.
+  - **At each landing in the trial**, before the fast-forward, the delegator reads `X`'s result at the PR head SHA. It
+    records the run id, the result and the cause in the check's issue.
+  - A failure, cancellation, skip or missing run on a `code=true` PR counts as a red.
+  - A red whose cause is the PR goes to the user before landing: land as is, or fix first. A delegator never lands past
+    one unasked.
+  - A red whose cause is the check itself is a false red. It restarts the trial.
+  - A red from CI infrastructure (an outage, a run cancelled by a re-push) is rerun once. That PR neither counts
+    toward the 10 nor restarts the trial.
+- **Promotion is one PR.** It adds the job to `ci-gate`'s `needs`, and adds it to the jq's
+  success-or-`code=false`-skip list, the same rule as `rust-test`. It changes no other job's result.
+  - The PR cites this section and the trial record: run ids, the p90 wall time over the trial's runs, and the reds
+    with their causes.
+  - It is High tier and audited like any CI change.
+  - Demotion is the same kind of PR in reverse.
+- **Truth table for a promoted short check `X`** (ipc-inventory, #699, is the first). "Rest" is `ci-gate`'s result
+  without `X`:
+
+  | Event | `scope` | `X` | `ci-gate` |
+  |---|---|---|---|
+  | `pull_request` | `code=true` | success | rest |
+  | `pull_request` | `code=true` | skipped / failure / cancelled / missing | red |
+  | `pull_request` | `code=false` | skipped or success | rest (prose-only) |
+  | `pull_request` | `code=false` | failure / cancelled / missing | red |
+  | `v*` tag, `workflow_dispatch` | `code=true` (empty BASE) | success | rest |
+  | `v*` tag, `workflow_dispatch` | `code=true` | not success | red |
+  | any | `scope` crashed | — | red (unchanged) |
+
+  `X`'s `if: code=='true'` keeps the `code=false` + success row unreachable. While `X` is advisory, `ci-gate` ignores
+  `X` in every row. A red `X` shows as a red check. On a `v*` tag or a dispatch run, it turns the run red, as
+  `rust-audit` does.
+- **Changes outside this section:**
+  - A non-PR lane that only reports (MIG-003's `platform-advisory.yml`) is not a `ci-gate` change.
+  - A rule that makes such a lane's result a landing or handoff condition is gate-sensitive. It needs its own entry.
+  - Any other change to `ci-gate`'s `needs` or jq needs its own gate-sensitive entry.
 
 ## Audit merge
 

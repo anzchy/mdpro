@@ -43,6 +43,11 @@ High tier there.
 
 ## Entries
 
+- [20261108-short-checks-may-run-on-prs.md](20261108-short-checks-may-run-on-prs.md): ADR-0095 decision 7 is folded
+  into `landing-and-audit.md` § PR CI. Heavy checks stay off PRs; a short check runs advisory, then joins `ci-gate`
+  after a clean trial.
+- [20261108-editor-port-and-tiptap-directories.md](20261108-editor-port-and-tiptap-directories.md): rule 50 adds
+  `src/services/editor/` for the editor port and `src/plugins/tiptap/` for Tiptap extensions.
 - [20261107-windows-preservation-not-features.md](20261107-windows-preservation-not-features.md): inside the Tiptap
   migration, Windows is preserved and gets no new features; the v1.3 plan governs Windows decisions; ADR-0164 D4 stands.
 - [20261104-receipts-are-audit-evidence.md](20261104-receipts-are-audit-evidence.md): RED receipt verdicts become advisory audit evidence while `keep-check` remains a landing condition; one policy commit cuts over the verifier.

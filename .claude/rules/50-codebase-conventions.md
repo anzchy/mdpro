@@ -42,19 +42,20 @@ permissions.
 
 **Return `Result` from every command and never panic on user input** — a panic takes down the command instead of surfacing an error; the error type is `String` or a `Serialize` enum such as `FileError`.
 
-## 3. Plugin Structure (Milkdown + CodeMirror)
+## 3. Plugin Structure (Milkdown, Tiptap and CodeMirror)
 
-Plugins live in `src/plugins/` with three subdirectories:
+Plugins live in `src/plugins/` in four subdirectories:
 
 | Directory | For |
 |-----------|-----|
 | `src/plugins/core/` | Config and registry |
 | `src/plugins/milkdown/` | WYSIWYG (Milkdown/ProseMirror) plugins |
 | `src/plugins/codemirror/` | Source editor (CodeMirror 6) plugins |
+| `src/plugins/tiptap/` | WYSIWYG (Tiptap 3) extensions, during the Milkdown → Tiptap migration |
 
-Each plugin exports either a `milkdownPlugin` (for WYSIWYG) or a `codemirrorExtension`
-(for source mode). Register in `src/plugins/index.ts` and configure defaults in
-`src/plugins/core/pluginConfig.ts`.
+Each Milkdown or CodeMirror plugin exports either a `milkdownPlugin` (for WYSIWYG) or a `codemirrorExtension`
+(for source mode). Register it in `src/plugins/index.ts` and configure defaults in
+`src/plugins/core/pluginConfig.ts`. Tiptap extensions follow their own paragraph below.
 
 Plugin lifecycle is managed by `pluginRegistry` (`src/plugins/core/pluginRegistry.ts`), initialized
 in `src/components/Editor/Editor.tsx` (source mode). `src/components/Editor/MilkdownEditor.tsx`
@@ -63,6 +64,16 @@ Editor events (`docChange` / `selectionChange` / `focusChange`) are emitted via
 `pluginRegistry.emitEvent` and exposed to plugins through `EditorContext.events`.
 
 **Plugin styles** live co-located with the plugin file. Never add plugin CSS to global stylesheets.
+
+**Tiptap extensions mirror Milkdown's.** Each module in `src/plugins/tiptap/` exports a `*TiptapExtension`, and
+`src/components/Editor/TiptapEditor.tsx` imports them directly, not through `pluginRegistry`. `src/plugins/tiptap/` and
+`src/plugins/milkdown/` never import each other. ([Decision](../../docs/agents/decisions/20261108-editor-port-and-tiptap-directories.md).)
+
+**The editor port lives in `src/services/editor/`**, not under `src/plugins/`: `WysiwygEditorPort`, `MarkdownCodec`,
+`EditorTransaction` and `editorCoordinator`. MIG-005 moves the host's direct engine calls onto it. It imports no React
+and no engine package (`@milkdown/*`, `@tiptap/*`, `prosemirror-*`), type-only imports included; a contract that needs
+a ProseMirror type takes it by a generic type parameter or by a structural type. Each engine's adapter implements the port from its
+plugin directory. Stores stay in `src/stores/` and tests in `tests/`.
 
 ## 4. MCP Shadow Store
 

@@ -44,8 +44,8 @@ cd src-tauri && cargo check | cargo test | cargo fmt | cargo clippy
 ## Architecture
 
 Rust backend in `src-tauri/src/` (`commands/` = IPC handlers, `services/` = business logic, `models/` = data types,
-`menu.rs` = native menu); React frontend in `src/` (`components/`, `hooks/`, `services/` = typed `invoke()` wrappers,
-`stores/` = Zustand, `plugins/` = Milkdown/CodeMirror). Stack and directory map:
+`menu.rs` = native menu); React frontend in `src/` (`components/`, `hooks/`, `services/` = typed `invoke()` wrappers and the editor port,
+`stores/` = Zustand, `plugins/` = Milkdown/Tiptap/CodeMirror). Stack and directory map:
 [`docs/guide/architecture.md`](./docs/guide/architecture.md).
 
 The frontend calls Rust with `invoke()`; commands are registered in `src-tauri/src/commands/mod.rs`. Key commands:
