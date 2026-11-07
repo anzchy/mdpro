@@ -5,6 +5,7 @@
 #   verb: "brief" (implementors: read the brief, then a Codex target runs $tdd-guardian:tdd-guardian-workflow and a Claude
 #   target follows rule 71 § Briefs for Claude) or "request" (auditors: read BRIEF.md first). After launching, check `herdr agent get <agent>` shows "working": a prompt sent while a new pane was still
 #   starting was lost once.
+# A Codex implementor brief must first pass brief-rules-check.py (GH592), or nothing is sent.
 set -eu
 a=$1 f=$2 verb=${3:-request} to=${4:-7200000} report=${5:-}
 mode=$("${0:A:h}/delegator-route.sh")
@@ -112,7 +113,14 @@ overlay,marker=sys.argv[1:]
 sys.exit(0 if os.stat(marker).st_mtime_ns >= os.stat(overlay).st_mtime_ns else 1)' "$overlay" "$marker" || {
       echo "REFUSED: overlay is newer than the pane for $a" >&2
       exit 2
-    } ;;
+    }
+    # GH592: a Codex implementor brief must name rule 22/50 for a scope their paths: frontmatter matches.
+    if [[ $pane_mode == implementor ]]; then
+      /usr/bin/python3 "${0:A:h}/brief-rules-check.py" "$f" || {
+        echo "REFUSED: brief rules check failed for $a: $f" >&2
+        exit 2
+      }
+    fi ;;
   claude) ;;
   *) echo "REFUSED: unknown target runtime for $a" >&2; exit 2 ;;
 esac

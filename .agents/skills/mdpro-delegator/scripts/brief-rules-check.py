@@ -1,0 +1,243 @@
+#!/usr/bin/python3
+"""Purpose: refuse a Codex implementor brief whose scope needs rule 22 or 50 but whose field does not name it (GH592).
+
+prompt.sh runs this for verb `brief` to a Codex implementor only. The required rules come from each rule file's
+`paths:` frontmatter in the checkout this script sits in, never from a copied list or git. The brief is read through
+`brief_render.py`, loaded from this script's own directory only, which refuses what it cannot read (an entity, any
+inline HTML outside code: a tag, a comment, a processing instruction, a declaration or CDATA; an invisible or
+line-separator character) and hides fences, comments on their own lines and link reference definitions. The scope
+is the backticked tokens of every `**May edit:**` and `**May create:**` paragraph, which runs to the next heading,
+field label or the field (fix 1), plus `tests/**` when it says "their tests"; each token must be a plain repo-root path whose first segment is a top-level entry of that checkout. The named
+rules come from the one `**Rules for paths in scope.**` paragraph as rendered (`rule <n>`, the file stem, or its
+path). Any other label that reads as May edit or May create, a path without backticks as a reader sees it, an escape,
+fence, footnote or reference link in scope, an empty paragraph, or "Same paths as the grant" without a May edit
+refuses, naming the line where it can. Every doubt refuses. Exit 0 passes; exit 2 prints `REFUSED:` lines on stderr.
+
+@coordinates-with brief_render.py
+"""
+import fnmatch
+import glob
+import importlib.util
+import os
+import re
+import sys
+
+sys.dont_write_bytecode = True
+_SPEC = importlib.util.spec_from_file_location("brief_render", os.path.join(os.path.dirname(os.path.realpath(__file__)), "brief_render.py"))
+brief_render = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(brief_render)
+Refusal = brief_render.Refusal
+
+RULE_NUMBERS = (22, 50)
+FIELD = "**Rules for paths in scope.**"
+MAY_EDIT = "**May edit:**"
+MAY_CREATE = "**May create:**"
+GLOB_CHARS = set("*?[")
+THEIR_TESTS = ("tests/**", "tests/** (their tests)")
+
+
+def repo_root():
+    return os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", ".."))
+
+
+def rule_globs(root, number):
+    """The `paths:` block list of the single `.claude/rules/<number>-*.md`; anything else refuses."""
+    matches = glob.glob(os.path.join(root, ".claude", "rules", "%d-*.md" % number))
+    if len(matches) != 1:
+        raise Refusal("rule %d: expected one .claude/rules/%d-*.md, found %d" % (number, number, len(matches)))
+    path = matches[0]
+    try:
+        with open(path, encoding="utf-8-sig") as handle:
+            lines = handle.read().splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise Refusal("rule %d: cannot read %s (%s)" % (number, path, error))
+    if not lines or lines[0] != "---" or "---" not in lines[1:]:
+        raise Refusal("rule %d: %s has no frontmatter" % (number, path))
+    front = lines[1:lines.index("---", 1)]
+    starts = [i for i, line in enumerate(front) if re.match(r"^paths:", line)]
+    if len(starts) != 1 or front[starts[0]].strip() != "paths:":
+        raise Refusal("rule %d: %s has no block-list paths: frontmatter" % (number, path))
+    globs = []
+    for line in front[starts[0] + 1:]:
+        if not line.startswith((" ", "\t")):
+            break
+        item = re.match(r"""^\s+-\s+(?:"([^"]+)"|'([^']+)')\s*$""", line)
+        if not item:
+            raise Refusal("rule %d: %s has an unparseable paths: item: %s" % (number, path, line.strip()))
+        globs.append(item.group(1) or item.group(2))
+    if not globs:
+        raise Refusal("rule %d: %s has an empty paths: list" % (number, path))
+    return os.path.splitext(os.path.basename(path))[0], globs
+
+
+def paragraph(lines, start, column):
+    """The field's line range `(start, column, end)` after its marker at `lines[start][column:]`, with its
+    continuation lines: it stops at a blank line, a heading or a sibling bullet. Scope paragraphs use
+    `Brief.scope_extent` instead."""
+    first = lines[start]
+    indent = len(first) - len(first.lstrip())
+    end = start + 1
+    for line in lines[start + 1:]:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            break
+        if re.match(r"^\s*[-*+]\s", line) and len(line) - len(line.lstrip()) <= indent:
+            break
+        end += 1
+    return start, column, end
+
+
+def segments_overlap(a, b):
+    """True when some path could match both slash-separated globs (`**` spans zero or more segments)."""
+    memo = {}
+
+    def segment(x, y):
+        x, y = x.lower(), y.lower()
+        wild_x, wild_y = bool(GLOB_CHARS & set(x)), bool(GLOB_CHARS & set(y))
+        if wild_x and wild_y:
+            return True
+        if wild_x:
+            return fnmatch.fnmatchcase(y, x)
+        if wild_y:
+            return fnmatch.fnmatchcase(x, y)
+        return x == y
+
+    def walk(i, j):
+        key = (i, j)
+        if key in memo:
+            return memo[key]
+        if i == len(a):
+            result = all(part == "**" for part in b[j:])
+        elif j == len(b):
+            result = all(part == "**" for part in a[i:])
+        elif a[i] == "**":
+            result = walk(i + 1, j) or walk(i, j + 1)
+        elif b[j] == "**":
+            result = walk(i, j + 1) or walk(i + 1, j)
+        else:
+            result = segment(a[i], b[j]) and walk(i + 1, j + 1)
+        memo[key] = result
+        return result
+
+    return walk(0, 0)
+
+
+def resolvable(token, root):
+    """Ruling 2 gap 11 / ruling 3 G5: a token's first segment must be a top-level entry of this checkout (no git read).
+
+    A single word is exempt only as a whole `[...]` token or a glob-free file name with an extension
+    (`[Unreleased]`, `CHANGELOG.md`, `.py`). Such a word still goes through overlap, where a real directory of
+    this checkout (`.claude`) counts as a folder.
+    """
+    parts = [part for part in token.split("/") if part]
+    if len(parts) == 1 and not token.endswith("/"):
+        word = parts[0]
+        if re.fullmatch(r"\[[^\]]*\]", word) or (not GLOB_CHARS & set(word) and re.search(r"\.\w+$", word)):
+            return True
+    first = parts[0].lower()
+    entries = [entry.lower() for entry in os.listdir(root)]
+    if GLOB_CHARS & set(first):
+        return any(fnmatch.fnmatchcase(entry, first) for entry in entries)
+    return first in entries
+
+
+def scope_pattern(token, root):
+    """A scope token as segments; a folder-like token (trailing slash, no extension, or a directory of this checkout,
+    such as `.claude`) also covers what is under it."""
+    parts = [part for part in token.split("/") if part]
+    if token.endswith("/") or "." not in parts[-1] or os.path.isdir(os.path.join(root, token)):
+        parts.append("**")
+    return parts
+
+
+def named_in(field, number, stem):
+    """Q4: `rule <n>`, the matched file's stem, or `.claude/rules/<stem>.md`, case-insensitive (the path holds the stem)."""
+    return bool(re.search(r"\brule\s+%d\b" % number, field, re.I)
+                or re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(stem), field, re.I))
+
+
+def check(brief_path, root):
+    try:
+        with open(brief_path, encoding="utf-8-sig", newline="") as handle:
+            text = handle.read()
+    except (OSError, UnicodeDecodeError) as error:
+        raise Refusal("cannot read brief %s (%s)" % (brief_path, error))
+    rules = {number: rule_globs(root, number) for number in RULE_NUMBERS}
+    try:
+        doc = brief_render.Brief(text)
+    except Refusal as refusal:
+        raise Refusal("%s: %s" % (brief_path, refusal))
+    plain = doc.plain
+    fields = [(i, line.index(FIELD)) for i, line in enumerate(plain) if FIELD in line]
+    if len(fields) != 1:
+        raise Refusal("%s needs exactly one %s field, found %d" % (brief_path, FIELD, len(fields)))
+    if re.match(r"^(?: {4}|\t)", plain[fields[0][0]]):
+        raise Refusal("%s: its %s field is indented (line %d), which Markdown reads as code" % (brief_path, FIELD, fields[0][0] + 1))
+    field = doc.field_text(*paragraph(plain, fields[0][0], fields[0][1] + len(FIELD)))
+    labelled = [(label, doc.scope_extent(i, line.index(label) + len(label), (MAY_EDIT, MAY_CREATE, FIELD)))
+                for i, line in enumerate(plain) for label in (MAY_EDIT, MAY_CREATE) if label in line]
+    try:
+        for _, extent in labelled:
+            doc.refuse_in_scope(*extent)
+    except Refusal as refusal:
+        raise Refusal("%s: %s" % (brief_path, refusal))
+    unknown = doc.unknown_labels((MAY_EDIT, MAY_CREATE))
+    if unknown:
+        raise Refusal("%s: unrecognised scope label %s; use exactly %s or %s" % (
+            brief_path, ", ".join("'%s' (line %d)" % label for label in unknown), MAY_EDIT, MAY_CREATE))
+    # Ruling 1 Q1(a) / ruling 3 G13: a fix brief cannot inherit its scope by reference.
+    if (any(re.search(r"\bsame paths as the grant\b", brief_render.phrase_view(block), re.I) for block in doc.paragraphs())
+            and not any(MAY_EDIT in line for line in plain)):
+        raise Refusal("%s says \"Same paths as the grant\" but has no %s paragraph; copy the grant's %s into it"
+                      % (brief_path, MAY_EDIT, MAY_EDIT))
+    if not labelled:
+        raise Refusal("%s has no %s paragraph (nor %s)" % (brief_path, MAY_EDIT, MAY_CREATE))
+    scopes = [doc.text(plain, *extent) for _, extent in labelled]
+    # Ruling 2 gap 12 / G10: every scope paragraph carries at least one backticked path.
+    empty = [label for label, extent in labelled if not doc.spans_in(*extent)]
+    if empty:
+        raise Refusal("%s: its %s paragraph names no backticked path" % (brief_path, " and ".join(sorted(set(empty)))))
+    # Ruling 1 Q6 / ruling 6 Q1: a path written without backticks, as a reader sees it, would escape the check.
+    prose = [word.rstrip(".,;:") for text in scopes
+             for word in re.findall(r"[\w.\-]+/[\w./*\-]*", brief_render.rendered_prose(text))]
+    if prose:
+        raise Refusal("%s: scope path not backticked: %s" % (brief_path, ", ".join("'%s'" % word for word in prose)))
+    tokens = [re.sub(r"^(?:\./)+", "", content) for _, extent in labelled for content in doc.spans_in(*extent)]
+    bad = [t for t in tokens if t.startswith(("/", "~")) or ".." in t.split("/") or not re.fullmatch(r"[\w.\-/*?\[\]@+]+", t)]
+    if bad:
+        raise Refusal("%s: scope path %s is not a plain repo-relative path (absolute, '..', whitespace or an unsupported"
+                      " character such as a brace)" % (brief_path, ", ".join("'%s'" % t for t in bad)))
+    unresolvable = [t for t in tokens if not resolvable(t, root)]
+    if unresolvable:
+        raise Refusal("%s: unresolvable scope path %s: its first segment is no top-level entry of %s; write the path"
+                      " from the repo root" % (brief_path, ", ".join("'%s'" % t for t in unresolvable), root))
+    scope = [(t, t) for t in tokens]
+    # The template's "<paths>, their tests" grants the tests of those paths (ruling 1, Q6).
+    if any(re.search(r"\btheir tests\b", brief_render.phrase_view(text), re.I) for text in scopes):
+        scope.append(THEIR_TESTS)
+    missing = []
+    for number, (stem, globs) in sorted(rules.items()):
+        needed = [shown for token, shown in scope if any(segments_overlap(scope_pattern(token, root), g.split("/")) for g in globs)]
+        named = named_in(field, number, stem)
+        if needed and not named:
+            missing.append("REFUSED: %s needs rule %d (.claude/rules/%s.md) in its %s field, for %s"
+                           % (brief_path, number, stem, FIELD, ", ".join(needed)))
+    return missing
+
+
+def main(argv):
+    if len(argv) != 2:
+        print("REFUSED: usage: brief-rules-check.py <brief>", file=sys.stderr)
+        return 2
+    try:
+        missing = check(argv[1], repo_root())
+    except Refusal as refusal:
+        print("REFUSED: %s" % refusal, file=sys.stderr)
+        return 2
+    for line in missing:
+        print(line, file=sys.stderr)
+    return 2 if missing else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -12,9 +12,11 @@ Read, in order: `<ID>-brief.md` (grants still bind), `<ID>-handoff.md`, the merg
 ## Scope
 Branch `<branch>` at `<sha>`; rebase onto `origin/master` first if it moved. Same paths as the grant, and the same
 fixture allowance (brief § 2).
+- **May edit:** <paths>, copied from the grant's May edit with its backticks; #592 refuses a fix brief without this line.
 
 **Rules for paths in scope.** <AGENTS.md path-table rules, by path>. Before editing any matching path, open each rule
-named for that path in AGENTS.md. #592 checks it.
+named for that path in AGENTS.md. `prompt.sh` checks rules 22 and 50 only, each named as `rule <n>` (#592;
+forms: `codex-panes.md`).
 
 ## Open questions, with defaults
 - **Q1.** <question>. Default: <answer>. (Follow each default without stopping; record which you used.)

@@ -1,0 +1,139 @@
+{
+  "id": "GH592-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T07:05:23.342Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May create token /Users/x/src/a.ts refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May create token docs/../src/a.ts refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May create token node scripts/x.mjs refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May create token src/{a,b}.tsx refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May create token {src,docs}/** refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May create token ~/src/a.ts refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May edit token /Users/x/src/a.ts refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May edit token docs/../src/a.ts refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May edit token node scripts/x.mjs refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May edit token src/{a,b}.tsx refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May edit token {src,docs}/** refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C16/C45/C55/C72 AC-5: a May edit token ~/src/a.ts refuses even beside a valid one and with both rules named\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-S6/20261103T070523342Z/tests",
+    "tree": "bc5c5df46a0e8fddc912b0b67d4f428281a76eaf"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "497f1d7ac4915b96dfd206448c0e4990d22d1d2c"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "497f1d7ac4915b96dfd206448c0e4990d22d1d2c"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH592-S6.json",
+    "digest": "83345db399a0b567dd26524e084c6ea652b7eee8b9b9b7536853ddca01044b14",
+    "result": "passed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
+  }
+}

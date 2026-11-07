@@ -1,0 +1,193 @@
+{
+  "id": "GH592-F2-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T20:21:30.499Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src</x>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<X>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<abbr>/</abbr>a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<my-el></my-el>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x :y>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x _b.c=1>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x a='1' b>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x class=\\\"a\\\">/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x data-a=b/>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 102
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /HTML tag \\(line \\d+\\)/"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x>/</x>a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1a-d/f/h/aa AC-G1: a tag src<x></x>/a.ts in a scope path refuses as an HTML tag, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1e/G1g/G1k/G1l AC-G1: a tag inside a label, split over two lines, outside scope, or in the field refuses, naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1i AC-G1: <!X y> in scope refuses as inline HTML, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1i AC-G1: <![CDATA[x]]> in scope refuses as inline HTML, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1i AC-G1: <?x ?> in scope refuses as inline HTML, quoting it and naming its line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1i/G1j/G1w/G1x/G1y/G1z AC-G1: unclosed or split openers and HTML-block starts refuse, naming the opening line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1m/G1n/G1v/G1ac/G1ad AC-G1: <!--> and <!---> close at once, and a backtick in an autolink, another block or after a backslash pairs with nothing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check-fold.test.ts\",\"GH592 brief rules check, ruling 7 fold (requires macos zsh)\",\"G1t/G1u AC-G1: a backtick inside a tag's attribute does not open a code span; the tag refuses\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check-fold.test.ts",
+        "line": 101
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-F2-1/20261103T202130499Z/tests",
+    "tree": "c6fa1da1de5863e8328170ef97329ccd44b7bfb1"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check-fold.test.ts": "510b7d21b1f4f475388a34c7f1872df9721c9580"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check-fold.test.ts": "510b7d21b1f4f475388a34c7f1872df9721c9580"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH592-F2-1.json",
+    "digest": "294055f885ceda9b660a1fce6e96e008c57dbbd30d3c1f59abfae5bf0ddc87b8",
+    "result": "failed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
+  }
+}

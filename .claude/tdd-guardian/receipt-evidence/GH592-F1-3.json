@@ -1,0 +1,130 @@
+{
+  "id": "GH592-F1-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T13:29:40.881Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C58/F3d AC-F3: a standalone May edit line followed by column-0 bullets is read as scope (fix 1 lifts the known limit)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 115
+      },
+      "message": "AssertionError: REFUSED: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-OCjMEh/brief.md: its **May edit:** paragraph names no backticked path\nREFUSED: brief rules check failed for gpt-imple-2: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-OCjMEh/brief.md\n: expected 2 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3 AC-F3: F3a a column-0 bullet after the marker keeps the later path in scope\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 491
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3 AC-F3: F3b a blank line, then an indented path keeps the later path in scope\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 491
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3 AC-F3: F3c a continuation that starts with # keeps the later path in scope\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 491
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3 AC-F3: F3d a standalone marker, then column-0 bullets keeps the later path in scope\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 493
+      },
+      "message": "AssertionError: expected 'REFUSED: /var/folders/yc/pj8fy0nj7vs0…' to match /needs rule 50 /"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3 AC-F3: F3j a blank line, then a column-0 sentence keeps the later path in scope\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 491
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3 AC-F3: F3n a comment over lines holding a stop line keeps the later path in scope\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 491
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3e/F3i AC-F3: a later unbackticked path or a fence inside the scope refuses\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3f/F3g/F3m AC-F3: the scope stops at a heading, a field label, the field line and a sibling label bullet\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 115
+      },
+      "message": "AssertionError: REFUSED: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-S49FYU/brief.md needs rule 22 (.claude/rules/22-comment-maintenance.md) in its **Rules for paths in scope.** field, for src/a.ts\nREFUSED: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-S49FYU/brief.md needs rule 50 (.claude/rules/50-codebase-conventions.md) in its **Rules for paths in scope.** field, for src/a.ts\nREFUSED: brief rules check failed for gpt-imple-2: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-S49FYU/brief.md\n: expected 2 to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3k/F3o/F3p AC-5: \\\"Same paths as the grant\\\" is matched as rendered, and a hidden May edit does not satisfy it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 119
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"F3l/F3p AC-2: \\\"their tests\\\" is matched as rendered: wrapped, emphasised or with a wide space\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 491
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-F1-3/20261103T132940881Z/tests",
+    "tree": "0bc8361587bc80f08578639ead40695fdceaec42"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "314f67cd24fc022f24965a1d266fbc670e68d57c"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "314f67cd24fc022f24965a1d266fbc670e68d57c"
+  },
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH592-F1-3.json",
+    "digest": "d6238745823a36d3ec1f692d18ab144393b2c7a4b454e173b9f967ed0153df20",
+    "result": "failed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
+  }
+}

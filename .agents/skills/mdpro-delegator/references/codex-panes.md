@@ -38,6 +38,16 @@ commit that starts it working.
     in a detached background process. It uses `herdr --session mdpro agent prompt --wait`, then
     `notify-settled.sh` shows the user a completion notification and prompts `herdr-delegator`
     after that agent is idle. The process must remain alive until settlement.
+  - **A Codex implementor brief is checked first** (#592): `prompt.sh` refuses it, sending nothing,
+    when its May edit or May create paths match rule 22's or rule 50's `paths:` and its
+    `**Rules for paths in scope.**` field does not name that rule. It checks rules 22 and 50 only. It accepts:
+    - one field paragraph, naming each rule as `rule <n>`, its stem (`22-comment-maintenance`) or its path;
+    - scope lines under exactly `**May edit:**` or `**May create:**`, each path backticked and written from the
+      repo root. A scope runs to the next heading or field label.
+
+    Any other label that reads as May edit or May create, an unbackticked path or an escape in scope, or an
+    entity, any inline HTML outside code (a tag of any name, a PI, declaration or CDATA) or a comment inside a
+    line anywhere, refuses, naming the line.
   - **Never arm a bare `herdr agent wait` right after a prompt.** Without `--until`, it returns at
     once if the agent is still `idle`, which it is until the turn starts. Only `prompt --wait`
     first requires observed activity (`agent_prompt_stalled` otherwise). Use one detached

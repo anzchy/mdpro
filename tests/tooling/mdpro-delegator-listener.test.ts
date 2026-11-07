@@ -78,7 +78,7 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
   it("dispatches implementor briefs with the installed TDD Guardian workflow", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");
-    fs.writeFileSync(brief, "# fix brief\n");
+    fs.writeFileSync(brief, "# fix brief\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     try {
       const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
       expect(result.status).toBe(0);
@@ -94,7 +94,7 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
   it("routes a brief's TDD text by the target's runtime: Codex keeps the plugin, Claude gets the mdpro route", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");
-    fs.writeFileSync(brief, "# brief\n");
+    fs.writeFileSync(brief, "# brief\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
     try {
       const codex = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], { ...h.env, FAKE_INITIAL_STATE: "idle" });
       expect(codex.status).toBe(0);

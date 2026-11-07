@@ -1,0 +1,41 @@
+{
+  "id": "GH592-S11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-03T08:34:27.563Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh592-brief-rules-check.test.ts\",\"GH592 brief rules check (requires macos zsh)\",\"C50 AC-5: the real fix-brief-template.md, filled, passes; with the field placeholder left in, it refuses\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh592-brief-rules-check.test.ts",
+        "line": 117
+      },
+      "message": "AssertionError: REFUSED: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-Ak4mJJ/brief.md says \"Same paths as the grant\" but has no **May edit:** paragraph; copy the grant's **May edit:** into it\nREFUSED: brief rules check failed for gpt-imple-2: /var/folders/yc/pj8fy0nj7vs0sprhg09z8dch0000gn/T/gh592-Ak4mJJ/brief.md\n: expected 2 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH592-S11/20261103T083427563Z/tests",
+    "tree": "3f962c24f9956211a55fcb5af6072170d6409ae0"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "22abe8d6e6194b2cd67eb7b617bb15a01622bd19"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh592-brief-rules-check.test.ts": "07ffb7729aecfdfc3ceb5d2e768cadc11689cc48"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH592-S11.json",
+    "digest": "85e9296ca53c212685701997f7c46fa16ddcc1fd877d9690d9b9dd8675c9166b",
+    "result": "failed",
+    "base": "4e1517466f408dd6a6b20400c0e6dbf82c0c658e",
+    "head": "99f9d18169afda231205dc36f2d7dd7242efcac7"
+  }
+}
