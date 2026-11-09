@@ -9,7 +9,7 @@ import { observeContent } from './contentObservations.ts';
 import { expandRecipe } from './recipes.ts';
 import { createCorpusDriver } from './defaultDriverFactory.ts';
 import { OBSERVATION_KINDS } from './vocabulary.ts';
-export interface RunOptions { engine?: string; driverFactories?: Readonly<Record<string, (record: MountingRecord) => CorpusDriver | Promise<CorpusDriver>>>; mode?: 'check' | 'write'; env?: Readonly<Record<string, string | undefined>>; observationKinds?: readonly ObservationKind[] }
+export interface RunOptions { engine?: string; driverFactories?: Readonly<Record<string, (record: MountingRecord) => CorpusDriver | Promise<CorpusDriver>>>; mode?: 'check' | 'write'; env?: Readonly<Record<string, string | undefined>>; observationKinds?: readonly ObservationKind[]; guardComparison?: (actual: LargeDocGuardDecision, baseline: LargeDocGuardDecision) => boolean }
 export type CaseResult = { caseId: string; caseKind: 'mounting'; actual: ComparisonActual; report: ComparisonReport } | { caseId: string; caseKind: 'guard-only'; actual: { observation: LargeDocGuardDecision }; report: ComparisonReport };
 export interface SelectionOptions { caseIds?: readonly string[]; platform?: Platform; includeLocalOnly?: boolean }
 export function selectCases(records: readonly CorpusRecord[], options: SelectionOptions = {}): CorpusRecord[] {
@@ -42,6 +42,9 @@ function logicalMode(record: MountingRecord): ViewMode {
   for (const action of Array.isArray(record.action) ? record.action : [record.action]) if (action.kind === 'modeSwitch') mode = action.to;
   return mode;
 }
+function guardDecisionMatches(actual: LargeDocGuardDecision, baseline: LargeDocGuardDecision, options: RunOptions): boolean {
+  return (options.guardComparison ?? ((left, right) => canonicalJson(left) === canonicalJson(right)))(actual, baseline);
+}
 export async function runCase(record: CorpusRecord, files: Readonly<Record<string, string>>, options: RunOptions = {}): Promise<CaseResult> {
   try {
     const env = options.env ?? process.env;
@@ -51,9 +54,9 @@ export async function runCase(record: CorpusRecord, files: Readonly<Record<strin
       const content = expandRecipe(read(files, record.recipe.path), record.recipe.sha256, record.caseId);
       const observation = await observeContent('largeDocGuard', content, record.viewMode);
       const baseline = options.mode === 'write' ? observation : record.expected.observation;
-      if (canonicalJson(observation) !== canonicalJson(baseline)) throw new Error('guard observation differs');
-      const wrong = observation.action === 'allow' ? { action: 'withhold-table-extensions', message: 'negative', tableRows: 0 } : { action: 'allow' };
-      if (canonicalJson(wrong) === canonicalJson(baseline)) throw new Error('guard negative unexpectedly passed');
+      if (!guardDecisionMatches(observation, baseline, options)) throw new Error('guard observation differs');
+      const wrong: LargeDocGuardDecision = observation.action === 'allow' ? { action: 'withhold-table-extensions', message: 'negative', tableRows: 0 } : { action: 'allow' };
+      if (guardDecisionMatches(wrong, baseline, options)) throw new Error('guard negative unexpectedly passed');
       return { caseId: record.caseId, caseKind: 'guard-only', actual: { observation }, report: {} };
     }
     if (options.mode !== 'write') {

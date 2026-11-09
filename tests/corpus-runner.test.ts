@@ -106,6 +106,11 @@ it('guard-only checksum and complete expected decision mismatches fail with the 
   await expect(runCase(guard, { 'guard-only/m/recipe.json': recipe + '\n' })).rejects.toThrow(/m-guard.*sha256/i);
   await expect(runCase({ ...guard, expected: { observation: { action: 'withhold-table-extensions' as const, message: 'wrong', tableRows: 1 } } }, { 'guard-only/m/recipe.json': recipe })).rejects.toThrow('m-guard');
 });
+it('guard-only negative must be rejected by the same decision comparison', async () => {
+  const acceptsEveryDecision = () => true;
+  await expect(runCase(guard, { 'guard-only/m/recipe.json': recipe }, { guardComparison: acceptsEveryDecision }))
+    .rejects.toThrow(/m-guard.*negative/i);
+});
 it('guard write mode returns a changed candidate without mutating pinned expectations', async () => {
   const r: GuardOnlyRecord = { ...guard, expected: { observation: { action: 'withhold-table-extensions', message: 'old decision', tableRows: 1 } } };
   const source = { 'guard-only/m/recipe.json': recipe }, before = structuredClone(r);
