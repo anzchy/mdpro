@@ -1,0 +1,469 @@
+[
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-zero-blanks",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-write.test.tsx C3b",
+    "expected": {
+      "serialized": "no-edit/a/a-zero-blanks/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-zero-blanks/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "- "
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "No blank line separates tight list items; serialization keeps both markers and their separator.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-one-blank",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx B0",
+    "expected": {
+      "serialized": "no-edit/a/a-one-blank/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-one-blank/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "One blank line separates ordinary paragraphs and encodes no empty paragraph.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-two-blanks",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx B1",
+    "expected": {
+      "serialized": "no-edit/a/a-two-blanks/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-two-blanks/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n"
+    },
+    "normalizations": [
+      "N2"
+    ],
+    "platform": "any",
+    "rationale": "Two blank lines carry no empty paragraph; N2 ignores the odd leftover.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-many-blanks",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/a/a-many-blanks/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-many-blanks/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [
+      "N2"
+    ],
+    "platform": "any",
+    "rationale": "Three, four and five blank lines encode one, one and two empty paragraphs; N2 discards only the leftover.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-edge-blanks",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/a/a-edge-blanks/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-edge-blanks/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n"
+    },
+    "normalizations": [
+      "N3"
+    ],
+    "platform": "any",
+    "rationale": "N3 removes leading and trailing blank lines while an untouched save preserves the original.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-whitespace-lines",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx B3",
+    "expected": {
+      "serialized": "no-edit/a/a-whitespace-lines/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-whitespace-lines/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [
+      "N2"
+    ],
+    "platform": "any",
+    "rationale": "Whitespace-only lines count as blank lines; N2 writes their empty paragraph as bare newlines.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-heading-gap",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-write.test.tsx A9",
+    "expected": {
+      "serialized": "no-edit/a/a-heading-gap/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-heading-gap/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An empty paragraph before a heading remains a four-newline separator.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-list-gap",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-write.test.tsx C4",
+    "expected": {
+      "serialized": "no-edit/a/a-list-gap/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-list-gap/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An empty paragraph between a list and prose remains outside the list.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-quote-gap",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-write.test.tsx C1",
+    "expected": {
+      "serialized": "no-edit/a/a-quote-gap/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-quote-gap/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n>\n>"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "The quote prefix does not consume the interior empty paragraph.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-code-gap",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx B9",
+    "expected": {
+      "serialized": "no-edit/a/a-code-gap/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-code-gap/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An empty paragraph after a fenced code block keeps its four-newline separator.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-c7-list-merge",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-write.test.tsx C7",
+    "desired": "no-edit/a/a-c7-list-merge/desired.md",
+    "expected": {
+      "serialized": "no-edit/a/a-c7-list-merge/expected.md"
+    },
+    "fidelityTag": "known-limitation",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "no-edit/a/a-c7-list-merge/input.md",
+    "limitRef": "ADR-0091 C7",
+    "negative": {
+      "kind": "matchDesiredOnBaseline"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "ADR-0091 C7 accepts adjacent same-kind lists reopening as one list and losing their root gap.",
+    "reason": "CommonMark merges adjacent same-kind lists across blank lines, so their root empty paragraph does not survive reopening.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "b"
+      },
+      "kind": "type",
+      "text": "!"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-neighbor-edit",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-stability.test.tsx A2/G4",
+    "expected": {
+      "serialized": "edited/a/a-neighbor-edit/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "edited/a/a-neighbor-edit/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Typing beside an empty paragraph changes only the target text and preserves the gap.",
+    "status": "active"
+  },
+  {
+    "action": [
+      {
+        "kind": "delete",
+        "range": {
+          "text": "b"
+        }
+      },
+      {
+        "kind": "undo"
+      }
+    ],
+    "actionGroup": "interaction",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-neighbor-undo",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-stability.test.tsx A2/G4",
+    "expected": {
+      "observation": "interaction/a/a-neighbor-undo/expected.json",
+      "serialized": "interaction/a/a-neighbor-undo/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-a-blankLineGaps"
+      }
+    ],
+    "input": "interaction/a/a-neighbor-undo/input.md",
+    "negative": {
+      "kind": "corruptSerialized",
+      "offset": 1,
+      "with": "X"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Deleting the neighboring text then undoing restores the exact bytes and the selected text.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "a"
+      },
+      "kind": "type",
+      "text": "\n"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "caseId": "a-trailing-quote-enter",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/a/a-trailing-quote-enter/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/edgeSerializer.ts",
+        "receipt": "MIG001-a-edgeSerializer"
+      }
+    ],
+    "input": "edited/a/a-trailing-quote-enter/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A single Enter at the quote edge leaves a live empty paragraph that ADR-0091 strips on write.",
+    "status": "active"
+  }
+]

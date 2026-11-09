@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Test tooling: an engine-neutral Markdown golden corpus, a production Milkdown driver and read-only checking, scratch generation and determinism commands, with empty-paragraph baselines for migration comparisons (#706).
+
 ### Changed
 
 - CI: the Rust audit jobs restore a cached, pinned cargo-audit (0.22.2), whose master copy is saved only by the daily audit on master, version-checked before use, instead of compiling it on every run (#640).
