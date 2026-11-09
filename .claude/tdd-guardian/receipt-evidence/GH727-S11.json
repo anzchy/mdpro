@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:23:53.624Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-lint.test.ts\",\"GH727 spawn-timeout lint\",\"follows a spawning object assigned in a hook to the tests that use it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-lint.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected [] to deeply equal [ '7' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S11/20261109T152353624Z/tests",
+    "tree": "be6312df51ed0c5d7220b5a225186ca856637227"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "5a92bdd5331d9dbfb0e39519fcd3e335635b8b53"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "5a92bdd5331d9dbfb0e39519fcd3e335635b8b53"
+  }
+}

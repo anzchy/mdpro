@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:12:00.083Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-budget.test.ts\",\"spawnBudget\",\"is ten times the worst alone-run duration, rounded up to 5 s, never below 15 s\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-budget.test.ts",
+        "line": 8
+      },
+      "message": "AssertionError: expected +0 to be 15000 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S1/20261109T151200083Z/tests",
+    "tree": "cc924cc30488ad4916612c8180737c78ca5058cd"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "da67e50add9ca45ee3d438049fbbf2d410c859ca"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "da67e50add9ca45ee3d438049fbbf2d410c859ca"
+  }
+}

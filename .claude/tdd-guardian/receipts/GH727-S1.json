@@ -1,0 +1,42 @@
+{
+  "id": "GH727-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:12:00.083Z",
+  "head_sha": "b795862b8af3481bad666cf63ab88889588bad36",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/gh727-spawn-budget.test.ts": {
+      "state": "ok",
+      "sha": "2eebd6380c0dccdf420b3bc9465f99c35c32cbe129a5f1d08f3e3c9deb9d17ad",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "bbb340a877bee134",
+        "9c94784f8cfa14e6",
+        "9891d7e9356a4fa6",
+        "b7c4acd8db4eec6a",
+        "2ea8fc6c84ece476",
+        "ac26a4c84ae367b5",
+        "5edc7bc014851c21",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T15:12:13.262Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:27:46.236Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-lint.test.ts\",\"GH727 spawn-timeout baseline (full scan)\",\"is a ratchet: at its count passes, above fails, below or for a missing file is stale, malformed throws\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-lint.test.ts",
+        "line": 202
+      },
+      "message": "AssertionError: expected { at: +0, above: [ +0, false ], …(3) } to deeply equal { at: +0, above: [ 1, true ], …(3) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S16/20261109T152746236Z/tests",
+    "tree": "2ed97aff6f36a71c92cb85713b63d620a710ae74"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "f81c480a76602fa5b2a7c8dfa7682403d48b2ec8"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "f81c480a76602fa5b2a7c8dfa7682403d48b2ec8"
+  }
+}

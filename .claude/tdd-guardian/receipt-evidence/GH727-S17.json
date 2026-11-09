@@ -1,0 +1,34 @@
+{
+  "id": "GH727-S17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:33:17.613Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-inventory.test.ts\",\"GH727 spawn-timeout inventory (real repository)\",\"the baseline lists exactly the lint's count per file, and no AC-1 file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-inventory.test.ts",
+        "line": 32
+      },
+      "message": "AssertionError: expected [ {}, [] ] to deeply equal [ { …(132) }, [] ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S17/20261109T153317613Z/tests",
+    "tree": "35a420da412bc8f1da774df7073a1c89feb55c22"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-inventory.test.ts": "1931d2f51cc4cececef42cb7867e83ea2464d50b"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-inventory.test.ts": "98122ee15db9d635d6472bf99c56a9131aa2bd00"
+  },
+  "evidence_required": true
+}

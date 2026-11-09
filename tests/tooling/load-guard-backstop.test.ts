@@ -5,12 +5,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
+import { registeredWrapperScenario } from "../support/loadGuardRegistered";
+import { spawnBudget } from "../support/spawnBudget";
 
 const backstop = path.resolve("scripts/load-guard/backstop.py");
 const wrapperScript = path.resolve("scripts/heavy-lock.sh");
 const installer = path.resolve("scripts/load-guard/install.py");
 
-it("stops an unwrapped allowlisted runner after two critical readings", async () => {
+// GH727: worst alone 1 884 ms.
+it("stops an unwrapped allowlisted runner after two critical readings", async ({ signal }) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "load-backstop-"));
   const child = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
   try {
@@ -26,12 +29,12 @@ it("stops an unwrapped allowlisted runner after two critical readings", async ()
       MDPRO_LOAD_GUARD_PROCESSES: processes, MDPRO_LOAD_GUARD_SAMPLER: sampler,
       MDPRO_LOAD_GUARD_LOG: path.join(dir, "log"), MDPRO_LOAD_GUARD_ACTIVE: path.join(dir, "active"),
       MDPRO_LOAD_GUARD_STATE: path.join(dir, "state.json") };
-    const first = (await runChild("python3", [backstop, "--once"], { env, encoding: "utf8" }));
+    const first = (await runChild("python3", [backstop, "--once"], { env, encoding: "utf8", signal }));
     expect(first.status).toBe(0);
     expect(() => process.kill(pid, 0)).not.toThrow();
-    const second = (await runChild("python3", [backstop, "--once"], { env, encoding: "utf8" }));
+    const second = (await runChild("python3", [backstop, "--once"], { env, encoding: "utf8", signal }));
     expect(second.status).toBe(0);
-    await waitForExit(child);
+    await waitForExit(child, signal);
     expect(() => process.kill(pid, 0)).toThrow();
     const records = fs.readFileSync(path.join(dir, "log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(records.filter((record) => record.event === "stop")).toHaveLength(1);
@@ -42,57 +45,28 @@ it("stops an unwrapped allowlisted runner after two critical readings", async ()
     try { process.kill(-child.pid!, "SIGKILL"); } catch { /* already gone */ }
     fs.rmSync(dir, { recursive: true, force: true });
   }
-});
+}, spawnBudget(1_884));
 
-it("leaves a registered wrapper to stop itself while stopping an unwrapped runner", async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "load-backstop-together-"));
-  const active = path.join(dir, "active");
-  const log = path.join(dir, "log");
-  const wrapperSampler = path.join(dir, "wrapper-sampler");
-  const backstopSampler = path.join(dir, "backstop-sampler");
-  const counter = path.join(dir, "counter");
-  fs.writeFileSync(wrapperSampler, `#!/bin/sh\nif [ ! -e '${counter}' ]; then touch '${counter}'; echo '1 0 16'; else echo '4 0 16'; fi\n`, { mode: 0o700 });
-  fs.writeFileSync(backstopSampler, "#!/bin/sh\necho '4 0 16'\n", { mode: 0o700 });
-  const common = { ...process.env, MDPRO_HEAVY_LOCK_HELD: undefined, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,
-    MDPRO_LOAD_GUARD_ACTIVE: active, MDPRO_LOAD_GUARD_LOG: log };
-  const wrapped = spawn(wrapperScript, ["/bin/bash", "-c", "sleep 5"], {
-    env: { ...common, MDPRO_HEAVY_LOCK: path.join(dir, "lock"), MDPRO_LOAD_GUARD_SAMPLER: wrapperSampler,
-      MDPRO_LOAD_GUARD_INTERVAL_SECS: "0.8" }, stdio: "ignore",
-  });
-  const loose = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
-  try {
-    const deadline = Date.now() + 3000;
-    while ((!fs.existsSync(active) || fs.readdirSync(active).length === 0) && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-    expect(fs.readdirSync(active).length).toBe(1);
-    const registration = JSON.parse(fs.readFileSync(path.join(active, fs.readdirSync(active)[0]), "utf8"));
-    const processes = path.join(dir, "processes.json");
-    fs.writeFileSync(processes, JSON.stringify([registration.pgid, loose.pid].map((pid) => ({
-      pid, ppid: process.pid, pgid: pid, uid: process.getuid!(), cwd: dir,
-      command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " +
-        path.join(dir, "Packages/PicseeKit/.build/debug/PicseeKitPackageTests.xctest"),
-    }))));
-    const env = { ...common, MDPRO_LOAD_GUARD_SAMPLER: backstopSampler, MDPRO_LOAD_GUARD_PROCESSES: processes,
-      MDPRO_LOAD_GUARD_STATE: path.join(dir, "state") };
-    expect((await runChild("python3", [backstop, "--once"], { env })).status).toBe(0);
-    expect((await runChild("python3", [backstop, "--once"], { env })).status).toBe(0);
-    expect(() => process.kill(registration.pid, 0)).not.toThrow();
-    await waitForExit(loose);
-    expect(() => process.kill(loose.pid!, 0)).toThrow();
-    const code = await waitForExit(wrapped);
-    expect(code).toBe(76);
-    const records = fs.readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
-    expect(records.filter((record) => record.event === "stop")).toHaveLength(2);
-    expect(records.filter((record) => record.event === "stop" && record.cmd.startsWith("bash sha256:"))).toHaveLength(1);
-  } finally {
-    wrapped.kill("SIGTERM");
-    try { process.kill(-loose.pid!, "SIGKILL"); } catch { /* already gone */ }
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-}, 15000);
+const registeredOutcome = { registrations: 1, registeredAliveAfterTicks: true, looseStopped: true, wrapperCode: 76, stops: 2, wrapperStops: 1, looseStops: 1 };
 
-it("refuses a foreign launchd plist and round-trips only its own template", async () => {
+// GH727: worst alone 3 364 ms.
+it("leaves a registered wrapper to stop itself while stopping an unwrapped runner", async ({ signal }) => {
+  expect(await registeredWrapperScenario(0, signal)).toEqual(registeredOutcome);
+}, spawnBudget(3_364));
+
+// GH727 (#731): under load the two backstop ticks can land after the wrapper's own monitor has stopped it.
+// GH727: worst alone 5 449 ms.
+it("leaves a registered wrapper alive across backstop ticks 2.5 s apart", async ({ signal }) => {
+  expect(await registeredWrapperScenario(2_500, signal)).toEqual(registeredOutcome);
+}, spawnBudget(5_449));
+
+// GH727: worst alone 8 842 ms.
+it("leaves a registered wrapper alive across ticks further apart than the old 5 s wrapped command", async ({ signal }) => {
+  expect(await registeredWrapperScenario(6_000, signal)).toEqual(registeredOutcome);
+}, spawnBudget(8_842));
+
+// GH727: worst alone 238 ms.
+it("refuses a foreign launchd plist and round-trips only its own template", async ({ signal }) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "load-guard-install-"));
   const agents = path.join(home, "Library/LaunchAgents");
   const plist = path.join(agents, "com.mdpro.load-guard.plist");
@@ -100,22 +74,23 @@ it("refuses a foreign launchd plist and round-trips only its own template", asyn
   fs.writeFileSync(plist, "foreign plist bytes");
   const env = { ...process.env, HOME: home };
   try {
-    const refused = (await runChild("python3", [installer, "install"], { env, encoding: "utf8" }));
+    const refused = (await runChild("python3", [installer, "install"], { env, encoding: "utf8", signal }));
     expect(refused.status).toBe(1);
     expect(fs.readFileSync(plist, "utf8")).toBe("foreign plist bytes");
     fs.unlinkSync(plist);
-    const installed = (await runChild("python3", [installer, "install"], { env, encoding: "utf8" }));
+    const installed = (await runChild("python3", [installer, "install"], { env, encoding: "utf8", signal }));
     expect(installed.status).toBe(0);
     expect(fs.readFileSync(plist, "utf8")).toContain("mdpro-load-guard-managed");
-    const removed = (await runChild("python3", [installer, "uninstall"], { env, encoding: "utf8" }));
+    const removed = (await runChild("python3", [installer, "uninstall"], { env, encoding: "utf8", signal }));
     expect(removed.status).toBe(0);
     expect(fs.existsSync(plist)).toBe(false);
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }
-});
+}, spawnBudget(238));
 
-it("refuses a foreign plist that copies the managed marker", async () => {
+// GH727: worst alone 181 ms.
+it("refuses a foreign plist that copies the managed marker", async ({ signal }) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "load-guard-foreign-marker-"));
   const agents = path.join(home, "Library/LaunchAgents");
   const plist = path.join(agents, "com.mdpro.load-guard.plist");
@@ -124,16 +99,17 @@ it("refuses a foreign plist that copies the managed marker", async () => {
   fs.writeFileSync(plist, foreign);
   const env = { ...process.env, HOME: home };
   try {
-    expect((await runChild("python3", [installer, "install"], { env, encoding: "utf8" })).status).toBe(1);
+    expect((await runChild("python3", [installer, "install"], { env, encoding: "utf8", signal })).status).toBe(1);
     expect(fs.readFileSync(plist, "utf8")).toBe(foreign);
-    expect((await runChild("python3", [installer, "uninstall"], { env, encoding: "utf8" })).status).toBe(1);
+    expect((await runChild("python3", [installer, "uninstall"], { env, encoding: "utf8", signal })).status).toBe(1);
     expect(fs.readFileSync(plist, "utf8")).toBe(foreign);
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }
-});
+}, spawnBudget(181));
 
-it("keeps one wrapper stop record when the wrapper crosses its threshold before the backstop", async () => {
+// GH727: worst alone 2 558 ms.
+it("keeps one wrapper stop record when the wrapper crosses its threshold before the backstop", async ({ signal }) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "load-wrapper-first-"));
   const sampler = path.join(dir, "sampler");
   const counter = path.join(dir, "admitted");
@@ -145,7 +121,7 @@ it("keeps one wrapper stop record when the wrapper crosses its threshold before 
     MDPRO_LOAD_GUARD_INTERVAL_SECS: "0.05" };
   const loose = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
   try {
-    const wrapped = await runChild(wrapperScript, ["/bin/sleep", "5"], { env, timeout: 5000 });
+    const wrapped = await runChild(wrapperScript, ["/bin/sleep", "5"], { env, timeout: 5000, signal });
     expect(wrapped.status).toBe(76);
     expect(fs.existsSync(env.MDPRO_HEAVY_LOCK)).toBe(false);
     expect(fs.readdirSync(env.MDPRO_LOAD_GUARD_ACTIVE)).toEqual([]);
@@ -154,9 +130,9 @@ it("keeps one wrapper stop record when the wrapper crosses its threshold before 
       uid: process.getuid!(), cwd: dir, command: "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "PicseeKitPackageTests.xctest") }]));
     const backEnv = { ...env, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,
       MDPRO_LOAD_GUARD_PROCESSES: processes, MDPRO_LOAD_GUARD_STATE: path.join(dir, "state") };
-    expect((await runChild("python3", [backstop, "--once"], { env: backEnv })).status).toBe(0);
-    expect((await runChild("python3", [backstop, "--once"], { env: backEnv })).status).toBe(0);
-    await waitForExit(loose);
+    expect((await runChild("python3", [backstop, "--once"], { env: backEnv, signal })).status).toBe(0);
+    expect((await runChild("python3", [backstop, "--once"], { env: backEnv, signal })).status).toBe(0);
+    await waitForExit(loose, signal);
     expect(() => process.kill(loose.pid!, 0)).toThrow();
     const records = fs.readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(records.filter((r) => r.event === "stop")).toHaveLength(2);
@@ -166,4 +142,4 @@ it("keeps one wrapper stop record when the wrapper crosses its threshold before 
     await waitForExit(loose);
     fs.rmSync(dir, { recursive: true, force: true });
   }
-});
+}, spawnBudget(2_558));

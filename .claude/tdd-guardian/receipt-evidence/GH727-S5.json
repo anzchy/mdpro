@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:16:47.589Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-budget.test.ts\",\"runChild cancellation\",\"kills a child that ignores TERM after a short grace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-budget.test.ts",
+        "line": 81
+      },
+      "message": "AssertionError: expected { settled: 'rejected', gone: false } to deeply equal { settled: 'rejected', gone: true }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S5/20261109T151647589Z/tests",
+    "tree": "6ab697041da377054c482d14e5e0220126a5c40f"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "1c85e3c40e8e0c521c0899ead67dd72c46f4b4ff"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "1c85e3c40e8e0c521c0899ead67dd72c46f4b4ff"
+  }
+}

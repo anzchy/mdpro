@@ -16,6 +16,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type BuildMacProject, createBuildMacProject, VERSION } from '../support/buildMacHarness';
 import { skipUnlessMac } from '../support/buildMacHarness';
+import { spawnBudget } from '../support/spawnBudget';
 
 let project: BuildMacProject;
 let stubLog: string;
@@ -28,6 +29,13 @@ beforeEach(() => {
 afterEach(() => {
   project.cleanup();
 });
+
+/**
+ * GH727: every test here spawns build-mac.sh synchronously through project.run, capped at 30 s by the harness, so
+ * no signal can stop it mid-run; the cap stops it instead. Each test's budget is the file's worst alone run
+ * (4 740 ms), which comes to 50 s and outlasts that cap plus the rustc probe's own cap.
+ */
+const PROBE_TIMEOUT_MS = 10_000;
 
 // D193: build-mac.sh is a macOS-only script (BSD stat/find, .app/.dmg bundles).
 skipUnlessMac();
@@ -57,7 +65,7 @@ describe('D183 control: a consistent, fresh build', () => {
     expect(out).toMatch(/Build complete/);
     expect(dmgLine(out)).toContain(`mdpro_${VERSION}_aarch64.dmg`);
     expect(stubCalls()).toContain('pnpm tauri build');
-  });
+  }, spawnBudget(4_740));
 });
 
 describe('D183 (a) rustc prerequisite', () => {
@@ -70,7 +78,7 @@ describe('D183 (a) rustc prerequisite', () => {
       symlinkSync(join(project.stubBin, name), join(noRust, name));
     }
     const path = [noRust, '/usr/bin', '/bin'].join(':');
-    const probe = spawnSync('/bin/sh', ['-c', 'command -v rustc'], { env: { PATH: path } });
+    const probe = spawnSync('/bin/sh', ['-c', 'command -v rustc'], { env: { PATH: path }, timeout: PROBE_TIMEOUT_MS });
     expect(probe.status, 'precondition: no rustc on the test PATH').not.toBe(0);
 
     const { status, out } = run({ STUB_TAURI: 'dmg' }, path);
@@ -78,7 +86,7 @@ describe('D183 (a) rustc prerequisite', () => {
     expect(out).toMatch(/rustc not found/);
     expect(out).not.toMatch(/Build complete/);
     expect(installedOrBuilt()).toEqual([]);
-  });
+  }, spawnBudget(4_740));
 });
 
 describe('D183 (b) newest DMG wins', () => {
@@ -104,7 +112,7 @@ describe('D183 (b) newest DMG wins', () => {
     const line = dmgLine(out);
     expect(line.endsWith(join(project.bundle, 'dmg', newest))).toBe(true);
     expect(out).not.toContain(join(project.bundle, 'dmg', older));
-  });
+  }, spawnBudget(4_740));
 });
 
 describe('D183 (c) the .app must come from this build', () => {
@@ -114,20 +122,20 @@ describe('D183 (c) the .app must come from this build', () => {
     expect(status).not.toBe(0);
     expect(out).toMatch(/mdpro\.app is stale/);
     expect(out).not.toMatch(/Build complete/);
-  });
+  }, spawnBudget(4_740));
 
   it('still fails as not found when there is no mdpro.app at all', () => {
     const { status, out } = run({ STUB_TAURI: 'dmg-noapp' });
     expect(status).not.toBe(0);
     expect(out).toMatch(/mdpro\.app not found/);
-  });
+  }, spawnBudget(4_740));
 
   it('accepts an app whose main binary this build rewrote, even if Info.plist is old', () => {
     project.placeStaleBuild();
     const { status, out } = run({ STUB_TAURI: 'dmg-binonly' });
     expect(status).toBe(0);
     expect(out).toMatch(/Build complete/);
-  });
+  }, spawnBudget(4_740));
 });
 
 describe('D183 (d) one version, or a named mismatch', () => {
@@ -145,7 +153,7 @@ describe('D183 (d) one version, or a named mismatch', () => {
     expect(out).toContain('tauri.conf.json');
     expect(out).not.toMatch(/DMG not found/);
     expect(installedOrBuilt()).toEqual([]);
-  });
+  }, spawnBudget(4_740));
 
   it('follows a tauri.conf.json version that is a path to a JSON file, and names a mismatch there', () => {
     project.writeProjectFile('src-tauri/version.json', JSON.stringify({ version: '9.8.9' }));
@@ -158,7 +166,7 @@ describe('D183 (d) one version, or a named mismatch', () => {
     expect(out).toContain('9.8.9');
     expect(out).toContain('9.8.7');
     expect(installedOrBuilt()).toEqual([]);
-  });
+  }, spawnBudget(4_740));
 
   it('accepts a tauri.conf.json version that is a path to package.json', () => {
     project.writeProjectFile(
@@ -168,7 +176,7 @@ describe('D183 (d) one version, or a named mismatch', () => {
     const { status, out } = run({ STUB_TAURI: 'dmg' });
     expect(status).toBe(0);
     expect(out).toMatch(/Build complete/);
-  });
+  }, spawnBudget(4_740));
 
   it('falls back to Cargo.toml when tauri.conf.json has no version, and names a mismatch there', () => {
     project.writeProjectFile('src-tauri/tauri.conf.json', JSON.stringify({ productName: 'mdpro' }));
@@ -181,12 +189,12 @@ describe('D183 (d) one version, or a named mismatch', () => {
     expect(out).toContain('9.8.6');
     expect(out).toContain('Cargo.toml');
     expect(installedOrBuilt()).toEqual([]);
-  });
+  }, spawnBudget(4_740));
 
   it('accepts no tauri.conf.json version when Cargo.toml agrees with package.json', () => {
     project.writeProjectFile('src-tauri/tauri.conf.json', JSON.stringify({ productName: 'mdpro' }));
     const { status, out } = run({ STUB_TAURI: 'dmg' });
     expect(status).toBe(0);
     expect(out).toMatch(/Build complete/);
-  });
+  }, spawnBudget(4_740));
 });

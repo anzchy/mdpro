@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S18",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:34:40.788Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-ac1-budgets.test.ts\",\"GH727 AC-1 budgets and cancellation\",\"adr141-ci-inventory: measured budgets, profile cancels, and the issue-725 case outlasts its three 5 s probes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-ac1-budgets.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected [ [ …(2) ], [ …(4) ], +0, false ] to deeply equal [ [], [], 2, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S18/20261109T153440788Z/tests",
+    "tree": "5e66a8cb0554b1e542558740d5b72ebafb3af588"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "5edd01e1dfc326b3a0f6acae4304e9f86d4bd862"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "5edd01e1dfc326b3a0f6acae4304e9f86d4bd862"
+  }
+}

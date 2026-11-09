@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S19b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:38:11.005Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-ac1-budgets.test.ts\",\"GH727 AC-1 budgets and cancellation\",\"adr0141-wi2-route-guard: a measured budget on each describe, and run() cancels through the test's signal\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-ac1-budgets.test.ts",
+        "line": 86
+      },
+      "message": "AssertionError: expected [ [ …(30) ], [ …(30) ], +0, false ] to deeply equal [ [], [], 2, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S19b/20261109T153811005Z/tests",
+    "tree": "d5861d0e8a5ccb4138e20d963d47188a397b1ed7"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "e44e1417bdc20b8766b29f5775ec6e75a907664b"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "e44e1417bdc20b8766b29f5775ec6e75a907664b"
+  }
+}

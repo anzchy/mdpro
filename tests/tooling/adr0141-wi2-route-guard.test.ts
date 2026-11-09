@@ -1,22 +1,24 @@
 // @vitest-environment node
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { runChild } from "../support/loadGuardChild";
+import { spawnBudget } from "../support/spawnBudget";
 
 const scripts = path.resolve(".agents/skills/mdpro-delegator/scripts");
 const dirs: string[] = [];
 
-function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(file, args, { env });
-    let stdout = "", stderr = "";
-    child.stdout.on("data", (part: Buffer) => { stdout += part.toString(); });
-    child.stderr.on("data", (part: Buffer) => { stderr += part.toString(); });
-    child.on("error", reject);
-    child.on("close", (code) => resolve({ code: code ?? -1, stdout, stderr }));
-  });
+/**
+ * The running test's signal (GH727). Most tests here are `it.each`, whose callbacks get no test context, so a hook
+ * takes it from the context it shares with the test; a timeout then stops the script and its children.
+ */
+let testSignal: AbortSignal | undefined;
+beforeEach(({ signal }) => { testSignal = signal; });
+
+async function run(file: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ code: number; stdout: string; stderr: string }> {
+  const result = await runChild(file, args, { env, signal: testSignal });
+  return { code: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
 }
 
 function harness(kind: "codex" | "claude" = "codex", name = "gpt-imple-2") {
@@ -77,7 +79,8 @@ if (op[0] === "agent" && op[1] === "get") {
 
 afterEach(() => { for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
 
-describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 delegator route (requires macos zsh)", () => {
+// GH727: worst alone 1 921 ms for one test here.
+describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 delegator route (requires macos zsh)", { timeout: spawnBudget(1_921) }, () => {
   it("accepts a regular delegator overlay on Codex", async () => {
     const h = harness();
     const result = await h.route();
@@ -136,7 +139,8 @@ describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 delegator route (req
   });
 });
 
-describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard (requires macos zsh)", () => {
+// GH727: worst alone 3 818 ms for one test here (focused run; 3 380 ms in a solo run of the file).
+describe.skipIf(process.platform !== "darwin")("ADR0141 WI2 target prompt guard (requires macos zsh)", { timeout: spawnBudget(3_818) }, () => {
   it.each([["gpt-imple-2", "implementor"], ["opus-imple-1", "implementor"], ["gpt-auditor", "auditor"]])("prompts %s with its %s overlay and fresh pane", async (name, role) => {
     const h = harness("codex", name);
     fs.writeFileSync(h.targetOverlay, `# Local mdpro role: ${role}\n`);

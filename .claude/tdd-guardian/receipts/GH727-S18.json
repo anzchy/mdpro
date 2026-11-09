@@ -1,0 +1,93 @@
+{
+  "id": "GH727-S18",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:34:40.788Z",
+  "head_sha": "62c05491016015b19f77a558b6eb33188ff580d2",
+  "dirty_source": [
+    ".claude/settings.json",
+    "scripts/lint/gh727-spawn-timeout-baseline.json",
+    "scripts/lint/spawn-timeouts.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": {
+      "state": "ok",
+      "sha": "9014d30e7f35a89bb25949c9b7d6671e7386a9b72393aa83d8059e3fb1b7876c",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "65073e5489b6470c",
+        "efdc7ec8b574abe2",
+        "5f3c1b3b296c4aca",
+        "ed9623369ff082ab",
+        "87dda682347c848f",
+        "c110ad21c643bc95",
+        "9c94784f8cfa14e6",
+        "9891d7e9356a4fa6",
+        "3c98a61d0caf572d",
+        "5fcf25a0cb6a8b0e",
+        "c42fcaf8dfc046c9",
+        "70efe70e5accbbbc",
+        "21057b9cc41e3123",
+        "a3284b5e4f187753",
+        "a7cb88b02ee38ee6",
+        "7528ea780bae7a5f",
+        "ac96b6af912f3186",
+        "62f000bbd8e550bb",
+        "20b420810a1460b5",
+        "9ff58aeed0b93af4",
+        "794c37a61902becb",
+        "fa22bc7866e1ba94",
+        "4241c5c01ed9de47",
+        "d309c0620de489be",
+        "fb2f96903ef5fdb4",
+        "df3982fd61017359",
+        "ea2e73678cc0f7f7",
+        "0e55dbb8501cd213",
+        "dae11bfdf2ace7b1",
+        "1abc838cf46bd601",
+        "d31eac9f13879635",
+        "72a9ba1f276d7726",
+        "cb6c885ee53e99ba",
+        "6b1d5233f01d443d",
+        "8c87f90fdef31470",
+        "603ed66ec105f8e7",
+        "deee73f9bd4389de",
+        "960cc436df23ec7a",
+        "68d4714d727ba769",
+        "d10b36aa74a59bcf",
+        "a9bf5a3681d9bdbe",
+        "df3982fd61017359",
+        "5595ad9c8f061e5f",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf",
+        "16f3e2df524361e9",
+        "df3982fd61017359",
+        "52ee385135ee9506",
+        "e6b357e517d36d57",
+        "d10b36aa74a59bcf",
+        "b9469aad1cc902b0",
+        "be29f77d4432b710",
+        "8105300d81ce2f17",
+        "8cdd38d418474094",
+        "11d04b56e73f15b7",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T15:35:02.595Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "3 non-test file(s) were already modified when the red was recorded (.claude/settings.json, scripts/lint/gh727-spawn-timeout-baseline.json, scripts/lint/spawn-timeouts.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

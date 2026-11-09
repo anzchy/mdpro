@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S21",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:40:58.601Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-ac1-budgets.test.ts\",\"GH727 AC-1 budgets and cancellation\",\"d183-build-mac-product-checks: each budget outlasts the 30 s synchronous build cap plus its probe, and the probe is capped\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-ac1-budgets.test.ts",
+        "line": 100
+      },
+      "message": "AssertionError: expected [ [ …(11) ], [ …(11) ], +0, [], …(1) ] to deeply equal [ [], [], 11, [], [] ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S21/20261109T154058601Z/tests",
+    "tree": "95d3f7e63ddcec01e26243511413fa082cea7d9c"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "aee636d9dbd71ffe28f681e4d473fb377b28450b"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "aee636d9dbd71ffe28f681e4d473fb377b28450b"
+  }
+}

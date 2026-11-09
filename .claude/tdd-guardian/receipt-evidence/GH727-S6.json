@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:20:07.868Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-budget.test.ts\",\"waitForExit cancellation\",\"rejects promptly on abort and stops the background child\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-budget.test.ts",
+        "line": 92
+      },
+      "message": "AssertionError: expected { settled: 'pending', gone: false } to deeply equal { settled: 'rejected', gone: true }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S6/20261109T152007868Z/tests",
+    "tree": "612f4f16e01d4ba0d90e9ebfe8b8463e4335690a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "99d301a2cd44cea298cb6115ac5067514e399f4d"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "99d301a2cd44cea298cb6115ac5067514e399f4d"
+  }
+}

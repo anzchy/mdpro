@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:26:12.295Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-lint.test.ts\",\"GH727 spawn-timeout lint\",\"follows a spawn inside an exported object method and an exported class method\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-lint.test.ts",
+        "line": 137
+      },
+      "message": "AssertionError: expected [ '3' ] to deeply equal [ '3', '4' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S14/20261109T152612295Z/tests",
+    "tree": "46ce82024ad1f3e6042e6578e7943262e5358a26"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "b48d0aa84d94b61944a53e934e6cc5412fea1cbc"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "b48d0aa84d94b61944a53e934e6cc5412fea1cbc"
+  }
+}

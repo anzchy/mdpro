@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:12:41.441Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-budget.test.ts\",\"spawnBudget\",\"refuses a measurement that is not a finite, non-negative number\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-budget.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected function to throw an error, but it didn't"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S2/20261109T151241441Z/tests",
+    "tree": "c565e2998e0d8e848009365a4bcf7dfb7e7252df"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "8ea19e5ff04a60960bf248d4f58b72c3232085a8"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-budget.test.ts": "8ea19e5ff04a60960bf248d4f58b72c3232085a8"
+  }
+}

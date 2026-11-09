@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S20",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:39:37.040Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-ac1-budgets.test.ts\",\"GH727 AC-1 budgets and cancellation\",\"load-guard-build-only: a measured budget, and every backstop tick cancels through the test's signal\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-ac1-budgets.test.ts",
+        "line": 91
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal [ [], [], 1 ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S20/20261109T153937040Z/tests",
+    "tree": "1bac48fdf314803b8e3d017ba1607f15a1b08568"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "b7a03ed8124c81f1a46f8bcb7d2743046661db54"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-ac1-budgets.test.ts": "b7a03ed8124c81f1a46f8bcb7d2743046661db54"
+  }
+}

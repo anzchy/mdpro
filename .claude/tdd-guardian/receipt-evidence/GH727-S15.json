@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:26:48.961Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-lint.test.ts\",\"GH727 spawn-timeout lint\",\"applies only to test files under tests/tooling, at any depth\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-lint.test.ts",
+        "line": 168
+      },
+      "message": "AssertionError: expected [ 1, 1, 1, 1 ] to deeply equal [ 1, +0, +0, +0 ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S15/20261109T152648961Z/tests",
+    "tree": "265cdfab212234d68abb0a3698a952c5eca2867a"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "ca234a4393c4f90c3dada2294b9bfd304ff16947"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "ca234a4393c4f90c3dada2294b9bfd304ff16947"
+  }
+}

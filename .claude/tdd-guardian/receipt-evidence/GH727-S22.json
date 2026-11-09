@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S22",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:43:14.723Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/load-guard-backstop.test.ts\",\"leaves a registered wrapper alive across backstop ticks 2.5 s apart\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/load-guard-backstop.test.ts",
+        "line": 98
+      },
+      "message": "AssertionError: expected { registrations: 1, …(6) } to deeply equal { registrations: 1, …(6) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S22/20261109T154314723Z/tests",
+    "tree": "96a2b19ca063a00d03765f58727cae4e6c20b3fb"
+  },
+  "spec_blobs": {
+    "tests/tooling/load-guard-backstop.test.ts": "c7fb31e4338ec0555c0dab6ca236279815457178"
+  },
+  "settled_blobs": {
+    "tests/tooling/load-guard-backstop.test.ts": "c7fb31e4338ec0555c0dab6ca236279815457178"
+  }
+}

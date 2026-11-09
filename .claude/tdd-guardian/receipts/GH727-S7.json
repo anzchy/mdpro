@@ -1,0 +1,60 @@
+{
+  "id": "GH727-S7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:21:12.849Z",
+  "head_sha": "62c05491016015b19f77a558b6eb33188ff580d2",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": {
+      "state": "ok",
+      "sha": "b2cfdec40355436888e48f243a41ca0c571f94989b6f29d96be7916de52f01d0",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "11488fb84567e9f4",
+        "87dda682347c848f",
+        "a3e95cbcbbc4ff46",
+        "aa2bc7cd756da3c4",
+        "ba1d5e5e043b05ff",
+        "3c98a61d0caf572d",
+        "5fcf25a0cb6a8b0e",
+        "be62f15a8939a66c",
+        "a218024b8b4d8f52",
+        "590d316090d21a2a",
+        "9c51703f06a7ff64",
+        "383d0b182f1bb068",
+        "f4a6eaf6d7650544",
+        "108db7ca9480317f",
+        "ae9ea1d59e4b36b3",
+        "ddc42bb68443e58c",
+        "d10b36aa74a59bcf",
+        "1b394c8ee3bd667a",
+        "b389e8656558898c",
+        "d10b36aa74a59bcf",
+        "a50c5c3b331d5485",
+        "ef4c30c87bf39e83",
+        "c0ec2b2fc1079068",
+        "812a0d6230920d0b",
+        "6bb4b5d687d2b470",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T15:21:18.705Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

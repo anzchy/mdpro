@@ -1,9 +1,10 @@
 // @vitest-environment node
-import { execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { runChild } from "../support/loadGuardChild";
+import { spawnBudget } from "../support/spawnBudget";
 // @ts-expect-error -- plain ESM repository script has no declaration file
 import { compare } from "../../scripts/ci/compare-report.mjs";
 // @ts-expect-error -- plain ESM repository script has no declaration file
@@ -25,12 +26,10 @@ function report(status: "passed" | "skipped") {
   }] };
 }
 
-function profile(env: NodeJS.ProcessEnv) {
-  return new Promise<{ status: number; stdout: string }>(resolve => {
-    execFile(process.execPath, [profileScript], { cwd: root, env, encoding: "utf8" }, (error, stdout) => {
-      resolve({ status: error ? 1 : 0, stdout });
-    });
-  });
+/** Runs the runner profile; the test's signal stops it and its children if the test times out (GH727). */
+async function profile(env: NodeJS.ProcessEnv, signal: AbortSignal) {
+  const result = await runChild(process.execPath, [profileScript], { env, signal });
+  return { status: result.status === 0 ? 0 : 1, stdout: result.stdout };
 }
 
 function fakeCodex(status: number) {
@@ -49,20 +48,23 @@ describe("ADR141 Codex CLI inventory prerequisite", () => {
     expect(() => compare("ci", report("skipped"), inventory, "ubuntu+rustfmt+codex-cli", root)).toThrow(/Unexpected skip/);
   });
 
-  it("measures a working Codex CLI on Linux and macOS", async () => {
+  // GH727: worst alone 5 004 ms (a 5 s default timeout under a solo run; focused worst passing 4 313 ms).
+  it("measures a working Codex CLI on Linux and macOS", async ({ signal }) => {
     for (const runnerOS of ["Linux", "macOS"]) {
       const base = runnerOS === "Linux" ? "ubuntu" : "macos";
       for (const [status, suffix] of [[0, "+codex-cli"], [1, ""]] as const) {
-        const result = await profile({ ...process.env, RUNNER_OS: runnerOS, HOME: temp, PATH: fakeCodex(status) });
+        const result = await profile({ ...process.env, RUNNER_OS: runnerOS, HOME: temp, PATH: fakeCodex(status) }, signal);
         expect(result.status).toBe(0);
         expect(result.stdout.trim()).toBe(base + suffix);
       }
-      const absent = await profile({ ...process.env, RUNNER_OS: runnerOS, HOME: temp, PATH: temp });
+      const absent = await profile({ ...process.env, RUNNER_OS: runnerOS, HOME: temp, PATH: temp }, signal);
       expect(absent.status).toBe(0);
       expect(absent.stdout.trim()).toBe(base);
     }
-  });
+  }, spawnBudget(5_004));
 
+  // GH727: worst alone 4 012 ms. Three synchronous probes, each capped at 5 s in verify-inventory.mjs, so the budget
+  // (45 s) outlasts all three; a probe that passes its own cap still returns false (the residual risk).
   it("local verifier probes Codex availability before its inventory run", () => {
     const prior = process.env.PATH;
     try {
@@ -75,7 +77,7 @@ describe("ADR141 Codex CLI inventory prerequisite", () => {
     } finally {
       process.env.PATH = prior;
     }
-  });
+  }, spawnBudget(4_012));
 
   it("registers exactly the 16 runtime policy checks under stable IDs", () => {
     const actual = JSON.parse(fs.readFileSync(path.join(root, "tests/ci-inventory.json"), "utf8")) as {
