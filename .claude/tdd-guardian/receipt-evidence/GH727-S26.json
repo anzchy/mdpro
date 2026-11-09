@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S26",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T16:00:55.427Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-native-missing-report.test.ts\",\"GH727 runNative without a readable out.json\",\"reports a truncated report as unreadable, with the same exit, tails and artifacts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-native-missing-report.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected [ false, false, false, false, false ] to deeply equal [ true, true, true, true, false ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S26/20261109T160055427Z/tests",
+    "tree": "31d21ea0892e41baef0821a43375959b4d6b6c13"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-native-missing-report.test.ts": "c7fdf1edf8400b4b674fdfe5cb452ae83d7c0dc6"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-native-missing-report.test.ts": "c7fdf1edf8400b4b674fdfe5cb452ae83d7c0dc6"
+  }
+}

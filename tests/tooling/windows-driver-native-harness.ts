@@ -5,6 +5,7 @@ import path from "node:path";
 import { dialogFakeSource } from "./windows-driver-native-dialog-fake";
 import { layoutFakeSource } from "./windows-driver-native-layout-fake";
 import { progressFakeSource, type ProgressScenario } from "./windows-driver-native-progress-fake";
+import { type NativeRun, readNativeReport } from "./windows-driver-native-report";
 
 const WINDOWS = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows");
 
@@ -282,18 +283,18 @@ $script:progressWrite = \${function:Write-Progress}; function Write-Progress { &
 export async function runNative(
   steps: unknown[], scenario: NativeScenario = {}, options: NativeOptions = {},
 ): Promise<{ status: number | null; log: string[]; trace: string[]; stderr: string }> {
-  const { scriptPath, stepsPath, outPath, tracePath } = await prepareNative(steps, scenario, options);
-  const result = await new Promise<{ status: number | null; stderr: string }>((done) => {
+  const { dir, scriptPath, stepsPath, outPath, tracePath } = await prepareNative(steps, scenario, options);
+  const run = await new Promise<NativeRun>((done) => {
     const child = spawn("pwsh", ["-NoProfile", "-File", scriptPath, "-Steps", stepsPath, "-Out", outPath, ...(options.phaseMs ? ["-PhaseMs", String(options.phaseMs)] : []), ...(options.deadlineMs ? ["-DeadlineMs", String(Date.now() + options.deadlineMs)] : [])], {
       env: { ...process.env, MDPRO_TEST_SCENARIO: JSON.stringify(scenario), MDPRO_TEST_TRACE: tracePath,
         MDPRO_TEST_TITLE: options.titlePath, MDPRO_CDP_PORT: options.cdpPort?.toString(),
         MDPRO_TEST_RECEIPT_NOW: options.receiptNow?.toString(), MDPRO_TEST_PROCESS_START: options.processStart },
     });
-    let stderr = "";
-    child.stderr.on("data", (data) => { stderr += String(data); });
-    child.on("close", (status) => done({ status, stderr }));
+    let stdout = "", stderr = "";
+    child.stdout.on("data", (data) => { stdout += String(data); }); child.stderr.on("data", (data) => { stderr += String(data); });
+    child.on("close", (status, signal) => done({ status, signal, stdout, stderr }));
   });
-  const log = JSON.parse(await readFile(outPath, "utf8")) as string | string[];
+  const log = await readNativeReport(run, dir, outPath);
   const trace = (await readFile(tracePath, "utf8")).split("\n").filter(Boolean);
-  return { ...result, log: Array.isArray(log) ? log : [log], trace };
+  return { status: run.status, stderr: run.stderr, log: Array.isArray(log) ? log : [log], trace };
 }

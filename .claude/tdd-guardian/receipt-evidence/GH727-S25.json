@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S25",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T16:00:25.948Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-native-missing-report.test.ts\",\"GH727 runNative without a readable out.json\",\"keeps only the last 2 000 characters of a flood of stderr, ending with its final line\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-native-missing-report.test.ts",
+        "line": 86
+      },
+      "message": "AssertionError: expected [ 100014, true, false ] to deeply equal [ 2000, true, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S25/20261109T160025948Z/tests",
+    "tree": "3ccdae15fb7e61938ee645899e7d7b2c117e944d"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-native-missing-report.test.ts": "9e918a3d499a09f1d6cacfaab4f9a6af1909dbdb"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-native-missing-report.test.ts": "9e918a3d499a09f1d6cacfaab4f9a6af1909dbdb"
+  }
+}

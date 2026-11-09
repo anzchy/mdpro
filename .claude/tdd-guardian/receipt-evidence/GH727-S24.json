@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S24",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T15:59:06.395Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-native-missing-report.test.ts\",\"GH727 runNative without a readable out.json\",\"reports the exit code, signal, both tails, the temp dir and the retained artifacts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-native-missing-report.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected [ false, false, false, false, …(2) ] to deeply equal [ true, true, true, true, true, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S24/20261109T155906395Z/tests",
+    "tree": "ad38de7a5fa92f6b5c44df173780492308edfbab"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-native-missing-report.test.ts": "05bd356e2920f02512714f29e150acb943d0c8c3"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-native-missing-report.test.ts": "05bd356e2920f02512714f29e150acb943d0c8c3"
+  }
+}
