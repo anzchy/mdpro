@@ -1,0 +1,33 @@
+{
+  "id": "GH706-WI-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:29:07.370Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-manifest.test.ts\",\"validates all real category-a records without changing any fixture byte\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-manifest.test.ts",
+        "line": 22
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-3/20261109T032907370Z/tests",
+    "tree": "203d4d72e0b0a53d6568c3918052d9ec101ce0b9"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-manifest.test.ts": "bbd96b41d7d50d8a44f5994f406278062e6a05b3"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-manifest.test.ts": "bbd96b41d7d50d8a44f5994f406278062e6a05b3"
+  }
+}

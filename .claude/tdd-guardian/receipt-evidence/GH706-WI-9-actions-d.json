@@ -1,0 +1,456 @@
+{
+  "id": "GH706-WI-9-actions-d",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:04:20.587Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"HTML-created nested list markers do not inherit parent )\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 98
+      },
+      "message": "AssertionError: expected '1) Parent\\n' to be '1) ParentA\\n   - B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"HTML-created nested list markers do not inherit parent *\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 98
+      },
+      "message": "AssertionError: expected '* Parent\\n' to be '* ParentA\\n  - B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"HTML-created nested list markers do not inherit parent +\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 98
+      },
+      "message": "AssertionError: expected '+ Parent\\n' to be '+ ParentA\\n  - B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"accepts a complete ZWJ grapheme and keeps decomposed Unicode exact\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 49
+      },
+      "message": "AssertionError: expected '👩\\u200d💻 é\\n' to be '👩\\u200d💻! é\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"addresses duplicate occurrence 2\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 37
+      },
+      "message": "AssertionError: expected 'beta beta\\n' to be 'beta beta!\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"addresses duplicate occurrence undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 37
+      },
+      "message": "AssertionError: expected 'beta beta\\n' to be 'beta! beta\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"addresses the second table without editing the first\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 111
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ 'A', '', 'B' ], [ 'C', '', 'D' ] ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"clears nested formatting while retaining the link target\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 76
+      },
+      "message": "AssertionError: expected 'keep **[<u>beta</u>](https://example.…' to be 'keep [beta](https://example.com) tail…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"converts list kind preserving nested content and spacing - A\\n  - B\\n- C\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 90
+      },
+      "message": "AssertionError: expected '- A\\n  - B\\n- C\\n' to be '1. A\\n   - B\\n2. C\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"converts list kind preserving nested content and spacing - A\\n\\n  - B\\n\\n- C\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 90
+      },
+      "message": "AssertionError: expected '- A\\n\\n  - B\\n\\n- C\\n' to be '1. A\\n\\n   - B\\n\\n2. C\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"converts list kind preserving nested content and spacing 1. A\\n   - B\\n2. C\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 90
+      },
+      "message": "AssertionError: expected '1. A\\n   - B\\n2. C\\n' to be '- A\\n  - B\\n- C\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"deletes across an encoded empty paragraph and joins only the selected blocks\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 46
+      },
+      "message": "AssertionError: expected 'left a\\n\\n\\n\\nb right\\n' to be 'left  right\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"deletes only the selected same-block text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 43
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep  tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"find obeys case=false word=false\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 157
+      },
+      "message": "AssertionError: expected '' to be 'beta' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"find obeys case=false word=true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 157
+      },
+      "message": "AssertionError: expected '' to be 'beta' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"find obeys case=true word=false\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 157
+      },
+      "message": "AssertionError: expected '' to be 'beta' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"find obeys case=true word=true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 157
+      },
+      "message": "AssertionError: expected '' to be 'beta' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"inserts insertTableColumn left at the named edge\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 107
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ '', 'A', 'B' ], [ '', 'C', 'D' ] ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"inserts insertTableColumn right at the named edge\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 107
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ 'A', 'B', '' ], [ 'C', 'D', '' ] ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"inserts insertTableRow above at the named edge\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 107
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ '', '' ], [ 'A', 'B' ], …(1) ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"inserts insertTableRow below at the named edge\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 107
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ 'A', 'B' ], [ 'C', 'D' ], …(1) ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"matches rendered text across mark boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 40
+      },
+      "message": "AssertionError: expected 'keep be**ta** tail\\n' to be 'keep  tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"new nested bullet containers use defaults inside parent )\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 174
+      },
+      "message": "AssertionError: expected '1) Parent\\n' to be '1) Parentlead\\n   - A\\n     - B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"new nested bullet containers use defaults inside parent *\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 174
+      },
+      "message": "AssertionError: expected '* Parent\\n' to be '* Parentlead\\n  - A\\n    - B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"new nested bullet containers use defaults inside parent +\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 174
+      },
+      "message": "AssertionError: expected '+ Parent\\n' to be '+ Parentlead\\n  - A\\n    - B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"new nested ordered containers use defaults inside parent )\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 179
+      },
+      "message": "AssertionError: expected '1) Parent\\n' to be '1) Parentlead\\n   1. A\\n      1. B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"new nested ordered containers use defaults inside parent *\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 179
+      },
+      "message": "AssertionError: expected '* Parent\\n' to be '* Parentlead\\n  1. A\\n     1. B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"new nested ordered containers use defaults inside parent +\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 179
+      },
+      "message": "AssertionError: expected '+ Parent\\n' to be '+ Parentlead\\n  1. A\\n     1. B\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"pastes HTML cells into a named range in reading order\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 137
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ 'X', 'Y' ], [ 'Z', 'W' ] ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"pastes interior empty HTML paragraphs through the production parser\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 133
+      },
+      "message": "AssertionError: expected 'anchor\\n\\nTail\\n' to be 'anchorA\\n\\n\\n\\nB\\n\\nTail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"pastes plain content over a multi-cell range using production repetition\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 140
+      },
+      "message": "AssertionError: expected [ [ 'A', 'B' ], [ 'C', 'D' ] ] to deeply equal [ [ 'X', 'X' ], [ 'X', 'X' ] ]"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"pastes plain text through the clipboard path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 129
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep betaX tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"refuses a mixed table paste over cells without changing bytes or selection\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 150
+      },
+      "message": "AssertionError: expected { text: '' } to deeply equal { text: 'A\\nB\\nC\\nD' }"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"rejects invalid numeric cell coordinates and ranges without changing selection or bytes\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 124
+      },
+      "message": "Error: promise resolved \"undefined\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"rejects missing, split-grapheme, normalized, boundary and invalid occurrence anchors atomically\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 59
+      },
+      "message": "Error: promise resolved \"undefined\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"replaces all=false and undo restores bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 163
+      },
+      "message": "AssertionError: expected 'beta Beta betamax beta\\n\\nbeta\\n' to be 'X Beta betamax beta\\n\\nbeta\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"replaces all=true and undo restores bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 163
+      },
+      "message": "AssertionError: expected 'beta Beta betamax beta\\n\\nbeta\\n' to be 'X Beta betamax X\\n\\nX\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"sanitizes dangerous HTML in the live paste pipeline\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 145
+      },
+      "message": "AssertionError: expected 'anchor\\n' to contain 'safe'"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"supports multiline typing without losing adjacent text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 34
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep betaX\\n\\nY tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggleMark then undo restores bytes and anchored selection\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 83
+      },
+      "message": "AssertionError: expected { text: '' } to deeply equal { text: 'beta' }"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggles code on and off, preserving selection and surrounding text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 70
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep `beta` tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggles emphasis on and off, preserving selection and surrounding text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 70
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep *beta* tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggles highlight on and off, preserving selection and surrounding text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 70
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep ==beta== tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggles strike on and off, preserving selection and surrounding text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 70
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep ~~beta~~ tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggles strong on and off, preserving selection and surrounding text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 70
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep **beta** tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"toggles underline on and off, preserving selection and surrounding text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 70
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep <u>beta</u> tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"types at the after edge\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 31
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep betaX tail\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-actions.any.test.tsx\",\"types at the before edge\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-actions.any.test.tsx",
+        "line": 31
+      },
+      "message": "AssertionError: expected 'keep beta tail\\n' to be 'keep Xbeta tail\\n' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-9-actions-d/20261109T030420587Z/tests",
+    "tree": "15426dd6d35c62b365db4ac25326ee482815b396"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-driver-actions.any.test.tsx": "9c50622d65cb035ce3fbd6724777b21829c08b36"
+  },
+  "settled_blobs": {
+    "tests/corpus-a-driver-actions.any.test.tsx": "9c50622d65cb035ce3fbd6724777b21829c08b36"
+  }
+}

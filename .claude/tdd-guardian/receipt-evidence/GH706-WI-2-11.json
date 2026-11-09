@@ -1,0 +1,141 @@
+{
+  "id": "GH706-WI-2-11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:19:28.960Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"a desired negative fails against the baseline even during an alternate-engine run\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 34
+      },
+      "message": "AssertionError: expected { untouched: 'A beta\\n', …(2) } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"corruptSerialized preserves independently observed data by value without aliasing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected 'A beta\\n' not to be 'A beta\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects a negative that changes nothing instead of reporting false evidence\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 48
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects an invalid negative payload without changing its input {\\\"kind\\\":\\\"alterByte\\\",\\\"offset\\\":-1}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects an invalid negative payload without changing its input {\\\"kind\\\":\\\"alterByte\\\",\\\"offset\\\":0.5}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects an invalid negative payload without changing its input {\\\"kind\\\":\\\"alterByte\\\",\\\"offset\\\":999}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects an invalid negative payload without changing its input {\\\"kind\\\":\\\"alterByte\\\",\\\"offset\\\":null}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects an invalid negative payload without changing its input {\\\"kind\\\":\\\"alterByte\\\",\\\"with\\\":\\\"字\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"rejects an invalid negative payload without changing its input {\\\"kind\\\":\\\"dropText\\\",\\\"text\\\":\\\"missing\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 43
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"wrongObservation changes only the observation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 28
+      },
+      "message": "AssertionError: expected { untouched: 'A beta\\n', …(2) } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"{ kind: 'alterByte', offset: 2, with: 'B' } changes only serialized bytes and makes the original comparison fail\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { untouched: 'A beta\\n', …(2) } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"{ kind: 'corruptSerialized', offset: +0, with: 'Z' } changes only serialized bytes and makes the original comparison fail\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { untouched: 'A beta\\n', …(2) } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    },
+    {
+      "id": "[\"tests/corpus-negatives.test.ts\",\"{ kind: 'dropText', text: 'beta' } changes only serialized bytes and makes the original comparison fail\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-negatives.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { untouched: 'A beta\\n', …(2) } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-2-11/20261109T031928960Z/tests",
+    "tree": "2440500aec8a4843eade52e45e94b147602e81af"
+  },
+  "spec_blobs": {
+    "tests/corpus-negatives.test.ts": "06357a13c566774fa52e9ef53ba44ffc1e4e2026"
+  },
+  "settled_blobs": {
+    "tests/corpus-negatives.test.ts": "06357a13c566774fa52e9ef53ba44ffc1e4e2026"
+  }
+}

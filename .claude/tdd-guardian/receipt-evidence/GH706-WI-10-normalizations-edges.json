@@ -1,0 +1,78 @@
+{
+  "id": "GH706-WI-10-normalizations-edges",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:38:14.782Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"normalization conservation across literal/container boundaries\",\"N2 counts gaps beside fenced literals at the containing level\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected 'a\\n\\n\\n```\\nx\\n```\\n\\n\\nb\\n' to be 'a\\n\\n```\\nx\\n```\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"normalization conservation across literal/container boundaries\",\"N3 strips document edges only, retaining internal gaps in \\\"a\\\\n\\\\n\\\\n\\\\n- x\\\\n\\\\n\\\\n\\\\nb\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 90
+      },
+      "message": "AssertionError: expected 'a\\n- x\\nb\\n' to be 'a\\n\\n\\n\\n- x\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"normalization conservation across literal/container boundaries\",\"N3 strips document edges only, retaining internal gaps in \\\"a\\\\n\\\\n\\\\n\\\\n<div>x</div>\\\\n\\\\n\\\\n\\\\nb\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 90
+      },
+      "message": "AssertionError: expected 'a\\n<div>x</div>\\nb\\n' to be 'a\\n\\n\\n\\n<div>x</div>\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"normalization conservation across literal/container boundaries\",\"N3 strips document edges only, retaining internal gaps in \\\"a\\\\n\\\\n\\\\n\\\\n> x\\\\n\\\\n\\\\n\\\\nb\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 90
+      },
+      "message": "AssertionError: expected 'a\\n> x\\nb\\n' to be 'a\\n\\n\\n\\n> x\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"normalization conservation across literal/container boundaries\",\"N3 strips document edges only, retaining internal gaps in \\\"a\\\\n\\\\n\\\\n\\\\n```\\\\nx\\\\n```\\\\n\\\\n\\\\n\\\\nb\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 90
+      },
+      "message": "AssertionError: expected 'a\\n```\\nx\\n```\\nb\\n' to be 'a\\n\\n\\n\\n```\\nx\\n```\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"normalization conservation across literal/container boundaries\",\"N5 rewrites an edge legacy paragraph without inventing its neighboring gaps\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected '<br />\\n\\na\\n\\n<br />\\n' to be '\\n\\na\\n\\n\\n' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10-normalizations-edges/20261109T023814782Z/tests",
+    "tree": "a596da1ada95796bbac7af11d8b83522b93f38d7"
+  },
+  "spec_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "cb6d1d721e51c38bce5e979af2a30d37938f6b75"
+  },
+  "settled_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "cb6d1d721e51c38bce5e979af2a30d37938f6b75"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "GH706-WI-10-normalizations-special-html",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:43:26.839Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"protects special raw HTML block <!-- through its closing marker\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 118
+      },
+      "message": "AssertionError: expected '<!--\\na  \\nb\\n\\n\\n<br />\\n\\n| a | b |…' to be '<!--\\na  \\nb\\n\\n\\n<br />\\n\\n|a|b|\\n|-…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"protects special raw HTML block <![CDATA[ through its closing marker\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 118
+      },
+      "message": "AssertionError: expected '<![CDATA[\\na  \\nb\\n\\n\\n<br />\\n\\n| a …' to be '<![CDATA[\\na  \\nb\\n\\n\\n<br />\\n\\n|a|b…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"protects special raw HTML block <?instruction through its closing marker\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 118
+      },
+      "message": "AssertionError: expected '<?instruction\\na  \\nb\\n\\n\\n<br />\\n\\n…' to be '<?instruction\\na  \\nb\\n\\n\\n<br />\\n\\n…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"protects special raw HTML block <textarea> through its closing marker\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 118
+      },
+      "message": "AssertionError: expected '<textarea>\\na\\\\nb\\n\\n\\n<br />\\n\\n|a|b…' to be '<textarea>\\na  \\nb\\n\\n\\n<br />\\n\\n|a|…' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10-normalizations-special-html/20261109T024326839Z/tests",
+    "tree": "a4008293126dba113f2abd91b783c3cc3d08cc8e"
+  },
+  "spec_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "0a3d790f13ab11a413a0c7230a97991e5c0aab7f"
+  },
+  "settled_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "0a3d790f13ab11a413a0c7230a97991e5c0aab7f"
+  }
+}

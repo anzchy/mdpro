@@ -1,0 +1,168 @@
+{
+  "id": "GH706-WI-9-observations",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:02:13.243Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds DOM-only script, event handlers and refused URLs with safe serialized bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 73
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds serialized-only hazard ![x](file:///tmp/x)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 67
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds serialized-only hazard <a href=\\\"jav&#x61;script:bad()\\\">x</a>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 67
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds serialized-only hazard <img src=\\\"data:text/html,bad\\\">\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 67
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds serialized-only hazard <img src=\\\"x\\\" onerror=\\\"bad()\\\">\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 67
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds serialized-only hazard <script>bad()</script>\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 67
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"finds serialized-only hazard [x](javascript:bad)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-observations.any.test.tsx",
+        "line": 67
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"keeps an unresolved relative image unresolved after pristine Save As characterization\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-unsaved-images: observation imageSources is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"observes clean rendered and serialized paste surfaces\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation pasteSafety is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reads local, absolute and remote image resolution from the rendered DOM\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-images: observation imageSources is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reports a failed actual asset conversion as unresolved\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation imageSources is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reports absent rendered math while preserving inline and block math source\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation renderedMath is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reports complete find matches for caseSensitive=false wholeWord=false\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation find is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reports complete find matches for caseSensitive=false wholeWord=true\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation find is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reports complete find matches for caseSensitive=true wholeWord=false\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation find is not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-observations.any.test.tsx\",\"reports complete find matches for caseSensitive=true wholeWord=true\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/driverObservations.ts",
+        "line": 8
+      },
+      "message": "Error: a-driver-observations: observation find is not implemented"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-9-observations/20261109T030213243Z/tests",
+    "tree": "d166ac1ea782a3c036c4df1f5cfd386142bc38fa"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-driver-observations.any.test.tsx": "27040daad62b0c02a62dd0f711b06541c29241e7"
+  },
+  "settled_blobs": {
+    "tests/corpus-a-driver-observations.any.test.tsx": "27040daad62b0c02a62dd0f711b06541c29241e7"
+  }
+}

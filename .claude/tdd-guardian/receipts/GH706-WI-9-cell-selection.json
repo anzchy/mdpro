@@ -1,0 +1,41 @@
+{
+  "id": "GH706-WI-9-cell-selection",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:05:26.827Z",
+  "head_sha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-a-driver-cell-selection.any.test.tsx": {
+      "state": "ok",
+      "sha": "3f1b31d108331a059bd0d094e3fa678be50928af3a1b1a07f57763d04f3a7a9d",
+      "lines": [
+        "379b36c7e6eda995",
+        "ac9dd221cf1e1a2f",
+        "99f74486e98487d2",
+        "7772e26203b80556",
+        "61d56eb596b36a67",
+        "1e122abb00188170",
+        "7ed0d57e59cead75",
+        "22f8f1a82a3ab51b",
+        "d9fb5b232e920156",
+        "3051d4e3dd70d2bc",
+        "3525cd847ebdac02",
+        "72fdb0b299e25da1",
+        "f002dfeaa4941a90",
+        "ac6fea8e7cd7e456",
+        "c735cfa669018482",
+        "eade09ce0c640583",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": null,
+  "verdict": null,
+  "findings": []
+}

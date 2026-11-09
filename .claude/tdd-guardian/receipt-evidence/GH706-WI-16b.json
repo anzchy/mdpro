@@ -1,0 +1,176 @@
+{
+  "id": "GH706-WI-16b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:12:36.162Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"awaits exactly one external opener per click and resets observations on fresh mount\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes backslash authority refusal at the real guard from the live href\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes no-href as a cancelled bubbling click without logs or opener\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes real data scheme refusal without opening or changing bytes\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes real file scheme refusal without opening or changing bytes\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes real javascript scheme refusal without opening or changing bytes\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes real protocol relative scheme refusal without opening or changing bytes\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes resolved mismatch through a real hostile base without reclassifying raw URLs\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes same-app #part cancellation and ancestor bubbling\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"observes same-app ./doc.md cancellation and ancestor bubbling\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"rejects a rendered text anchor outside a link before any click effects\"]",
+      "kind": "assertion",
+      "location": null,
+      "message": "AssertionError: expected [Function] to throw error matching /j-links:.*link anchor/ but got 'j-links: j-links: activateLink unavai…'"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-links.any.test.tsx\",\"resolves the requested occurrence within marked link text\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/milkdownDriver.tsx",
+        "line": 55
+      },
+      "message": "Error: j-links: j-links: activateLink unavailable before WI5"
+    },
+    {
+      "id": "[\"tests/corpus-link-effects.test.ts\",\"classifies exact observed external effects\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/linkActivationEffects.ts",
+        "line": 9
+      },
+      "message": "Error: j-effects: unclassified activation"
+    },
+    {
+      "id": "[\"tests/corpus-link-effects.test.ts\",\"classifies exact observed missing href effects\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/linkActivationEffects.ts",
+        "line": 9
+      },
+      "message": "Error: j-effects: unclassified activation"
+    },
+    {
+      "id": "[\"tests/corpus-link-effects.test.ts\",\"classifies exact observed resolved refusal effects\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/linkActivationEffects.ts",
+        "line": 9
+      },
+      "message": "Error: j-effects: unclassified activation"
+    },
+    {
+      "id": "[\"tests/corpus-link-effects.test.ts\",\"classifies exact observed same app effects\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/linkActivationEffects.ts",
+        "line": 9
+      },
+      "message": "Error: j-effects: unclassified activation"
+    },
+    {
+      "id": "[\"tests/corpus-link-effects.test.ts\",\"classifies exact observed scheme refusal effects\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/linkActivationEffects.ts",
+        "line": 9
+      },
+      "message": "Error: j-effects: unclassified activation"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-16b/20261109T031236162Z/tests",
+    "tree": "a306d91f1a977ef695daac983afb9a7342c71edb"
+  },
+  "spec_blobs": {
+    "tests/corpus-link-effects.test.ts": "9d1a6c073d3ccbb4b990317a65ce9de8bc2a99fc",
+    "tests/corpus-a-driver-links.any.test.tsx": "0e2ab793bbefafd2b613887fdf9d1586ef330da3"
+  },
+  "settled_blobs": {
+    "tests/corpus-link-effects.test.ts": "9d1a6c073d3ccbb4b990317a65ce9de8bc2a99fc",
+    "tests/corpus-a-driver-links.any.test.tsx": "0e2ab793bbefafd2b613887fdf9d1586ef330da3"
+  }
+}

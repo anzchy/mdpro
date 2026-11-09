@@ -1,0 +1,105 @@
+{
+  "id": "GH706-WI-8b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:28:29.158Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"keeps tests reaching product source out of tooling, including through a local barrel\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 57
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"rejects misplaced or undiscoverable runner src/corpus-a-empty-paragraphs.any.test.tsx\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"rejects misplaced or undiscoverable runner tests/corpus-a-empty-paragraphs.linux.test.tsx\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"rejects misplaced or undiscoverable runner tests/corpus-a-empty-paragraphs.test.tsx\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"rejects misplaced or undiscoverable runner tests/corpus-z-empty-paragraphs.any.test.tsx\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"rejects misplaced or undiscoverable runner tests/nested/corpus-a-empty-paragraphs.any.test.tsx\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"rejects misplaced or undiscoverable runner tests/tooling/corpus-a-empty-paragraphs.any.test.tsx\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"requires platform injection before imports and rejects platform skips\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 44
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"requires production origin for the activation runner and category j\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 49
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-8b/20261109T022829158Z/tests",
+    "tree": "db206c248337d34664dadbe86e2cbbf73a81597f"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-placement.test.ts": "f2f824127d68695d2ba47cb630e8fc070d2a4697"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-placement.test.ts": "f2f824127d68695d2ba47cb630e8fc070d2a4697"
+  }
+}

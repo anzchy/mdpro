@@ -1,0 +1,285 @@
+{
+  "id": "GH706-WI-12b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:27:42.111Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent action rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent actionGroup=\\\"invented\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent baselineSha=\\\"0000000000000000000000000000000000000000\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent baselineSha=undefined rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent canonical keys rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent category=\\\"b\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent ci=\\\"skip\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent directory rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent duplicate id rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent fidelityTag=\\\"lossless\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent immutable bytes rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent malformed id rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent missing rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent negative=undefined rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent negative={\\\"kind\\\":\\\"unknown\\\"} rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent nonminimal rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent normalizations=[\\\"N9\\\"] rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent platform=\\\"linux\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent rationale=\\\"\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent semantic empty rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent status=\\\"pending\\\" rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent unknown observation rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"real checker rejects independent unlisted rule and stays read-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"rejects an empty corpus and category shard mismatch\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 74
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"rejects pending even when every limitation file and field exists\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"requires known-limitation desired\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 56
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"requires known-limitation limitRef\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 56
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"requires known-limitation reason\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 56
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"validates a guard-only checksum and full decision through real Node\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 71
+      },
+      "message": "AssertionError: expected +0 not to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-12b/20261109T032742111Z/tests",
+    "tree": "da29059e2c5503f96a3db20ff0ef62b62b897f56"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-cli-check.test.ts": "cd639e4683694403bc5006e5e521e5873695703b"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-cli-check.test.ts": "cd639e4683694403bc5006e5e521e5873695703b"
+  }
+}

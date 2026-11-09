@@ -1,0 +1,33 @@
+{
+  "id": "GH706-WI-9-cell-selection-b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:06:28.783Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-cell-selection.any.test.tsx\",\"observes every selected cell in reading order after an actual paste refusal\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-cell-selection.any.test.tsx",
+        "line": 16
+      },
+      "message": "AssertionError: expected { text: 'D' } to deeply equal { text: 'A\\nB\\nC\\nD' }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-9-cell-selection-b/20261109T030628783Z/tests",
+    "tree": "269df044f668b74442379ed82907f5d8c2a4fdd4"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-driver-cell-selection.any.test.tsx": "1bf2162b03804a481719c4c7d2837bf08312b45f"
+  },
+  "settled_blobs": {
+    "tests/corpus-a-driver-cell-selection.any.test.tsx": "1bf2162b03804a481719c4c7d2837bf08312b45f"
+  }
+}

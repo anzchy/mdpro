@@ -1,0 +1,216 @@
+{
+  "id": "GH706-WI-12-generation-b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:58:55.886Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"check CLI rejects a missing --root value rather than checking an accidental default root\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 109
+      },
+      "message": "AssertionError: expected 'ENOENT: no such file or directory, ls…' to match /--root.*value/"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"failed child cannot merge earlier successful case outputs\"]",
+      "kind": "assertion",
+      "location": null,
+      "message": "AssertionError: expected [Function] to throw error matching /runner failed/ but got 'generation not implemented'"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"local generation passes explicit safe write protocol and merges once after all results\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 86
+      },
+      "message": "Error: generation not implemented"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"merges only generated expectations and canonical shards, retaining unchanged provenance and authored bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 57
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'a-changed' ]"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"real generate CLI refuses any set CI=\\\"1\\\" before files change\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected 'generation not implemented\\n' to match /CI.*set|CI.*refus|refus.*CI/"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"real generate CLI refuses any set CI=\\\"\\\" before files change\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected 'generation not implemented\\n' to match /CI.*set|CI.*refus|refus.*CI/"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"real generate CLI refuses any set CI=\\\"true\\\" before files change\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected 'generation not implemented\\n' to match /CI.*set|CI.*refus|refus.*CI/"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses absolute output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses desired output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses input output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses missing result output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses outside output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses snapshot drift output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses symlink scratch output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses symlink target output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"refuses unknown case output before any tracked mutation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 75
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"rejects malformed selection and bootstrap protocol before running a child\"]",
+      "kind": "assertion",
+      "location": null,
+      "message": "AssertionError: expected [Function] to throw error matching /case|observation|selection/ but got 'generation not implemented'"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"rejects scratch action order drift naming a path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"rejects scratch changed drift naming a path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"rejects scratch extra drift naming a path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"rejects scratch missing drift naming a path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"rejects scratch observation drift naming a path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-12-generation-b/20261109T035855886Z/tests",
+    "tree": "b2cd1921dfbb1d55063513353db9a289ab8232b3"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-cli-generation.test.ts": "d465a9395b8ca5618416d33d8830c7d2ff0bb759"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-cli-generation.test.ts": "d465a9395b8ca5618416d33d8830c7d2ff0bb759"
+  }
+}

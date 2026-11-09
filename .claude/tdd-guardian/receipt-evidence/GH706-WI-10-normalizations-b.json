@@ -1,0 +1,330 @@
+{
+  "id": "GH706-WI-10-normalizations-b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:35:32.171Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N1 maps \\\"> a  \\\\n> b\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '> a  \\n> b\\n' to be '> a\\\\n> b\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N1 maps \\\"a  \\\\nb\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'a  \\nb\\n' to be 'a\\\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 conserves sibling text at newline-run 11\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 'left\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\nright\\n' to be 'left\\n\\n\\n\\n\\n\\n\\n\\n\\n\\nright\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 conserves sibling text at newline-run 13\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 'left\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\nright\\n' to be 'left\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\nright\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 conserves sibling text at newline-run 3\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 'left\\n\\n\\nright\\n' to be 'left\\n\\nright\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 conserves sibling text at newline-run 5\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 'left\\n\\n\\n\\n\\nright\\n' to be 'left\\n\\n\\n\\nright\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 conserves sibling text at newline-run 7\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 'left\\n\\n\\n\\n\\n\\n\\nright\\n' to be 'left\\n\\n\\n\\n\\n\\nright\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 conserves sibling text at newline-run 9\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 63
+      },
+      "message": "AssertionError: expected 'left\\n\\n\\n\\n\\n\\n\\n\\n\\nright\\n' to be 'left\\n\\n\\n\\n\\n\\n\\n\\nright\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 maps \\\"- a\\\\n  \\\\n  \\\\n  b\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '- a\\n  \\n  \\n  b\\n' to be '- a\\n\\n  b\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 maps \\\"> a\\\\n>\\\\n>\\\\n> b\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '> a\\n>\\n>\\n> b\\n' to be '> a\\n>\\n> b\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 maps \\\"a\\\\n  \\\\n\\\\t\\\\n \\\\nb\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'a\\n  \\n\\t\\n \\nb\\n' to be 'a\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 maps \\\"a\\\\n\\\\n\\\\n\\\\n\\\\nb\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'a\\n\\n\\n\\n\\nb\\n' to be 'a\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N2 maps \\\"a\\\\n\\\\n\\\\nb\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'a\\n\\n\\nb\\n' to be 'a\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N3 maps \\\"- a\\\\n  \\\\n  \\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '- a\\n  \\n  \\n' to be '- a\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N3 maps \\\">\\\\n> a\\\\n>\\\\n>\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '>\\n> a\\n>\\n>\\n' to be '> a\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N3 maps \\\"\\\\n \\\\n\\\\t\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '\\n \\n\\t\\n' to be '' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N3 maps \\\"\\\\n\\\\nA\\\\n\\\\n\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '\\n\\nA\\n\\n\\n' to be 'A\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N4 maps \\\"A\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'A' to be 'A\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N4 maps \\\"\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '' to be '\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N5 maps \\\"a\\\\n\\\\n<BR>\\\\n\\\\nb\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'a\\n\\n<BR>\\n\\nb\\n' to be 'a\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N5 maps \\\"a\\\\n\\\\n<br />\\\\n\\\\nb\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected 'a\\n\\n<br />\\n\\nb\\n' to be 'a\\n\\n\\n\\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N7 maps \\\"| a | b |\\\\n| ---: | :--- |\\\\n| c | d |\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '| a | b |\\n| ---: | :--- |\\n| c | d |…' to be '|  a | b  |\\n| -: | :- |\\n|  c | d  |…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N7 maps \\\"| a\\\\\\\\|b | c |\\\\n|---|---|\\\\n| x | y |\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '| a\\|b | c |\\n|---|---|\\n| x | y |\\n' to be '| a\\|b | c |\\n| ---- | - |\\n| x    | …' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N7 maps \\\"|a|long|\\\\n|---|:---:|\\\\n|b|c|\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '|a|long|\\n|---|:---:|\\n|b|c|\\n' to be '| a | long |\\n| - | :--: |\\n| b |   c…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N8 maps \\\"| a | b | c |\\\\n| - | - | - |\\\\n| d |\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '| a | b | c |\\n| - | - | - |\\n| d |\\n' to be '| a | b | c |\\n| - | - | - |\\n| d |  …' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"N8 maps \\\"| a | b |\\\\n| - | - |\\\\n| c | d | e |\\\\n\\\" to independently specified bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected '| a | b |\\n| - | - |\\n| c | d | e |\\n' to be '| a | b |   |\\n| - | - | - |\\n| c | d…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"applies in list order and remains independent of earlier calls\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 56
+      },
+      "message": "AssertionError: expected '\\n\\nA\\n\\n\\n\\n\\nB' to be 'A\\n\\n\\n\\nB\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"normalizes a table nested inside a quote without flattening the quote\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 67
+      },
+      "message": "AssertionError: expected '> |a|b|\\n> |---|---|\\n> |c|d|\\n' to be '> | a | b |\\n> | - | - |\\n> | c | d |…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"approved reference normalizations\",\"normalizes nested quote/list levels without destroying container text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected '> - a\\n>   \\n>   \\n>   b\\n' to be '> - a\\n>\\n>   b\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"reference HTML tag stripping for action text\",\"strips <p>&lt;x&gt; &#x1f600; &#65; &nbsp; B</p> to visible text and exact block separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 79
+      },
+      "message": "AssertionError: expected '<p>&lt;x&gt; &#x1f600; &#65; &nbsp; B…' to be '<x> 😀 A   B' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"reference HTML tag stripping for action text\",\"strips <p>a</p><div>b<br>c</div> to visible text and exact block separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 79
+      },
+      "message": "AssertionError: expected '<p>a</p><div>b<br>c</div>' to be 'a\\n\\nb\\nc' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"reference HTML tag stripping for action text\",\"strips <p>a</p><p></p><p>b</p> to visible text and exact block separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 79
+      },
+      "message": "AssertionError: expected '<p>a</p><p></p><p>b</p>' to be 'a\\n\\n\\n\\nb' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"reference HTML tag stripping for action text\",\"strips <pre>a  b\\n c</pre> to visible text and exact block separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 79
+      },
+      "message": "AssertionError: expected '<pre>a  b\\n c</pre>' to be 'a  b\\n c' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"reference HTML tag stripping for action text\",\"strips <strong>A</strong> &amp; <em>B</em> to visible text and exact block separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 79
+      },
+      "message": "AssertionError: expected '<strong>A</strong> &amp; <em>B</em>' to be 'A & B' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10-normalizations-b/20261109T023532171Z/tests",
+    "tree": "59f1413d7b3e616597417ba16fc2338c932430ed"
+  },
+  "spec_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "acc99595b5876fe814f053eea206275d1ae45196"
+  },
+  "settled_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "acc99595b5876fe814f053eea206275d1ae45196"
+  }
+}

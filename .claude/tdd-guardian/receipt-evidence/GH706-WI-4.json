@@ -1,0 +1,96 @@
+{
+  "id": "GH706-WI-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:56:29.040Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"cleanup cancels old view work and a fresh mount has no stale DOM or boundary effects\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 49
+      },
+      "message": "AssertionError: expected '' to be 'Fresh\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"retains untouched bytes through real mode switches and save: edge blanks\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 21
+      },
+      "message": "AssertionError: expected '' to be '\\n\\nA\\n\\n\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"retains untouched bytes through real mode switches and save: empty paragraph\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 21
+      },
+      "message": "AssertionError: expected '' to be 'A\\n\\n\\n\\nB\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"retains untouched bytes through real mode switches and save: hard break spelling\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 21
+      },
+      "message": "AssertionError: expected '' to be 'a  \\nb\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"retains untouched bytes through real mode switches and save: missing trailing newline\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 21
+      },
+      "message": "AssertionError: expected '' to be 'A' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"retains untouched bytes through real mode switches and save: table spelling\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 21
+      },
+      "message": "AssertionError: expected '' to be '|a|b|\\n|-|-|\\n|c|d|\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"serializes the real normalized model independently of untouched original bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 29
+      },
+      "message": "AssertionError: expected '' to be 'A\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-lifecycle.any.test.tsx\",\"unmounts WYSIWYG for a real Source view and remounts WYSIWYG on return\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-lifecycle.any.test.tsx",
+        "line": 35
+      },
+      "message": "AssertionError: expected null not to be null"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-4/20261109T025629040Z/tests",
+    "tree": "069918ba59bc2d75afe7e1693c741f774cbcedf4"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-driver-lifecycle.any.test.tsx": "823aba632e2b892225412a8855976e52dcbc4e05"
+  },
+  "settled_blobs": {
+    "tests/corpus-a-driver-lifecycle.any.test.tsx": "823aba632e2b892225412a8855976e52dcbc4e05"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH706-WI-14b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:56:59.707Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"multiple files have distinct stable document identities and independent writes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-boundary.test.ts",
+        "line": 68
+      },
+      "message": "AssertionError: expected 'corpus-document' not to be 'corpus-document' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-14b/20261109T025659707Z/tests",
+    "tree": "d516b40525d28ee746f44d6f0629b025f6222040"
+  },
+  "spec_blobs": {
+    "tests/corpus-boundary.test.ts": "e912e77e21c0e703744195d03eb0bdf9caab0761"
+  },
+  "settled_blobs": {
+    "tests/corpus-boundary.test.ts": "e912e77e21c0e703744195d03eb0bdf9caab0761"
+  }
+}

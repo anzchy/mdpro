@@ -1,0 +1,150 @@
+{
+  "id": "GH706-WI-3-runner-b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:20:54.272Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"calls the production TOC with fresh heading identities and code exclusion\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 12
+      },
+      "message": "AssertionError: expected [] to deeply equal [ …(3) ]"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"checks the exact committed bytes before interpreting the recipe\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 37
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"expands an authenticated closed JSON recipe exactly, including zero repeats\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 29
+      },
+      "message": "AssertionError: expected '' to be '中文\\n' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"keeps the complete production guard union 2 in wysiwyg\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 25
+      },
+      "message": "AssertionError: expected { action: 'allow' } to deeply equal { action: 'degrade-to-source', …(4) }"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"keeps the complete production guard union 3 in wysiwyg\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 25
+      },
+      "message": "AssertionError: expected { action: 'allow' } to deeply equal { action: 'degrade-to-source', …(4) }"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"keeps the complete production guard union 4 in wysiwyg\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 25
+      },
+      "message": "AssertionError: expected { action: 'allow' } to deeply equal { action: 'degrade-to-source', …(4) }"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"keeps the complete production guard union 5 in source\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 25
+      },
+      "message": "AssertionError: expected { action: 'allow' } to deeply equal { …(3) }"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"observes supplied serialized content rather than an earlier input heading\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 16
+      },
+      "message": "AssertionError: expected [] to deeply equal [ { level: 1, text: 'Edited', …(1) } ]"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"rejects malformed recipes with the case id bad json\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"rejects malformed recipes with the case id {\\\"text\\\":1,\\\"repeat\\\":2}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"rejects malformed recipes with the case id {\\\"text\\\":\\\"x\\\",\\\"repeat\\\":-1}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"rejects malformed recipes with the case id {\\\"text\\\":\\\"x\\\",\\\"repeat\\\":0.5}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"rejects malformed recipes with the case id {\\\"text\\\":\\\"x\\\",\\\"repeat\\\":1,\\\"extra\\\":true}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-content-observations.test.ts\",\"rejects malformed recipes with the case id {\\\"text\\\":\\\"x\\\",\\\"repeat\\\":9007199254740992}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-content-observations.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-3-runner-b/20261109T032054272Z/tests",
+    "tree": "66c2d35f0de92bfba37cc9384f2dfdcefd28b889"
+  },
+  "spec_blobs": {
+    "tests/corpus-content-observations.test.ts": "ba2035348db5eb81d0fd14332a5d2d5876bfa297"
+  },
+  "settled_blobs": {
+    "tests/corpus-content-observations.test.ts": "ba2035348db5eb81d0fd14332a5d2d5876bfa297"
+  }
+}

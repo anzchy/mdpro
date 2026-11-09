@@ -1,0 +1,375 @@
+{
+  "id": "GH706-WI-17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:24:28.391Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects a missing recipe file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field action even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field actionGroup even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field desired even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field fidelityTag even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field input even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field limitRef even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field normalizations even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field platform even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects forbidden mounting field reason even when undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects incorrect mode and category\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid decision count -1\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid decision count -Infinity\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid decision count 1\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid decision count 1.5\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid decision count Infinity\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid decision count NaN\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid recipe {\\\"path\\\":\\\"../m/small.recipe.json\\\",\\\"sha256\\\":\\\"5f8f6ec1c7f009ea86a2c16a2d4383ea7d3fd0765be036f2c71d824bd6d86319\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid recipe {\\\"path\\\":\\\"guard-only/m/small.recipe.json\\\",\\\"sha256\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid recipe {\\\"path\\\":\\\"guard-only/m/small.recipe.json\\\",\\\"sha256\\\":\\\"abc\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid recipe {\\\"path\\\":\\\"guard-only/m/small.recipe.json\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects invalid recipe {\\\"sha256\\\":\\\"5f8f6ec1c7f009ea86a2c16a2d4383ea7d3fd0765be036f2c71d824bd6d86319\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects missing expected\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects missing negative\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects missing recipe\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects missing viewMode\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects serialized output on guard-only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"allow\\\",\\\"elements\\\":1}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"degrade-to-source\\\",\\\"message\\\":\\\"X\\\",\\\"elements\\\":1,\\\"longestLine\\\":2,\\\"trigger\\\":\\\"size\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"degrade-to-source\\\",\\\"message\\\":\\\"X\\\",\\\"elements\\\":1,\\\"longestLine\\\":2}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"degrade-to-source\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"permit\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"withhold-table-extensions\\\",\\\"message\\\":\\\"X\\\",\\\"tableRows\\\":50001,\\\"elements\\\":0}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"withhold-table-extensions\\\",\\\"tableRows\\\":50001}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {\\\"action\\\":\\\"withhold-table-extensions\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"rejects truncated or unknown full decision {}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"requires exactly the guard negative {\\\"kind\\\":\\\"alterByte\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"requires exactly the guard negative {\\\"kind\\\":\\\"wrongObservation\\\",\\\"value\\\":{}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-guard-metadata.test.ts\",\"requires exactly the guard negative {}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-guard-metadata.test.ts",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-17/20261109T022428391Z/tests",
+    "tree": "83a434e59a6322caf0e9739128256c4ba6c0aed0"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-guard-metadata.test.ts": "0b47a303f086c596f401cacafec6f6b6de840857"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-guard-metadata.test.ts": "0b47a303f086c596f401cacafec6f6b6de840857"
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "id": "GH706-WI-15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:26:02.274Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"follows local interface barrels instead of checking only direct engine imports\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 37
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects engine type @codemirror/state in the driver interface\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects engine type @milkdown/core in the driver interface\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects engine type @milkdown/prose/model in the driver interface\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects engine type @tiptap/core in the driver interface\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects engine type prosemirror-state in the driver interface\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: const rig = import('../d188EmptyParagraphRig');\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: const rig = require('../d194LinkDefinitionRig');\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: export { createScriptedMilkdownRig as editor } from '../../helpers/scriptedMilkdownRig';\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: import type { Port } from '@port/types';\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: import type { Rig } from '@/../tests/support/d194LinkDefinitionRig';\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: import type { WysiwygEditorPort as Port } from '../../../src/services/editor/types';\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: import { coordinator } from '@/services/editor/editorCoordinator';\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"rejects reduced rigs and the editor port: import { rig as editor } from '../d188EmptyParagraphRig';\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-import-fence.test.ts\",\"resolves an aliased intermediate barrel to the forbidden port\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-import-fence.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-15/20261109T022602274Z/tests",
+    "tree": "0f7b0ae6d226040acc12f6b648c8b96dea50a578"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-import-fence.test.ts": "04e114de8e6e3f4eac8123fdaf6ad5e824bb5d9c"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-import-fence.test.ts": "04e114de8e6e3f4eac8123fdaf6ad5e824bb5d9c"
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "id": "GH706-WI-13-runner",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:19:39.184Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"cleans failed actions and keeps later independent runs deterministic in either order\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 86
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"compares mandatory serialization and runs a case negative through a fresh driver\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected { caseId: 'a-runner', …(3) } to deeply equal { caseId: 'a-runner', …(3) }"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"content TOC is taken from serialized output, independent of driver observations\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 79
+      },
+      "message": "AssertionError: expected { untouched: '', serialized: '' } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"does not accept observation equality as a substitute for serialization\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 37
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"fails a declared negative that would pass the comparison\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 68
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"guard-only checksum and complete expected decision mismatches fail with the case id\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 106
+      },
+      "message": "Error: promise resolved \"{ caseId: 'm-guard', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"guard-only results are engine invariant and need no driver or editor\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 102
+      },
+      "message": "AssertionError: expected { caseId: 'm-guard', …(3) } to deeply equal { caseId: 'm-guard', …(3) }"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"missing expected output no-edit/a/expected.json fails before mounting and writes nothing\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 45
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"missing expected output no-edit/a/expected.md fails before mounting and writes nothing\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 45
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"refuses write mode whenever CI is an own key: \"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 53
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"refuses write mode whenever CI is an own key: 1\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 53
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"refuses write mode whenever CI is an own key: undefined\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 53
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"rejects an unknown mounting engine without falling back\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 50
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"rejects detected paste hazards even when they equal pinned observations\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 73
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"selects requested active cases and excludes retired/local-only/nonselected cases\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 94
+      },
+      "message": "AssertionError: expected [ { caseId: 'a-runner', …(14) }, …(3) ] to deeply equal [ { caseId: 'a-runner', …(14) } ]"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"write bootstrap requires observation kinds rather than guessing from a file path\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 64
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"write mode bootstraps output without writing or changing the supplied inventory\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 59
+      },
+      "message": "AssertionError: expected { untouched: '', serialized: '' } to deeply equal { untouched: 'A beta\\n', …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-13-runner/20261109T031939184Z/tests",
+    "tree": "2440500aec8a4843eade52e45e94b147602e81af"
+  },
+  "spec_blobs": {
+    "tests/corpus-runner.test.ts": "4d1f5dcaf8184d67afefc1286e42b8d58418207a"
+  },
+  "settled_blobs": {
+    "tests/corpus-runner.test.ts": "40f9afe772aad4884b9dd2bda9a8ea418deeed35"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH706-WI-13-runner.json",
+    "digest": "d372fa0efe88f32234d3389f22736a8325e49a1c26277c30e4a7d4511ba3fe2f",
+    "result": "failed",
+    "base": "7bb42efbcf7e55d42f102a546a6688eff9d92093",
+    "head": "a9a849645205d9a209220d145c509ba5b679b56e"
+  }
+}

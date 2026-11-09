@@ -1,0 +1,33 @@
+{
+  "id": "GH706-WI-14c",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:58:04.748Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"Save As selects a deterministic native path, records its real IPC command, and can cancel\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/fakeBoundary.ts",
+        "line": 56
+      },
+      "message": "Error: unhandled corpus IPC: save_file_dialog"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-14c/20261109T025804748Z/tests",
+    "tree": "5606e5fd1b3cbbcdaabfef85afdafb832595446f"
+  },
+  "spec_blobs": {
+    "tests/corpus-boundary.test.ts": "1275481790950cddb45c092f4c7806f30f0769b5"
+  },
+  "settled_blobs": {
+    "tests/corpus-boundary.test.ts": "1275481790950cddb45c092f4c7806f30f0769b5"
+  }
+}

@@ -1,0 +1,709 @@
+{
+  "id": "GH706-WI-10c",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:39:19.334Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"fills a cell range in reading order and retains cells outside it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 35
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts column left at 1 without changing original cells\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts column left at 2 without changing original cells\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts column right at 1 without changing original cells\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts column right at 2 without changing original cells\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts row above at 1 and rejects a missing/moved cell\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts row above at 2 and rejects a missing/moved cell\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts row below at 1 and rejects a missing/moved cell\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"inserts row below at 2 and rejects a missing/moved cell\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"preserves exact untouched cell bytes while permitting targeted inline markup\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 54
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"rejects out-of-bounds/reversed cell coordinates and unsupported cell breaks\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 49
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"allows markup variation in a touched paragraph and keeps text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"conserves target text for code\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"conserves target text for emphasis\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"conserves target text for highlight\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"conserves target text for strike\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"conserves target text for strong\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"conserves target text for underline\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"deletes only named selection, including a cross-block join\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models list conversion through every item without freeing internal separators or subtrees\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models ordered actions and undo by the preceding state\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=false word=false all=false\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=false word=false all=true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=false word=true all=false\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=false word=true all=true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=true word=false all=false\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=true word=false all=true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=true word=true all=false\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"models replace case=true word=true all=true\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"non-destructive 'activateLink' preserves text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"non-destructive 'find' preserves text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"non-destructive 'modeSwitch' preserves text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"preserves literal whitespace in targeted code spans and fenced/indented code\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"rejects missing/out-of-range or partial-grapheme anchors\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"action-aware state transitions\",\"types at either caret edge and respects exact occurrence across marks\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"alternate engine rules and immutable reports\",\"checks exact observations even when bytes or desired match\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 222
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"alternate engine rules and immutable reports\",\"pins baseline E, allows either alternate side and names the improvement\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 207
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"alternate engine rules and immutable reports\",\"reports actual normalization-only alternate differences and rejects unrelated drift\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 218
+      },
+      "message": "AssertionError: expected {} to deeply equal { normalizations: [ 'N1' ], …(1) }"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"checks baseline serialization and untouched bytes independently\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 27
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"rejects equal desired/current and pending classification\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"rejects redundant syntactic-list N6 and unknown normalization IDs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"requires exact minimal no-edit transforms [\\\"N2\\\"]\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected [Function fn] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"requires exact minimal no-edit transforms [\\\"N3\\\",\\\"N4\\\"]\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected [Function fn] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"requires exact minimal no-edit transforms []\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected [Function fn] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"requires known-limitation desired\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 47
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"requires known-limitation limitRef\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 47
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"executable fidelity contracts\",\"requires known-limitation reason\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 47
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: * > a\\n  >\\n  >\\n  >\\n  > b\\n -> * > a\\n  >\\n  > b!\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: * a\\n\\n\\n\\n  b\\n -> * a\\n\\n  b!\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: > * a\\n>\\n>\\n>\\n>   b\\n -> > * a\\n>\\n>   b!\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: > a\\n>\\n>\\n>\\n> b\\n -> > a\\n>\\n> b!\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: A\\n\\n\\n\\nB\\n\\nC\\n -> A\\n\\nB\\n\\nCX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: A\\n\\n\\n\\nB\\n\\nC\\n -> A\\n\\nB\\n\\n\\n\\nCX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: Keep beta\\n -> Keep\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects loss even with baseline equality: ```\\na b\\n```\\n\\ntarget\\n -> ```\\nab\\n```\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift:     a b\\n\\ntarget\\n ->     ab\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: # A\\n\\ntarget\\n -> ## A\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: * A\\n* B\\n\\ntarget\\n -> * A\\n\\n* B\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: <div>a b</div>\\n\\ntarget\\n -> <div>ab</div>\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: A\\n\\nB\\n\\ntarget\\n -> A\\n\\n\\n\\nB\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: A\\n\\nB\\n\\ntarget\\n -> B\\n\\nA\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: A\\n\\ntarget\\n\\n -> A\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: \\n\\nA\\n\\ntarget\\n -> A\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: `a b`\\n\\ntarget\\n -> `ab`\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"independent r2-r5 loss witnesses\",\"rejects untouched bytes/separator drift: | A | B |\\n| --- | --- |\\n| C | D |\\n\\ntarget\\n -> | A | B |\\n| --- | --- |\\n| C | E |\\n\\ntargetX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"accepts modeled split: * A\\n* B\\n -> * A\\n* X\\n* B\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"accepts modeled split: * A\\n\\n* B\\n -> * A\\n\\n* X\\n\\n* B\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"accepts modeled split: > A\\n -> > A\\n>\\n> X\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"accepts modeled split: A\\n -> A\\n\\nX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"accepts modeled split: A\\n -> A\\n\\n\\n\\nX\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"accepts modeled split: ```\\nA\\n```\\n -> ```\\nA\\nX\\n```\\n\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"models multiblock {\\\"kind\\\":\\\"paste\\\",\\\"at\\\":{\\\"text\\\":\\\"X\\\",\\\"edge\\\":\\\"after\\\"},\\\"html\\\":\\\"<p>a</p><p></p><p>b</p>\\\"} with its own inner separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"models multiblock {\\\"kind\\\":\\\"paste\\\",\\\"at\\\":{\\\"text\\\":\\\"X\\\",\\\"edge\\\":\\\"after\\\"},\\\"text\\\":\\\"a\\\\n\\\\n\\\\n\\\\nb\\\"} with its own inner separators\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"models single-block text and HTML paste without freeing target text\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    },
+    {
+      "id": "[\"tests/corpus-comparator.test.ts\",\"splits, joins and pasted block structures\",\"rejects missing/added/moved split separators and container-kind changes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator.test.ts",
+        "line": 20
+      },
+      "message": "AssertionError: expected [Function] to throw an error"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10c/20261109T023919334Z/tests",
+    "tree": "c218bf8b9cbe57a679174faeb7791536bb29c317"
+  },
+  "spec_blobs": {
+    "tests/corpus-comparator.test.ts": "02297fd557efc0451d009d21d10ccfcbe3d97fb7",
+    "tests/corpus-comparator-tables.test.ts": "759ae94b231ae55a38412f075c94b93ef0a99972"
+  },
+  "settled_blobs": {
+    "tests/corpus-comparator.test.ts": "238611a0227bc004d504d8da60914d8691d658b5",
+    "tests/corpus-comparator-tables.test.ts": "759ae94b231ae55a38412f075c94b93ef0a99972"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH706-WI-10c.json",
+    "digest": "3919e598cd5e065abb9edc7fd2e785dd6b0229d011f7fc760c116a0ab5a0076a",
+    "result": "failed",
+    "base": "7bb42efbcf7e55d42f102a546a6688eff9d92093",
+    "head": "a9a849645205d9a209220d145c509ba5b679b56e"
+  }
+}

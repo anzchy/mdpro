@@ -1,0 +1,75 @@
+{
+  "id": "GH706-WI-14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:54:30.703Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"asset conversion is deterministic and can model an unresolved native asset\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/fakeBoundary.ts",
+        "line": 17
+      },
+      "message": "Error: boundary not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"draft save and delete retain the exact content affected by each operation\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/fakeBoundary.ts",
+        "line": 15
+      },
+      "message": "Error: boundary not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"file save records exact bytes once and exposes an immutable request snapshot\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/fakeBoundary.ts",
+        "line": 15
+      },
+      "message": "Error: boundary not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"opener records a completed handoff once and reset isolates all state\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/fakeBoundary.ts",
+        "line": 15
+      },
+      "message": "Error: boundary not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"opening seeded UTF-8 content reads exactly and writes nothing\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/fakeBoundary.ts",
+        "line": 15
+      },
+      "message": "Error: boundary not implemented"
+    },
+    {
+      "id": "[\"tests/corpus-boundary.test.ts\",\"unknown IPC and invalid writes fail without changing storage or logs\"]",
+      "kind": "assertion",
+      "location": null,
+      "message": "AssertionError: expected [Function] to throw error including 'unexpected_command' but got 'boundary not implemented'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-14/20261109T025430703Z/tests",
+    "tree": "17ca79e54016f9433ba896e70e2a9c71d7b658e9"
+  },
+  "spec_blobs": {
+    "tests/corpus-boundary.test.ts": "7b83e38533c44fdd4b765a0dc0a7ea3beeb495f2"
+  },
+  "settled_blobs": {
+    "tests/corpus-boundary.test.ts": "7b83e38533c44fdd4b765a0dc0a7ea3beeb495f2"
+  }
+}

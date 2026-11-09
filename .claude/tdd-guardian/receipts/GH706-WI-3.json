@@ -1,0 +1,64 @@
+{
+  "id": "GH706-WI-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:29:07.370Z",
+  "head_sha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+  "dirty_source": [
+    "scripts/corpus/check.mjs",
+    "scripts/corpus/core.ts",
+    "scripts/corpus/files.ts",
+    "scripts/corpus/provenance.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/corpus-manifest.test.ts": {
+      "state": "ok",
+      "sha": "0586f2a59b128b507e39af877b3f516f57157d8004f3a5ffc35248c2059f42e5",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "f834b932c0d677bb",
+        "553e7089b32f9f10",
+        "d63f77f9a9b37ad3",
+        "4ab083840abb65c9",
+        "50fb4c9a5defac93",
+        "66585bc9ab698549",
+        "8aacf26616ee9c30",
+        "9984166c03c173b4",
+        "8121933da5c9c5b5",
+        "80c78efa0c40fec1",
+        "83d22d420b473fcf",
+        "ea86f02e6ee2524a",
+        "01ca9f76d2a0cdb8",
+        "d10b36aa74a59bcf",
+        "d10b36aa74a59bcf",
+        "96de5287086a7bc7",
+        "021349b30d96b161",
+        "d10b36aa74a59bcf",
+        "62aa2d66bdadb47e",
+        "a4bcda077cfea911",
+        "79241ce9695058e7",
+        "ee1c6c73540cbe07",
+        "b1511b0f47098103",
+        "f7bacb5183ab43a9",
+        "8ca339553ca8cf9d",
+        "0ae47a13980fb259",
+        "b105bd19b53cdfda",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T04:03:53.273Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (scripts/corpus/check.mjs, scripts/corpus/core.ts, scripts/corpus/files.ts, scripts/corpus/provenance.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

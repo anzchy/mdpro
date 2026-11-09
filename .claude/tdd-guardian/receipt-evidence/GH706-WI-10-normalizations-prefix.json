@@ -1,0 +1,33 @@
+{
+  "id": "GH706-WI-10-normalizations-prefix",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:40:48.939Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"reference transforms do not invent quote prefix or list-blank spelling changes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 108
+      },
+      "message": "AssertionError: expected '> a\\n>\\n> b\\n\\n- c\\n\\n  d\\n' to be '>a\\n> \\n>b\\n\\n- c\\n  \\n  d\\n' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10-normalizations-prefix/20261109T024048939Z/tests",
+    "tree": "f88ba279bfc3f60df8af332be37813c5b34a910d"
+  },
+  "spec_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "d0063424d581d404b9882b6169ebdb320a2edecb"
+  },
+  "settled_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "d0063424d581d404b9882b6169ebdb320a2edecb"
+  }
+}

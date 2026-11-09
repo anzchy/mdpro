@@ -1,0 +1,30 @@
+{
+  "id": "GH706-WI-9-cell-selection",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:05:26.827Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-cell-selection.any.test.tsx\",\"observes every selected cell in reading order after an actual paste refusal\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-cell-selection.any.test.tsx",
+        "line": 15
+      },
+      "message": "AssertionError: expected '| before | before |\\n| ------ | -----…' to be '| A | B |\\n| - | - |\\n| C | D |\\n' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-9-cell-selection/20261109T030526827Z/tests",
+    "tree": "fd14bb2b92c76a577c44eac4816cf6c255a91bb2"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-driver-cell-selection.any.test.tsx": "53e77ab23dadc7da4423ca9bf1a5346858b09428"
+  }
+}

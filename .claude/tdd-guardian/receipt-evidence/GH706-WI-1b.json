@@ -1,0 +1,474 @@
+{
+  "id": "GH706-WI-1b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:21:37.785Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"canonical JSON and read-only validation\",\"retains all provenance, action order and original objects across repeated operations\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 176
+      },
+      "message": "SyntaxError: Unexpected end of JSON input"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"canonical JSON and read-only validation\",\"sorts object keys recursively, preserves arrays and is idempotent\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 167
+      },
+      "message": "AssertionError: expected '' to be '{\\n  \"a\": {\\n    \"a\": 1,\\n    \"z\": 0\\…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"accepts empty actions only for no-edit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"pins the approved vocabulary without additions or omissions\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 97
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'type', 'delete', …(11) ]"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects all invalid indices -1\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects all invalid indices -Infinity\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects all invalid indices 0\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects all invalid indices 1.5\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects all invalid indices Infinity\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects all invalid indices NaN\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incoherent immutable and no-edit semantic claims\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"activateLink\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"clearFormat\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"delete\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"find\\\",\\\"query\\\":\\\"A\\\",\\\"wholeWord\\\":false}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"insertTableColumn\\\",\\\"at\\\":{\\\"cell\\\":{\\\"table\\\":1,\\\"row\\\":1,\\\"col\\\":1}},\\\"side\\\":\\\"above\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"insertTableRow\\\",\\\"at\\\":{\\\"cell\\\":{\\\"table\\\":1,\\\"row\\\":1,\\\"col\\\":1}},\\\"side\\\":\\\"left\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"invented\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"modeSwitch\\\",\\\"to\\\":\\\"preview\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"paste\\\",\\\"at\\\":{\\\"text\\\":\\\"A\\\",\\\"edge\\\":\\\"after\\\"}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"replace\\\",\\\"query\\\":\\\"A\\\",\\\"all\\\":true}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"setListKind\\\",\\\"at\\\":{\\\"text\\\":\\\"A\\\",\\\"edge\\\":\\\"after\\\"},\\\"to\\\":\\\"task\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"toggleMark\\\",\\\"range\\\":{\\\"text\\\":\\\"A\\\"},\\\"mark\\\":\\\"bold\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"type\\\",\\\"at\\\":{\\\"text\\\":\\\"A\\\",\\\"edge\\\":\\\"after\\\"}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"type\\\",\\\"at\\\":{\\\"text\\\":\\\"A\\\",\\\"edge\\\":\\\"middle\\\"},\\\"text\\\":\\\"X\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects incomplete or unknown action {\\\"kind\\\":\\\"type\\\",\\\"at\\\":{\\\"text\\\":\\\"A\\\\nB\\\",\\\"edge\\\":\\\"after\\\"},\\\"text\\\":\\\"X\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid baselineSha=\\\"abc\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid baselineSha=undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid category=\\\"z\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid ci=\\\"skip\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid consumers=\\\"MIG-002\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid fidelityTag=\\\"lossless\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid guardedPaths=[]\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid negative=undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid negative={\\\"kind\\\":\\\"invented\\\"}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid normalizations=[\\\"N4\\\",\\\"N4\\\"]\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid normalizations=[\\\"N9\\\"]\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid platform=\\\"linux\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid rationale=\\\"\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid rationale=\\\"one\\\\ntwo\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid rationale=undefined\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects invalid status=\\\"deleted\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects pending references and equal desired bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects reversed cell ranges and wrong directory components\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"rejects unknown observation, malformed identity and duplicate ids\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"reports unlisted files and preserves retired ids\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 159
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"requires limitation desired\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"requires limitation limitRef\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"requires limitation reason\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"requires serialized output and existing files\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 33
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-1b/20261109T022137785Z/tests",
+    "tree": "6200d9fbf0fe720096d17477927c70d073a8ddf1"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-metadata.test.ts": "45d3ce46bb4dd6b46fd3aedcddf45941f7e48413"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-metadata.test.ts": "45d3ce46bb4dd6b46fd3aedcddf45941f7e48413"
+  }
+}

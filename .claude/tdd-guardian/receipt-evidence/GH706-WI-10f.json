@@ -1,0 +1,34 @@
+{
+  "id": "GH706-WI-10f",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T12:35:56.385Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-comparator-tables.test.ts\",\"repeats one plain pasted value across a cell range and refuses other mismatched counts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-tables.test.ts",
+        "line": 42
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-table-model: anchor paste ce…' was thrown"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10f/20261109T123556385Z/tests",
+    "tree": "6342a45a6283c7e4be2794d0d8b10b991809e39d"
+  },
+  "spec_blobs": {
+    "tests/corpus-comparator-tables.test.ts": "0b4e190f58b603df1293b108fb5006b07adf7a19"
+  },
+  "settled_blobs": {
+    "tests/corpus-comparator-tables.test.ts": "0b4e190f58b603df1293b108fb5006b07adf7a19"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "GH706-WI-8c",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:37:58.308Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"accepts pure corpus behavior tests at the tests root without treating them as platform runners\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 36
+      },
+      "message": "AssertionError: expected [ …(2) ] to deeply equal []"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-placement.test.ts\",\"checks actual corpus source and tooling placement in the discoverable unit tree\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-placement.test.ts",
+        "line": 19
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-8c/20261109T023758308Z/tests",
+    "tree": "15dc81df87b97fbfb1799450bd8cad1e13021b0f"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-placement.test.ts": "59c8cef0fc025773fbbc4920b080893b2139be39"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-placement.test.ts": "59c8cef0fc025773fbbc4920b080893b2139be39"
+  }
+}

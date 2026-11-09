@@ -1,0 +1,62 @@
+{
+  "id": "GH706-WI-3-runner-b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:20:54.272Z",
+  "head_sha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "14 of 16 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-content-observations.test.ts": {
+      "state": "ok",
+      "sha": "f710644fb20b0924403f57d7cbe66c2cd446a190d733d5a1272648bf179406f5",
+      "lines": [
+        "121861cdc159ae44",
+        "9d196a1875159c50",
+        "e25cd7d1f8b192b8",
+        "4a15f9a74adc8ef3",
+        "7354db8e96590ac5",
+        "a8bd08b9aab4e020",
+        "134fd5e33c4c1c6c",
+        "d2ad30854c547fed",
+        "e1bfbba6e1b859e9",
+        "757a7c2596ee2fac",
+        "83ab3b8c13846887",
+        "bda2f77d272c96a1",
+        "a2f17a758eea4fb5",
+        "29576b54e255e3c9",
+        "73e4d858d39d8c03",
+        "e87f4ea5958ed651",
+        "29576b54e255e3c9",
+        "9fc68c87f070ae32",
+        "1e84cb5654240068",
+        "537af00d6ea2dbeb",
+        "49b8a7d8221de3c9",
+        "53dc19d129c69464",
+        "73511bfb0c55fd0f",
+        "fb1eb8da43f17aa4",
+        "68389766d3b18a1a",
+        "29576b54e255e3c9",
+        "4bc8dec7b3fa0f98",
+        "66347053bcdf8808",
+        "1f6bd7806b654b56",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "1dbfc28af28747b0",
+        "44bdaceb34ec20a2",
+        "29576b54e255e3c9",
+        "829d836557e8f10f",
+        "4623578e86d6b093",
+        "0b9a2a9090ab3f92",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T03:25:47.548Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

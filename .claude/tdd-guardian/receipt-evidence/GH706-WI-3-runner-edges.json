@@ -1,0 +1,56 @@
+{
+  "id": "GH706-WI-3-runner-edges",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:24:11.431Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"guard write mode returns a changed candidate without mutating pinned expectations\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 88
+      },
+      "message": "Error: m-guard: guard observation differs"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"write bootstrap rejects nonclosed or duplicate kinds before mounting {\\\"kinds\\\":[\\\"selection\\\",\\\"selection\\\"]}\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 117
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    },
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"write bootstrap rejects nonclosed or duplicate kinds before mounting {\\\"kinds\\\":[\\\"unknown\\\"]}\"]",
+      "kind": "assertion",
+      "location": null,
+      "message": "AssertionError: expected [Function] to throw error matching /a-runner.*observationKinds/i but got 'a-runner: a-runner: expected.observat…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-3-runner-edges/20261109T032411431Z/tests",
+    "tree": "72f8288120fc67ef5882288cb2dda40f5022acf5"
+  },
+  "spec_blobs": {
+    "tests/corpus-runner.test.ts": "40f9afe772aad4884b9dd2bda9a8ea418deeed35"
+  },
+  "settled_blobs": {
+    "tests/corpus-runner.test.ts": "0572ef97d9cc61b83b0ca3fb6223c720eb773264"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/GH706-WI-3-runner-edges.json",
+    "digest": "f9b72ebea5e54177c760b6a31e9e69a4f6c53744a5121dc993c2ad6ba19c9da9",
+    "result": "failed",
+    "base": "7bb42efbcf7e55d42f102a546a6688eff9d92093",
+    "head": "a9a849645205d9a209220d145c509ba5b679b56e"
+  }
+}

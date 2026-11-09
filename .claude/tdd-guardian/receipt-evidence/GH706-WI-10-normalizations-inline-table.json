@@ -1,0 +1,33 @@
+{
+  "id": "GH706-WI-10-normalizations-inline-table",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:39:33.122Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-reference-transforms.test.ts\",\"table padding measures original inline-code bytes and keeps literal whitespace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-reference-transforms.test.ts",
+        "line": 102
+      },
+      "message": "AssertionError: expected '| `a  b` | c |\\n| ---------------- | …' to be '| `a  b` | c |\\n| ------ | - |\\n| d  …' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10-normalizations-inline-table/20261109T023933122Z/tests",
+    "tree": "38f4a419f709ee1c81ebadbde0fc1e7627db4e85"
+  },
+  "spec_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "487c3e2e61379043ae0e5dea3dbebe649aa00945"
+  },
+  "settled_blobs": {
+    "tests/corpus-reference-transforms.test.ts": "487c3e2e61379043ae0e5dea3dbebe649aa00945"
+  }
+}

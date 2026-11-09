@@ -1,0 +1,84 @@
+{
+  "id": "GH706-WI-10d",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:48:15.574Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"models row insertion for a single-column table\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 52
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: anchor table…' was thrown"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"pastes HTML table cells into a range in row order\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 40
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: anchor paste…' was thrown"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"tracks code-mark and clear-format transitions before replace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 32
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: action text …' was thrown"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"treats an indented code block containing blank lines as one literal block\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 46
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: anchor missi…' was thrown"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"updates protected code offsets after delete before a later replace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: action text …' was thrown"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"updates protected code offsets after replace before a later replace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: action text …' was thrown"
+    },
+    {
+      "id": "[\"tests/corpus-comparator-sequences.test.ts\",\"updates protected code offsets after type before a later replace\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-comparator-sequences.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected [Function] to not throw an error but 'Error: a-sequence-model: action text …' was thrown"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-10d/20261109T024815574Z/tests",
+    "tree": "9a3b7d05439d36409e5bb2bef16dd2a49eb128d4"
+  },
+  "spec_blobs": {
+    "tests/corpus-comparator-sequences.test.ts": "24cf6c5ea930f05b1344391f9195d4d4911e51db"
+  }
+}

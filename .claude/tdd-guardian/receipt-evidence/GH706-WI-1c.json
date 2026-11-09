@@ -1,0 +1,186 @@
+{
+  "id": "GH706-WI-1c",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:29:44.550Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"enforces canonical manifest bytes when supplied by a read-only caller\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 44
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects a nonempty action in no-edit immutable\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 16
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects a nonempty action in no-edit semantic-roundtrip\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 16
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"find\\\":{\\\"query\\\":\\\"A\\\",\\\"options\\\":{\\\"caseSensitive\\\":false,\\\"wholeWord\\\":false},\\\"matches\\\":[{\\\"text\\\":\\\"A\\\",\\\"occurrence\\\":0,\\\"block\\\":1}]}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"find\\\":{\\\"query\\\":\\\"A\\\",\\\"options\\\":{\\\"caseSensitive\\\":false},\\\"matches\\\":[]}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"imageSources\\\":[{\\\"markdownSrc\\\":\\\"a.png\\\",\\\"resolvedKind\\\":\\\"local\\\"}]}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"largeDocGuard\\\":{\\\"action\\\":\\\"degrade-to-source\\\",\\\"trigger\\\":\\\"structure\\\"}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"linkActivation\\\":{\\\"outcome\\\":\\\"external\\\",\\\"defaultPrevented\\\":\\\"true\\\",\\\"propagated\\\":true,\\\"openerCalls\\\":[\\\"https://example.com/\\\"]}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"linkActivation\\\":{\\\"outcome\\\":\\\"refused\\\",\\\"defaultPrevented\\\":true,\\\"propagated\\\":false,\\\"openerCalls\\\":[]}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"pasteSafety\\\":{\\\"forbiddenFound\\\":[123]}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"pasteSafety\\\":{\\\"forbiddenFound\\\":\\\"script\\\"}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"renderedMath\\\":{\\\"count\\\":-1}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"renderedMath\\\":{\\\"count\\\":1.5}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"selection\\\":null}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"selection\\\":{\\\"text\\\":1}}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"toc\\\":[{\\\"level\\\":0,\\\"text\\\":\\\"A\\\",\\\"id\\\":\\\"a\\\"}]}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"rejects malformed observation DTO {\\\"toc\\\":[{\\\"level\\\":1,\\\"text\\\":\\\"A\\\"}]}\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-metadata-shapes.test.ts\",\"requires observation output for interaction records\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata-shapes.test.ts",
+        "line": 48
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-1c/20261109T022944550Z/tests",
+    "tree": "4ba2a0bfe0a410681e5a821261efc80d015cbd34"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-metadata-shapes.test.ts": "5ccd3f3568931b6f4f2b440caddcfb6d081d737b"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-metadata-shapes.test.ts": "5ccd3f3568931b6f4f2b440caddcfb6d081d737b"
+  }
+}

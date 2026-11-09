@@ -1,0 +1,56 @@
+{
+  "id": "GH706-WI-4-cleanup",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:04:07.465Z",
+  "head_sha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-a-driver-cleanup.any.test.tsx": {
+      "state": "ok",
+      "sha": "f9c1d7f7bb11e0f3d470222ddee60425453ffb6e98e60cbf7921eaf8186a0e57",
+      "lines": [
+        "379b36c7e6eda995",
+        "ac9dd221cf1e1a2f",
+        "99f74486e98487d2",
+        "7772e26203b80556",
+        "61d56eb596b36a67",
+        "1e122abb00188170",
+        "7ed0d57e59cead75",
+        "ff0b50432c0730c5",
+        "e3207f497b44c9f1",
+        "8a68ba0ebaa2edab",
+        "5e459babd9b112a2",
+        "d9fb5b232e920156",
+        "9bbcb84c199fe4c1",
+        "f38d863fdb3c70a0",
+        "2dd1a865f367629f",
+        "2c0824b5349d26ae",
+        "167ee3992a26cdff",
+        "2c0e9f33141ac260",
+        "167ee3992a26cdff",
+        "e781a3528f6d88c5",
+        "29576b54e255e3c9",
+        "f813ec948bb4ffb2",
+        "f38d863fdb3c70a0",
+        "4c00f26de2a49ea7",
+        "d310696ccc748dbf",
+        "2c0824b5349d26ae",
+        "2c0e9f33141ac260",
+        "9567601b2791001d",
+        "e8aa794f25df8d14",
+        "734437e07501dd4c",
+        "e781a3528f6d88c5",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T03:04:47.692Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}

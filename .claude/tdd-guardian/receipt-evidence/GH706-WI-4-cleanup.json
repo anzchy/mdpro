@@ -1,0 +1,42 @@
+{
+  "id": "GH706-WI-4-cleanup",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T03:04:07.465Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-driver-cleanup.any.test.tsx\",\"clears pending notification work when a case is cleaned up\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-cleanup.any.test.tsx",
+        "line": 17
+      },
+      "message": "AssertionError: expected 'Rejected old paste' to be null"
+    },
+    {
+      "id": "[\"tests/corpus-a-driver-cleanup.any.test.tsx\",\"discards deferred link and table insertion requests before another document mounts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-a-driver-cleanup.any.test.tsx",
+        "line": 28
+      },
+      "message": "AssertionError: expected [Function] to be null"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-WI-4-cleanup/20261109T030407465Z/tests",
+    "tree": "15426dd6d35c62b365db4ac25326ee482815b396"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-driver-cleanup.any.test.tsx": "9342d25ab635a1a6e9c9c471ebc6264214080c48"
+  },
+  "settled_blobs": {
+    "tests/corpus-a-driver-cleanup.any.test.tsx": "9342d25ab635a1a6e9c9c471ebc6264214080c48"
+  }
+}
