@@ -6,10 +6,11 @@
  * Forbidden names are built from pieces, so this file needs no allowlist entry of its own. #569 T-01 adds one named
  * non-receipt file, `t567-mattpocock-version.test.ts`, whose single live case reads the real caches by design.
  */
-import { readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { childVitest } from "../support/t566Child";
+import { childDiagnostic, childOutcome, childVitest } from "../support/t566Child";
 import { repoRoot } from "../support/t566Engine";
 import { createOwnerChildRunner } from "./d302Child";
 
@@ -33,7 +34,11 @@ const RECEIPT_SUITES = [
 ].map((name) => `tests/tooling/${name}.test.ts`);
 const pluginEntries = inventory.tests.filter((item) => item.prerequisite === "plugin");
 const pluginFiles = [...new Set(pluginEntries.map((item) => item.id[0]))].sort();
-const COLLECT_ONLY_MS = 45_000;
+/**
+ * The child-run budget. The child runs whole files, so ordinary tests (some spawning nested vitest runs) run alongside the
+ * skipped plugin-tagged ones: 20–25 s on a Mac, 38–40 s on a CI shard, past 45 s on a loaded one (#674). Below `testTimeout`.
+ */
+const CHILD_RUN_MS = 120_000;
 const scratch: string[] = [];
 afterEach(() => { for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
@@ -50,9 +55,11 @@ describe("T566-F2-1 the plugin inventory is conserved", () => {
 describe("T566-F2-1 receipt suites skip on GitHub runners", () => {
   for (const [os, profile] of [["Linux", "ubuntu"], ["macOS", "macos"]] as const) {
     it(`skips every plugin-tagged test with RUNNER_OS=${os}, and the ${profile} comparator passes`, async ({ signal }) => {
-      // Skipped suites only collect (about 3 s); a suite that runs instead is cut off rather than run to the end.
-      const run = await childVitest(signal, pluginFiles, { RUNNER_OS: os }, COLLECT_ONLY_MS);
+      // A child that is cut off or exits non-zero rejects, or fails here first, with its status, budget, report and output.
+      const run = await childVitest(signal, pluginFiles, { RUNNER_OS: os }, CHILD_RUN_MS);
       scratch.push(run.dir);
+      expect(run.status, childDiagnostic(run)).toBe(0);
+      expect(run.budget).toBe(CHILD_RUN_MS);
       expect(run.failed).toEqual([]);
       const statuses = pluginEntries.map((item) => [item.id.join(" > "), run.statuses.get(JSON.stringify(item.id))]);
       expect(statuses.filter(([, status]) => status !== "skipped"), run.output.slice(-2000)).toEqual([]);
@@ -71,6 +78,56 @@ describe("T566-F2-1 receipt suites skip on GitHub runners", () => {
       } finally { await owner.close(); }
     });
   }
+});
+
+describe("GH674 a child that does not exit 0 fails first, naming its budget, report and output", () => {
+  it("rejects a child killed at a 1 ms budget with the diagnostic, not with an empty report", async ({ signal }) => {
+    const outcome = await childVitest(signal, [CACHE_FREE], { RUNNER_OS: "Linux" }, 1).then(
+      (run) => { scratch.push(run.dir); return `resolved with ${run.statuses.size} statuses`; },
+      (error: unknown) => (error instanceof Error ? error.message : String(error)),
+    );
+    expect(outcome).toMatch(/^child vitest failed: status null, budget 1 ms, report \S*mdpro-t566f2-report-[^/\s]+\/vitest\.json \(absent\); output tail:/);
+    const dir = outcome.match(/report (\S+)\/vitest\.json/)?.[1] ?? "";
+    expect(existsSync(dir), dir).toBe(false);
+  });
+
+  it("rejects a non-zero exit that did write a report, quoting vitest's own failure", async ({ signal }) => {
+    const message = await childVitest(signal, ["tests/tooling/gh674-no-such-file.test.ts"], {}, CHILD_RUN_MS).then(
+      (run) => { scratch.push(run.dir); return "resolved"; },
+      (error: unknown) => (error instanceof Error ? error.message : String(error)),
+    );
+    const report = message.match(/report (\S+\/vitest\.json) \(exists\); output tail:\n/)?.[1];
+    expect(message).toMatch(/^child vitest failed: status 1, budget 120000 ms, report \S+\/vitest\.json \(exists\); output tail:\n/);
+    expect(message).toContain(`JSON report written to ${report}`);
+  });
+
+  /** A temp report file holding `text`; the dir joins `scratch`. */
+  const tempReport = (text: string) => {
+    const dir = mkdtempSync(join(tmpdir(), "mdpro-gh674-"));
+    scratch.push(dir);
+    writeFileSync(join(dir, "vitest.json"), text);
+    return join(dir, "vitest.json");
+  };
+
+  it("rejects a child killed at its budget even when a report exists", () => {
+    const report = tempReport('{"testResults":[]}');
+    expect(() => childOutcome({ status: null, budget: 120_000, output: "", report })).toThrow(`child vitest failed: status null, budget 120000 ms, report ${report} (exists); output tail:\n`);
+  });
+
+  it("rejects a truncated report with the diagnostic and the parse error, not a bare SyntaxError", () => {
+    const report = tempReport('{"testResults":[');
+    expect(() => childOutcome({ status: 0, budget: 120_000, output: "partial", report })).toThrow(
+      new RegExp(`^child vitest failed: status 0, budget 120000 ms, report ${report.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(exists\\); output tail:\\npartial\\nreport unreadable: `),
+    );
+  });
+
+  it("names status, budget and report, and quotes only the last 2000 characters of output", () => {
+    const report = tempReport("{}");
+    const output = `HEAD${"x".repeat(3000)}TAIL-MARK`;
+    const text = childDiagnostic({ status: 1, budget: 120_000, output, report });
+    expect(text).toBe(`status 1, budget 120000 ms, report ${report} (exists); output tail:\n${output.slice(-2000)}`);
+    expect(text).not.toContain("HEAD");
+  });
 });
 
 /** Every file under `dir`, relative to the repo. */

@@ -1,0 +1,33 @@
+{
+  "id": "GH674-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T06:40:03.396Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t566-fix2-ci-shape.test.ts\",\"GH674 a child that does not exit 0 fails first, naming its budget, report and output\",\"rejects a child killed at a 1 ms budget with the diagnostic, not with an empty report\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t566-fix2-ci-shape.test.ts",
+        "line": 82
+      },
+      "message": "AssertionError: expected 'resolved with 0 statuses' to match /^child vitest failed: status nul…/\\s]+\\"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH674-S1/20261109T064003396Z/tests",
+    "tree": "5db3ecd10db5c744971b23a0048204a7ee62347e"
+  },
+  "spec_blobs": {
+    "tests/tooling/t566-fix2-ci-shape.test.ts": "b97eba692c52c48a538aa2f8615ac4e8e4e806db"
+  },
+  "settled_blobs": {
+    "tests/tooling/t566-fix2-ci-shape.test.ts": "b97eba692c52c48a538aa2f8615ac4e8e4e806db"
+  }
+}
