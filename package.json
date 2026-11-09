@@ -33,7 +33,10 @@
     "control:release-clean": "node scripts/control/releaseClean.mjs",
     "build:mac": "bash scripts/build-mac.sh",
     "build:mac:fast": "bash scripts/build-mac.sh --skip-tests --open",
-    "build:windows": "bash scripts/build-windows.sh"
+    "build:windows": "bash scripts/build-windows.sh",
+    "corpus:check": "node scripts/corpus/check.mjs",
+    "corpus:generate": "scripts/heavy-lock.sh node scripts/corpus/generate.mjs",
+    "corpus:determinism": "scripts/heavy-lock.sh node scripts/corpus/determinism.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
