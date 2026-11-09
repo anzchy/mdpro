@@ -30,7 +30,11 @@ export function childOutcome(run: Outcome): Report {
   }
 }
 
-/** `dir` holds the JSON report; the caller removes it. A child past `timeout` is killed, and the call rejects with the diagnostic. */
+/**
+ * `dir` holds the JSON report; the caller removes it. A child past `timeout` is killed, and the call rejects with the
+ * diagnostic; on any rejection `dir` is removed first, so the diagnostic's report path and its exists/absent mark say
+ * what the child left at exit, not a file that can still be read.
+ */
 export async function childVitest(signal: AbortSignal, files: string[], env: Record<string, string>, timeout = 540_000): Promise<ChildRun> {
   const dir = mkdtempSync(join(tmpdir(), "mdpro-t566f2-report-"));
   const report = join(dir, "vitest.json");
