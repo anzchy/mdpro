@@ -1,0 +1,41 @@
+{
+  "id": "T567-S70",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T06:35:44.221Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow skill files\",\"T567-S70 includes the moved prompt once among unique live homes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 129
+      },
+      "message": "AssertionError: expected [ …(29) ] to include '.agents/skills/jack-tdd-workflow/refe…'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S70/20261109T063544221Z/tests",
+    "tree": "4c0f1126daa8238458fa3abf363a0be611b85353"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "2cb1a354a9fae98b7bb9ba9b5dab8a93b962ca38"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "7fc2d6268a64de7efdac45297bcb1c651201e014"
+  },
+  "evidence_required": true,
+  "replay": {
+    "path": ".claude/tdd-guardian/evidence/T567-S70.json",
+    "digest": "10326d923a2c3801963ae3e5ff3ac71a729fe9d767b8c71bf47cc0ee97cd9910",
+    "result": "failed",
+    "base": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+    "head": "32d57597f2eda93f36d342a8b0c1f64b77a52ae3"
+  }
+}

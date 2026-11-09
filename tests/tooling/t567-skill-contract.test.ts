@@ -10,6 +10,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { scanStalePromptPaths } from "../support/t567RouteScan";
+import { liveHomes } from "./d355-fix1-lib";
 
 const root = path.resolve(__dirname, "../..");
 const skillDir = path.join(root, ".agents/skills/jack-tdd-workflow");
@@ -123,9 +124,14 @@ function archivedEntryViolations(text: string): string[] {
 }
 
 describe("T567 jack-tdd-workflow skill files", () => {
+  it("T567-S70 includes the moved prompt once among unique live homes", () => {
+    const homes = liveHomes();
+    expect(homes).toContain(".agents/skills/jack-tdd-workflow/references/matrix-attack-prompt.md");
+    expect(new Set(homes).size).toBe(homes.length);
+  });
   it("T567-S61 detects composed stale keys in the tracked-file scan", () => {
     const old = "const key = `${REF}/templates/matrix-attack-prompt.md: the three paths below`";
-    const fresh = "const key = `${SK}/references/matrix-attack-prompt.md: the three paths below`";
+    const fresh = "const key = `.agents/skills/jack-tdd-workflow/references/matrix-attack-prompt.md: the three paths below`";
     expect(scanStalePromptPaths({ "tests/tooling/d355-fix1-shoulds.test.ts": old })).toEqual(["tests/tooling/d355-fix1-shoulds.test.ts"]);
     expect(scanStalePromptPaths({ "tests/tooling/d355-fix1-shoulds.test.ts": fresh })).toEqual([]);
   });
