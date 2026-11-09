@@ -6,7 +6,8 @@
  * Key decisions: the wrapper's own monitor stops it after two critical readings, so its sampler reads critical only
  * once the scenario writes `release` after the second tick, and the wrapped child sleeps 60 s. The wrapper's
  * lifetime no longer depends on the ticks landing inside its 1.6–2 s monitor window (#731: they missed it under
- * load). The monitor thresholds are untouched.
+ * load). The monitor thresholds are untouched. The poll reads only completed `<pgid>.json` registrations, never
+ * guard.py's temp file mid-write.
  */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -18,6 +19,10 @@ const backstop = path.resolve("scripts/load-guard/backstop.py");
 const wrapperScript = path.resolve("scripts/heavy-lock.sh");
 const REGISTRATION_WAIT_MS = 3_000;
 const POLL_MS = 20;
+/** The wrapper's monitor interval, in seconds, as heavy-lock.sh reads it; unchanged by #731. */
+const MONITOR_INTERVAL_SECS = "0.8";
+/** How long the wrapped child and the loose runner sleep: far longer than any scenario, so neither exits on its own. */
+const FIXTURE_SLEEP_SECS = "60";
 const xctest = (dir: string) =>
   "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest " + path.join(dir, "Packages/PicseeKit/.build/debug/PicseeKitPackageTests.xctest");
 
@@ -32,6 +37,16 @@ export type RegisteredWrapperOutcome = {
   looseStops: number;
 };
 
+/** A completed registration's name: guard.py writes `.active-*` first, then renames it to `<pgid>.json`. */
+const REGISTRATION_NAME = /^\d+\.json$/;
+
+/** The completed registrations in `active`, parsed; guard.py's half-written temp files are skipped (#731). */
+export function registrations(active: string): { pgid: number; pid: number }[] {
+  if (!fs.existsSync(active)) return [];
+  return fs.readdirSync(active).filter((name) => REGISTRATION_NAME.test(name))
+    .map((name) => JSON.parse(fs.readFileSync(path.join(active, name), "utf8")));
+}
+
 export async function registeredWrapperScenario(gapMs: number, signal: AbortSignal): Promise<RegisteredWrapperOutcome> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "load-backstop-together-"));
   const active = path.join(dir, "active");
@@ -43,20 +58,21 @@ export async function registeredWrapperScenario(gapMs: number, signal: AbortSign
   fs.writeFileSync(backstopSampler, "#!/bin/sh\necho '4 0 16'\n", { mode: 0o700 });
   const common = { ...process.env, MDPRO_HEAVY_LOCK_HELD: undefined, MDPRO_GUARD_TEST: "1", MDPRO_LOAD_GUARD_TEST_ROOT: dir,
     MDPRO_LOAD_GUARD_ACTIVE: active, MDPRO_LOAD_GUARD_LOG: log };
-  const wrapped = spawn(wrapperScript, ["/bin/bash", "-c", "sleep 60"], {
+  const wrapped = spawn(wrapperScript, ["/bin/bash", "-c", `sleep ${FIXTURE_SLEEP_SECS}`], {
     env: { ...common, MDPRO_HEAVY_LOCK: path.join(dir, "lock"), MDPRO_LOAD_GUARD_SAMPLER: wrapperSampler,
-      MDPRO_LOAD_GUARD_INTERVAL_SECS: "0.8" }, stdio: "ignore", detached: true,
+      MDPRO_LOAD_GUARD_INTERVAL_SECS: MONITOR_INTERVAL_SECS }, stdio: "ignore", detached: true,
   });
-  const loose = spawn("/bin/sleep", ["60"], { detached: true, stdio: "ignore" });
+  const loose = spawn("/bin/sleep", [FIXTURE_SLEEP_SECS], { detached: true, stdio: "ignore" });
   let registeredGroup: number | undefined;
   try {
     const deadline = Date.now() + REGISTRATION_WAIT_MS;
-    while ((!fs.existsSync(active) || fs.readdirSync(active).length === 0) && Date.now() < deadline) {
+    let entries = registrations(active);
+    while (entries.length === 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+      entries = registrations(active);
     }
-    const entries = fs.existsSync(active) ? fs.readdirSync(active) : [];
     if (entries.length !== 1) throw new Error(`expected one registration, found ${entries.length}`);
-    const registration = JSON.parse(fs.readFileSync(path.join(active, entries[0]), "utf8"));
+    const registration = entries[0];
     registeredGroup = registration.pgid;
     const processes = path.join(dir, "processes.json");
     fs.writeFileSync(processes, JSON.stringify([registration.pgid, loose.pid].map((pid) => ({

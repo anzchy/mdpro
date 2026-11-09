@@ -36,6 +36,8 @@ afterEach(() => {
  * (4 740 ms), which comes to 50 s and outlasts that cap plus the rustc probe's own cap.
  */
 const PROBE_TIMEOUT_MS = 10_000;
+/** How long a stopped descendant gets to be reaped before the cleanup test calls it alive. */
+const ORPHAN_REAP_MS = 2_000;
 
 // D193: build-mac.sh is a macOS-only script (BSD stat/find, .app/.dmg bundles).
 skipUnlessMac();
@@ -196,5 +198,24 @@ describe('D183 (d) one version, or a named mismatch', () => {
     const { status, out } = run({ STUB_TAURI: 'dmg' });
     expect(status).toBe(0);
     expect(out).toMatch(/Build complete/);
+  }, spawnBudget(4_740));
+});
+
+describe('GH727 cleanup: a run leaves no descendant of build-mac.sh behind', () => {
+  it('stops a tool that backgrounds a child before it exits', async () => {
+    const orphanFile = join(project.root, 'orphan.pid');
+    project.writeStub('cargo', '#!/bin/sh\n(sleep 60 </dev/null >/dev/null 2>&1 & echo $! > "$STUB_ORPHAN")\nexit 0\n');
+    const { status } = run({ STUB_TAURI: 'dmg', STUB_ORPHAN: orphanFile });
+    const orphan = Number(readFileSync(orphanFile, 'utf8'));
+    try {
+      const deadline = Date.now() + ORPHAN_REAP_MS;
+      let alive = true;
+      while (alive && Date.now() < deadline) {
+        try { process.kill(orphan, 0); await new Promise((r) => setTimeout(r, 20)); } catch { alive = false; }
+      }
+      expect([status, alive]).toEqual([0, false]);
+    } finally {
+      try { process.kill(orphan, 'SIGKILL'); } catch { /* already gone */ }
+    }
   }, spawnBudget(4_740));
 });

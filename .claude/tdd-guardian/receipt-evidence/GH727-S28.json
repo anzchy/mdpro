@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S28",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T18:15:13.551Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d183-build-mac-product-checks.test.ts\",\"GH727 cleanup: a run leaves no descendant of build-mac.sh behind\",\"stops a tool that backgrounds a child before it exits\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "line": 216
+      },
+      "message": "AssertionError: expected [ +0, true ] to deeply equal [ +0, false ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S28/20261109T181513551Z/tests",
+    "tree": "864a3a636f1e83bac351e90da18780d24f43dacc"
+  },
+  "spec_blobs": {
+    "tests/tooling/d183-build-mac-product-checks.test.ts": "26b017492a707425b403746cca34822398fbcbd5"
+  },
+  "settled_blobs": {
+    "tests/tooling/d183-build-mac-product-checks.test.ts": "26b017492a707425b403746cca34822398fbcbd5"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S29",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T18:21:50.444Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/load-guard-backstop.test.ts\",\"reads only completed registrations, never guard.py's temp file\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/load-guard-backstop.test.ts",
+        "line": 156
+      },
+      "message": "AssertionError: expected 'Expected \\',\\' or \\'}\\' after propert…' to deeply equal [ { pgid: 4321, pid: 4321 } ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S29/20261109T182150444Z/tests",
+    "tree": "095402177e6c35d4f873173198abc36363830fbd"
+  },
+  "spec_blobs": {
+    "tests/tooling/load-guard-backstop.test.ts": "7fde18ae4409311057c75187ac1b00191eed14f4"
+  },
+  "settled_blobs": {
+    "tests/tooling/load-guard-backstop.test.ts": "7fde18ae4409311057c75187ac1b00191eed14f4"
+  }
+}

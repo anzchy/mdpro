@@ -105,7 +105,7 @@ describe("GH727 AC-1 budgets and cancellation", () => {
     const source = fs.readFileSync(file, "utf8");
     const uncapped = [...source.matchAll(/spawnSync\([^)]*\)/g)].filter((call) => !/timeout:/.test(call[0])).map((call) => call[0]);
     const short = Object.entries(result.budgets).filter(([, ms]) => spawnBudget(ms) <= 30_000 + 10_000).map(([title]) => title);
-    expect([result.lint, result.offenders, Object.keys(result.budgets).length, short, uncapped]).toEqual([[], [], 11, [], []]);
+    expect([result.lint, result.offenders, Object.keys(result.budgets).length, short, uncapped]).toEqual([[], [], 12, [], []]);
   });
 
   it("load-guard-backstop: measured budgets on every spawning test, and every tick and wait cancels through the test's signal", () => {

@@ -6,6 +6,8 @@
  * The real script is copied into a throwaway project (it locates the project
  * root from its own path) and run with stub `pnpm` / `cargo` / `rustc` on
  * PATH. Nothing real is built. The caller removes the project with cleanup().
+ * Each run is its own process group, killed when the run returns, so no stub's
+ * child outlives it (#727).
  */
 import { spawnSync } from 'node:child_process';
 import {
@@ -24,6 +26,8 @@ import { beforeEach } from 'vitest';
 
 export const SCRIPT = resolve(__dirname, '..', '..', 'scripts', 'build-mac.sh');
 export const VERSION = '9.8.7';
+/** The cap on one build-mac.sh run; d183's per-test budgets outlast it. */
+export const BUILD_TIMEOUT_MS = 30_000;
 
 /** Why every build-mac.sh test is skipped off macOS (D193). */
 export const MAC_ONLY_REASON =
@@ -179,13 +183,26 @@ export function createBuildMacProject(prefix = 'build-mac-'): BuildMacProject {
     return dmg;
   };
   const defaultPath = () => [stubBin, '/usr/bin', '/bin'].join(':');
+  // The script runs as the leader of its own process group (perl setpgrp, then exec), so once spawnSync returns,
+  // on exit or on its cap, one KILL to the group stops every descendant it left behind (#727).
   const run = (env: Record<string, string>, path?: string) => {
-    const res = spawnSync(join(root, 'scripts', 'build-mac.sh'), ['--skip-tests'], {
-      cwd: root,
-      encoding: 'utf8',
-      env: { PATH: path ?? defaultPath(), HOME: root, TMPDIR: root, ...env },
-      timeout: 30_000,
-    });
+    const res = spawnSync(
+      '/usr/bin/perl',
+      ['-e', 'setpgrp(0, 0); exec @ARGV or die "exec: $!"', join(root, 'scripts', 'build-mac.sh'), '--skip-tests'],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        env: { PATH: path ?? defaultPath(), HOME: root, TMPDIR: root, ...env },
+        timeout: BUILD_TIMEOUT_MS,
+      },
+    );
+    if (res.pid) {
+      try {
+        process.kill(-res.pid, 'SIGKILL');
+      } catch {
+        /* the group is already empty */
+      }
+    }
     return { status: res.status, out: `${res.stdout}${res.stderr}` };
   };
 

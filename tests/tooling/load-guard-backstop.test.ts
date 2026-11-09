@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { registeredWrapperScenario } from "../support/loadGuardRegistered";
+import { registeredWrapperScenario, registrations } from "../support/loadGuardRegistered";
 import { spawnBudget } from "../support/spawnBudget";
 
 const backstop = path.resolve("scripts/load-guard/backstop.py");
@@ -143,3 +143,18 @@ it("keeps one wrapper stop record when the wrapper crosses its threshold before 
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }, spawnBudget(2_558));
+
+// GH727 (#731): guard.py writes a registration as a `.active-*` temp file and renames it into place; a poll that
+// reads every entry can catch the temp file empty or half written.
+it("reads only completed registrations, never guard.py's temp file", () => {
+  const active = fs.mkdtempSync(path.join(os.tmpdir(), "load-backstop-active-"));
+  try {
+    fs.writeFileSync(path.join(active, ".active-k3j2x9"), '{"pgid": 4');
+    fs.writeFileSync(path.join(active, "4321.json"), JSON.stringify({ pgid: 4321, pid: 4321 }));
+    let read: unknown;
+    try { read = registrations(active); } catch (error) { read = error instanceof Error ? error.message : String(error); }
+    expect(read).toEqual([{ pgid: 4321, pid: 4321 }]);
+  } finally {
+    fs.rmSync(active, { recursive: true, force: true });
+  }
+});

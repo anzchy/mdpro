@@ -6,11 +6,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { checkSpawnTimeouts, inScope } from "./spawn-timeouts.mjs";
+import { spawnTimeoutFindings } from "./spawn-timeouts.mjs";
 
 const syncNames = new Set(["spawnSync", "execSync", "execFileSync"]);
 const exceptionPath = path.resolve("scripts/lint/d302-sync-exceptions.json");
-const spawnBaselinePath = path.resolve("scripts/lint/gh727-spawn-timeout-baseline.json");
 
 function checkSyncChildren(source, file) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
@@ -366,28 +365,3 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
   else process.stdout.write(`Conditional registration PASS (${files.length} files)\n`);
 }
 
-/**
- * GH727: a tests/tooling test that spawns needs an explicit timeout. The baseline holds the per-file count found when
- * the lint landed; it only goes down. A rise fails with the findings; on a full scan, a count above what is found
- * (or a listed file that no longer exists) fails as stale until it is lowered.
- */
-function spawnTimeoutFindings(files, fullScan) {
-  const baseline = fs.existsSync(spawnBaselinePath) ? JSON.parse(fs.readFileSync(spawnBaselinePath, "utf8")) : { files: {} };
-  const allowed = baseline?.files;
-  if (!allowed || typeof allowed !== "object" || Array.isArray(allowed) ||
-      Object.values(allowed).some((count) => !Number.isInteger(count) || count < 1)) throw Error("Malformed GH727 spawn-timeout baseline");
-  const cache = new Map(), out = [], found = new Map();
-  for (const file of files) {
-    const relative = path.relative(process.cwd(), file).replaceAll("\\", "/");
-    if (!inScope(relative)) continue;
-    const hits = checkSpawnTimeouts(fs.readFileSync(file, "utf8"), file, cache);
-    found.set(relative, hits.length);
-    const limit = allowed[relative] ?? 0;
-    if (hits.length > limit) out.push(...hits, `${relative}: ${hits.length} spawning tests without explicit timeout; the GH727 baseline allows ${limit}`);
-  }
-  if (fullScan) for (const [file, limit] of Object.entries(allowed)) {
-    const count = found.get(file) ?? 0;
-    if (count < limit) out.push(`${file}: stale GH727 spawn-timeout baseline (lists ${limit}, found ${count}); ${count ? `lower it to ${count}` : "remove it"}`);
-  }
-  return out;
-}
