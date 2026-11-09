@@ -160,12 +160,15 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(job(TEXT, "rust-audit"), "continue-on-error")).toBeNull();
   });
 
-  it("audit.toml accepts only RUSTSEC-2026-0189, with a reason", () => {
+  it("audit.toml accepts only RUSTSEC-2026-0189 and RUSTSEC-2026-0462, with reasons", () => {
     expect(fs.existsSync(AUDIT_TOML)).toBe(true);
     const toml = fs.existsSync(AUDIT_TOML) ? fs.readFileSync(AUDIT_TOML, "utf8") : "";
     const ignore = /^ignore\s*=\s*\[([^\]]*)\]/m.exec(toml)?.[1] ?? "";
-    expect(ignore.match(/RUSTSEC-\d{4}-\d{4}/g)).toEqual(["RUSTSEC-2026-0189"]);
+    expect(ignore.match(/RUSTSEC-\d{4}-\d{4}/g)).toEqual(["RUSTSEC-2026-0189", "RUSTSEC-2026-0462"]);
     expect(toml).toMatch(/transport-streamable-http-server/);
+    const clientReason = /((?:^\s*#.*\n)+)\s*"RUSTSEC-2026-0462"/m.exec(toml)?.[1] ?? "";
+    expect(clientReason).toMatch(/transport-streamable-http-client/);
+    expect(clientReason).toMatch(/>= 3\.9/);
     expect(toml).toMatch(/d237-cargo-audit-triage/);
   });
 

@@ -2,10 +2,11 @@
 # src-tauri/, locally and in ci.yml's rust-audit job.
 #
 # Every ignore names its advisory, the reason it does not reach mdpro, and
-# what removes it. Reachability for each comes from mdpro-codex-audit's
-# read-only triage of 2026-10-15
+# what removes it. Reachability for RUSTSEC-2026-0189 comes from
+# mdpro-codex-audit's read-only triage of 2026-10-15
 # (~/.mdpro-redesign/prep/d237-cargo-audit-triage.md, summarised in the D237
-# row of docs/plans/20260912-frontend-backend-sequencing-order.md).
+# row of docs/plans/20260912-frontend-backend-sequencing-order.md). For
+# RUSTSEC-2026-0462, the feature tree and lockfile show no HTTP client transport.
 # tests/tooling/ci-workflow-gate.test.ts pins this list.
 
 [advisories]
@@ -16,4 +17,10 @@ ignore = [
   # talks stdio, and http_server.rs is mdpro's own axum server. There is no
   # 0.14.x fix. Removed by the follow-up rmcp >= 1.4 major bump.
   "RUSTSEC-2026-0189",
+  # rmcp 0.14.0: unbounded response-body buffering in Streamable HTTP clients.
+  # Not compiled: neither `transport-streamable-http-client-reqwest` nor
+  # `transport-streamable-http-client-unix-socket` is enabled; the mdpro_mcp
+  # sidecar talks stdio. There is no 0.14.x fix; patched in rmcp >= 3.9.0.
+  # Removed by the rmcp 3.x major bump.
+  "RUSTSEC-2026-0462",
 ]
