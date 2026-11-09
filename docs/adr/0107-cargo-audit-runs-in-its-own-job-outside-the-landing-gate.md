@@ -8,6 +8,7 @@ terms (rust-audit outside `ci-gate`'s `needs`; ADR-0095's body is not edited).
 Partially supersedes [ADR-0095](0095-pull-request-ci-is-a-landing-gate.md),
 Decision 1, the clause "The `rust-test` job runs `cargo test` and
 `cargo audit`". ADR-0095's other decisions stand.
+Partially superseded (2026-11-09): decision 4's sentence "The first and only entry is RUSTSEC-2026-0189, until the rmcp ≥ 1.4 bump" by [ADR-0167](0167-the-audit-ignore-list-may-hold-more-than-one-reviewed-advisory.md).
 
 ## Context
 
