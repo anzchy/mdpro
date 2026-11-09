@@ -146,6 +146,8 @@
     {"id": ["tests/tooling/adr0141-wi2-route-guard.test.ts", "ADR0141 WI2 target prompt guard (requires macos zsh)", "accepts top-level Opus fields after a closed fence"], "prerequisite": "macos"},
     {"id": ["tests/tooling/adr0141-wi2-route-guard.test.ts", "ADR0141 WI2 target prompt guard (requires macos zsh)", "keeps Opus fields fenced after a marker with trailing text"], "prerequisite": "macos"},
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "routes both implementor runtimes to the same jack-tdd-workflow brief text"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "T567-S62 refuses a non-brief verb for a Claude implementor without sending a prompt"], "prerequisite": "macos"},
+    {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "T567-S64 uses the Claude cache for a gpt-imple target reported as Claude"], "prerequisite": "macos"},
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "gates a brief on the target runtime's cache, independently of the other cache"], "prerequisite": "macos"},
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "refuses an already idle agent without a duplicate notification"], "prerequisite": "macos"},
     {"id": ["tests/tooling/mdpro-delegator-listener.test.ts", "mdpro delegator completion listener (requires macos zsh)", "waits in mdpro, notifies once, then wakes the idle delegator"], "prerequisite": "macos"},
