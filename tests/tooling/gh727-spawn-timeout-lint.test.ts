@@ -62,6 +62,14 @@ describe("GH727 spawn-timeout lint", () => {
     ]).toEqual([[], [`tests/tooling/x.test.ts:5: ${"spawning test without explicit timeout (give it spawnBudget(<worst alone ms>) or a numeric literal above 5000)"}`]]);
   });
 
+  it("counts a file-level setConfig only on vi, not on another receiver", () => {
+    const vi = 'import { vi } from "vitest";\nconst other = { setConfig(_: unknown) {} };\n';
+    expect([
+      lint({ "tests/tooling/x.test.ts": `${head}${vi}other.setConfig({ testTimeout: 30_000 });\nit("a", () => { spawn("true"); });\n` }).length,
+      lint({ "tests/tooling/x.test.ts": `${head}${vi}vi.setConfig({ testTimeout: 30_000 });\nit("a", () => { spawn("true"); });\n` }).length,
+    ]).toEqual([1, 0]);
+  });
+
   it("does not count a vi.setConfig that runs after collection, or a hookTimeout", () => {
     const vi = 'import { beforeAll, vi } from "vitest";\n';
     expect([
@@ -83,6 +91,24 @@ describe("GH727 spawn-timeout lint", () => {
       "it(\"pure\", () => { pure(); });",
     ].join("\n");
     expect(lint({ "tests/tooling/x.test.ts": `${head}${body}\n` }).map((line) => line.split(":")[1])).toEqual(["7", "8", "9"]);
+  });
+
+  it("analyses a callback passed by name as its declaration's body (R1-M1)", () => {
+    const body = [
+      "async function body() { spawn(\"true\"); }",
+      "const arrow = () => { spawn(\"true\"); };",
+      "const helpers = { run() { spawn(\"true\"); } };",
+      "function pure() { return 1; }",
+      "const T = 20_000;",
+      "it(\"declared\", body);",
+      "it(\"arrow\", arrow);",
+      "it(\"member\", helpers.run);",
+      "it.each([1])(\"each %s\", body);",
+      "it(\"pure\", pure);",
+      "it(\"budgeted\", body, T);",
+      "it(\"options\", { timeout: 20_000 }, arrow);",
+    ].join("\n");
+    expect(lint({ "tests/tooling/x.test.ts": `${head}${body}\n` }).map((line) => line.split(":")[1])).toEqual(["8", "9", "10", "11"]);
   });
 
   it("follows a spawning object assigned in a hook to the tests that use it", () => {
@@ -109,6 +135,17 @@ describe("GH727 spawn-timeout lint", () => {
       'import fs from "node:fs";\nit("a", () => { fs.writeFileSync("f.js", `require("child_process").spawn("x")`); });',
     ];
     expect(sources.map((source) => lint({ "tests/tooling/x.test.ts": `${it}${source}\n` }).length)).toEqual([2, 1, 1, 1, 1, 1, 1, 0]);
+  });
+
+  it("counts createRequire and process.getBuiltinModule as loading child_process (R1-M1)", () => {
+    const it = 'import { it } from "vitest";\nimport { createRequire } from "node:module";\n';
+    const sources = [
+      'it("a", () => { createRequire(import.meta.url)("child_process").spawn("true"); });',
+      'const req = createRequire(import.meta.url);\nit("a", () => { req("node:child_process").spawn("true"); });',
+      'it("a", () => { process.getBuiltinModule("node:child_process").spawn("true"); });',
+      'const req = createRequire(import.meta.url);\nit("a", () => { req("node:fs"); process.getBuiltinModule("node:fs"); });',
+    ];
+    expect(sources.map((source) => lint({ "tests/tooling/x.test.ts": `${it}${source}\n` }).length)).toEqual([1, 1, 1, 0]);
   });
 
   it("follows a spawning export through relative imports and re-exports, but not a pure export of the same module", () => {
@@ -217,6 +254,31 @@ describe("GH727 spawn-timeout baseline (full scan)", () => {
       malformed: [malformed.status, malformed.stderr.includes("Malformed GH727 spawn-timeout baseline")],
     }).toEqual({ at: 0, above: [1, true], below: [1, true], missing: [1, true], malformed: [1, true] });
   }, spawnBudget(2_000));
+
+  it("finds a test reaching a default-exported spawning function or class, direct or re-exported (R1-H1)", async ({ signal }) => {
+    const test = [
+      'import { it } from "vitest";',
+      'import run from "../support/fn";',
+      'import H from "../support/cls";',
+      'import anon from "../support/anon";',
+      'import again from "../support/re";',
+      'import { default as named } from "../support/re";',
+      'it("fn", () => { run(); });',
+      'it("cls", () => { new H().go(); });',
+      'it("anon", () => { anon(); });',
+      'it("re", () => { again(); });',
+      'it("named", () => { named(); });',
+    ].join("\n");
+    const run = await scan({
+      "tests/tooling/x.test.ts": `${test}\n`,
+      "tests/support/fn.ts": 'import { spawn } from "node:child_process";\nexport default function run() { spawn("true"); }\n',
+      "tests/support/cls.ts": 'import { spawn } from "node:child_process";\nexport default class H { go() { spawn("true"); } }\n',
+      "tests/support/anon.ts": 'import { spawn } from "node:child_process";\nexport default async function () { spawn("true"); }\n',
+      "tests/support/re.ts": 'export { default } from "./fn";\n',
+    }, signal);
+    const lines = run.stderr.split("\n").filter((line) => line.includes("spawning test without explicit timeout")).map((line) => line.split(":")[1]);
+    expect([run.status, lines]).toEqual([1, ["7", "8", "9", "10", "11"]]);
+  }, spawnBudget(1_000));
 
   it("keeps the D302 synchronous-child finding in the same run as a spawn-timeout finding", async ({ signal }) => {
     const sync = `import { execSync } from "node:child_process";\nimport { it } from "vitest";\nit("s", () => { execSync("true"); }, 30_000);\n`;

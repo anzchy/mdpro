@@ -5,7 +5,7 @@ import path from "node:path";
 import { dialogFakeSource } from "./windows-driver-native-dialog-fake";
 import { layoutFakeSource } from "./windows-driver-native-layout-fake";
 import { progressFakeSource, type ProgressScenario } from "./windows-driver-native-progress-fake";
-import { type NativeRun, readNativeReport } from "./windows-driver-native-report";
+import { type NativeRun, readNativeReport, TAIL_CHARS } from "./windows-driver-native-report";
 
 const WINDOWS = path.resolve(__dirname, "../../.agents/skills/remote-windows-device-test/scripts/windows");
 
@@ -291,7 +291,7 @@ export async function runNative(
         MDPRO_TEST_RECEIPT_NOW: options.receiptNow?.toString(), MDPRO_TEST_PROCESS_START: options.processStart },
     });
     let stdout = "", stderr = "";
-    child.stdout.on("data", (data) => { stdout += String(data); }); child.stderr.on("data", (data) => { stderr += String(data); });
+    child.stdout.on("data", (data) => { stdout = (stdout + String(data)).slice(-TAIL_CHARS); }); child.stderr.on("data", (data) => { stderr += String(data); });
     child.on("close", (status, signal) => done({ status, signal, stdout, stderr }));
   });
   const log = await readNativeReport(run, dir, outPath);

@@ -184,7 +184,9 @@ export function createBuildMacProject(prefix = 'build-mac-'): BuildMacProject {
   };
   const defaultPath = () => [stubBin, '/usr/bin', '/bin'].join(':');
   // The script runs as the leader of its own process group (perl setpgrp, then exec), so once spawnSync returns,
-  // on exit or on its cap, one KILL to the group stops every descendant it left behind (#727).
+  // on exit or on its cap, one KILL to the group stops every descendant it left behind (#727). Known limit (R1-M3):
+  // that group is outside the lane's, so a lane stopped by heavy-lock's monitor, or a worker that dies mid-spawnSync,
+  // leaves it running; nothing then sends the KILL.
   const run = (env: Record<string, string>, path?: string) => {
     const res = spawnSync(
       '/usr/bin/perl',

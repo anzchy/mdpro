@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S34",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T23:04:55.283Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-lint.test.ts\",\"GH727 spawn-timeout lint\",\"counts a file-level setConfig only on vi, not on another receiver\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-lint.test.ts",
+        "line": 70
+      },
+      "message": "AssertionError: expected [ +0, +0 ] to deeply equal [ 1, +0 ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S34/20261109T230455283Z/tests",
+    "tree": "16ca8b71009249a00f212bb2e9510de74f59e3a5"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "f0ea0dc186c812bbefbaec5ab229635f9b7a4fa5"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "f0ea0dc186c812bbefbaec5ab229635f9b7a4fa5"
+  }
+}

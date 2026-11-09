@@ -364,4 +364,3 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
   if (findings.length) process.exitCode = 1;
   else process.stdout.write(`Conditional registration PASS (${files.length} files)\n`);
 }
-

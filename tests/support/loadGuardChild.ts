@@ -30,7 +30,9 @@ export function runChild(command: string, args: string[], options: {
   signal?: AbortSignal;
 } = {}): Promise<{ status: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    // Its own process group, so a stop reaches every descendant.
+    // Its own process group, so a stop reaches every descendant. Known limit (#727 R1-M3): the group is outside the
+    // lane's, so when heavy-lock's monitor stops the lane (killpg of vitest's group) or a worker dies, this group is
+    // not reached and the stop timers die with the worker; the fixture runs on until it exits by itself.
     const child = spawn(command, args, { env: options.env, stdio: ["ignore", "pipe", "pipe"], detached: true });
     let stdout = "", stderr = "";
     child.stdout.on("data", (part: Buffer) => { stdout += part.toString(); });

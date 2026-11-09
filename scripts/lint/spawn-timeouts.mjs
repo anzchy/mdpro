@@ -3,9 +3,13 @@
  * timeout, and hold the findings to scripts/lint/gh727-spawn-timeout-baseline.json (spawnTimeoutFindings). Part of
  * the conditional-tests lint family; conditional-tests.mjs runs it.
  *
- * Key decisions: reachability is syntactic. It follows child_process imports, require and import(), local
- * declarations (a block-local name only within its block), assignments (file-wide), and relative imports export by
- * export. A timeout counts only when it is statically above 5 000 ms; anything unresolvable fails closed.
+ * Key decisions: reachability is syntactic. It follows child_process imports, require, import(), createRequire and
+ * process.getBuiltinModule, local declarations (a block-local name only within its block), assignments (file-wide),
+ * relative imports export by export (default exports included), and a test callback passed by name. A timeout counts
+ * only when it is statically above 5 000 ms; anything unresolvable fails closed.
+ *
+ * Known limit: only child_process counts. A third-party spawner (`zx`, `execa`, or any other package that wraps it)
+ * is not followed into node_modules, so a test that spawns only through one is not found.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -94,7 +98,8 @@ function resolveImport(specifier, owner) {
     .find((candidate) => fs.statSync(candidate, { throwIfNoEntry: false })?.isFile()) ?? null;
 }
 
-const exported = (statement) => ts.canHaveModifiers(statement) && (ts.getModifiers(statement) ?? []).some((item) => item.kind === ts.SyntaxKind.ExportKeyword);
+const modified = (statement, kind) => ts.canHaveModifiers(statement) && (ts.getModifiers(statement) ?? []).some((item) => item.kind === kind);
+const exported = (statement) => modified(statement, ts.SyntaxKind.ExportKeyword);
 
 /**
  * Which local names in `tree` reach a child process, and which of its exports do. Relative imports are followed by
@@ -129,10 +134,16 @@ function analyse(tree, file, cache) {
       for (const item of bindings.elements) if (other.exports.has((item.propertyName ?? item.name).text)) spawning.add(item.name.text);
     }
   }
-  // `require("child_process")` and `import("child_process")` reach a child process wherever they appear.
+  // `require("child_process")`, `import(...)`, `createRequire(url)(...)`, a name bound to `createRequire(url)`, and
+  // `process.getBuiltinModule(...)` reach a child process wherever they appear.
+  const isCreateRequire = (node) => ts.isCallExpression(node = unwrap(node)) &&
+    ((ts.isIdentifier(node.expression) && node.expression.text === "createRequire") ||
+     (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "createRequire"));
+  const requireNames = new Set(["require"]);
+  const loader = (callee) => callee.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(callee) && requireNames.has(callee.text)) ||
+    isCreateRequire(callee) || (ts.isPropertyAccessExpression(callee) && callee.name.text === "getBuiltinModule");
   const loadsChild = (node) => ts.isCallExpression(node) && node.arguments.length > 0 && ts.isStringLiteralLike(node.arguments[0]) &&
-    childModules.has(node.arguments[0].text) &&
-    (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require"));
+    childModules.has(node.arguments[0].text) && loader(node.expression);
   // Declarations that reach a spawning name, to a fixed point (helpers of helpers, in any order). A name declared at
   // the top level, or assigned with `x = ...`, counts across the file; a name declared inside a block or function
   // counts only within that scope, so a same-named local elsewhere does not inherit it.
@@ -154,6 +165,7 @@ function analyse(tree, file, cache) {
     ts.forEachChild(node, collect);
   };
   collect(tree);
+  for (const [name, value] of declarations) if (isCreateRequire(value)) requireNames.add(name);
   const scoped = [];
   const spawns = (identifier) => spawning.has(identifier.text) ||
     scoped.some(([name, scope]) => name === identifier.text && scope.pos <= identifier.pos && identifier.end <= scope.end);
@@ -181,8 +193,10 @@ function analyse(tree, file, cache) {
     }
   }
   for (const statement of tree.statements) {
-    if (exported(statement) && (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) && statement.name && spawning.has(statement.name.text)) {
-      result.exports.add(statement.name.text);
+    if (exported(statement) && (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement))) {
+      // `export default function run()` (or class, or anonymous) exports "default", not its local name.
+      const isDefault = modified(statement, ts.SyntaxKind.DefaultKeyword);
+      if (statement.name ? spawning.has(statement.name.text) : reaches(statement)) result.exports.add(isDefault ? "default" : statement.name.text);
     }
     if (exported(statement) && ts.isVariableStatement(statement)) {
       for (const declaration of statement.declarationList.declarations) for (const name of boundNames(declaration.name)) if (spawning.has(name)) result.exports.add(name);
@@ -212,6 +226,7 @@ export function checkSpawnTimeouts(source, file, cache = new Map()) {
     if (!ts.isExpressionStatement(statement)) return false;
     const call = unwrap(statement.expression);
     return ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) && call.expression.name.text === "setConfig" &&
+      ts.isIdentifier(call.expression.expression) && call.expression.expression.text === "vi" &&
       call.arguments.some((arg) => {
         arg = unwrap(arg);
         if (!ts.isObjectLiteralExpression(arg)) return false;
@@ -228,7 +243,10 @@ export function checkSpawnTimeouts(source, file, cache = new Map()) {
   const findings = [];
   const visit = (node) => {
     if (ts.isCallExpression(node) && registration(node)) {
-      const callback = node.arguments.find((arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg));
+      // An inline callback, or one passed by name (`it("a", body)`, `it("a", helpers.run)`), which counts as what its
+      // declaration reaches.
+      const callback = node.arguments.find((arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) ??
+        node.arguments.slice(1).find((arg) => (ts.isIdentifier(arg) || ts.isPropertyAccessExpression(arg)) && reaches(arg));
       if (callback && reaches(callback) && !fileCovered && !hasBudget(node, callback) && !suiteCovered(node)) {
         findings.push(`${file}:${tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1}: ${MESSAGE}`);
       }
