@@ -1,0 +1,33 @@
+{
+  "id": "GH729-S2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T22:52:52.672Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"pins rmcp features and both reviewed audit ignores with their removal reasons\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 176
+      },
+      "message": "AssertionError: expected '  # rmcp 0.14.0: DNS rebinding in the…' to match /rmcp 3\\.x major bump.*>= 3\\.9\\.0/"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH729-S2/20261109T225252672Z/tests",
+    "tree": "12d409a55f9ee4ffa1373d291a0dd41b856d6bf3"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "01cf98d29ebbe2775dff3f74592a23cb9f127b66"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "01cf98d29ebbe2775dff3f74592a23cb9f127b66"
+  }
+}

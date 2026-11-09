@@ -1,0 +1,33 @@
+{
+  "id": "GH729-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T13:29:34.734Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-workflow-gate.test.ts\",\"ADR95-WI-1 ci.yml gate shape\",\"audit.toml accepts only RUSTSEC-2026-0189 and RUSTSEC-2026-0462, with reasons\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-workflow-gate.test.ts",
+        "line": 167
+      },
+      "message": "AssertionError: expected [ 'RUSTSEC-2026-0189' ] to deeply equal [ 'RUSTSEC-2026-0189', …(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH729-S1/20261109T132934734Z/tests",
+    "tree": "876fba52078d0d372af13890d0d820c45b03f223"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "50de569a960415f1e96bde949e069edc80a45f72"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-workflow-gate.test.ts": "50de569a960415f1e96bde949e069edc80a45f72"
+  }
+}
