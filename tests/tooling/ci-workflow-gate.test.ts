@@ -22,6 +22,7 @@ import { describe, expect, it } from "vitest";
 import { entry, job, jobIds, list, scalar, steps, stepRun as stepRunStrict } from "../support/workflowBlocks";
 
 const AUDIT_TOML = path.resolve(__dirname, "..", "..", "src-tauri", ".cargo", "audit.toml");
+const CARGO_TOML = path.resolve(__dirname, "..", "..", "src-tauri", "Cargo.toml");
 const TEXT = fs.readFileSync(path.resolve(__dirname, "..", "..", ".github", "workflows", "ci.yml"), "utf8");
 const stepRun = stepRunStrict as (step: string | null) => string | null;
 const runFile = promisify(execFile);
@@ -160,12 +161,20 @@ describe("ADR95-WI-1 ci.yml gate shape", () => {
     expect(scalar(job(TEXT, "rust-audit"), "continue-on-error")).toBeNull();
   });
 
-  it("audit.toml accepts only RUSTSEC-2026-0189 and RUSTSEC-2026-0462, with reasons", () => {
+  it("pins rmcp features and both reviewed audit ignores with their removal reasons", () => {
     expect(fs.existsSync(AUDIT_TOML)).toBe(true);
     const toml = fs.existsSync(AUDIT_TOML) ? fs.readFileSync(AUDIT_TOML, "utf8") : "";
+    const cargo = fs.readFileSync(CARGO_TOML, "utf8");
+    const rmcpEntry = /^rmcp\s*=\s*\{[^\n]*\}$/m.exec(cargo)?.[0];
+    expect(rmcpEntry).toBeDefined();
+    const requestedFeatures = /features\s*=\s*\[([^\]]*)\]/.exec(rmcpEntry ?? "")?.[1];
+    expect(requestedFeatures?.match(/"[^"]+"/g)?.map((feature) => feature.slice(1, -1))).toEqual(["server", "transport-io"]);
+    expect(requestedFeatures?.replace(/\s/g, "")).toBe('"server","transport-io"');
     const ignore = /^ignore\s*=\s*\[([^\]]*)\]/m.exec(toml)?.[1] ?? "";
     expect(ignore.match(/RUSTSEC-\d{4}-\d{4}/g)).toEqual(["RUSTSEC-2026-0189", "RUSTSEC-2026-0462"]);
-    expect(toml).toMatch(/transport-streamable-http-server/);
+    const serverReason = /((?:^\s*#.*\n)+)\s*"RUSTSEC-2026-0189"/m.exec(toml)?.[1] ?? "";
+    expect(serverReason).toMatch(/transport-streamable-http-server/);
+    expect(serverReason).toMatch(/rmcp 3\.x major bump.*>= 3\.9\.0/);
     const clientReason = /((?:^\s*#.*\n)+)\s*"RUSTSEC-2026-0462"/m.exec(toml)?.[1] ?? "";
     expect(clientReason).toMatch(/transport-streamable-http-client/);
     expect(clientReason).toMatch(/>= 3\.9/);
