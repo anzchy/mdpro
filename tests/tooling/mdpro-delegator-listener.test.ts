@@ -157,7 +157,8 @@ describe.skipIf(process.platform !== "darwin")("mdpro delegator completion liste
     for (const row of rows) {
       const h = harness();
       const brief = path.join(h.dir, "brief.md");
-      fs.writeFileSync(brief, "# brief\n");
+      // GH592: a Codex brief must pass the rule 22/50 check first, so the cache gate is what refuses here.
+      fs.writeFileSync(brief, "# brief\n\n**Rules for paths in scope.** none.\n\n- **May edit:** `docs/x.md`.\n");
       const other = row.runtime === "codex" ? "claude" : "codex";
       if (!row.otherValid) fs.rmSync(h.seed(other, "ok-131"), { recursive: true, force: true });
       const target = h.seed(row.runtime, row.cache === "old" ? "old-130" : row.cache === "ok-132" ? "ok-132" : "ok-131");

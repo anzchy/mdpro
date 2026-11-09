@@ -67,6 +67,9 @@ if (op[0] === "agent" && op[1] === "get") {
   for (const file of RULES) fs.copyFileSync(path.join(".claude/rules", file), path.join(repo, ".claude/rules", file));
   for (const dir of TOP) fs.mkdirSync(path.join(repo, dir), { recursive: true });
   fs.writeFileSync(path.join(repo, "CHANGELOG.md"), "# Changelog\n");
+  // #677: prompt.sh runs this helper, resolved from the script's own directory.
+  fs.mkdirSync(path.join(repo, "scripts/tdd"), { recursive: true });
+  fs.copyFileSync("scripts/tdd/mattpocock-version.mjs", path.join(repo, "scripts/tdd/mattpocock-version.mjs"));
   return cache;
 }
 
@@ -83,6 +86,10 @@ function harness() {
   const old = new Date(Date.now() - 5000);
   fs.utimesSync(overlay, old, old);
   fs.writeFileSync(path.join(target, ".codex/rules/.started-at"), "w1:p7\n");
+  // #677: prompt.sh gates an implementor brief on the target runtime's Matt Pocock skills cache.
+  for (const rel of [".codex/plugins/cache/mattpocock/mattpocock-skills", ".claude/plugins/cache/claude-plugins-official/mattpocock-skills"]) {
+    fs.cpSync("tests/fixtures/t567/caches/ok-131", path.join(root, rel), { recursive: true });
+  }
   const log = path.join(root, "calls.jsonl");
   const env: NodeJS.ProcessEnv = {
     ...process.env, HOME: root, PATH: `${path.join(exeCache(), "bin")}:${process.env.PATH ?? ""}`, MDPRO_GUARD_TEST: "1", MDPRO_GUARD_TEST_MAIN: main,
@@ -93,7 +100,7 @@ function harness() {
   const reset = () => fs.rmSync(log, { force: true });
   const write = (text: string) => { const p = path.join(root, "brief.md"); fs.writeFileSync(p, text); return p; };
   const send = (brief: string) => exec(path.join(scripts, "prompt.sh"), [NAME, brief, "brief", "1000"], env);
-  const codexText = (f: string) => `herdr-delegator: read ${f} and everything it names, then do it with $tdd-guardian:tdd-guardian-workflow. Write the handoff it names and stop.`;
+  const codexText = (f: string) => `herdr-delegator: read ${f} and everything it names, then do it with jack-tdd-workflow. Write the handoff it names and stop.`;
   const expectSent = (result: Result, f: string) => {
     expect(result.code, result.stderr).toBe(0);
     expect(prompts()).toEqual([["agent", "prompt", NAME, codexText(f), "--wait", "--timeout", "1000"]]);
