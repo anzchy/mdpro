@@ -156,6 +156,9 @@ describe("T566-F2-1 no test reaches a plugin cache or the vendor tree on its own
       "tests/support/t566Engine.ts", "tests/tooling/d187-receipt-rustfmt-guard.test.ts", "tests/tooling/t566-vendor-manifest.test.ts", MATTPOCOCK,
       "tests/tooling/adr0141-wi2-route-guard.test.ts", // seeds fixture caches under a temp HOME
       "tests/tooling/mdpro-delegator-listener.test.ts", // seeds fixture caches under a temp HOME
+      "tests/tooling/gh592-brief-rules-check.test.ts", // seeds fixture caches under a temp HOME
+      "tests/tooling/gh592-brief-rules-check-fold.test.ts", // seeds fixture caches under a temp HOME
+      "tests/tooling/gh592-brief-rules-check-fold-2.test.ts", // seeds fixture caches under a temp HOME
     ].sort());
   });
   it("reaches the vendored engine only through t566Engine's vendorDir", () => {
