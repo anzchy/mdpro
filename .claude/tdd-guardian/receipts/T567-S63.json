@@ -1,0 +1,88 @@
+{
+  "id": "T567-S63",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:23:29.060Z",
+  "head_sha": "ff420e95e407873cf5cc6335c07b4042bb2f36fe",
+  "dirty_source": [
+    ".agents/skills/mdpro-delegator/scripts/prompt.sh",
+    ".claude/rules/71-herdr-mixed-roster.md",
+    ".claude/settings.json",
+    ".codex/agents/mdpro-tdd-reviewer.toml",
+    ".codex/skills/mdpro-dev/SKILL.md",
+    ".codex/skills/mdpro-tdd-workflow/SKILL.md",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 6 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/d355-fix1-fx2.test.ts": {
+      "state": "ok",
+      "sha": "e6871afa58ddf9fec49ae3749ca98f52efd9cc4939b905ad34aceff64fc1f5c2",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9eaf2afe91e0b18b",
+        "9c94784f8cfa14e6",
+        "e0cbdab303939db3",
+        "93eb6467a531ce79",
+        "3e64b0f9de5c1ed4",
+        "50badd8487212a6c",
+        "6a2d2cdbb3298a65",
+        "8496d24caf81f929",
+        "f7d92438c61191eb",
+        "cc2dbd0320a79fe1",
+        "29576b54e255e3c9",
+        "5ee50effc53b4633",
+        "40c4bbfcd074b70d",
+        "5dcf7c5cb0019c6c",
+        "ab733f82c234271e",
+        "c50096f581ac47da",
+        "18b4633820d269dc",
+        "29576b54e255e3c9",
+        "2894ef531f49fbdb",
+        "52bc8f7e6f84da25",
+        "0eb1b4193a1eb297",
+        "98ee85297d961137",
+        "d10b36aa74a59bcf",
+        "d0d69676a27bdd4d",
+        "120d8f15c0852d4f",
+        "d10b36aa74a59bcf",
+        "b19f8a8c1c495d48",
+        "f88e44ca71311de1",
+        "29576b54e255e3c9",
+        "94a9c61c23fe6346",
+        "2030923d8dc3f1fe",
+        "c7b5fecd6d87559b",
+        "2fb1f7ca1be40051",
+        "29576b54e255e3c9",
+        "1b932824d7c02ca4",
+        "1416bcbfd49512f8",
+        "fd973c0d8db53af3",
+        "75f7e55a49ca3dc7",
+        "8ecd73ea2175c3b6",
+        "d24092370923f742",
+        "c75efeb5a9d422c5",
+        "29576b54e255e3c9",
+        "b3036d19d1898d9d",
+        "9bbc665c88aa4743",
+        "4a458f9c4a1c662d",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T02:23:41.527Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "9 non-test file(s) were already modified when the red was recorded (.agents/skills/mdpro-delegator/scripts/prompt.sh, .claude/rules/71-herdr-mixed-roster.md, .claude/settings.json, .codex/agents/mdpro-tdd-reviewer.toml, .codex/skills/mdpro-dev/SKILL.md, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

@@ -94,6 +94,34 @@ function harness() {
 }
 
 describe.skipIf(process.platform !== "darwin")("mdpro delegator completion listener (requires macos zsh)", () => {
+  it("T567-S62 refuses a non-brief verb for a Claude implementor without sending a prompt", async () => {
+    const h = harness();
+    const brief = path.join(h.dir, "brief.md");
+    fs.writeFileSync(brief, "# brief\n");
+    try {
+      const result = await run(path.join(scripts, "prompt.sh"), ["opus-imple-1", brief, "request", "1000"], {
+        ...h.env, FAKE_TARGET_KIND: "claude", FAKE_INITIAL_STATE: "idle",
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("REFUSED:");
+      expect(h.calls().filter(args => args[2] === "agent" && args[3] === "prompt")).toEqual([]);
+    } finally { h.cleanup(); }
+  });
+
+  it("T567-S64 uses the Claude cache for a gpt-imple target reported as Claude", async () => {
+    const h = harness();
+    const brief = path.join(h.dir, "brief.md");
+    fs.writeFileSync(brief, "# brief\n");
+    fs.rmSync(h.seed("claude", "ok-131"), { recursive: true, force: true });
+    try {
+      const result = await run(path.join(scripts, "prompt.sh"), ["gpt-imple-1", brief, "brief", "1000"], {
+        ...h.env, FAKE_TARGET_KIND: "claude", FAKE_INITIAL_STATE: "idle",
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toMatch(/REFUSED:.*Claude|REFUSED:.*claude/);
+      expect(h.calls().filter(args => args[2] === "agent" && args[3] === "prompt")).toEqual([]);
+    } finally { h.cleanup(); }
+  });
   it("routes both implementor runtimes to the same jack-tdd-workflow brief text", async () => {
     const h = harness();
     const brief = path.join(h.dir, "brief.md");

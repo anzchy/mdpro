@@ -113,7 +113,11 @@ sys.exit(0 if os.stat(marker).st_mtime_ns >= os.stat(overlay).st_mtime_ns else 1
       echo "REFUSED: overlay is newer than the pane for $a" >&2
       exit 2
     } ;;
-  claude) ;;
+  claude)
+    if [[ $a == *-imple-* && $verb != brief ]]; then
+      echo "REFUSED: implementor needs a brief" >&2
+      exit 2
+    fi ;;
   *) echo "REFUSED: unknown target runtime for $a" >&2; exit 2 ;;
 esac
 pre=""

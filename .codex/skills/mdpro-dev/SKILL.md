@@ -1,6 +1,6 @@
 ---
 name: mdpro-dev
-description: Use when implementing, debugging, or reviewing mdpro code, especially Tauri IPC, MCP, Milkdown/CodeMirror editors, Zustand stores, logging, TDD, keyboard shortcuts, or version sync.
+description: Use when implementing, debugging, or reviewing mdpro code, especially Tauri IPC, MCP, Milkdown/CodeMirror editors, Zustand stores, logging, TDD, keyboard shortcuts, or version sync; the TDD method for granted items is jack-tdd-workflow.
 ---
 
 # mdpro Development

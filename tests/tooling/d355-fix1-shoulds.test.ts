@@ -59,7 +59,7 @@ describe("Shoulds: fN4–fN13, gN4–gN5", () => {
     `${RR}: the rule 70 clauses it names below`, // the Overlay list that follows
     `${RR}: the device roster is replaced above`, // the Overlay's first bullet
     `${REF}/templates/challenge-request-template.md: the finding below`, // the template's finding block
-    `${REF}/templates/matrix-attack-prompt.md: the three paths below`, // the prompt's path list
+    `.agents/skills/jack-tdd-workflow/references/matrix-attack-prompt.md: the three paths below`, // the moved prompt's path list
   ]);
 
   it("D2-prose: no live home points at a section by prose instead of §", () => {

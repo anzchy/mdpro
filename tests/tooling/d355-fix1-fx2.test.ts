@@ -8,6 +8,11 @@ import {
 describe("FX-2: the common jack-tdd-workflow law after T570", () => {
   const impl = () => rawSection(read(IMPL), "Matrix and attack");
 
+  it("T567-S63 pins ATTACK-NOT-RUN and stop in every standing home", () => {
+    const texts = [section(read(R71), "Briefs and self-acceptance"), impl(), read(BRIEF_T)];
+    expect(texts.map((text) => /ATTACK-NOT-RUN[^.\n;]*\band stop\b/.test(text))).toEqual([true, true, true]);
+  });
+
   it("routes both runtimes through the skill in active standing text and the brief template", () => {
     const texts = [impl(), section(read(R71), "Briefs and self-acceptance"), read(R12), read("AGENTS.md"), read(BRIEF_T), read(PROMPT)];
     expect(texts.map((text) => ({ skill: text.includes("jack-tdd-workflow"), oldRoute: text.includes("tdd-guardian:tdd-guardian-workflow") })))

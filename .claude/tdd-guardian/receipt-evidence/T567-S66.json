@@ -1,0 +1,33 @@
+{
+  "id": "T567-S66",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:26:42.815Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow skill files\",\"T567-S65 classifies every Codex skill route and archives both entry surfaces\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 128
+      },
+      "message": "AssertionError: expected [ 'mdpro-dev', 'mdpro-tdd-workflow' ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S66/20261109T022642815Z/tests",
+    "tree": "2f5e640b7d52f0e4390c82ad7c850a5aa0571a68"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "286cdbe0e4231ed2e10238ceb652f8150f7407e2"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "286cdbe0e4231ed2e10238ceb652f8150f7407e2"
+  }
+}

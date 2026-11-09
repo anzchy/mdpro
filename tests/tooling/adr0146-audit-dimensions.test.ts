@@ -30,9 +30,8 @@ describe("ADR-0146 reviewed audit dimensions", () => {
     const policyPath = path.join(root, "docs/agents/audit-policy-set.md");
     const policy = fs.existsSync(policyPath) ? fs.readFileSync(policyPath) : Buffer.alloc(0);
     expect(createHash("sha256").update(policy).digest("hex")).toBe(
-      // GH586 moves § policy (cc-suite NL), its source pin and the policy-only / mixed / gate-tooling routing here
-      // verbatim except for pointers, pending both auditors' plan review of this blob.
-      "f045a7efd9cd6d0457ed33c964781e92153a646d2071a08bc6a1c4a057a52a6d",
+      // T570 ruling 1 and PR #677 plan review: both auditors APPROVE this policy-path-only blob.
+      "f70d9e5f5e7f043b8b3da4b146da391eae1a49390d478e5c1719c780aa03e58a",
     );
   });
 

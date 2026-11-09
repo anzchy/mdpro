@@ -1,0 +1,33 @@
+{
+  "id": "T567-S62",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:22:08.336Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mdpro-delegator-listener.test.ts\",\"mdpro delegator completion listener (requires macos zsh)\",\"T567-S62 refuses a non-brief verb for a Claude implementor without sending a prompt\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mdpro-delegator-listener.test.ts",
+        "line": 105
+      },
+      "message": "AssertionError: expected +0 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S62/20261109T022208336Z/tests",
+    "tree": "d012b605b618720e16fd36e2916b6e881338d6ff"
+  },
+  "spec_blobs": {
+    "tests/tooling/mdpro-delegator-listener.test.ts": "8505725a1a97ccad621ca05728f0e62edf6e970d"
+  },
+  "settled_blobs": {
+    "tests/tooling/mdpro-delegator-listener.test.ts": "8505725a1a97ccad621ca05728f0e62edf6e970d"
+  }
+}

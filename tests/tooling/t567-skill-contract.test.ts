@@ -9,6 +9,7 @@ import os from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
+import { scanStalePromptPaths } from "../support/t567RouteScan";
 
 const root = path.resolve(__dirname, "../..");
 const skillDir = path.join(root, ".agents/skills/jack-tdd-workflow");
@@ -88,7 +89,66 @@ function frontmatter(text: string): Record<string, string> | null {
   return fields;
 }
 
+/** Classify the immediate Codex skill catalog by description, never by a permanent name-only exclusion. */
+function codexSkillRouteViolations(entries: Record<string, string>): string[] {
+  const known = new Set(["mdpro-dev", "mdpro-planning", "mdpro-tdd-workflow"]);
+  return Object.entries(entries).flatMap(([name, description]) => {
+    if (!known.has(name)) return [name];
+    if (name === "mdpro-tdd-workflow") return /archived history/i.test(description)
+      && /new grants use `?jack-tdd-workflow`?/i.test(description)
+      && !/\buse when\b/i.test(description) ? [] : [name];
+    const implementing = /\b(?:implement|implementing|fix|fixing|debug|debugging|TDD)\b/i.test(description);
+    if (!implementing) return [];
+    return description.includes("jack-tdd-workflow") ? [] : [name];
+  });
+}
+
+/** Only the public archive entry is live catalog text; the old instructions remain historical. */
+function archivedEntryViolations(text: string): string[] {
+  const description = frontmatter(text)?.description ?? "";
+  const body = text.replace(/^---\n[\s\S]*?\n---\n/, "").split("\n").slice(0, 3).join("\n");
+  const valid = (surface: string) => /archived history/i.test(surface)
+    && /new grants use `?jack-tdd-workflow`?/i.test(surface)
+    && !/\b(?:use when|run .* as a Codex implementor)\b/i.test(surface);
+  const runTddSurfaces = [["description", description], ["marker", body]]
+    .filter(([, surface]) => /\brun\b[^.\n]{0,80}\bTDD\b/i.test(surface))
+    .map(([name]) => name);
+  if (runTddSurfaces.length) return runTddSurfaces;
+  const triggerSurfaces = [["description", description], ["marker", body]]
+    .filter(([, surface]) => /\b(?:implement|implementing|fix|fixing|debug|debugging)\b/i.test(surface))
+    .map(([name]) => name);
+  if (triggerSurfaces.length) return triggerSurfaces;
+  return [["description", description], ["marker", body]].filter(([, surface]) => !valid(surface))
+    .map(([name]) => name);
+}
+
 describe("T567 jack-tdd-workflow skill files", () => {
+  it("T567-S61 detects composed stale keys in the tracked-file scan", () => {
+    const old = "const key = `${REF}/templates/matrix-attack-prompt.md: the three paths below`";
+    const fresh = "const key = `${SK}/references/matrix-attack-prompt.md: the three paths below`";
+    expect(scanStalePromptPaths({ "tests/tooling/d355-fix1-shoulds.test.ts": old })).toEqual(["tests/tooling/d355-fix1-shoulds.test.ts"]);
+    expect(scanStalePromptPaths({ "tests/tooling/d355-fix1-shoulds.test.ts": fresh })).toEqual([]);
+  });
+  it("T567-S65 classifies every Codex skill route and archives both entry surfaces", () => {
+    const catalog = Object.fromEntries(fs.readdirSync(path.join(root, ".codex/skills"))
+      .filter((name) => fs.existsSync(path.join(root, ".codex/skills", name, "SKILL.md")))
+      .map((name) => [name, frontmatter(read(path.join(root, ".codex/skills", name, "SKILL.md")))?.description ?? ""]));
+    expect(codexSkillRouteViolations(catalog)).toEqual([]);
+    expect(codexSkillRouteViolations({ ...catalog, "mdpro-planning": "Use when implementing and debugging code" }))
+      .toEqual(["mdpro-planning"]);
+    expect(codexSkillRouteViolations({ ...catalog, "new-skill": "Use when debugging code" }))
+      .toEqual(["new-skill"]);
+    expect(archivedEntryViolations(read(path.join(root, ".codex/skills/mdpro-tdd-workflow/SKILL.md"))))
+      .toEqual([]);
+    const badEntry = read(path.join(root, ".codex/skills/mdpro-tdd-workflow/SKILL.md"))
+      .replace("historical handoffs only.", "historical handoffs only. Implement code here.")
+      .replace("The steps below document the retired Codex port.", "Implement this item.");
+    expect(archivedEntryViolations(badEntry)).toEqual(["description", "marker"]);
+    const badTddEntry = read(path.join(root, ".codex/skills/mdpro-tdd-workflow/SKILL.md"))
+      .replace("historical handoffs only.", "historical handoffs only. Run TDD for granted items here.")
+      .replace("The steps below document the retired Codex port.", "Run TDD for granted items here.");
+    expect(archivedEntryViolations(badTddEntry)).toEqual(["description", "marker"]);
+  });
   it("has SKILL.md as a regular file in the canonical directory", () => {
     expect(fs.lstatSync(skillMd, { throwIfNoEntry: false })?.isFile() ?? false).toBe(true);
   });
@@ -144,9 +204,7 @@ describe("T567 jack-tdd-workflow method text", () => {
     const { stdout } = await promisify(execFile)("git", ["ls-files", "-z"], { cwd: root });
     const tracked = stdout.split("\0").filter(Boolean);
     const textFiles = tracked.filter((file) => /\.(?:md|ts|tsx|sh|toml|json)$/.test(file) && fs.existsSync(path.join(root, file)));
-    const stalePaths = textFiles.filter((file) => read(path.join(root, file)).includes(oldPrompt)
-      && file !== "docs/reference/20261027-rules-70-71-history.md"
-      && !/^docs\/specs\/567-tdd-skill\/r\d+\//.test(file));
+    const stalePaths = scanStalePromptPaths(Object.fromEntries(textFiles.map((file) => [file, read(path.join(root, file))])));
     const rules = fs.readdirSync(path.join(root, ".claude/rules")).filter((file) => file.endsWith(".md"))
       .map((file) => `.claude/rules/${file}`);
     const templates = skillFiles(path.join(root, ".agents/skills/mdpro-delegator/references/templates"))

@@ -1,7 +1,9 @@
 ---
 name: mdpro-tdd-workflow
-description: Run mdpro's strict TDD workflow for one granted item (a D item, WI or fix round from a herdr-delegator brief) as a Codex implementor. Chains plan, test matrix, an independent spec-adversary subagent attack, per-WI red receipts and red-green-refactor, a coverage self-check, a reviewer subagent, the gates and the self-acceptance handoff. Halts on the first gate failure. Self-contained port of /tdd-guardian:workflow for rule 71. Use when a brief tells you to run $mdpro-tdd-workflow, or when implementing any granted item.
+description: Archived history; new grants use jack-tdd-workflow. This retired Codex port is kept for historical handoffs only.
 ---
+
+> Archived history: new grants use jack-tdd-workflow. The steps below document the retired Codex port.
 
 # mdpro TDD workflow (Codex)
 

@@ -19,7 +19,6 @@ const NAMED = [
   ".agents/skills/mdpro-delegator/references/guide.md",
   ".agents/skills/mdpro-delegator/references/templates/brief-template.md",
   ".agents/skills/mdpro-delegator/references/templates/fix-brief-template.md",
-  ".codex/agents/mdpro-tdd-reviewer.toml",
 ];
 const SKILL = ".agents/skills/jack-tdd-workflow";
 const LEGACY = /tdd-guardian\/receipts\.json|evidence\.json/;

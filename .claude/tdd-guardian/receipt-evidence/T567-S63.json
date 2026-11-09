@@ -1,0 +1,33 @@
+{
+  "id": "T567-S63",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:23:29.060Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/d355-fix1-fx2.test.ts\",\"FX-2: the common jack-tdd-workflow law after T570\",\"T567-S63 pins ATTACK-NOT-RUN and stop in every standing home\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/d355-fix1-fx2.test.ts",
+        "line": 13
+      },
+      "message": "AssertionError: expected [ false, true, true ] to deeply equal [ true, true, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S63/20261109T022329060Z/tests",
+    "tree": "7b92eec63a56c28766d29c7778c639ffbd630b45"
+  },
+  "spec_blobs": {
+    "tests/tooling/d355-fix1-fx2.test.ts": "0c6eb31fcc939194336aab45720a03f1dcbde1f0"
+  },
+  "settled_blobs": {
+    "tests/tooling/d355-fix1-fx2.test.ts": "0c6eb31fcc939194336aab45720a03f1dcbde1f0"
+  }
+}

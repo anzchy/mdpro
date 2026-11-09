@@ -1,0 +1,34 @@
+{
+  "id": "T567-S69",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:47:30.385Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/t567-skill-contract.test.ts\",\"T567 jack-tdd-workflow skill files\",\"T567-S65 classifies every Codex skill route and archives both entry surfaces\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/t567-skill-contract.test.ts",
+        "line": 146
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'description', 'marker' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S69/20261109T024730385Z/tests",
+    "tree": "88ee5cbf6d0c9c7f41e8eefb4f0b44e080d470e8"
+  },
+  "spec_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "09b5f8ca4d7f4323410a445f1480966cbe576fdd"
+  },
+  "settled_blobs": {
+    "tests/tooling/t567-skill-contract.test.ts": "c30f7e9c822084e0f1184419a06abda735db1c36"
+  },
+  "evidence_required": true
+}

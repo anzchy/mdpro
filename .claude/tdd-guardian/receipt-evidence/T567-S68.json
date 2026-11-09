@@ -1,0 +1,33 @@
+{
+  "id": "T567-S68",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T02:44:27.883Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh628-cutover.test.ts\",\"GH628-S1 receipt verdict cutover\",\"T567-S68 removes the orphaned Codex TDD reviewer agent after the port is archived\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh628-cutover.test.ts",
+        "line": 30
+      },
+      "message": "AssertionError: expected true to be false // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/T567-S68/20261109T024427883Z/tests",
+    "tree": "731b88e3e3f155ddabc9d50b29c7312d7046752d"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh628-cutover.test.ts": "2efd3a1b744214056c50977b9d87f95c6d4849f1"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh628-cutover.test.ts": "2efd3a1b744214056c50977b9d87f95c6d4849f1"
+  }
+}

@@ -89,7 +89,7 @@ export const PINNED = new Set(["docs/agents/audit-dimensions.md", "docs/agents/a
 /** Every live home: the delegator skill, its references and templates, and docs/agents/*.md minus the pinned blobs. */
 export function liveHomes(): string[] {
   const md = (dir: string) => fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith(".md")).map((f) => `${dir}/${f}`);
-  return [`${SK}/SKILL.md`, ...md(REF), ...md(`${REF}/templates`), ...md("docs/agents").filter((f) => !PINNED.has(f))];
+  return [`${SK}/SKILL.md`, ...md(`${SK}/references`), ...md(REF), ...md(`${REF}/templates`), ...md("docs/agents").filter((f) => !PINNED.has(f))];
 }
 /** `file:line: phrase` for each normalised hit of any phrase in `text`. */
 export function hitsIn(file: string, text: string, phrases: string[]): string[] {

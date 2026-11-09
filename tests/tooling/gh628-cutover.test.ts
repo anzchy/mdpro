@@ -23,10 +23,12 @@ const livePaths = [
   "docs/guide/receipt-evidence.md",
   ".codex/skills/mdpro-tdd-workflow/SKILL.md",
   ".codex/skills/mdpro-tdd-workflow/references/review.md",
-  ".codex/agents/mdpro-tdd-reviewer.toml",
 ];
 
 describe("GH628-S1 receipt verdict cutover", () => {
+  it("T567-S68 removes the orphaned Codex TDD reviewer agent after the port is archived", () => {
+    expect(existsSync(resolve(root, ".codex/agents/mdpro-tdd-reviewer.toml"))).toBe(false);
+  });
   it("keeps parent bytes and shape as a PASS check while focused verdicts are information", () => {
     const verifier = read(livePaths[0]);
     const pass = verifier.slice(verifier.indexOf("PASS requires all of:"));
