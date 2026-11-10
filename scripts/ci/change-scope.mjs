@@ -101,8 +101,14 @@ function main(argv) {
   const output = line + names.map((name) => `${name}=${classes[name]}\n`).join("");
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, output);
   else process.stdout.write(output);
-  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Risk classes: ${names.map((name) => `${name}=${classes[name]}`).join(" ")}${forced ? ` (all true: ${forced})` : ""}\n`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try {
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+        `Risk classes: ${names.map((name) => `${name}=${classes[name]}`).join(" ")}${forced ? ` (all true: ${forced})` : ""}\n`);
+    } catch {
+      process.stderr.write("change-scope: risk summary unavailable\n");
+    }
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main(process.argv.slice(2));

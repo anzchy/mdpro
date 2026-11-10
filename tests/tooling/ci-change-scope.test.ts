@@ -159,6 +159,17 @@ describe("ADR95-WI-1 change-scope CLI", () => {
     });
   }, spawnBudget(1_000));
 
+  it("keeps scope successful when the optional summary cannot be written", () => {
+    const { dir, base } = repoFixture();
+    const output = path.join(dir, "summary-error-output");
+    const r = spawnSync("node", [SCRIPT, base, "HEAD"], {
+      cwd: dir, encoding: "utf8", timeout: spawnBudget(1_000),
+      env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: path.join(dir, "missing-parent/summary") },
+    });
+    expect([r.status, fs.readFileSync(output, "utf8"), r.stderr.includes("change-scope: risk summary unavailable")])
+      .toEqual([0, "code=true\ndeps=true\neditor=true\npipeline=true\nci=true\nipc=true\nplatform=true\n", true]);
+  }, spawnBudget(1_000));
+
   it.each([
     ["no PR base", "", "HEAD", "no PR base"],
     ["git failed", "bad-ref", "HEAD", "git failed"],
