@@ -275,3 +275,13 @@ describe("MIG-003b platform-advisory.yml no softening", () => {
     expect(() => assertNoSoftening(mutant)).toThrow();
   });
 });
+
+describe("MIG-003b platform-advisory.yml cache save mutants", () => {
+  it("fails the save pin when save-if is removed from the workflow", () => {
+    const mutant = TEXT.replace(/\n {10}save-if: .*\n/, "\n");
+    expect(mutant).not.toBe(TEXT);
+    const saveIf = scalar(topLevel(stepWithId(nativeSteps(mutant), "rust-cache"), "with"), "save-if");
+    expect(saveIf).toBeNull();
+    expect(() => evaluateConjunction(saveIf, { "github.event_name": "schedule", "github.ref": "refs/heads/master" })).toThrow();
+  });
+});
