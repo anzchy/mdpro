@@ -15,5 +15,13 @@ it('a-CS pins the current App outcome when the real serializer throws during sav
     expect(journey.boundary.corpus.files.get(path)).toBe(content);
     expect(journey.documentStore.getState().getDocumentById(id)).toMatchObject({ content, savedContent: content, isModified: true });
     expect(journey.toastStore.getState().message).toMatch(/^Save failed:/);
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);

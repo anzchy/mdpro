@@ -31,6 +31,12 @@ it('H7 rejects a document keydown listener left after unmount', async () => {
   await expect(journey.cleanup()).rejects.toThrow(/domListeners=[1-9].*document:keydown/);
 }, 15_000);
 
+it('H7 rejects an element listener left on the mounted App root', async () => {
+  const journey = await createAppJourney();
+  journey.view.container.addEventListener('click', () => {});
+  await expect(journey.cleanup()).rejects.toThrow(/domListeners=[1-9].*element:click/);
+}, 15_000);
+
 it('H7 rejects a registered flusher left after unmount', async () => {
   const journey = await createAppJourney();
   journey.milkdownStore.getState().registerFlusher('leak', () => ({ status: 'clean' }));

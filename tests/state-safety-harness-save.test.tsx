@@ -14,7 +14,15 @@ it('H1 records exact untouched corpus bytes through App save', async () => {
     expect(journey.boundary.writeLog).toEqual(expectedWrites);
     await journey.advance(250);
     expect(journey.boundary.writeLog).toEqual(expectedWrites);
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);
 
 it('H2 opens an untouched corpus case without writing', async () => {

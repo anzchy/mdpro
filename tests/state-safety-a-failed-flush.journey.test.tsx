@@ -39,7 +39,15 @@ it('a-C4 refuses a save when the real serializer fails', async () => {
     expect(journey.documentStore.getState().getDocumentById(id)?.isModified).toBe(true);
     expect(journey.readTokens(id)).toEqual(before);
     expect(journey.toastStore.getState().message).not.toBe('Saved');
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);
 
 it('a-C4 never reports a second failed save as success', async () => {
@@ -75,5 +83,13 @@ it('a-C4 never reports a second failed save as success', async () => {
     expect(journey.documentStore.getState().getDocumentById(id)?.isModified).toBe(true);
     expect(journey.documentStore.getState().getDocumentById(id)?.savedContent).toBe(content);
     expect(journey.readTokens(id)).toEqual(before);
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);

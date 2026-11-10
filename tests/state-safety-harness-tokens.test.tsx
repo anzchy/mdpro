@@ -9,7 +9,15 @@ it('H9 readTokens reports the document lifetime and replacement deltas', async (
     await journey.type('X');
     await journey.menu('file.save');
     expect(journey.readTokens(id)).toEqual({ ...before, lifetime: before.lifetime + 1, replacement: before.replacement + 1 });
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);
 
 it('H10 records each notified document and editor state transition', async () => {
@@ -38,7 +46,15 @@ it('H10 records each notified document and editor state transition', async () =>
     journey.milkdownStore.getState().reloadEditor(id, 'recorder-test');
     expect(journey.transitions.at(-1)).toMatchObject({ source: 'milkdown', editorGenerations: { [id]: generation + 1 } });
     expect(lastSaved).toMatchObject({ editorGenerations: { [id]: generation } });
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);
 
 it('H10 snapshots both stores at each notification without mutating earlier snapshots', async () => {
@@ -73,5 +89,13 @@ it('H10 snapshots both stores at each notification without mutating earlier snap
     });
     expect(documentStep?.editorGenerations[id]).toBe(generationBefore || undefined);
     expect(initial?.documents[0]?.content).toBe(current.content);
-  } finally { journey.toastStore.getState().clearToast(); await journey.cleanup(); }
+  } finally {
+    const writesBeforeToastExpiry = [...journey.boundary.writeLog];
+    try {
+      await journey.advance(3_000);
+      expect(journey.boundary.writeLog).toEqual(writesBeforeToastExpiry);
+    } finally {
+      await journey.cleanup();
+    }
+  }
 }, 15_000);

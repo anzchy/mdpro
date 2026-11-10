@@ -76,6 +76,32 @@ export async function createAppJourney(options: { strictMode?: boolean } = {}) {
   };
   const restoreWindowListeners = watchListeners(window, 'window');
   const restoreDocumentListeners = watchListeners(document, 'document');
+  const elementListeners: Array<{ target: Element; type: string;
+    listener: EventListenerOrEventListenerObject; capture: boolean }> = [];
+  const elementAdd = Element.prototype.addEventListener;
+  const elementRemove = Element.prototype.removeEventListener;
+  const addElementSpy = vi.spyOn(Element.prototype, 'addEventListener').mockImplementation(function (
+    this: Element, type, listener, options?: boolean | AddEventListenerOptions,
+  ) {
+    const capture = captureOf(options);
+    // React and editor internals retain delegated listeners on detached nodes; own call sites are the App's teardown contract.
+    const caller = new Error().stack?.split('\n').find(line => line.startsWith('    at ') &&
+      !line.includes('appJourneyHarness.tsx') && !line.includes('@vitest/spy') && !line.includes('tinyspy'));
+    const owned = caller && !caller.includes('/node_modules/') && /\/(src|tests)\//.test(caller);
+    if (listener && owned && !elementListeners.some(entry => entry.target === this && entry.type === type &&
+      entry.listener === listener && entry.capture === capture)) {
+      elementListeners.push({ target: this, type, listener, capture });
+    }
+    elementAdd.call(this, type, listener, options);
+  });
+  const removeElementSpy = vi.spyOn(Element.prototype, 'removeEventListener').mockImplementation(function (
+    this: Element, type, listener, options?: boolean | EventListenerOptions,
+  ) {
+    const index = elementListeners.findIndex(entry => entry.target === this && entry.type === type &&
+      entry.listener === listener && entry.capture === captureOf(options));
+    if (index >= 0) elementListeners.splice(index, 1);
+    elementRemove.call(this, type, listener, options);
+  });
 
   const transitions: Array<{
     source: 'document' | 'milkdown'; activeId: string | null;
@@ -213,11 +239,14 @@ export async function createAppJourney(options: { strictMode?: boolean } = {}) {
     useToastStore.getState().clearToast();
     const listeners = boundary.liveListeners;
     const flushers = Object.values(useMilkdownEditorStore.getState().flushers).flat().length;
-    const leakedDomListeners = domListeners.map(entry => `${entry.target}:${entry.type}`);
-    for (const entry of domListeners) {
+    const leakedDomListeners = domListeners.map(entry => `${entry.target}:${entry.type}`).concat(
+      elementListeners.map(entry => `element:${entry.type}`));
+    for (const entry of [...domListeners]) {
       (entry.target === 'window' ? window : document).removeEventListener(entry.type, entry.listener, entry.capture);
     }
+    for (const entry of [...elementListeners]) entry.target.removeEventListener(entry.type, entry.listener, entry.capture);
     restoreWindowListeners(); restoreDocumentListeners();
+    addElementSpy.mockRestore(); removeElementSpy.mockRestore();
     globalThis.setTimeout = fakeSetTimeout;
     vi.useRealTimers();
     Range.prototype.getClientRects = oldGetClientRects;

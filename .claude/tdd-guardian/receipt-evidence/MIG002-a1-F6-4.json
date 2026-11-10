@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-F6-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T15:47:50.167Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-harness-teardown.test.tsx\",\"H7 rejects an element listener left on the mounted App root\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/state-safety-harness-teardown.test.tsx",
+        "line": 37
+      },
+      "message": "Error: promise resolved \"undefined\" instead of rejecting"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F6-4/20261110T154750167Z/tests",
+    "tree": "c4efa2a789e00bc67b9151c86ed0e2457374db39"
+  },
+  "spec_blobs": {
+    "tests/state-safety-harness-teardown.test.tsx": "6ee14b4e659efa15ef0d455c54f36f3bb45a99a9"
+  },
+  "settled_blobs": {
+    "tests/state-safety-harness-teardown.test.tsx": "6ee14b4e659efa15ef0d455c54f36f3bb45a99a9"
+  }
+}
