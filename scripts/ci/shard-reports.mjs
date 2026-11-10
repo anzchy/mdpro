@@ -180,7 +180,7 @@ const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 
 const commands = {
   describe: ([os, shard, count, attempt, profile, sha]) => `${JSON.stringify(describeShard({ os, shard, count, attempt, profile, sha }))}\n`,
-  collect: ([downloads, dest, count, os, sha]) => `${collect(downloads, dest, positive("count", count), os, sha)}\n`,
+  collect: ([downloads, dest, count, os, sha]) => `${collect(downloads, dest, positive("count", count) + (process.env.GITHUB_JOB === "frontend-merge" ? 1 : 0), os, sha)}\n`,
   check: ([downloads, count, os, mergedPath, listPath, root]) => {
     const shards = positive("count", count);
     const result = checkMerged(downloads, shards, os, readJson(mergedPath), readJson(listPath), root);
