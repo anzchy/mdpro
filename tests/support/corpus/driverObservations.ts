@@ -40,7 +40,7 @@ export async function observeDriver<K extends DriverObservationKind>(runtime: Mi
         return { markdownSrc, resolvedKind };
       }); break;
     }
-    case 'linkActivation': throw new Error(`${runtime.caseId}: link activation requires the WI5 click observer`);
+    case 'linkActivation': throw new Error(`${runtime.caseId}: linkActivation is supplied by the driver click observer`);
     default: { const exhaustive: never = kind; throw new Error(`${runtime.caseId}: unknown observation ${exhaustive}`); }
   }
   return result as ObservationMap[K];

@@ -1,0 +1,33 @@
+{
+  "id": "GH706-F1-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T01:07:21.269Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-cli-generation.test.ts\",\"explicit per-case serialized bootstrap fills only the selected missing baseline\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/corpus-cli-generation.test.ts",
+        "line": 124
+      },
+      "message": "Error: a-changed: missing expected serialized"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-F1-3/20261110T010721269Z/tests",
+    "tree": "e3ed2a9234c761820e1290a47cc621805ab70743"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-cli-generation.test.ts": "db287d7397bdf30996eeaf6ddcfa2e67b07f8d44"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-cli-generation.test.ts": "db287d7397bdf30996eeaf6ddcfa2e67b07f8d44"
+  }
+}

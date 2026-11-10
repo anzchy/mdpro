@@ -1,0 +1,33 @@
+{
+  "id": "GH706-F3-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T01:13:00.627Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-metadata.test.ts\",\"corpus metadata\",\"accepts no guarded path when no source mutation turns the case red\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-metadata.test.ts",
+        "line": 71
+      },
+      "message": "AssertionError: expected [ Array(1) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-F3-1/20261110T011300627Z/tests",
+    "tree": "cf1fa97b1568006e38e56c01683103edc822805e"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-metadata.test.ts": "d640a9444b2f1e5f92c08119cea4b028f70b4629"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-metadata.test.ts": "d640a9444b2f1e5f92c08119cea4b028f70b4629"
+  }
+}

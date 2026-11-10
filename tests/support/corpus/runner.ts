@@ -1,4 +1,4 @@
-/** Read-only orchestration: validate inputs, execute one fresh driver, compare both outputs and prove its negative. */
+/** Per-case orchestration validates inputs, runs one fresh driver, compares outputs and proves the negative; write mode returns candidate bytes. */
 import type { CorpusDriver, CorpusRecord, LargeDocGuardDecision, MountingRecord, ObservationKind, Observations, Platform, ViewMode } from './types.ts';
 import { compareCase, type ComparisonActual, type ComparisonExpected, type ComparisonReport } from './comparator.ts';
 import { canonicalJson } from './canonical.ts';
@@ -9,7 +9,7 @@ import { observeContent } from './contentObservations.ts';
 import { expandRecipe } from './recipes.ts';
 import { createCorpusDriver } from './defaultDriverFactory.ts';
 import { OBSERVATION_KINDS } from './vocabulary.ts';
-export interface RunOptions { engine?: string; driverFactories?: Readonly<Record<string, (record: MountingRecord) => CorpusDriver | Promise<CorpusDriver>>>; mode?: 'check' | 'write'; env?: Readonly<Record<string, string | undefined>>; observationKinds?: readonly ObservationKind[]; guardComparison?: (actual: LargeDocGuardDecision, baseline: LargeDocGuardDecision) => boolean }
+export interface RunOptions { engine?: string; driverFactories?: Readonly<Record<string, (record: MountingRecord) => CorpusDriver | Promise<CorpusDriver>>>; mode?: 'check' | 'write'; env?: Readonly<Record<string, string | undefined>>; observationKinds?: readonly ObservationKind[]; bootstrapSerialized?: boolean; guardComparison?: (actual: LargeDocGuardDecision, baseline: LargeDocGuardDecision) => boolean }
 export type CaseResult = { caseId: string; caseKind: 'mounting'; actual: ComparisonActual; report: ComparisonReport } | { caseId: string; caseKind: 'guard-only'; actual: { observation: LargeDocGuardDecision }; report: ComparisonReport };
 export interface SelectionOptions { caseIds?: readonly string[]; platform?: Platform; includeLocalOnly?: boolean }
 export function selectCases(records: readonly CorpusRecord[], options: SelectionOptions = {}): CorpusRecord[] {
@@ -64,6 +64,9 @@ export async function runCase(record: CorpusRecord, files: Readonly<Record<strin
     }
     const input = read(files, record.input), observed = expectedObservation(record, files, options);
     const desired = record.desired === undefined ? undefined : read(files, record.desired);
+    if (!Object.hasOwn(files, record.expected.serialized) && !(options.mode === 'write' && options.bootstrapSerialized === true)) {
+      throw new Error('missing expected serialized needs explicit bootstrap selection');
+    }
     const baseline = options.mode === 'write' ? undefined : read(files, record.expected.serialized);
     const engine = options.engine ?? env.CORPUS_ENGINE ?? 'milkdown';
     const factories = options.driverFactories ?? { milkdown: createCorpusDriver };

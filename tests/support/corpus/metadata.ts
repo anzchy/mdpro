@@ -38,7 +38,7 @@ export function validateRecord(value: unknown, context: ValidationContext): stri
     if (name === 'externalEvidence' && r[name] === undefined) continue;
     if (!Array.isArray(r[name]) || !r[name].every(item => typeof item === 'string' && item.trim().length > 0)) fail(name + ' must be a string array');
   }
-  if (!Array.isArray(r.guardedPaths) || r.guardedPaths.length === 0 || !r.guardedPaths.every(item => isObject(item) && safeRelativePath(item.path) && typeof item.receipt === 'string' && item.receipt.length > 0)) fail('guardedPaths requires path and receipt');
+  if (!Array.isArray(r.guardedPaths) || !r.guardedPaths.every(item => isObject(item) && safeRelativePath(item.path) && typeof item.receipt === 'string' && item.receipt.length > 0)) fail('guardedPaths requires path and receipt');
   if (r.caseKind === 'guard-only') return errors.concat(guardRecordErrors(r, context.files).map(rule => `${id}: ${rule}`));
   if (r.caseKind !== undefined && r.caseKind !== 'mounting') fail('caseKind outside closed list');
   for (const field of ['recipe', 'viewMode']) if (field in r) fail(field + ' is guard-only');

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -39,6 +39,38 @@ it('real Node checker accepts a valid explicit root twice without writing a byte
   const f = fixture(), before = inventory(f.root);
   expect((await check(f.root)).status).toBe(0); expect((await check(f.root)).status).toBe(0); expect(inventory(f.root)).toEqual(before);
 });
+it('checker accepts origin/master in a detached checkout without a local master', async () => {
+  const clone = mkdtempSync(join(tmpdir(), 'corpus-detached-')); roots.push(clone);
+  const git = (args: string[]) => new Promise<string>((done, fail) => execFile('git', args, { cwd: clone, encoding: 'utf8' },
+    (error, stdout) => error ? fail(error) : done(stdout)));
+  await git(['init', '-q']); await git(['remote', 'add', 'origin', resolve('.')]);
+  const master = await new Promise<string>((done, fail) => execFile('git', ['rev-parse', 'refs/remotes/origin/master'],
+    { encoding: 'utf8' }, (error, stdout) => error ? fail(error) : done(stdout.trim())));
+  await git(['fetch', '-q', 'origin', master]); await git(['update-ref', 'refs/remotes/origin/master', master]);
+  await git(['fetch', '-q', 'origin', 'HEAD']);
+  await git(['checkout', '-q', '--detach', 'FETCH_HEAD']);
+  copyFileSync(resolve('scripts/corpus/provenance.ts'), join(clone, 'scripts/corpus/provenance.ts'));
+  await expect(git(['show-ref', '--verify', 'refs/heads/master'])).rejects.toThrow();
+  await git(['show-ref', '--verify', 'refs/remotes/origin/master']);
+  const fixtureRoot = join(clone, 'tests/fixtures/markdown-corpus'), before = inventory(fixtureRoot);
+  const output = await nodeCli([join(clone, 'scripts/corpus/check.mjs'), '--root', fixtureRoot]);
+  expect(output.status).toBe(0);
+  expect(output.stdout).toContain('corpus check passed');
+  expect(inventory(fixtureRoot)).toEqual(before);
+  const oldest = (await git(['rev-list', '--max-parents=0', 'HEAD'])).trim();
+  await git(['tag', 'master', oldest]);
+  const withConflictingTag = await nodeCli([join(clone, 'scripts/corpus/check.mjs'), '--root', fixtureRoot]);
+  expect(withConflictingTag.status).toBe(0);
+  expect(inventory(fixtureRoot)).toEqual(before);
+  await git(['update-ref', '-d', 'refs/remotes/origin/master']);
+  const missingRefs = await nodeCli([join(clone, 'scripts/corpus/check.mjs'), '--root', fixtureRoot]);
+  expect(missingRefs.status).not.toBe(0);
+  expect(missingRefs.stderr).toMatch(/baselineSha must name an existing master commit/);
+  await git(['update-ref', 'refs/heads/master', oldest]);
+  const localPrecedence = await nodeCli([join(clone, 'scripts/corpus/check.mjs'), '--root', fixtureRoot]);
+  expect(localPrecedence.status).not.toBe(0);
+  expect(localPrecedence.stderr).toMatch(/baselineSha must name an existing master commit/);
+}, 30_000);
 it.each([
   ['unlisted', (f: ReturnType<typeof fixture>) => f.put('extra.md', 'extra'), /extra.md.*unlisted/],
   ['missing', (f: ReturnType<typeof fixture>) => rmSync(join(f.root, f.record.expected.serialized)), /a-example.*missing/],

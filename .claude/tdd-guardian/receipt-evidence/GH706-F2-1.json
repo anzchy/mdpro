@@ -1,0 +1,33 @@
+{
+  "id": "GH706-F2-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T01:09:08.672Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-cli-check.test.ts\",\"checker accepts origin/master in a detached checkout without a local master\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-cli-check.test.ts",
+        "line": 53
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-F2-1/20261110T010908672Z/tests",
+    "tree": "a0d806636465b8de54db4491e10c628e43626477"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-cli-check.test.ts": "a34498a52d9baf026cc639877bcd22f020b8f633"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-cli-check.test.ts": "a34498a52d9baf026cc639877bcd22f020b8f633"
+  }
+}

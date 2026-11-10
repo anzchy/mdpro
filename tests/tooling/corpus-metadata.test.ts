@@ -65,8 +65,15 @@ describe('corpus metadata', () => {
     ['baselineSha', undefined], ['baselineSha', 'abc'], ['fidelityTag', 'lossless'],
     ['platform', 'linux'], ['category', 'z'], ['status', 'deleted'], ['ci', 'skip'],
     ['normalizations', ['N9']], ['normalizations', ['N4', 'N4']], ['negative', undefined],
-    ['negative', { kind: 'invented' }], ['consumers', 'MIG-002'], ['guardedPaths', []],
+    ['negative', { kind: 'invented' }], ['consumers', 'MIG-002'],
   ])('rejects invalid %s=%j', (field, value) => rejected({ ...record(), [field]: value }, field));
+  it('accepts no guarded path when no source mutation turns the case red', () => {
+    expect(validateRecord({ ...record(), guardedPaths: [] }, context)).toEqual([]);
+  });
+  it('requires both path and receipt in every guarded path entry', () => {
+    rejected({ ...record(), guardedPaths: [{ receipt: 'MIG001-a-empty' }] }, 'guardedPaths');
+    rejected({ ...record(), guardedPaths: [{ path: 'src/plugins/milkdown/empty.ts' }] }, 'guardedPaths');
+  });
   it('requires serialized output and existing files', () => {
     rejected({ ...record(), expected: {} }, 'serialized');
     rejected({ ...record(), input: 'no-edit/a/missing.md' }, 'input');

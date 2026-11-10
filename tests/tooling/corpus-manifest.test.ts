@@ -22,7 +22,7 @@ it('validates all real category-a records without changing any fixture byte', ()
   expect(checkCorpus(root)).toEqual([]);
   expect(loadCorpus(root).records.map(record => record.caseId).sort()).toEqual([
     'a-c7-list-merge', 'a-code-gap', 'a-edge-blanks', 'a-heading-gap', 'a-list-gap', 'a-many-blanks',
-    'a-neighbor-edit', 'a-neighbor-undo', 'a-one-blank', 'a-quote-gap', 'a-trailing-quote-enter',
+    'a-neighbor-edit', 'a-neighbor-undo', 'a-one-blank', 'a-quote-gap', 'a-quote-then-block', 'a-trailing-quote-enter',
     'a-two-blanks', 'a-whitespace-lines', 'a-zero-blanks',
   ]);
   expect(snapshot()).toEqual(before);

@@ -16,11 +16,12 @@ const data = loadCorpus(resolve(process.env.CORPUS_ROOT ?? 'tests/fixtures/markd
 const caseIds: string[] | undefined = process.env.CORPUS_CASE_IDS ? JSON.parse(process.env.CORPUS_CASE_IDS) : undefined;
 const observations: Record<string, import('./support/corpus/types.ts').ObservationKind[]> =
   process.env.CORPUS_OBSERVATIONS ? JSON.parse(process.env.CORPUS_OBSERVATIONS) : {};
+const bootstrapSerialized: string[] = process.env.CORPUS_BOOTSTRAP_SERIALIZED ? JSON.parse(process.env.CORPUS_BOOTSTRAP_SERIALIZED) : [];
 const records = selectCases(data.records, { caseIds, platform: 'any', includeLocalOnly: write })
   .filter(record => record.category === 'a');
 for (const record of collectionCases('category-a empty paragraphs', records)) {
   it(record.caseId, async () => {
-    const result = await runCase(record, data.files, { mode: write ? 'write' : 'check', observationKinds: observations[record.caseId] });
+    const result = await runCase(record, data.files, { mode: write ? 'write' : 'check', observationKinds: observations[record.caseId], bootstrapSerialized: bootstrapSerialized.includes(record.caseId) });
     expect(result.caseKind).toBe('mounting');
     if (record.caseKind === 'guard-only' || result.caseKind !== 'mounting') throw new Error(`${record.caseId}: wrong case kind in category a`);
     expect(result.actual.untouched, `${record.caseId}: untouched bytes`).toBe(data.files[record.input]);

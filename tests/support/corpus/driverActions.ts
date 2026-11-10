@@ -41,7 +41,7 @@ export async function runDriverAction(runtime: MilkdownDriverRuntime, action: Co
   const errors = actionErrors(action);
   if (errors.length) throw new Error(`${runtime.caseId}: anchor/action ${errors.join(', ')}`);
   if (action.kind === 'modeSwitch') { await runtime.modeSwitch(action.to); return; }
-  if (action.kind === 'activateLink') throw new Error(`${runtime.caseId}: activateLink unavailable before WI5`);
+  if (action.kind === 'activateLink') throw new Error(`${runtime.caseId}: activateLink must use the driver click observer`);
   const view = runtime.view(), dispatch = (tr: Parameters<typeof view.dispatch>[0]) => view.dispatch(tr);
   const preset = (key: typeof toggleInlineCodeCommand.key) => runtime.editor().action(ctx => ctx.get(commandsCtx).call(key));
   switch (action.kind) {

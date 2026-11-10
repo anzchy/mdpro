@@ -1,0 +1,81 @@
+{
+  "id": "MIG001-a-blankLineGaps",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T04:06:23.779Z",
+  "head_sha": "f4fc6746de7cca3d0e0c66c2281542c5b9463772",
+  "dirty_source": [
+    "CHANGELOG.md",
+    "scripts/corpus/arguments.ts",
+    "scripts/corpus/check.mjs",
+    "scripts/corpus/core.ts",
+    "scripts/corpus/determinism.ts",
+    "scripts/corpus/files.ts",
+    "scripts/corpus/generate.mjs",
+    "scripts/corpus/generation.ts",
+    "scripts/corpus/merge.ts",
+    "scripts/corpus/process.ts",
+    "scripts/corpus/provenance.ts",
+    "scripts/corpus/scratch.ts",
+    "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "8 of 14 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-a-empty-paragraphs.any.test.tsx": {
+      "state": "ok",
+      "sha": "45cb105f27a759ceefe35a0be6f0b741704c039725eba7a56c846eeef6d897fb",
+      "lines": [
+        "aec8a4465f0a323d",
+        "379b36c7e6eda995",
+        "6d40716742fbd3a9",
+        "30ed0422822d8b8b",
+        "f9df71bb14cc1f77",
+        "3dbbd1c7e64066dd",
+        "5c91473711facf7c",
+        "c76363852dd536a9",
+        "99f74486e98487d2",
+        "7772e26203b80556",
+        "2bf929f556f8bce1",
+        "a61bd3a778403651",
+        "fdd5abdca77137e2",
+        "fd504045971ed53b",
+        "fd22a94bc6a98862",
+        "ebdb388031e7ebc5",
+        "90d7402ac120d0f8",
+        "a6eb2547f1f49df0",
+        "66e8625fd8ca8c29",
+        "9ff101d4e7340551",
+        "169905162b578d4d",
+        "b3ed8b0ae8c554df",
+        "0e2f274072b4782f",
+        "4d7e424706334eb5",
+        "9446998f7201e036",
+        "608c270e64b1d3c1",
+        "1c107b9cade064af",
+        "12fd07c79159e87a",
+        "d10066328edfd68d",
+        "caf61d6e2c8b71c2",
+        "943f11adfa8ee81a",
+        "985045f1c0578a8d",
+        "432ada7731817518",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "d10b36aa74a59bcf",
+        "2e29cd9a98755c46"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-09T04:12:57.719Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "13 non-test file(s) were already modified when the red was recorded (CHANGELOG.md, scripts/corpus/arguments.ts, scripts/corpus/check.mjs, scripts/corpus/core.ts, scripts/corpus/determinism.ts, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

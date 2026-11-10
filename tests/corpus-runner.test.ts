@@ -52,10 +52,12 @@ it('rejects an unknown mounting engine without falling back', async () => {
 it.each(['', '1', undefined])('refuses write mode whenever CI is an own key: %s', async CI => {
   const drivers = factory(); await expect(runCase(record, files, { ...drivers, mode: 'write', env: { CI } })).rejects.toThrow(/CI/); expect(drivers.events).toEqual([]);
 });
-it('write mode bootstraps output without writing or changing the supplied inventory', async () => {
+it('write mode bootstraps output only with explicit serialized selection', async () => {
   const source = { 'no-edit/a/input.md': 'A beta\n' }, drivers = factory();
   const r = { ...record, expected: { ...record.expected, observation: 'no-edit/a/expected.json' } };
-  const result = await runCase(r, source, { ...drivers, mode: 'write', env: {}, observationKinds: ['selection'] });
+  await expect(runCase(r, source, { ...drivers, mode: 'write', env: {}, observationKinds: ['selection'] })).rejects.toThrow(/a-runner.*serialized/i);
+  expect(drivers.events).toEqual([]);
+  const result = await runCase(r, source, { ...drivers, mode: 'write', env: {}, observationKinds: ['selection'], bootstrapSerialized: true });
   expect(result.actual).toEqual({ untouched: 'A beta\n', serialized: 'A beta\n', observation: { selection: { text: '' } } });
   expect(source).toEqual({ 'no-edit/a/input.md': 'A beta\n' });
 });

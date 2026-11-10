@@ -1,0 +1,33 @@
+{
+  "id": "GH706-F1-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T01:06:31.505Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-runner.test.ts\",\"write mode bootstraps output only with explicit serialized selection\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/corpus-runner.test.ts",
+        "line": 58
+      },
+      "message": "Error: promise resolved \"{ caseId: 'a-runner', …(3) }\" instead of rejecting"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH706-F1-2/20261110T010631505Z/tests",
+    "tree": "87824139fffe4fd49c0cfe39ef02b50c7126ad1e"
+  },
+  "spec_blobs": {
+    "tests/corpus-runner.test.ts": "fb66bfbe3a7001c8029874245b53b41e565cb41f"
+  },
+  "settled_blobs": {
+    "tests/corpus-runner.test.ts": "fb66bfbe3a7001c8029874245b53b41e565cb41f"
+  }
+}

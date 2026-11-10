@@ -1,0 +1,34 @@
+{
+  "id": "MIG001-a-edgeSerializer",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T04:13:31.127Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "VITEST_MAX_WORKERS": "2",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-a-empty-paragraphs.any.test.tsx\",\"a-trailing-quote-enter\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 93
+      },
+      "message": "Error: a-trailing-quote-enter: a-trailing-quote-enter: baseline serialized bytes differ from expectation"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG001-a-edgeSerializer/20261109T041331127Z/tests",
+    "tree": "f00b147b209f4505aeb0286b9afe3d8ae11e361b"
+  },
+  "spec_blobs": {
+    "tests/corpus-a-empty-paragraphs.any.test.tsx": "102c6fb136b134e57caa9f91996971c7c749045f"
+  },
+  "settled_blobs": {
+    "tests/corpus-a-empty-paragraphs.any.test.tsx": "102c6fb136b134e57caa9f91996971c7c749045f"
+  }
+}

@@ -14,12 +14,7 @@
       "serialized": "no-edit/a/a-zero-blanks/expected.md"
     },
     "fidelityTag": "immutable",
-    "guardedPaths": [
-      {
-        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
-        "receipt": "MIG001-a-blankLineGaps"
-      }
-    ],
+    "guardedPaths": [],
     "input": "no-edit/a/a-zero-blanks/input.md",
     "negative": {
       "kind": "dropText",
@@ -45,12 +40,7 @@
       "serialized": "no-edit/a/a-one-blank/expected.md"
     },
     "fidelityTag": "immutable",
-    "guardedPaths": [
-      {
-        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
-        "receipt": "MIG001-a-blankLineGaps"
-      }
-    ],
+    "guardedPaths": [],
     "input": "no-edit/a/a-one-blank/input.md",
     "negative": {
       "kind": "dropText",
@@ -76,12 +66,7 @@
       "serialized": "no-edit/a/a-two-blanks/expected.md"
     },
     "fidelityTag": "semantic-roundtrip",
-    "guardedPaths": [
-      {
-        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
-        "receipt": "MIG001-a-blankLineGaps"
-      }
-    ],
+    "guardedPaths": [],
     "input": "no-edit/a/a-two-blanks/input.md",
     "negative": {
       "kind": "dropText",
@@ -140,12 +125,7 @@
       "serialized": "no-edit/a/a-edge-blanks/expected.md"
     },
     "fidelityTag": "semantic-roundtrip",
-    "guardedPaths": [
-      {
-        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
-        "receipt": "MIG001-a-blankLineGaps"
-      }
-    ],
+    "guardedPaths": [],
     "input": "no-edit/a/a-edge-blanks/input.md",
     "negative": {
       "kind": "dropText",
@@ -331,12 +311,7 @@
       "serialized": "no-edit/a/a-c7-list-merge/expected.md"
     },
     "fidelityTag": "known-limitation",
-    "guardedPaths": [
-      {
-        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
-        "receipt": "MIG001-a-blankLineGaps"
-      }
-    ],
+    "guardedPaths": [],
     "input": "no-edit/a/a-c7-list-merge/input.md",
     "limitRef": "ADR-0091 C7",
     "negative": {
@@ -464,6 +439,31 @@
     "normalizations": [],
     "platform": "any",
     "rationale": "A single Enter at the quote edge leaves a live empty paragraph that ADR-0091 strips on write.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "3f0a7afefe3e5b50830528d17bf4e556475923d2",
+    "caseId": "a-quote-then-block",
+    "category": "a",
+    "consumers": [
+      "MIG-002",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/a/a-quote-then-block/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/a/a-quote-then-block/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An empty paragraph between a quote and following heading retains its gap on untouched save.",
     "status": "active"
   }
 ]
