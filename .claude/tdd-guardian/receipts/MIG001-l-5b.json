@@ -1,0 +1,89 @@
+{
+  "id": "MIG001-l-5b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:16:20.119Z",
+  "head_sha": "8d0a5b1c3d6be36d35c5cb174ae0a470f2b8777b",
+  "dirty_source": [
+    ".claude/settings.json",
+    "scripts/corpus/provenance.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/corpus-provenance-cache.test.ts": {
+      "state": "ok",
+      "sha": "5e97c446100f083d68b3941d7985e0aa51b06e07fb7b1eba651b1f9d0cfdf0a6",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "17dce688f80a7852",
+        "dc4906726557bc6d",
+        "bdced7e9248a3163",
+        "71ce7e1f803ddc8d",
+        "29df47c3c78aa8fa",
+        "63150d30f852f4f1",
+        "f2fdc3fe8bfb395d",
+        "855338e6c26033ae",
+        "fee3716cd6d7492e",
+        "7bd389f576c6e353",
+        "54e2b06f2436eecb",
+        "7707d3000333cc9b",
+        "306f297771eba2fa",
+        "d10b36aa74a59bcf",
+        "73a551fc2f3a2769",
+        "340051a59cef5e8d",
+        "7b282330fec7d91e",
+        "6cfe8f7c0c2506bc",
+        "9b1ce121bcd9de6b",
+        "3904030031933b54",
+        "24f9b02f3f2d0abc",
+        "ae7bc87d46c1fcc9",
+        "31d3be24b6a1c6af",
+        "625c15445ce894d3",
+        "a7b2afd55c5209e3",
+        "674d10a95a1f6345",
+        "a11b1c143be1f118",
+        "03a6f6202c70fc7e",
+        "0c06a9229f7ce5e8",
+        "d10b36aa74a59bcf",
+        "fa636455ca32d263",
+        "4051a2461b1457ab",
+        "fa10253c9b215d48",
+        "e16b50ca161d22b7",
+        "69aba8b726c8e3bc",
+        "71bbf3a9acb90744",
+        "dd4961ff6dbc9002",
+        "881d01eafd2df465",
+        "dde44124f1ee421c",
+        "c8123761b1b6be68",
+        "d170ca6dfbb4aeb0",
+        "df3982fd61017359",
+        "d10b36aa74a59bcf",
+        "976d4a85b039b76d",
+        "b22d6cbd11d76903",
+        "29674540ef6cc374",
+        "948646b093c48b9c",
+        "db1e8d3798ec2366",
+        "0cc15ad9fe3a5cd8",
+        "9e31e5b273063603",
+        "4d897db1b928e8ae",
+        "29674540ef6cc374",
+        "5193ace3d68815f2",
+        "db1e8d3798ec2366",
+        "0cc15ad9fe3a5cd8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T12:16:37.164Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "2 non-test file(s) were already modified when the red was recorded (.claude/settings.json, scripts/corpus/provenance.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

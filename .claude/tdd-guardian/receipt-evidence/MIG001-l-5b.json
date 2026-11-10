@@ -1,0 +1,42 @@
+{
+  "id": "MIG001-l-5b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:16:20.119Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/corpus-provenance-cache.test.ts\",\"with a local master, 45 records sharing one SHA are each accepted with a constant number of git runs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-provenance-cache.test.ts",
+        "line": 55
+      },
+      "message": "AssertionError: 135 git calls, first: cat-file -t 5123a9b00700d2a4c71a59a493774d6cd32d7112 | show-ref --verify refs/heads/master | merge-base --is-ancestor 5123a9b00700d2a4c71a59a493774d6cd32d7112 refs/heads/master | cat-file -t 5123a9b00700d2a4c71a59a493774d6cd32d7112: expected 135 to be less than or equal to 3"
+    },
+    {
+      "id": "[\"tests/tooling/corpus-provenance-cache.test.ts\",\"with no base ref, 45 records sharing one SHA run git a constant number of times and each gets the same message\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/corpus-provenance-cache.test.ts",
+        "line": 49
+      },
+      "message": "AssertionError: 135 git calls, first: cat-file -t 431bd3ce7507dcd9f348c8f0aa06f11f9c5d29bd | show-ref --verify refs/heads/master | show-ref --verify refs/remotes/origin/master | cat-file -t 431bd3ce7507dcd9f348c8f0aa06f11f9c5d29bd: expected 135 to be less than or equal to 3"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG001-l-5b/20261110T121620119Z/tests",
+    "tree": "a4842c29eddb113edf112ef084fd2d00fb7c008d"
+  },
+  "spec_blobs": {
+    "tests/tooling/corpus-provenance-cache.test.ts": "a9338acdc0a30637d15c8e107e36dd0951d09054"
+  },
+  "settled_blobs": {
+    "tests/tooling/corpus-provenance-cache.test.ts": "a9338acdc0a30637d15c8e107e36dd0951d09054"
+  }
+}
