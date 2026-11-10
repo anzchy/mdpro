@@ -77,6 +77,18 @@ describe("MIG003a fault fixtures", () => {
     expect(failed.status).toBe(1);
     expect(failed.stdout).toContain("ci-gate: a job ended in failure, was cancelled, or skipped without scope's code=false");
   }, spawnBudget(1_000));
+  it("runs change-scope on a git failure as the classifier green control", async () => {
+    const result = await new Promise<{ status: number | null; stdout: string }>((resolve, reject) => {
+      const child = spawn(process.execPath, [path.join(ROOT, "scripts/ci/change-scope.mjs"), "bad-ref", "HEAD"], {
+        cwd: ROOT, timeout: spawnBudget(1_000), env: { ...process.env, GITHUB_OUTPUT: "", GITHUB_STEP_SUMMARY: "" },
+      });
+      let stdout = "";
+      child.stdout.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
+      child.on("error", reject);
+      child.on("close", (status) => resolve({ status, stdout }));
+    });
+    expect(result).toEqual({ status: 0, stdout: "code=true\ndeps=true\neditor=true\npipeline=true\nci=true\nipc=true\nplatform=true\n" });
+  }, spawnBudget(1_000));
   it("rejects required pending and todo identities through the real comparator", () => {
     const inventory = { schemaVersion: 1, tests: [{ id: ["tests/tooling/fault.test.ts", "fault", "required identity"], prerequisite: "rustfmt" }], exclusions: [] };
     expect(compare("ci", reportWith(control().pending, 1), inventory, "ubuntu+rustfmt", ROOT).passed).toBe(1);

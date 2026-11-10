@@ -77,9 +77,9 @@ export function classifyRiskClasses(paths) {
 
 /** Changed paths between the merge base of `base` and `head`, or null when git fails. */
 function changedPaths(base, head) {
-  const r = spawnSync("git", ["diff", "--name-only", "--no-renames", `${base}...${head}`], { encoding: "utf8" });
+  const r = spawnSync("git", ["diff", "--name-only", "-z", "--no-renames", `${base}...${head}`], { encoding: "utf8" });
   if (r.status !== 0) return null;
-  return r.stdout.split("\n").filter((l) => l !== "");
+  return r.stdout.split("\0").filter((l) => l !== "");
 }
 
 function main(argv) {
