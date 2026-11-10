@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { afterEach, expect, it } from 'vitest';
+import { spawnBudget } from '../support/spawnBudget.ts';
 import { canonicalJson } from '../support/corpus/canonical.ts';
 const CHILD_TIMEOUT_MS = 2_000;
 // execFile completes after the child closes; its bounded timeout kills and drains this owned Node child.
@@ -38,7 +39,7 @@ function inventory(root: string): Record<string, string> {
 it('real Node checker accepts a valid explicit root twice without writing a byte or file', async () => {
   const f = fixture(), before = inventory(f.root);
   expect((await check(f.root)).status).toBe(0); expect((await check(f.root)).status).toBe(0); expect(inventory(f.root)).toEqual(before);
-});
+}, spawnBudget(238));
 it('checker accepts origin/master in a detached checkout without a local master', async () => {
   const clone = mkdtempSync(join(tmpdir(), 'corpus-detached-')); roots.push(clone);
   const git = (args: string[]) => new Promise<string>((done, fail) => execFile('git', args, { cwd: clone, encoding: 'utf8' },
@@ -90,16 +91,16 @@ it.each([
 ] as [string, (f: ReturnType<typeof fixture>) => void, RegExp][])('real checker rejects independent %s rule and stays read-only', async (_name, alter, diagnostic) => {
   const f = fixture(); alter(f); const before = inventory(f.root), result = await check(f.root);
   expect(result.status).not.toBe(0); expect(result.stderr).toMatch(diagnostic); expect(inventory(f.root)).toEqual(before);
-});
+}, spawnBudget(250));
 it.each(['desired', 'reason', 'limitRef'] as const)('requires known-limitation %s', async field => {
   const f = fixture(); Object.assign(f.record, { fidelityTag: 'known-limitation', desired: 'no-edit/a/example/desired.md', reason: 'Known loss.', limitRef: 'D197' });
   f.put(f.record.desired, 'B\n'); delete f.record[field]; if (field === 'desired') rmSync(join(f.root, 'no-edit/a/example/desired.md')); f.save();
   const result = await check(f.root); expect(result.status).not.toBe(0); expect(result.stderr).toMatch(new RegExp('a-example.*' + field));
-});
+}, spawnBudget(226));
 it('rejects pending even when every limitation file and field exists', async () => {
   const f = fixture(); Object.assign(f.record, { fidelityTag: 'known-limitation', desired: 'no-edit/a/example/desired.md', reason: 'Question.', limitRef: 'pending' });
   f.put(f.record.desired, 'B\n'); f.save(); const result = await check(f.root); expect(result.status).not.toBe(0); expect(result.stderr).toMatch(/a-example.*pending/);
-});
+}, spawnBudget(211));
 it('validates a guard-only checksum and full decision through real Node', async () => {
   const f = fixture(); rmSync(join(f.root, 'no-edit'), { recursive: true }); rmSync(join(f.root, 'a.json'));
   const recipe = canonicalJson({ text: 'A\n', repeat: 1 });
@@ -110,8 +111,8 @@ it('validates a guard-only checksum and full decision through real Node', async 
   f.put('m.json', canonicalJson([record])); expect((await check(f.root)).status).toBe(0);
   record.recipe.sha256 = '0'.repeat(64); f.put('m.json', canonicalJson([record])); const result = await check(f.root);
   expect(result.status).not.toBe(0); expect(result.stderr).toMatch(/m-guard.*sha256/);
-});
+}, spawnBudget(360));
 it('rejects an empty corpus and category shard mismatch', async () => {
   const f = fixture(); f.put('a.json', canonicalJson([])); let result = await check(f.root); expect(result.status).not.toBe(0); expect(result.stderr).toMatch(/empty|no cases/);
   f.put('b.json', canonicalJson([f.record])); rmSync(join(f.root, 'a.json')); result = await check(f.root); expect(result.status).not.toBe(0); expect(result.stderr).toMatch(/a-example.*shard/);
-});
+}, spawnBudget(211));

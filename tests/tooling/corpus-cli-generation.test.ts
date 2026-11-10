@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { afterEach, expect, it } from 'vitest';
+import { spawnBudget } from '../support/spawnBudget.ts';
 import { canonicalJson } from '../support/corpus/canonical.ts';
 import type { CorpusRecord, MountingRecord } from '../support/corpus/types.ts';
 import { writeScratchResult, compareScratchTrees } from '../../scripts/corpus/scratch.ts';
@@ -71,7 +72,7 @@ it('merges only generated expectations and canonical shards, retaining unchanged
   expect(merged.map((r: MountingRecord) => r.rationale)).toEqual(['Authored changed.', 'Authored same.']);
   expect(readFileSync(join(root, 'a.json'), 'utf8')).toBe(canonicalJson(merged));
   const after = inventory(root); expect(mergeScratch(root, scratch, { mergeBaseSha: newSha, verifyBaseline: provenance.verifyBaseline })).toEqual([]); expect(inventory(root)).toEqual(after);
-});
+}, spawnBudget(6));
 it.each(['input', 'desired', 'outside', 'absolute', 'symlink scratch', 'symlink target', 'unknown case', 'missing result', 'snapshot drift'] as const)('refuses %s output before any tracked mutation', kind => {
   const { root, records } = fixture(), scratch = temp();
   for (const record of records) writeScratchResult(scratch, record, result(record, 'NEW\n'));
@@ -82,14 +83,14 @@ it.each(['input', 'desired', 'outside', 'absolute', 'symlink scratch', 'symlink 
   else if (kind === 'unknown case') put(scratch, 'results/a-other.json', '{}');
   else put(scratch, 'results/a-changed.json', canonicalJson({ caseId: records[0].caseId, record: records[0], actual: result(records[0], 'NEW\n').actual, report: {}, target: kind === 'input' ? records[0].input : kind === 'desired' ? records[0].desired : kind === 'outside' ? '../outside' : '/tmp/outside' }));
   const before = inventory(root); expect(() => mergeScratch(root, scratch, { mergeBaseSha: newSha, verifyBaseline: provenance.verifyBaseline })).toThrow(/output|scratch|symlink|snapshot|result|target|case/i); expect(inventory(root)).toEqual(before);
-});
+}, spawnBudget(5));
 it('failed child cannot merge earlier successful case outputs', async () => {
   const { root, records } = fixture(), scratch = temp(), before = inventory(root);
   await expect(generateCorpus({ root, scratch, env: {} }, { ...provenance, runRunners: async request => {
     writeScratchResult(request.scratch, records[0], result(records[0], 'NEW\n')); throw new Error('runner failed');
   } })).rejects.toThrow(/runner failed/);
   expect(inventory(root)).toEqual(before);
-});
+}, spawnBudget(4));
 it('local generation passes explicit safe write protocol and merges once after all results', async () => {
   const { root, records } = fixture(), scratch = temp(); let calls = 0;
   await generateCorpus({ root, scratch, env: {}, observations: { 'a-changed': ['selection'] } }, { ...provenance, runRunners: async request => {
@@ -99,12 +100,12 @@ it('local generation passes explicit safe write protocol and merges once after a
     expect(readFileSync(join(root, records[0].expected.serialized), 'utf8')).toBe('OLD\n');
   } });
   expect(calls).toBe(1); expect(readFileSync(join(root, records[0].expected.serialized), 'utf8')).toBe('NEW\n');
-});
+}, spawnBudget(5));
 it.each(['1', 'true', ''] as const)('real generate CLI refuses any set CI=%j before files change', async value => {
   const { root } = fixture(), scratch = temp(), before = [inventory(root), inventory(scratch)];
   const output = await nodeCli([resolve('scripts/corpus/generate.mjs'), '--root', root, '--scratch', scratch], { ...process.env, CI: value });
   expect(output.status).not.toBe(0); expect(output.stderr).toMatch(/CI.*set|CI.*refus|refus.*CI/); expect([inventory(root), inventory(scratch)]).toEqual(before);
-});
+}, spawnBudget(72));
 it('normal generation refuses a missing serialized baseline before creating scratch or changing fixtures', async () => {
   const { root, records } = fixture(), scratch = join(temp(), 'not-created');
   rmSync(join(root, records[0].expected.serialized));
@@ -116,7 +117,7 @@ it('normal generation refuses a missing serialized baseline before creating scra
   expect(called).toBe(false);
   expect(existsSync(scratch)).toBe(false);
   expect(inventory(root)).toEqual(before);
-});
+}, spawnBudget(3));
 it('explicit per-case serialized bootstrap fills only the selected missing baseline', async () => {
   const { root, records } = fixture(), scratch = join(temp(), 'not-created');
   rmSync(join(root, records[0].expected.serialized));
@@ -131,7 +132,7 @@ it('explicit per-case serialized bootstrap fills only the selected missing basel
   expect(generated.changed).toEqual(['a-changed']);
   expect(readFileSync(join(root, records[0].expected.serialized), 'utf8')).toBe('NEW\n');
   expect(readFileSync(join(root, records[1].expected.serialized)).toString('hex')).toBe(before[records[1].expected.serialized]);
-});
+}, spawnBudget(4));
 it('explicit serialized and observation selections bootstrap both missing outputs for one case', async () => {
   const { root, records } = fixture(), scratch = join(temp(), 'not-created');
   const selected = records[0], observation = 'no-edit/a/changed/expected.json';
@@ -152,7 +153,7 @@ it('explicit serialized and observation selections bootstrap both missing output
   expect(readFileSync(join(root, selected.expected.serialized), 'utf8')).toBe('NEW\n');
   expect(JSON.parse(readFileSync(join(root, observation), 'utf8'))).toEqual({ selection: { text: '' } });
   expect(readFileSync(join(root, records[1].expected.serialized)).toString('hex')).toBe(before[records[1].expected.serialized]);
-});
+}, spawnBudget(4));
 it('observation selection alone cannot bootstrap a missing serialized baseline', async () => {
   const { root, records } = fixture(), scratch = join(temp(), 'not-created');
   const observation = 'no-edit/a/changed/expected.json';
@@ -166,7 +167,7 @@ it('observation selection alone cannot bootstrap a missing serialized baseline',
   expect(existsSync(scratch)).toBe(false);
   expect(inventory(root)).toEqual(before);
   expect(existsSync(join(root, observation))).toBe(false);
-});
+}, spawnBudget(3));
 it('missing observation without selection rejects before scratch creation', async () => {
   const { root, records } = fixture(), scratch = join(temp(), 'not-created');
   records[0].expected.observation = 'no-edit/a/changed/expected.json';
@@ -177,7 +178,7 @@ it('missing observation without selection rejects before scratch creation', asyn
   expect(called).toBe(false);
   expect(existsSync(scratch)).toBe(false);
   expect(inventory(root)).toEqual(before);
-});
+}, spawnBudget(3));
 it('generation uses origin/master in a detached checkout and leaves unchanged fixtures byte-identical', async () => {
   const clone = temp(), git = (args: string[]) => new Promise<string>((done, fail) => execFile('git', args, { cwd: clone, encoding: 'utf8' },
     (error, stdout) => error ? fail(error) : done(stdout)));
@@ -217,8 +218,8 @@ it('rejects malformed selection and bootstrap protocol before running a child', 
     await expect(generateCorpus({ root, scratch, env: {}, ...options } as unknown as Parameters<typeof generateCorpus>[0], deps)).rejects.toThrow(/case|observation|selection/);
   }
   expect(called).toBe(false); expect(inventory(scratch)).toEqual({});
-});
+}, spawnBudget(5));
 it('check CLI rejects a missing --root value rather than checking an accidental default root', async () => {
   const output = await nodeCli([resolve('scripts/corpus/check.mjs'), '--root']);
   expect(output.status).not.toBe(0); expect(output.stderr).toMatch(/--root.*value/);
-});
+}, spawnBudget(65));

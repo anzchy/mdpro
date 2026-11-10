@@ -3,6 +3,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
 import { expect, it } from 'vitest';
+import { spawnBudget } from '../support/spawnBudget.ts';
 import { checkCorpus, loadCorpus } from '../../scripts/corpus/core.ts';
 const root = resolve('tests/fixtures/markdown-corpus');
 function snapshot(): Record<string, string> {
@@ -26,4 +27,4 @@ it('validates all real category-a records without changing any fixture byte', ()
     'a-two-blanks', 'a-whitespace-lines', 'a-zero-blanks',
   ]);
   expect(snapshot()).toEqual(before);
-});
+}, spawnBudget(92));
