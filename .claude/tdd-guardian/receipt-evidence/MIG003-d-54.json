@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-54",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T21:05:54.202Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the request layer: gh cannot run\",\"C79: when gh is not installed (spawn error ENOENT, no status, no output) the thrown message names the cause\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 595
+      },
+      "message": "AssertionError: expected [ false, null ] to deeply equal [ true, null ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-54/20261110T210554202Z/tests",
+    "tree": "7fc0a9a3a9aa624899c84132bd5ff9b478fdaab2"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "bb6dfa1aee084007f3313025e005b2ca57a1483d"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "bb6dfa1aee084007f3313025e005b2ca57a1483d"
+  }
+}

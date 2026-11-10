@@ -4,7 +4,7 @@
  * provisional time budget (spec r3 § Time budgets, § Metrics), for any window.
  *
  * Usage: node scripts/ci/metrics.mjs --since <YYYY-MM-DD[THH:MM:SSZ]> --until <…> --label <M0|Mn> [--scope-ref-p90 <s>]
- *   Writes <label>-<UTC date>.json and .md to $MDPRO_METRICS_DIR, else ~/.mdpro-redesign/metrics; exit 2 refused, 1 fetch failed.
+ *   Writes <label>-<UTC date>.json and .md to $MDPRO_METRICS_DIR, else ~/.mdpro-redesign/metrics; exit 2 refused, 1 the run failed.
  *
  * Pipeline: parseArgs → resolveOutDir → collect (gh api GETs) → computeMetrics (the pure seam, metrics-core.mjs) → write
  *   JSON + renderSummary.
@@ -95,7 +95,8 @@ export function makeGhRequest({ spawn = spawnSync } = {}) {
     const args = paginate ? ["api", "--paginate", "--slurp", apiPath] : ["api", apiPath];
     const out = spawn("gh", args, { shell: false, maxBuffer: MAX_BUFFER });
     if (out.status !== 0) {
-      const stderr = String(out.stderr).trim();
+      // A spawn failure (gh missing: ENOENT; output past maxBuffer: ENOBUFS) has no status and its cause in out.error.
+      const stderr = out.error ? out.error.message : String(out.stderr ?? "").trim();
       const http = /HTTP (\d{3})/.exec(stderr);
       throw Object.assign(new Error(`gh api ${apiPath} failed: ${stderr}`), { status: http ? Number(http[1]) : null });
     }
@@ -186,11 +187,14 @@ export function renderSummary(m) {
     "|---|---|---|---|---|",
     ...m.budgets.map((b) => `| ${b.lane} | ${b.samples} | ${na(b.p90)} | ${na(b.budget)} | ${b.status} |`),
     "",
+    `Scope delta vs reference p90: ${na(m.budgets.find((b) => b.lane === "scope")?.delta, " s")}`,
+    "",
   ].join("\n");
 }
 
 const EXIT_REFUSED = 2;
-const EXIT_FETCH_FAILED = 1;
+/** A fetch, an artifact read or the computation failed: nothing is written. */
+const EXIT_RUN_FAILED = 1;
 
 /** Fetch, compute and write `<dir>/<label>-<UTC date of now>.json` and `.md`. */
 export async function main(argv, deps = {}) {
@@ -207,7 +211,7 @@ export async function main(argv, deps = {}) {
     metrics = computeMetrics(await collect(request, window, { tmpRoot }), window);
   } catch (error) {
     stderr(`metrics: ${error instanceof Error ? error.message : String(error)}\n`);
-    return EXIT_FETCH_FAILED;
+    return EXIT_RUN_FAILED;
   }
   fs.mkdirSync(out.dir, { recursive: true });
   const base = path.join(out.dir, `${window.label}-${now.toISOString().slice(0, 10)}`);

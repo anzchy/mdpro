@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-55",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T21:06:30.953Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d renderSummary: the scope delta\",\"C80: the md gives scope's delta against the reference p90 the caller passed, and n/a without one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 603
+      },
+      "message": "AssertionError: expected [ false, false ] to deeply equal [ true, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-55/20261110T210630953Z/tests",
+    "tree": "b700cca4b95b00ef03e9379ae90940317072826f"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "d7eecf7404bd4f92c06dcf23922a14b117db97c6"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "d7eecf7404bd4f92c06dcf23922a14b117db97c6"
+  }
+}

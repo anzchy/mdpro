@@ -23,16 +23,20 @@ const stat = (values) => ({ samples: values.length, p50: percentile(values, 50),
 
 /** Every attempt of a run: the earlier ones from the attempts API, then the run itself (its latest attempt). */
 const attemptsOf = (input, run) => [...(input.attempts[run.id] ?? []).filter((a) => a.run_attempt < run.run_attempt), run];
-const prKey = (run) => (run.pull_requests?.[0] ? `#${run.pull_requests[0].number}` : `branch:${run.head_branch}`);
+/** A PR's key: its number, else (a fork PR lists none) the fork's repository and branch. */
+const prKey = (run) => (run.pull_requests?.[0] ? `#${run.pull_requests[0].number}` : `branch:${run.head_repository?.full_name ?? ""}:${run.head_branch}`);
+
+/** ci.yml's pull_request runs: the population of wall-clock, the rerun rate and flake. */
+const prRuns = (input) => input.runs["ci.yml"].filter((r) => r.event === "pull_request");
 
 /** PR wall-clock samples (plan §17), in seconds. */
 function wallClock(input) {
-  const prRuns = input.runs["ci.yml"].filter((r) => r.event === "pull_request");
-  // A PR's last head SHA is the head_sha of its newest run by created_at; a fork PR has no number, so its branch keys it.
+  const prs = prRuns(input);
+  // A PR's last head SHA is the head_sha of its newest run by created_at; a fork PR has no number, so prKey keys it by repository and branch.
   const last = new Map();
-  for (const run of [...prRuns].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))) last.set(prKey(run), run.head_sha);
+  for (const run of [...prs].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))) last.set(prKey(run), run.head_sha);
   const samples = [];
-  for (const run of prRuns) {
+  for (const run of prs) {
     if (last.get(prKey(run)) !== run.head_sha) continue;
     for (const attempt of attemptsOf(input, run).filter((a) => COUNTED.has(a.conclusion))) {
       const ciGate = realJobs(input, run).find((j) => j.name === "ci-gate" && j.run_attempt === attempt.run_attempt && j.completed_at);
@@ -63,7 +67,10 @@ const runnerOs = (j) => OS_PREFIXES.find(([prefix]) => j.labels.some((l) => l.to
 /** Runner minutes by OS: Σ job wall time / 60, never rounded per job. */
 function minutes(jobs) {
   const out = {};
-  for (const j of jobs) out[runnerOs(j)] = (out[runnerOs(j)] ?? 0) + secs(j.started_at, j.completed_at) / 60;
+  for (const j of jobs) {
+    const os = runnerOs(j);
+    out[os] = (out[os] ?? 0) + secs(j.started_at, j.completed_at) / 60;
+  }
   return out;
 }
 
@@ -71,7 +78,7 @@ const ratio = (n, d) => (d === 0 ? null : n / d);
 /** PR runs of ci.yml grouped by head SHA. */
 function byHeadSha(input) {
   const groups = new Map();
-  for (const run of input.runs["ci.yml"].filter((r) => r.event === "pull_request")) groups.set(run.head_sha, [...(groups.get(run.head_sha) ?? []), run]);
+  for (const run of prRuns(input)) groups.set(run.head_sha, [...(groups.get(run.head_sha) ?? []), run]);
   return groups;
 }
 
@@ -87,12 +94,14 @@ export const BLOB = /^frontend-blob-(.+)-shard-(\d+)-attempt-(\d+)$/;
 const repoRelative = (file) => file.replaceAll("\\", "/").replace(/^.*?\/(?=tests\/)/, "");
 export const PER_SHARD = /^frontend-vitest-(.+)-shard-(\d+)$/;
 const SHARD_JOB = /^frontend \((.+), (\d+)\)$/;
+/** One frontend shard of one OS, the way jobs and artifacts both name it. */
+const shardKey = (os, shard) => `${os}/${Number(shard)}`;
 /** The attempts in which a run's `frontend (<os>, <shard>)` job really ran, keyed `<os>/<shard>`. */
 function shardAttempts(input, run) {
   const out = new Map();
   for (const j of realJobs(input, run)) {
     const m = SHARD_JOB.exec(j.name);
-    if (m && COUNTED.has(j.conclusion)) out.set(`${m[1]}/${m[2]}`, [...(out.get(`${m[1]}/${m[2]}`) ?? []), j]);
+    if (m && COUNTED.has(j.conclusion)) out.set(shardKey(m[1], m[2]), [...(out.get(shardKey(m[1], m[2])) ?? []), j]);
   }
   return out;
 }
@@ -119,7 +128,7 @@ function observations(input, run) {
  */
 function covered(input, run) {
   if (!input.reports[run.id]) return false;
-  const have = new Set(observations(input, run).map((o) => `${o.os}/${o.shard}/${o.attempt}`));
+  const have = new Set(observations(input, run).map((o) => `${shardKey(o.os, o.shard)}/${o.attempt}`));
   return [...shardAttempts(input, run)].every(([key, jobs]) => jobs.every((j) => have.has(`${key}/${j.run_attempt}`)));
 }
 
@@ -202,20 +211,21 @@ function budgets(input, scopeRef) {
 
 /**
  * The seam: recorded API responses in, the metrics object out. Pure; no I/O.
- * @param {import("./metrics.d.mts").MetricsInput} input
- * @param {import("./metrics.d.mts").Window} window
+ * @param {import("./metrics-core.d.mts").MetricsInput} recorded every run, attempt, job and report collect fetched
+ * @param {import("./metrics-core.d.mts").Window} window the runs counted are those created in [since, until]
  */
 export function computeMetrics(recorded, window) {
   const [from, to] = [Date.parse(window.since), Date.parse(window.until)];
   const inWindow = (r) => Date.parse(r.created_at) >= from && Date.parse(r.created_at) <= to;
   const runs = Object.fromEntries(Object.entries(recorded.runs).map(([file, list]) => [file, list.filter(inWindow)]));
   const input = { ...recorded, runs };
+  const jobs = allJobs(input);
   return {
     label: window.label,
     window: { since: window.since, until: window.until },
     wallClock: wallClock(input),
-    queue: stat(allJobs(input).map((j) => secs(j.created_at, j.started_at))),
-    minutes: minutes(allJobs(input)),
+    queue: stat(jobs.map((j) => secs(j.created_at, j.started_at))),
+    minutes: minutes(jobs),
     rerun: rerun(input),
     flake: flake(input),
     nightly: nightly(input),

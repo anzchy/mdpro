@@ -587,3 +587,19 @@ describe("MIG003d main: what it prints", () => {
     expect(got).toEqual([true, true]);
   }, spawnBudget(300));
 });
+
+describe("MIG003d the request layer: gh cannot run", () => {
+  it("C79: when gh is not installed (spawn error ENOENT, no status, no output) the thrown message names the cause", () => {
+    const spawn = () => ({ status: null, stdout: null as unknown as Buffer, stderr: null as unknown as Buffer, error: Object.assign(new Error("spawnSync gh ENOENT"), { code: "ENOENT" }) });
+    const r = caught(() => makeGhRequest({ spawn })("GET", "repos/{owner}/{repo}/actions/runs/1"));
+    expect([r?.message.includes("ENOENT"), r?.status]).toEqual([true, null]);
+  });
+});
+
+describe("MIG003d renderSummary: the scope delta", () => {
+  it("C80: the md gives scope's delta against the reference p90 the caller passed, and n/a without one", () => {
+    const withRef: Metrics = { ...METRICS, budgets: [{ lane: "scope", samples: 9, p90: 12, budget: 14, delta: 3, status: "ok" }] };
+    const has = (m: Metrics, s: string) => renderSummary(m).split("\n").some((l) => l.includes(s));
+    expect([has(withRef, "Scope delta vs reference p90: 3 s"), has(METRICS, "Scope delta vs reference p90: n/a")]).toEqual([true, true]);
+  }, spawnBudget(200));
+});

@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-53",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T21:05:15.885Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock: fork PRs\",\"C78: two fork PRs (no PR number) from different repositories, both on branch main, are two PRs, not one\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 535
+      },
+      "message": "AssertionError: expected 1 to be 2 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-53/20261110T210515885Z/tests",
+    "tree": "cbda2b06b1d8908880a56bf42a4c22b51ded1313"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "6082447b7068491f2a9c702f62b90910c0f999f6"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "6082447b7068491f2a9c702f62b90910c0f999f6"
+  }
+}

@@ -527,3 +527,11 @@ describe("MIG003d PR wall-clock: a relisted ci-gate (added in cycle 30)", () => 
     expect(m.wallClock).toEqual({ samples: 1, p50: 600, p90: 600 });
   });
 });
+
+describe("MIG003d PR wall-clock: fork PRs", () => {
+  it("C78: two fork PRs (no PR number) from different repositories, both on branch main, are two PRs, not one", () => {
+    const fork = (id: number, repo: string, start: number) => ({ ...run({ id, pr: null, branch: "main", sha: `f${id}`, start }), head_repository: { full_name: repo } });
+    const m = computeMetrics(input({ ci: [fork(1, "alice/mdpro", 0), fork(2, "bob/mdpro", 1000)], jobs: { 1: [gate(0, 600)], 2: [gate(1000, 300)] } }), W);
+    expect(m.wallClock.samples).toBe(2);
+  });
+});

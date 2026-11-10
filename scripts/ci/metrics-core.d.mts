@@ -11,6 +11,7 @@ export interface Run {
   created_at: string;
   updated_at?: string;
   pull_requests?: { number: number }[];
+  head_repository?: { full_name: string };
 }
 export interface Job {
   id: number;
