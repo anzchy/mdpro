@@ -1,0 +1,39 @@
+{
+  "id": "MIG003-d-29",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:03:54.796Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d flake: identities\",\"C17 (raw-green guard): no SHA with more than one run or attempt gives zero candidates, not unavailable\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 505
+      },
+      "message": "AssertionError: expected 'unavailable(2 runs)' to deeply equal { Object (candidates, flakyTests, ...) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d flake: identities\",\"C53: Vitest's absolute runner path becomes the repo-relative file in the identity\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 511
+      },
+      "message": "AssertionError: expected { Object (flake, leaks) } to deeply equal { Object (flake, leaks) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-29/20261110T180354796Z/tests",
+    "tree": "ae0dd438abd15743a5be1fc92b202e5ada58aeea"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "50c85e032e3450bfe8cdd7fdf2d3ddf3470a213e"
+  }
+}

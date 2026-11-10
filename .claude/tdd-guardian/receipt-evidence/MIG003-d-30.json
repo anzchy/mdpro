@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-30",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:05:04.681Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock: a relisted ci-gate (added in cycle 30)\",\"C73: when attempt 2 re-ran only a job outside ci-gate's needs, the relisted attempt-1 ci-gate is no sample for attempt 2\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 527
+      },
+      "message": "AssertionError: expected { samples: 2, p50: -1400, p90: 600 } to deeply equal { samples: 1, p50: 600, p90: 600 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-30/20261110T180504681Z/tests",
+    "tree": "6be3c3833db84472faec97f93c754ab24489e1b7"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "571d8dd2e19677800255d27c926e45d687892139"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "571d8dd2e19677800255d27c926e45d687892139"
+  }
+}

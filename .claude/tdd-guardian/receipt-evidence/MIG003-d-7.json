@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:48:51.421Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock: each attempt's own conclusion\",\"C55: a cancelled attempt 1 is not a sample even when the run (attempt 2) succeeded\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 126
+      },
+      "message": "AssertionError: expected { samples: 2, p50: 300, p90: 5000 } to deeply equal { samples: 1, p50: 300, p90: 300 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-7/20261110T174851421Z/tests",
+    "tree": "340b9af2cfe6e89bf11e640864819c95e7147636"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e138fac9f18179e92fe336afc139831e4e263386"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e138fac9f18179e92fe336afc139831e4e263386"
+  }
+}

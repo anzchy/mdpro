@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:45:42.153Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock\",\"C1: one sample per run on each PR's last head SHA, run_started_at to ci-gate completion\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 57
+      },
+      "message": "AssertionError: expected undefined to deeply equal { samples: 3, p50: 600, p90: 900 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-2/20261110T174542153Z/tests",
+    "tree": "fbb3f3dba88b440d5c953447c019abc2e18937c3"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "0c5507012250cb4c5070305ba960e4c086df8e7b"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "0c5507012250cb4c5070305ba960e4c086df8e7b"
+  }
+}

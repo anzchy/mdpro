@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-34",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:08:38.981Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d parseArgs: the label\",\"C31: a label other than M0 or M<n> (n ≥ 1, no leading zero), or no label, is refused\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 65
+      },
+      "message": "AssertionError: expected [ 'accepted', 'accepted', …(3) ] to deeply equal [ 'refused', 'refused', …(3) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-34/20261110T180838981Z/tests",
+    "tree": "d9f7f4736190e092ff1563e804cf0150abef2c59"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "2edb1f49df1dbf9af3c1e11d227ad3e7c069be21"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "2edb1f49df1dbf9af3c1e11d227ad3e7c069be21"
+  }
+}

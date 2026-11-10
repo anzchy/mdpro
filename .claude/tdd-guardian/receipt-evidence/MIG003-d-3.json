@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:46:21.267Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock exclusions\",\"C2: a cancelled run on the last head SHA is not a sample\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 73
+      },
+      "message": "AssertionError: expected { samples: 4, p50: 600, p90: 5000 } to deeply equal { samples: 3, p50: 600, p90: 900 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-3/20261110T174621267Z/tests",
+    "tree": "b568bae617dbda75a9e19a7d5757041a3c77a665"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "8e70b53f186173153e2e34c31ba6f0969628e2be"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "8e70b53f186173153e2e34c31ba6f0969628e2be"
+  }
+}

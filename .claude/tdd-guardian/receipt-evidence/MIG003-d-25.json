@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-25",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:01:10.637Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d flake: identity and ordering\",\"C51a: the reports' array order does not decide failed-then-passed; the attempt does\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 444
+      },
+      "message": "AssertionError: expected { candidates: 1, flakyTests: [], …(2) } to deeply equal { candidates: 1, …(3) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-25/20261110T180110637Z/tests",
+    "tree": "01c9491fa4dda24f7289e2bdd9114bc3eb3250d7"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "dd360ead26bf8adbbbcc70f91972aa087605bf70"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "dd360ead26bf8adbbbcc70f91972aa087605bf70"
+  }
+}

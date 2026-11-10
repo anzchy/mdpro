@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-46",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:20:14.791Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d collect: which artifacts are read\",\"C54a: only frontend-blob-*-attempt-* and frontend-vitest-<os>-shard-<n> are downloaded (binary), and each report is cut to identities\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 369
+      },
+      "message": "AssertionError: expected { downloads: [], reports: {} } to deeply equal { …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-46/20261110T182014791Z/tests",
+    "tree": "83aacfb0833004e4def07b49dbafb3ea4374bdc8"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "33d5222b93be811013f5fb33e8e9be1b2f0b9f82"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "33d5222b93be811013f5fb33e8e9be1b2f0b9f82"
+  }
+}

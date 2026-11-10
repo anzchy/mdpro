@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-51",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:24:56.737Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d renderSummary\",\"C74: the md names the label and window, each §17 number, each budget row, and why the flake is unavailable\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 513
+      },
+      "message": "AssertionError: expected [ '# CI metrics M0', …(11) ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-51/20261110T182456737Z/tests",
+    "tree": "13e8dbbddb3972c20e8b4979e3ed0a00d51d5124"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "c42b03e995b5268ef78a44ab163cbfe9bea1be54"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "c42b03e995b5268ef78a44ab163cbfe9bea1be54"
+  }
+}

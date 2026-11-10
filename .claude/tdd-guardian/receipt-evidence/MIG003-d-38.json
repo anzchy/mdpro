@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-38",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:11:43.338Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the request layer: GET only\",\"C40: POST, DELETE and a lower-case get throw before gh is spawned\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 162
+      },
+      "message": "AssertionError: expected { results: [ 'no throw', …(2) ], …(1) } to deeply equal { results: [ 'threw', …(2) ], …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-38/20261110T181143338Z/tests",
+    "tree": "d1aa14236f53b83fee814cce9ef50a9c53000e31"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "9dba91a5f523134e13fa757ca2e8b396aba7c0c9"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "9dba91a5f523134e13fa757ca2e8b396aba7c0c9"
+  }
+}

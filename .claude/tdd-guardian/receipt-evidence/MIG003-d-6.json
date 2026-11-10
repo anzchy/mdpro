@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-6",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:48:14.417Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock: attempts\",\"C6: each attempt of a re-run is a sample, from its own run_started_at to its own attempt's ci-gate\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 115
+      },
+      "message": "AssertionError: expected { samples: 1, p50: -100, p90: -100 } to deeply equal { samples: 2, p50: 200, p90: 900 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-6/20261110T174814417Z/tests",
+    "tree": "21f0df9a460fc8f6eb871a697fad7560ecc0a0f1"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "0f0f82c30189d05398b9a1d6c726a70c8355129b"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "0f0f82c30189d05398b9a1d6c726a70c8355129b"
+  }
+}

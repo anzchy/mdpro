@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-16",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:55:07.711Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: the warm-cache filter\",\"C21: a leg whose rust-cache hit step was skipped, or that has no such step, is not in the native p90\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 301
+      },
+      "message": "AssertionError: expected { lane: 'native-macOS', …(4) } to deeply equal { lane: 'native-macOS', …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-16/20261110T175507711Z/tests",
+    "tree": "3c44e7a49d70d95e3081888103e28ebd65ec4c31"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "914a41bf47228ec1edc7f554a3d149ad090c194c"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "914a41bf47228ec1edc7f554a3d149ad090c194c"
+  }
+}

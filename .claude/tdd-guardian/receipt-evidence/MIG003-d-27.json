@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-27",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:02:35.631Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d flake: availability\",\"C16: two candidate runs whose reports expired give unavailable(2 runs), never 0\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 476
+      },
+      "message": "AssertionError: expected { candidates: 2, flakyTests: [], …(2) } to be 'unavailable(2 runs)' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-27/20261110T180235631Z/tests",
+    "tree": "45068e1542ab8b054d1720735561964ea9f0e5a8"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "869f19c60dce359958387fc36b577aa42dac3113"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "869f19c60dce359958387fc36b577aa42dac3113"
+  }
+}

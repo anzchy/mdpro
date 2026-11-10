@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-33",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:08:00.081Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d parseArgs: impossible dates\",\"C62: a day or hour that Date would roll over (Feb 30, Apr 31, 24:00) is refused, not moved\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 44
+      },
+      "message": "AssertionError: expected [ 'accepted', 'accepted', 'accepted' ] to deeply equal [ 'refused', 'refused', 'refused' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-33/20261110T180800081Z/tests",
+    "tree": "2ace1128158b1cb54e06a9d8d50311b846b553c7"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "4bc175ec2f75b2a214e27ea13f33f2959349584a"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "4bc175ec2f75b2a214e27ea13f33f2959349584a"
+  }
+}

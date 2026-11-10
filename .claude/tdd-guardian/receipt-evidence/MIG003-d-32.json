@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-32",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:07:23.019Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d parseArgs: the date range\",\"C30: a missing since or until, a reversed range, or an unreadable date is refused\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 34
+      },
+      "message": "AssertionError: expected [ 'accepted', 'accepted', …(3) ] to deeply equal [ 'refused', 'refused', …(3) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-32/20261110T180723019Z/tests",
+    "tree": "daf63a0327a91a843096029b01c20dd0e1b482e0"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "9f88c0ef33f3ef5f089425b11102f97d7a1e5392"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "9f88c0ef33f3ef5f089425b11102f97d7a1e5392"
+  }
+}

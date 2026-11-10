@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-31",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:06:46.939Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d parseArgs: accepted\",\"C32: a date-only window (since == until) and the labels M0 and M12; until is the end of its day\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 14
+      },
+      "message": "AssertionError: expected [ { ok: true }, { ok: true } ] to deeply equal [ { ok: true, …(4) }, …(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-31/20261110T180646939Z/tests",
+    "tree": "eb640d30dbb77ddae34a130a4633968809f920fa"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "662c97a4907d0710f6abb3d4cd7f95aeb5674dc6"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "662c97a4907d0710f6abb3d4cd7f95aeb5674dc6"
+  }
+}

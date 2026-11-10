@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:50:42.469Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d runner minutes\",\"C11: Σ(completed_at − started_at) over the three workflows' jobs, every attempt, split by runner OS\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 197
+      },
+      "message": "AssertionError: expected undefined to deeply equal { Linux: 7, macOS: 10, Windows: 5 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-10/20261110T175042469Z/tests",
+    "tree": "aa2ad3c4413552d0800da4e846774dd1d486c538"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "8126c76154a48acd2053398688dc0bd44dac3181"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "8126c76154a48acd2053398688dc0bd44dac3181"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-42",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:16:05.208Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the request layer: binary\",\"C76: {binary: true} returns stdout as a Buffer, unparsed (an artifact zip)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 221
+      },
+      "message": "AssertionError: expected [ false, null, [ 'api', …(1) ] ] to deeply equal [ true, 'PK', [ 'api', …(1) ] ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-42/20261110T181605208Z/tests",
+    "tree": "8ed2b9f54b760a2628c65acca3eabaaf8a0c6094"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "f849e74568e067f739f068908b264a46e6161642"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "f849e74568e067f739f068908b264a46e6161642"
+  }
+}

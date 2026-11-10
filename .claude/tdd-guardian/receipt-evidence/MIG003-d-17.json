@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:55:44.722Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: native guards and job conclusion\",\"C67a: a warm leg that was cancelled is not a sample\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 319
+      },
+      "message": "AssertionError: expected { lane: 'native-macOS', …(4) } to deeply equal { lane: 'native-macOS', …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-17/20261110T175544722Z/tests",
+    "tree": "49d811ab044e5c47a53ac653613cf16fffc8a164"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e46647984d8e82d6e1f4a76323bd41f744ffae0d"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e46647984d8e82d6e1f4a76323bd41f744ffae0d"
+  }
+}

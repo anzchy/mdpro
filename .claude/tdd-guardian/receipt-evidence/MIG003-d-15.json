@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-15",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:54:16.561Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: native\",\"C20: native macOS p90 over warm legs against 30 min\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 292
+      },
+      "message": "AssertionError: expected undefined to deeply equal { lane: 'native-macOS', …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-15/20261110T175416561Z/tests",
+    "tree": "f3cd9cf30deda57f66d0d399cbfeb29451c78487"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "725a2e3ed5be0f083393da2d42ceb1884e91be01"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "725a2e3ed5be0f083393da2d42ceb1884e91be01"
+  }
+}

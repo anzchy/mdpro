@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-21",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:58:15.036Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: scope samples\",\"C67b: scope jobs of push runs are not in the PR scope budget\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 373
+      },
+      "message": "AssertionError: expected { lane: 'scope', samples: 10, …(4) } to deeply equal { lane: 'scope', samples: 5, …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-21/20261110T175815036Z/tests",
+    "tree": "4d09d7ebab9393e2e092148ece67fa695c516384"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "f71ca165caeabf35d1a6322126f48e341fae140e"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "f71ca165caeabf35d1a6322126f48e341fae140e"
+  }
+}

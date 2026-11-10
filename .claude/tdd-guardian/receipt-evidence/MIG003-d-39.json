@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-39",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:13:40.470Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the request layer: the gh argv\",\"C41: paginate is `api --paginate --slurp <path>`, otherwise `api <path>`; no shell, no method or field flags; JSON is parsed\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 175
+      },
+      "message": "AssertionError: expected { …(2) } to deeply equal { results: [ …(2) ], …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-39/20261110T181340470Z/tests",
+    "tree": "25653dec483f41c22252db2ae5a27b2872a744ca"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "749b3fec16f19448eb8d14d7f02cb1623b5ef08a"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "749b3fec16f19448eb8d14d7f02cb1623b5ef08a"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:53:29.378Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d advisory nightly pass rate\",\"C19: schedule runs only; success over completed runs that were not cancelled\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 252
+      },
+      "message": "AssertionError: expected undefined to deeply equal { runs: 3, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-14/20261110T175329378Z/tests",
+    "tree": "ec19bb05cf81c23065cc4bf599bdfe7b51a6e34e"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "145c9a65296dd65b2c75369ba803c424e3a8d26c"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "145c9a65296dd65b2c75369ba803c424e3a8d26c"
+  }
+}

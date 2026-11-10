@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-12",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:52:03.486Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d relisted jobs (recorded run 42853708661)\",\"C71: a job listed under attempt 2 that started before attempt 2's run_started_at is a copy, counted once\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 232
+      },
+      "message": "AssertionError: expected { Object (linuxSeconds, queueSamples) } to deeply equal { Object (linuxSeconds, queueSamples) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-12/20261110T175203486Z/tests",
+    "tree": "0c83d715a411d72e9b35b1a4a9f9ce53b59d8144"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "72fd6e35ab47a70b61fcac91f7816a1986d5b424"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "72fd6e35ab47a70b61fcac91f7816a1986d5b424"
+  }
+}

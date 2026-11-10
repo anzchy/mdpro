@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-28",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:03:15.924Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d flake: what counts as unavailable\",\"C50: a shard that failed in attempt 1 and has no report for that attempt makes its run unavailable\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 499
+      },
+      "message": "AssertionError: expected { candidates: 1, flakyTests: [], …(2) } to be 'unavailable(1 runs)' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-28/20261110T180315924Z/tests",
+    "tree": "e07819e8f3cc83a8459923075df8e6ec95da9f4f"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "99d4737e8298f4c120c716c3508decb9d194bebe"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "99d4737e8298f4c120c716c3508decb9d194bebe"
+  }
+}

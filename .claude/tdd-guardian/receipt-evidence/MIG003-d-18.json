@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-18",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:56:18.160Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: per OS, and fewer than five runs\",\"C29: five warm macOS legs are ok while four warm Windows legs are insufficient data\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 326
+      },
+      "message": "AssertionError: expected [ 'ok', …(1) ] to deeply equal [ 'ok', …(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-18/20261110T175618160Z/tests",
+    "tree": "c5f923f545aa9622082557a4b161a82a5d9c5a27"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "1b80ffde06bc2999d54d91b8d75ee4fde1724cfc"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "1b80ffde06bc2999d54d91b8d75ee4fde1724cfc"
+  }
+}

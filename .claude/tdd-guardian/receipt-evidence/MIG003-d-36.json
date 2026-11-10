@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-36",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:10:07.810Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the output directory\",\"C37: by default it is <home>/.mdpro-redesign/metrics, outside this repository\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 93
+      },
+      "message": "AssertionError: expected { r: { ok: true }, insideRepo: null } to deeply equal { r: { ok: true, …(1) }, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-36/20261110T181007810Z/tests",
+    "tree": "b1d8f570d43f35e6db1f10449151276bcc8886b6"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "5cd95f63b63d3482f1580d2778d0a7c382894265"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "5cd95f63b63d3482f1580d2778d0a7c382894265"
+  }
+}

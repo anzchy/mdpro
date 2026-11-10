@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-13",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:52:42.087Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d rerun rate\",\"C12: share of PR head SHAs with a run_attempt > 1; attempt 3 counts once, a second run is not a rerun\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 244
+      },
+      "message": "AssertionError: expected undefined to deeply equal { headShas: 3, rerun: 1, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-13/20261110T175242087Z/tests",
+    "tree": "1a737a120f41e157c3916177c8ecb8291a93ec57"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "8a785111772ba8a54547d1f4972e4171002a7186"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "8a785111772ba8a54547d1f4972e4171002a7186"
+  }
+}

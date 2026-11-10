@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-40",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:14:15.948Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the request layer: the path\",\"C42 + C61: a path starting with -, holding whitespace, or outside repos/ (graphql) throws before gh is spawned\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 190
+      },
+      "message": "AssertionError: expected { results: [ 'no throw', …(5) ], …(1) } to deeply equal { results: [ 'threw', …(5) ], …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-40/20261110T181415948Z/tests",
+    "tree": "739252a88ee2d08b45fd0d7f562d4904e5f77712"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "dc5cd12ff2dcb2dd73afc106dadac0092790c577"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "dc5cd12ff2dcb2dd73afc106dadac0092790c577"
+  }
+}

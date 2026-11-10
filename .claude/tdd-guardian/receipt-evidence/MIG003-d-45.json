@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-45",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:19:28.652Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d collect: a truncated run list (ruling 1, G24)\",\"C72: total_count 1200 with 1000 runs received rejects, naming the workflow and both counts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 331
+      },
+      "message": "AssertionError: expected [ false, false, true ] to deeply equal [ true, true, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-45/20261110T181928652Z/tests",
+    "tree": "4afa28721ade5b64c3bd4d7e3a08381e9817c3b8"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "882b4fc5c63143a1c80b106731385b81a0e8da41"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "882b4fc5c63143a1c80b106731385b81a0e8da41"
+  }
+}

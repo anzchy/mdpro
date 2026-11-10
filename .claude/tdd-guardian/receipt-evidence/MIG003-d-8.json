@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-8",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:49:30.964Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d window\",\"C9: a run created one second before since, or one second after until, is in no metric\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 140
+      },
+      "message": "AssertionError: expected { samples: 5, p50: 900, p90: 4000 } to deeply equal { samples: 3, p50: 600, p90: 900 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-8/20261110T174930964Z/tests",
+    "tree": "fd1e37306ef8bcc19796f2b0a2ebaadf8c18684d"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "74c3911975fa5b4a6e574729cf99be70cbd336de"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "74c3911975fa5b4a6e574729cf99be70cbd336de"
+  }
+}

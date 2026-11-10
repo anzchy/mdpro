@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-22",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:58:49.917Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: scope without a reference\",\"C28: no --scope-ref-p90 gives `no reference`, the p90 still reported and no budget or delta\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 380
+      },
+      "message": "AssertionError: expected { lane: 'scope', samples: 5, …(4) } to deeply equal { lane: 'scope', samples: 5, …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-22/20261110T175849917Z/tests",
+    "tree": "e01d112d9f6cecd5ce877b8f610619b51a23ef29"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "491e182ab6c979a6ba7aefecd40f75668ee32534"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "491e182ab6c979a6ba7aefecd40f75668ee32534"
+  }
+}

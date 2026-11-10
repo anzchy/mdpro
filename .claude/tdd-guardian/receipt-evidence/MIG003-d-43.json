@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-43",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:17:22.290Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d collect: what it asks for\",\"C43: only GETs; the three run lists, every run's jobs, each earlier attempt, and artifacts for flake candidates only\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 273
+      },
+      "message": "AssertionError: expected { methods: [], paths: [], …(2) } to deeply equal { methods: [ 'GET' ], …(3) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-43/20261110T181722290Z/tests",
+    "tree": "0819ae6ccf4f04a89eb23c6e8232963ba5dae494"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "0c6930cce6de6220a1e0e537083c0f0174775bb8"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "0c6930cce6de6220a1e0e537083c0f0174775bb8"
+  }
+}

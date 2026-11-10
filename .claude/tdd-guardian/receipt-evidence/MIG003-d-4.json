@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:46:54.622Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d PR wall-clock: the last head SHA\",\"C3: an older head SHA of the same PR is not a sample\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 80
+      },
+      "message": "AssertionError: expected { samples: 4, p50: 600, p90: 4000 } to deeply equal { samples: 3, p50: 600, p90: 900 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-4/20261110T174654622Z/tests",
+    "tree": "11d389f7c8b92ba9cdacdfb95608286d690eb7f1"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "9bcb3a8f52a7ec2b5d296c91843bb38ab33583c4"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "9bcb3a8f52a7ec2b5d296c91843bb38ab33583c4"
+  }
+}

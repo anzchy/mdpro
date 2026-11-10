@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-49",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:23:39.240Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d main: refusals\",\"C30 + C31 + C36 (main): a reversed range, a bad label, or a metrics dir inside a repo → exit 2, no request, nothing written, stderr says why\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 454
+      },
+      "message": "AssertionError: expected { …(2) } to deeply equal { results: [ …(3) ], repo: '' }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-49/20261110T182339240Z/tests",
+    "tree": "d49524a724acd17f8c273f03aaabadb42cafee16"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "acb44452c482dfd2fa9f20b78980b37032a170e6"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "acb44452c482dfd2fa9f20b78980b37032a170e6"
+  }
+}

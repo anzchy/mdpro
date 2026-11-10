@@ -1,0 +1,73 @@
+{
+  "id": "MIG003-d-33",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:08:00.081Z",
+  "head_sha": "bb0bacfba0d564c1fe07d4148138184d4c4b1a7c",
+  "dirty_source": [
+    "scripts/ci/metrics.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 3 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": {
+      "state": "ok",
+      "sha": "9f4dcc79e8d40f5c6bfb027909d3aecd46d3b05654397d592f1b199d09761ee3",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "c2530b7b39411e1f",
+        "b550506779eeea8f",
+        "ec9b598f68dcd6bb",
+        "ed9623369ff082ab",
+        "9c94784f8cfa14e6",
+        "4c842caf5c1122fa",
+        "bc384137a3b967eb",
+        "419590cd2e8b6e32",
+        "20bbc28c6dc718d4",
+        "3a9791b87c42fff8",
+        "a5dcff1a3cc6a288",
+        "fc355f52687e08fe",
+        "0ae47a13980fb259",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "96fb95d8b5edc6f3",
+        "ab0c4ec8801d9e57",
+        "dad815680b777e48",
+        "df3982fd61017359",
+        "281527b3a4407031",
+        "bbae13e87a286e37",
+        "938b52f3401d1585",
+        "316f5fe7f2753b2c",
+        "99549b7dc7f5b6cf",
+        "0d5f1f083bb42d02",
+        "86767f02f2d1e05a",
+        "11e7f07e9820c967",
+        "d42214efac06de42",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "fe40789532dd6543",
+        "d07a2c67e65d41c1",
+        "938b52f3401d1585",
+        "9def83b09595fa92",
+        "6c27ab2caf0f5cea",
+        "5c5a43957c6da9b4",
+        "e420ff90081cfaaa",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T18:08:13.043Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (scripts/ci/metrics.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

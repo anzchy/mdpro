@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-41",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:15:19.096Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the request layer: gh failures\",\"C75: a non-zero gh exit throws an Error whose status is the HTTP code in stderr (null when there is none)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 208
+      },
+      "message": "AssertionError: expected [ null, null, false, 'string' ] to deeply equal [ 404, null, true, 'string' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-41/20261110T181519096Z/tests",
+    "tree": "692dab86f83d4bc212d997642b7bd752bc8a717e"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "b38d9d63de0d333b9d1ac5a6f5403de1eb3440f1"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "b38d9d63de0d333b9d1ac5a6f5403de1eb3440f1"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-19",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:56:55.896Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: WebKit\",\"C23: four WebKit runs report insufficient data\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 339
+      },
+      "message": "AssertionError: expected undefined to deeply equal { lane: 'webkit', samples: 4, …(3) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-19/20261110T175655896Z/tests",
+    "tree": "11752ffad4bfb5871db6aa73cf14b96b54450494"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "2643ffcc650b65974ba3f637e0c126fafe7cd63b"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "2643ffcc650b65974ba3f637e0c126fafe7cd63b"
+  }
+}

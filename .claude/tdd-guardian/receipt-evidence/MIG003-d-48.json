@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-48",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:22:44.541Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d main: a good run\",\"C35: exit 0 and exactly <label>-<date>.json and .md in the metrics dir; the JSON is the metrics object\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 438
+      },
+      "message": "AssertionError: expected { code: +0, files: [], json: null } to deeply equal { code: +0, files: [ …(2) ], …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-48/20261110T182244541Z/tests",
+    "tree": "06a8d154de3559c197d5bd580539d5b7eb1dc871"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "451333c990493f6120e86e315f6e14144f4b13b0"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "451333c990493f6120e86e315f6e14144f4b13b0"
+  }
+}

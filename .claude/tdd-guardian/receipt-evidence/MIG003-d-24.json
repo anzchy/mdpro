@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-24",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:00:27.652Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d flake: order\",\"C14: passed in attempt 1 and failed in attempt 2 is not a flake\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 419
+      },
+      "message": "AssertionError: expected { candidates: 1, …(3) } to deeply equal { candidates: 1, flakyTests: [], …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-24/20261110T180027652Z/tests",
+    "tree": "56e673f47f07c4eba4e389f1e2b9a8ee897b3924"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e1d7c152643a4eafaf6f1e1a7f61a2078caebeda"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e1d7c152643a4eafaf6f1e1a7f61a2078caebeda"
+  }
+}

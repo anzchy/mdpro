@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:42:09.639Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d percentiles\",\"C7: nearest-rank on an even count (p50 200, p90 400, not 250 / 370)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 11
+      },
+      "message": "AssertionError: expected [ null, null ] to deeply equal [ 200, 400 ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-1/20261110T174209639Z/tests",
+    "tree": "9357438c8fdbaea479b9b28813c728959b229694"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "2b750fea155edc427881a8d93bf424f4587c0e07"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "2b750fea155edc427881a8d93bf424f4587c0e07"
+  }
+}

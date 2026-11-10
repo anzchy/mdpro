@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-52",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:26:54.565Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d main: what it prints\",\"C77: on success stdout names both written paths\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 584
+      },
+      "message": "AssertionError: expected [ false, false ] to deeply equal [ true, true ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-52/20261110T182654565Z/tests",
+    "tree": "1c814c1b967ce66b0ecfc5e34a09283a759d90e9"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "fbf86ca14c6ade6de58317f0c35d5693298c290f"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "fbf86ca14c6ade6de58317f0c35d5693298c290f"
+  }
+}

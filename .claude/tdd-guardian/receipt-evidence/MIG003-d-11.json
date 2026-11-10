@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:51:21.580Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d runner minutes: boundaries\",\"C58: an in-progress run's job (completed_at null) adds nothing, and every number in the result is finite\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 222
+      },
+      "message": "AssertionError: expected { minutes: { Linux: NaN, …(2) }, …(1) } to deeply equal { minutes: { Linux: 7, …(2) }, …(1) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-11/20261110T175121580Z/tests",
+    "tree": "dd6ac6fb26960743d7e49ff2e15792470240e1ba"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e9447744792cae899eb343930b0e10fdaa42b882"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "e9447744792cae899eb343930b0e10fdaa42b882"
+  }
+}

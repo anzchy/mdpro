@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-37",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:10:44.910Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d the output directory: inside a repository\",\"C36: a not-yet-existing MDPRO_METRICS_DIR inside a temp git repo is refused and nothing is created there\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 110
+      },
+      "message": "AssertionError: expected { ok: true, status: '', exists: false } to deeply equal { Object (ok, status, ...) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-37/20261110T181044910Z/tests",
+    "tree": "5109d86edde58587d29f659bb673435a13f32689"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "12c45a135d4626465ed2b8335294b29f04497fab"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "12c45a135d4626465ed2b8335294b29f04497fab"
+  }
+}

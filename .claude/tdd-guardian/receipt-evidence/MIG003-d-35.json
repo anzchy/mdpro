@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-35",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:09:14.296Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d parseArgs: the scope reference and unknown flags\",\"C34 + C69: --scope-ref-p90 abc, -1 or 10abc, an unknown flag, or a flag with no value is refused; 0 is a reference\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 76
+      },
+      "message": "AssertionError: expected [ 'accepted', 'accepted', …(4) ] to deeply equal [ 'refused', 'refused', …(4) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-35/20261110T180914296Z/tests",
+    "tree": "74c0fc3e22030bcc2786faff7096610027a77e6b"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "51e6198487e5f4ce4589aadbfb7ecc7e38ef5c7a"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "51e6198487e5f4ce4589aadbfb7ecc7e38ef5c7a"
+  }
+}

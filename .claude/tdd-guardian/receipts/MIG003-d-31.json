@@ -1,0 +1,49 @@
+{
+  "id": "MIG003-d-31",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:06:46.939Z",
+  "head_sha": "bb0bacfba0d564c1fe07d4148138184d4c4b1a7c",
+  "dirty_source": [
+    "scripts/ci/metrics.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": {
+      "state": "ok",
+      "sha": "fd24a9a425984b5a6abf45c15704615b2e7aa724c2e62396fa54307b065cd39c",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "c2530b7b39411e1f",
+        "b550506779eeea8f",
+        "ec9b598f68dcd6bb",
+        "ed9623369ff082ab",
+        "9c94784f8cfa14e6",
+        "4c842caf5c1122fa",
+        "bc384137a3b967eb",
+        "419590cd2e8b6e32",
+        "20bbc28c6dc718d4",
+        "3a9791b87c42fff8",
+        "a5dcff1a3cc6a288",
+        "fc355f52687e08fe",
+        "0ae47a13980fb259",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T18:07:01.320Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (scripts/ci/metrics.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

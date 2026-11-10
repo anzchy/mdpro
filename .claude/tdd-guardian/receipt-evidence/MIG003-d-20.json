@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-20",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:57:37.087Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d budgets: scope\",\"C27: scope's PR p90 against the caller's reference + 5 s, with the delta\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 366
+      },
+      "message": "AssertionError: expected [ undefined, undefined ] to deeply equal [ { lane: 'scope', …(5) }, …(1) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-20/20261110T175737087Z/tests",
+    "tree": "8012fd84df45d0259997dc0b3585a9d0204edc49"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "82d04fa3d34ad97065399af14a3745848c5b4e13"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "82d04fa3d34ad97065399af14a3745848c5b4e13"
+  }
+}

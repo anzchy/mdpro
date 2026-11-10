@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-44",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:18:11.769Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics-cli.test.ts\",\"MIG003d collect: an absent advisory workflow\",\"C44: platform-advisory.yml 404s → its runs are [] and collect resolves (Q5)\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics-cli.test.ts",
+        "line": 293
+      },
+      "message": "AssertionError: expected 'threw' to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-44/20261110T181811769Z/tests",
+    "tree": "a5ce2e75a4b56d039198d348f1c2e39dd1d6bcf2"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "531a449e7b563560424e654295b7f120dd000ee4"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics-cli.test.ts": "531a449e7b563560424e654295b7f120dd000ee4"
+  }
+}

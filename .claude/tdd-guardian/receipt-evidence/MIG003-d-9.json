@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-d-9",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:50:06.290Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003d-metrics.test.ts\",\"MIG003d queue time\",\"C10: started_at − created_at per job across the three workflows; skipped jobs are out\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003d-metrics.test.ts",
+        "line": 175
+      },
+      "message": "AssertionError: expected undefined to deeply equal { samples: 3, p50: 4, p90: 10 }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-d-9/20261110T175006290Z/tests",
+    "tree": "5924a1e67fcaeeacc3e964a311208779f29e6e39"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "5155ef6abfd04c6634e4b5ded130bbecd4d28dd9"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003d-metrics.test.ts": "5155ef6abfd04c6634e4b5ded130bbecd4d28dd9"
+  }
+}

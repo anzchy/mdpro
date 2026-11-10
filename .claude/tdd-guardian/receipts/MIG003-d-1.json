@@ -1,0 +1,36 @@
+{
+  "id": "MIG003-d-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T17:42:09.639Z",
+  "head_sha": "bb0bacfba0d564c1fe07d4148138184d4c4b1a7c",
+  "dirty_source": [],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/mig003d-metrics.test.ts": {
+      "state": "ok",
+      "sha": "c58f21fb3246f1d8c6e65834b4ce3736822801411400d9f046083fb4ac898d0a",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "c3815f07dd6803b8",
+        "e6b01882fad84b32",
+        "ed9623369ff082ab",
+        "9c94784f8cfa14e6",
+        "7c801cfedbce12ff",
+        "35c3d66febda2503",
+        "c115cfff58e7e346",
+        "086bf7be351c8d94",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T17:42:21.404Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": []
+}
