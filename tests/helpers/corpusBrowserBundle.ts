@@ -51,3 +51,8 @@ export async function loadInWindowRealm<T>(entry: string, prepare?: (window: Rec
   vm.runInContext(bundle.code, context);
   return { exports: dom.window[GLOBAL_NAME] as T, nodeOnlyGlobals: vm.runInContext(NODE_ONLY_PROBE, context) as string, inputs: bundle.inputs };
 }
+
+/** Settles a load so a refused bundle (a `node:` import) reaches the test as data, asserted like any other outcome. */
+export async function settle<T>(loading: Promise<BrowserModule<T>>): Promise<{ module?: BrowserModule<T>; failure?: string }> {
+  try { return { module: await loading }; } catch (error) { return { failure: error instanceof Error ? error.message : String(error) }; }
+}
