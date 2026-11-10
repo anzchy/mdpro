@@ -1,10 +1,13 @@
 // @vitest-environment node
 /** MIG003a: the advisory classes describe changed paths without changing the code gate. */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { classifyPaths, classifyRiskClasses } from "../../scripts/ci/change-scope.mjs";
 import { job, jobIds, entry, scalar } from "../support/workflowBlocks";
+
+// This suite exercises pure classifiers. A child-process call would make a table case fail.
+vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => { throw Error("risk classification must not spawn"); }) }));
 
 const only = (...names: Array<"deps" | "editor" | "pipeline" | "ci" | "ipc" | "platform">) =>
   Object.fromEntries(["deps", "editor", "pipeline", "ci", "ipc", "platform"].map((name) => [name, names.includes(name as typeof names[number])])) as ReturnType<typeof classifyRiskClasses>;

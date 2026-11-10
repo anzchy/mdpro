@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T14:33:13.938Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-inventory.test.ts\",\"GH727 spawn-timeout inventory (real repository)\",\"an independent text oracle finds no spawning test file the lint misses, beyond the pure-export imports\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-inventory.test.ts",
+        "line": 88
+      },
+      "message": "AssertionError: expected [ …(17) ] to deeply equal [ …(16) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-17/20261110T143313938Z/tests",
+    "tree": "b8700a2d5c977c4fb9650e660d466778f2e4adb6"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-inventory.test.ts": "11213b560b9bf6a94db27a2525e47cfe71b7e93e"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-inventory.test.ts": "11213b560b9bf6a94db27a2525e47cfe71b7e93e"
+  }
+}
