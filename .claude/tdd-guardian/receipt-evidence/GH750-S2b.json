@@ -1,0 +1,33 @@
+{
+  "id": "GH750-S2b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T06:14:41.690Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/gh750-mcp-events-listener.test.tsx\",\"GH750 MCP listener lifecycle\",\"S2 logs a rejected registration and releases earlier subscriptions\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/gh750-mcp-events-listener.test.tsx",
+        "line": 220
+      },
+      "message": "AssertionError: expected \"spy\" to be called with arguments: [ ObjectContaining{…} ]\n\nNumber of calls: 0"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH750-S2b/20261110T061441690Z/tests",
+    "tree": "b17b9305519a3f58054f9e778e5193e7b6e4cb04"
+  },
+  "spec_blobs": {
+    "tests/gh750-mcp-events-listener.test.tsx": "a056605fa5e3ecfa3c3f46cdad4d8d4369e5e6ec"
+  },
+  "settled_blobs": {
+    "tests/gh750-mcp-events-listener.test.tsx": "a056605fa5e3ecfa3c3f46cdad4d8d4369e5e6ec"
+  }
+}

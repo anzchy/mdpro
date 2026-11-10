@@ -1,0 +1,33 @@
+{
+  "id": "GH750-S1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T06:11:21.726Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/gh750-mcp-events-listener.test.tsx\",\"GH750 MCP listener lifecycle\",\"S1 releases all four late registrations after immediate cleanup\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/gh750-mcp-events-listener.test.tsx",
+        "line": 98
+      },
+      "message": "AssertionError: expected [ +0, +0, +0, +0 ] to deeply equal [ 1, 1, 1, 1 ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH750-S1/20261110T061121726Z/tests",
+    "tree": "21d6323628de61dc504fd93915292db716a1d700"
+  },
+  "spec_blobs": {
+    "tests/gh750-mcp-events-listener.test.tsx": "7e18761f622fd3f169ad3be29b446d4d54317a94"
+  },
+  "settled_blobs": {
+    "tests/gh750-mcp-events-listener.test.tsx": "7e18761f622fd3f169ad3be29b446d4d54317a94"
+  }
+}

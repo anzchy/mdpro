@@ -232,41 +232,59 @@ export function useMcpEvents() {
 
   // Set up event listeners
   useEffect(() => {
+    let cancelled = false;
     const unlisteners: UnlistenFn[] = [];
+    // A registration can finish after this effect's cleanup (including
+    // StrictMode's first mount). Release it then instead of retaining it.
+    const retainOrRelease = (unlisten: UnlistenFn) => {
+      if (cancelled) unlisten();
+      else unlisteners.push(unlisten);
+    };
 
     const setupListeners = async () => {
       // Listen for write_document
       const writeUnlisten = await listen<WriteDocumentEvent>(
         "mcp:write_document",
-        (event) => handleWriteDocument(event.payload)
+        (event) => { if (!cancelled) handleWriteDocument(event.payload); }
       );
-      unlisteners.push(writeUnlisten);
+      retainOrRelease(writeUnlisten);
 
       // Listen for insert_content
       const insertUnlisten = await listen<InsertContentEvent>(
         "mcp:insert_content",
-        (event) => handleInsertContent(event.payload)
+        (event) => { if (!cancelled) handleInsertContent(event.payload); }
       );
-      unlisteners.push(insertUnlisten);
+      retainOrRelease(insertUnlisten);
 
       // Listen for create_document
       const createUnlisten = await listen<CreateDocumentEvent>(
         "mcp:create_document",
-        (event) => handleCreateDocument(event.payload)
+        (event) => { if (!cancelled) handleCreateDocument(event.payload); }
       );
-      unlisteners.push(createUnlisten);
+      retainOrRelease(createUnlisten);
 
       // Listen for table_action (WI-3.3)
       const tableUnlisten = await listen<TableActionEvent>(
         "mcp:table_action",
-        (event) => handleTableAction(event.payload),
+        (event) => { if (!cancelled) handleTableAction(event.payload); },
       );
-      unlisteners.push(tableUnlisten);
+      retainOrRelease(tableUnlisten);
     };
 
-    setupListeners();
+    // Preserve sequential registration: a failed listen stops the remaining
+    // attempts, while cleanup still releases everything already registered.
+    void setupListeners().catch(() => {
+      loggingService.logEventSync({
+        level: "warn",
+        event: "mcp.listen",
+        status: "fail",
+        actionId: loggingService.generateActionId(),
+        context: { reason: "registration failed" },
+      });
+    });
 
     return () => {
+      cancelled = true;
       unlisteners.forEach((unlisten) => unlisten());
     };
   }, [handleWriteDocument, handleInsertContent, handleCreateDocument, handleTableAction]);
