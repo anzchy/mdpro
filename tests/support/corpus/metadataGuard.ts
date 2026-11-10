@@ -1,6 +1,6 @@
 /** Guard-only metadata is independent from editor fidelity and verifies the committed recipe checksum. */
-import { createHash } from 'node:crypto';
 import { isObject } from './metadataActions.ts';
+import { sha256Hex } from './sha256.ts';
 export function guardDecisionValid(value: unknown): boolean {
   if (!isObject(value)) return false;
   const exact = (keys: string[]) => Object.keys(value).length === keys.length && keys.every(key => key in value);
@@ -28,7 +28,7 @@ export function guardRecordErrors(r: Record<string, unknown>, files: Readonly<Re
   if (typeof recipe.path === 'string') {
     const bytes = files[recipe.path];
     if (!Object.hasOwn(files, recipe.path)) errors.push('recipe missing file');
-    else if (createHash('sha256').update(bytes).digest('hex') !== recipe.sha256) errors.push('recipe sha256 mismatch');
+    else if (sha256Hex(bytes) !== recipe.sha256) errors.push('recipe sha256 mismatch');
   }
   if (!isObject(r.expected)) errors.push('expected.observation required');
   else {

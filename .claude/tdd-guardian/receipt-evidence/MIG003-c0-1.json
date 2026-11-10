@@ -1,0 +1,231 @@
+{
+  "id": "MIG003-c0-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:35:59.942Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"\\\\udc00\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be '83d544ccc223c057d2bf80d3f2a32982c32c3…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"lone \\\\ud800 surrogate\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be 'dc12673580894e234a7f878d6c2c065ca6a14…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"é\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be '4a99557e4033c3539de2eb65472017cad5f95…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"中文\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be 'a20758305f24aa08fdd593d564de930e95c65…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be 'd947a8713ec0e50af65a6a671074ffcde561c…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"👩‍👩‍👧\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be '81e8a05f6e8a541e34130a4f0d1e6f05319bc…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes non-ASCII text as UTF-8 exactly as node:crypto update(string) does: \\\"﻿bom-led\\\\n\\\"\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 45
+      },
+      "message": "AssertionError: expected '' to be 'a1ed43094eb8bdb9253a89506480979578369…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"hashes raw bytes, including 0x00 and 0xFF, and returns 64 lowercase hex digits\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 51
+      },
+      "message": "AssertionError: expected '' to be 'f2aaa0294844d25dc0fe63a75e1f72e58c77a…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 1-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be 'ca978112ca1bbdcafac231b39a23dc4da786e…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 1000-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '915e53a44c18b19bb06ba5b3f5fcaf1dc4651…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 1000000-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '1fa51eae26c4db865aca1af630e5fa892611e…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 119-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be 'faef67da856d6fd9c8d12f9ed0a4fefd3cf0c…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 120-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be 'c9512b08619c19fbb503c7da6b46ef20301e5…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 127-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '1b9907986f18ddc2b37e18be502d82d69d6e1…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 128-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '6c05be2c4268843ae47e68e611277ce62c021…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 129-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be 'cd6bba8374324cbcc0c296b94f35299c0b982…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 55-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '595615dbe4f0f407ae397d08b4c2cb870cb9b…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 56-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '784f623b787495078e93ff28a25b581df0584…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 63-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '5ca3e1ef5207490eac01a795e5cc94d59582a…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 64-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '2fcd5a0d60e4c941381fcc4e00a4bf8be422c…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on a 65-byte input across block and padding boundaries\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected '' to be '1b3cd1877ab2f2f19f7be001722554f336cb7…' // Object.is equality"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on every committed recipe\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 31
+      },
+      "message": "AssertionError: expected [ Array(13) ] to deeply equal [ …(13) ]"
+    },
+    {
+      "id": "[\"tests/corpus-sha256.test.ts\",\"matches node:crypto on the empty input, as a string and as bytes\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-sha256.test.ts",
+        "line": 35
+      },
+      "message": "AssertionError: expected '' to be 'e3b0c44298fc1c149afbf4c8996fb92427ae4…' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-c0-1/20261110T183559942Z/tests",
+    "tree": "f0140839a42e0caadb3e6a1752ca529a094ac72d"
+  },
+  "spec_blobs": {
+    "tests/corpus-sha256.test.ts": "2c699e7e73a514f0030bd28eea51b05bb2257830"
+  },
+  "settled_blobs": {
+    "tests/corpus-sha256.test.ts": "2c699e7e73a514f0030bd28eea51b05bb2257830"
+  }
+}

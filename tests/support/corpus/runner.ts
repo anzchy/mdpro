@@ -47,7 +47,8 @@ function guardDecisionMatches(actual: LargeDocGuardDecision, baseline: LargeDocG
 }
 export async function runCase(record: CorpusRecord, files: Readonly<Record<string, string>>, options: RunOptions = {}): Promise<CaseResult> {
   try {
-    const env = options.env ?? process.env;
+    // Read per call, never at import; a browser realm has no process, and a caller there passes env or runs with none.
+    const env = options.env ?? globalThis.process?.env ?? {};
     if (options.mode === 'write' && Object.hasOwn(env, 'CI')) throw new Error('write mode refused while CI is set');
     if (record.caseKind === 'guard-only') {
       const errors = validateRecord(record, { files }); if (errors.length) throw new Error(errors.join('; '));

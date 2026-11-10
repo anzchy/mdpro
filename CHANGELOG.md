@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Test tooling: an engine-neutral Markdown golden corpus, a production Milkdown driver and read-only checking, scratch generation and determinism commands, with empty-paragraph baselines for migration comparisons (#706).
 - Test tooling: golden-corpus category l, with 30 emoji, CJK, full-width-space, combining-mark and BOM baselines at the editor, including known limitations for a dropped leading BOM (#723) and entities at CJK-punctuation bold (#722) (#717).
+- Test tooling: the shared golden-corpus modules run in a browser as well as in Node, with a pure SHA-256 for recipe checksums, a `TextEncoder` byte path for negatives and no import-time `process` read, behind unchanged exports and results (#759).
 - Test tooling: an App journey harness with fail-closed IPC, exact save-byte logging, fake time, teardown checks and the first save-safety journeys (#735).
 
 ### Changed

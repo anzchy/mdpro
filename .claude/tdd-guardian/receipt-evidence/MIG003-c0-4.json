@@ -1,0 +1,42 @@
+{
+  "id": "MIG003-c0-4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:40:45.269Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-browser-safe-negatives.test.ts\",\"negatives.ts runs in a realm with no Buffer, process or require, with its exports unchanged, byte-identical to the Buffer path\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-browser-safe-negatives.test.ts",
+        "line": 38
+      },
+      "message": "AssertionError: expected [ …(483) ] to deeply equal [ …(483) ]"
+    },
+    {
+      "id": "[\"tests/corpus-browser-safe-negatives.test.ts\",\"the module source names no Buffer\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-browser-safe-negatives.test.ts",
+        "line": 46
+      },
+      "message": "AssertionError: expected [ 'Buffer', 'Buffer' ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-c0-4/20261110T184045269Z/tests",
+    "tree": "3fdfccc5cdb19865e9212a543b5a8b81076cac4a"
+  },
+  "spec_blobs": {
+    "tests/corpus-browser-safe-negatives.test.ts": "a379d5a5c9efe0317b797cb2ba9bf4be63570fb5"
+  },
+  "settled_blobs": {
+    "tests/corpus-browser-safe-negatives.test.ts": "a379d5a5c9efe0317b797cb2ba9bf4be63570fb5"
+  }
+}

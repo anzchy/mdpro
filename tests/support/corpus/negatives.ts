@@ -1,12 +1,15 @@
 /** Declarative negatives corrupt one observed dimension; they never update fixture data or original actual values. */
 import type { MountingRecord, Observations } from './types.ts';
 import { compareCase, type ComparisonActual, type ComparisonExpected } from './comparator.ts';
+// ignoreBOM keeps a leading U+FEFF in the decoded text, as the byte path has always done (category l has BOM cases).
+const UTF8_DECODER = new TextDecoder('utf-8', { ignoreBOM: true });
+const UTF8_ENCODER = new TextEncoder();
 function alterByte(text: string, offset = 0, replacement?: string): string {
-  const bytes = Buffer.from(text, 'utf8');
+  const bytes = UTF8_ENCODER.encode(text);
   if (!Number.isInteger(offset) || offset < 0 || offset >= bytes.length) throw new Error('negative byte offset out of bounds');
-  const inserted = Buffer.from(replacement ?? (bytes[offset] === 88 ? 'Y' : 'X'), 'utf8');
+  const inserted = UTF8_ENCODER.encode(replacement ?? (bytes[offset] === 88 ? 'Y' : 'X'));
   if (inserted.length !== 1) throw new Error('negative replacement must be exactly one UTF-8 byte');
-  bytes[offset] = inserted[0]; return bytes.toString('utf8');
+  bytes[offset] = inserted[0]; return UTF8_DECODER.decode(bytes);
 }
 export function applyNegative(record: MountingRecord, expected: ComparisonExpected, actual: ComparisonActual): ComparisonActual {
   try {

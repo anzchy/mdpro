@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-c0-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:39:06.997Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-browser-safe-metadata-guard.test.ts\",\"metadataGuard.ts loads in a realm with no process, Buffer or require, with its exports unchanged, and checks recipe checksums there as Node does\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/corpus-browser-safe-metadata-guard.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected 'Build failed with 1 error:\\ntests/sup…' to be undefined"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-c0-3/20261110T183906997Z/tests",
+    "tree": "2731b5e878602ac0cef658a194020101d92de6c3"
+  },
+  "spec_blobs": {
+    "tests/corpus-browser-safe-metadata-guard.test.ts": "76bbe417d9b7c6e42ba788b2adcad96f511d56da"
+  },
+  "settled_blobs": {
+    "tests/corpus-browser-safe-metadata-guard.test.ts": "76bbe417d9b7c6e42ba788b2adcad96f511d56da"
+  }
+}

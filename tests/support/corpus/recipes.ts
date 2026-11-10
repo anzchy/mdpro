@@ -1,9 +1,9 @@
 /** Guard fixtures commit authenticated UTF-8 JSON with exactly {text:string, repeat:nonnegative integer}. */
-import { createHash } from 'node:crypto';
 import { isObject } from './metadataActions.ts';
+import { sha256Hex } from './sha256.ts';
 export function expandRecipe(bytes: string, sha256: string, caseId: string): string {
   try {
-    if (createHash('sha256').update(bytes).digest('hex') !== sha256) throw new Error('recipe sha256 mismatch');
+    if (sha256Hex(bytes) !== sha256) throw new Error('recipe sha256 mismatch');
     const value: unknown = JSON.parse(bytes);
     if (!isObject(value) || Object.keys(value).length !== 2 || typeof value.text !== 'string' ||
         typeof value.repeat !== 'number' || !Number.isSafeInteger(value.repeat) || value.repeat < 0 ||

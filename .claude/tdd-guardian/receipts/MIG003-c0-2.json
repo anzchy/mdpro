@@ -1,0 +1,51 @@
+{
+  "id": "MIG003-c0-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:37:30.278Z",
+  "head_sha": "eed659127b2dfa8de3bae63cb59280460f065348",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-browser-safe-recipes.test.ts": {
+      "state": "ok",
+      "sha": "c71d11cd8d583c44ca6f99a7863b5efb6ceb92d9624c12091185203abb7e0b7c",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9d196a1875159c50",
+        "4ab083840abb65c9",
+        "81c3bfceef325625",
+        "a8bd08b9aab4e020",
+        "7e661190c6552eef",
+        "0c729d7b46c3e01d",
+        "c24c22aa984ecaa6",
+        "a95938fafc6d306d",
+        "a2c05cdcba0c2354",
+        "661e84cfa88e7c0f",
+        "da5c37e1c2588b3c",
+        "82fbf836e54e56fe",
+        "16e534435bf783e6",
+        "873159579addaa15",
+        "63d040fa84d0f07a",
+        "3884501ac832762d",
+        "a2f92b5f81b80eab",
+        "0da9e09de8913436",
+        "42b49a1a238e7a36",
+        "a920c76c191b5e25",
+        "312798465b73e2d3",
+        "0ae47a13980fb259",
+        "90dfe4b448da006f",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": null,
+  "verdict": null,
+  "findings": []
+}

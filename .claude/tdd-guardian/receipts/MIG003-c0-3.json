@@ -1,0 +1,59 @@
+{
+  "id": "MIG003-c0-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T18:39:06.997Z",
+  "head_sha": "eed659127b2dfa8de3bae63cb59280460f065348",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-browser-safe-metadata-guard.test.ts": {
+      "state": "ok",
+      "sha": "7c48509305c0711bc685331c0bc03d3dddfc53af64188d9c9277cc102b757eac",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "9d196a1875159c50",
+        "4ab083840abb65c9",
+        "81c3bfceef325625",
+        "19574225cbba3eda",
+        "b2e1a27e867e340f",
+        "9c40c894165f03f0",
+        "5eb4308ca0935a54",
+        "0a05ce5ed912c980",
+        "edf62f23480cbdbd",
+        "9cf30d87b65d6d16",
+        "1e89fc3062e6f8b7",
+        "60991e47c1520389",
+        "661e84cfa88e7c0f",
+        "da5c37e1c2588b3c",
+        "82fbf836e54e56fe",
+        "16e534435bf783e6",
+        "6ba54b988c063ce0",
+        "c6afcbf80bb96faa",
+        "134db56ab28a83b3",
+        "852e3b5173e50369",
+        "358ba3f2223784d8",
+        "450b82d22a282c8b",
+        "2c5754361cd24c2e",
+        "4992fd823ff02f39",
+        "84d9880517c4ff48",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T18:39:12.239Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
