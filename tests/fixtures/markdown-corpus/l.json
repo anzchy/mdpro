@@ -346,8 +346,8 @@
       "serialized": "no-edit/l/l-leading-bom/expected.md"
     },
     "externalEvidence": [
-      "src-tauri/src/services/encoding.rs detect_encoding_with_confidence: UTF-8 BOM detected with High confidence (~:155)",
-      "src-tauri/src/services/encoding.rs decode_bytes: UTF-8 decode keeps the BOM as U+FEFF (~:19-21)"
+      "src-tauri/src/services/encoding.rs detect_encoding_with_confidence: UTF-8 BOM detected with High confidence (:154-155)",
+      "src-tauri/src/services/encoding.rs decode_bytes: UTF-8 decode keeps the BOM as U+FEFF (:19-21)"
     ],
     "fidelityTag": "known-limitation",
     "guardedPaths": [
@@ -847,8 +847,8 @@
       "serialized": "edited/l/l-leading-bom-edit/expected.md"
     },
     "externalEvidence": [
-      "src-tauri/src/services/encoding.rs detect_encoding_with_confidence: UTF-8 BOM detected with High confidence (~:155)",
-      "src-tauri/src/services/encoding.rs decode_bytes: UTF-8 decode keeps the BOM as U+FEFF (~:19-21)"
+      "src-tauri/src/services/encoding.rs detect_encoding_with_confidence: UTF-8 BOM detected with High confidence (:154-155)",
+      "src-tauri/src/services/encoding.rs decode_bytes: UTF-8 decode keeps the BOM as U+FEFF (:19-21)"
     ],
     "fidelityTag": "known-limitation",
     "guardedPaths": [

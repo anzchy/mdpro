@@ -19,7 +19,7 @@ const observations: Record<string, import('./support/corpus/types.ts').Observati
 const bootstrapSerialized: string[] = process.env.CORPUS_BOOTSTRAP_SERIALIZED ? JSON.parse(process.env.CORPUS_BOOTSTRAP_SERIALIZED) : [];
 const records = selectCases(data.records, { caseIds, platform: 'any', includeLocalOnly: write })
   .filter(record => record.category === 'l');
-const BOM = '﻿';
+const BOM = '\uFEFF';
 // A re-saved fixture can lose the very code points its case is about and still pass byte equality, so these cases pin their own subject.
 const fixtureSubjects: Record<string, (input: string, desired: string | undefined, expected: string) => void> = {
   'l-leading-bom': (input, desired, expected) => {
@@ -31,11 +31,11 @@ const fixtureSubjects: Record<string, (input: string, desired: string | undefine
     expect([input.startsWith(BOM), desired?.startsWith(BOM), expected.startsWith(BOM)], 'l-leading-bom-edit: BOM in input and desired only').toEqual([true, true, false]);
   },
   'l-combining-marks': input => {
-    expect(['é', '가', 'é', '가'].map(text => input.includes(text)), 'l-combining-marks: both forms present').toEqual([true, true, true, true]);
+    expect(['e\u0301', '\u1100\u1161', '\u00E9', '\uAC00'].map(text => input.includes(text)), 'l-combining-marks: both forms present').toEqual([true, true, true, true]);
     expect([input === input.normalize('NFC'), input === input.normalize('NFD')], 'l-combining-marks: neither NFC nor NFD').toEqual([false, false]);
   },
   'l-emoji-flags-keycaps': input => {
-    expect(['❤︎', '❤️'].map(text => input.includes(text)), 'l-emoji-flags-keycaps: VS15 and VS16 present').toEqual([true, true]);
+    expect(['\u2764\uFE0E', '\u2764\uFE0F'].map(text => input.includes(text)), 'l-emoji-flags-keycaps: VS15 and VS16 present').toEqual([true, true]);
   },
 };
 for (const record of collectionCases('category-l unicode and encodings', records)) {
