@@ -256,6 +256,7 @@ tail -f ~/.mdpro/mdpro.log | jq -c 'select(.event | startswith("mcp."))
 | `mcp.list`, `mcp.read` | GET handlers (Rust) |
 | `mcp.write`, `mcp.insert` | Rust handler `start` / `success` / `fail`; frontend `fail` when the window cannot apply it |
 | `mcp.table.<action>` | Rust dispatch and frontend `mcpTableAction.ts` |
+| `mcp.listen` | Frontend `useMcpEvents.ts` logs `fail` if an MCP event listener cannot register; context contains only `reason: "registration failed"` (no raw error or document content) |
 | `mcp.confirm`, `mcp.confirm.effect`, `mcp.confirm.reply` | Confirm broker; context `requestId`, `operation` (`replace` / `insert` / `table:<action>`), `outcome`, `waitedMs` |
 | `mcp.http_server.start` / `.stop`, `mcp.server.toggle` | Server lifecycle and the Settings switch |
 | `mcp.sync` | Frontend → shadow store sync |

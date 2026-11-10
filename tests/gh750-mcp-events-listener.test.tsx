@@ -175,7 +175,15 @@ describe("GH750 MCP listener lifecycle", () => {
     expect(useDocumentStore.getState().activeDocumentId).toBe("doc-created");
     expect(useEditorStore.getState().activeDocumentId).toBe("doc-created");
 
+    const editorDispatch = vi.fn();
+    useEditorStore.setState({
+      editorView: {
+        state: { doc: { length: 3 }, update: vi.fn() },
+        dispatch: editorDispatch,
+      } as unknown as ReturnType<typeof useEditorStore.getState>["editorView"],
+    });
     const before = useDocumentStore.getState().documents.map((document) => document.content);
+    const activeBefore = useEditorStore.getState().activeDocumentId;
     unmount();
     expect(registrations.map((registration) => registration.unlisten.mock.calls.length)).toEqual([1, 1, 1, 1]);
     for (const name of names) expect(active.get(name)?.size).toBe(0);
@@ -183,12 +191,14 @@ describe("GH750 MCP listener lifecycle", () => {
       document_id: "too-late", content: "STALE", window_label: "main",
     });
     emit("mcp:table_action", {
-      document_id: "doc-a", action: "set_cell",
-      payload: { tableIndex: 0, row: 1, col: 1, content: "STALE" },
+      document_id: "doc-created", action: "insert_table",
+      payload: { rows: 2, cols: 2 },
       window_label: "main",
     });
     expect(useDocumentStore.getState().documents.map((document) => document.content)).toEqual(before);
     expect(useDocumentStore.getState().getDocumentById("too-late")).toBeUndefined();
+    expect(useEditorStore.getState().activeDocumentId).toBe(activeBefore);
+    expect(editorDispatch).not.toHaveBeenCalled();
   });
 
   it("C5 keeps the newer mount live while the old mount settles late", async () => {
