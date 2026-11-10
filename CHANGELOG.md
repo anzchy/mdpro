@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Update the locked OpenSSL crate to 0.10.78 to address RUSTSEC-2026-0463 and restore a passing Rust dependency audit (#745).
+- Update the locked OpenSSL crate to 0.10.82 to address RUSTSEC-2026-0474, RUSTSEC-2026-0476 and RUSTSEC-2026-0477 and restore a passing Rust dependency audit (#764).
 
 ## [0.3.6] - 2026-11-02
 
