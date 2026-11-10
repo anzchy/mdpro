@@ -1,0 +1,84 @@
+{
+  "id": "MIG001-l-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T11:36:48.032Z",
+  "head_sha": "66f6d3246b2918de03465c95e86a3fc7ee03dfba",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/corpus-provenance-cache.test.ts": {
+      "state": "ok",
+      "sha": "5f9e3be5c51635141e5feca5f9b310c5d239aa19de0ce026416bd50279ee6641",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "17dce688f80a7852",
+        "dc4906726557bc6d",
+        "bdced7e9248a3163",
+        "71ce7e1f803ddc8d",
+        "c10415ad1dbb336c",
+        "63150d30f852f4f1",
+        "f2fdc3fe8bfb395d",
+        "855338e6c26033ae",
+        "b5cbdb71ca7d535c",
+        "fee3716cd6d7492e",
+        "7bd389f576c6e353",
+        "73a551fc2f3a2769",
+        "bf5b99f649eeece4",
+        "7b282330fec7d91e",
+        "b7d2f43f10ba419f",
+        "8027af1c92b08c7d",
+        "f6b31fae27dfde2e",
+        "ae7bc87d46c1fcc9",
+        "31d3be24b6a1c6af",
+        "625c15445ce894d3",
+        "a7b2afd55c5209e3",
+        "674d10a95a1f6345",
+        "a11b1c143be1f118",
+        "03a6f6202c70fc7e",
+        "e9e819c359c37851",
+        "d10b36aa74a59bcf",
+        "fa636455ca32d263",
+        "775f77733df823d8",
+        "fa10253c9b215d48",
+        "e16b50ca161d22b7",
+        "69aba8b726c8e3bc",
+        "71bbf3a9acb90744",
+        "dd4961ff6dbc9002",
+        "d3e511d68332047e",
+        "8329449bf7011caa",
+        "c8123761b1b6be68",
+        "d170ca6dfbb4aeb0",
+        "d24050ed52a5a33c",
+        "d10b36aa74a59bcf",
+        "976d4a85b039b76d",
+        "40205f91de4c2e5f",
+        "29674540ef6cc374",
+        "948646b093c48b9c",
+        "db1e8d3798ec2366",
+        "0cc15ad9fe3a5cd8",
+        "9e31e5b273063603",
+        "9b743bcc351687b3",
+        "29674540ef6cc374",
+        "5193ace3d68815f2",
+        "db1e8d3798ec2366",
+        "0cc15ad9fe3a5cd8"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T11:37:37.194Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
