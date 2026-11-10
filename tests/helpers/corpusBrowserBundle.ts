@@ -16,8 +16,9 @@ const { JSDOM } = localRequire('jsdom') as { JSDOM: JsdomConstructor };
 // esbuild is Vite's dependency, not ours; resolving it through Vite adds no dependency and no config.
 const esbuild = createRequire(localRequire.resolve('vite'))('esbuild') as Esbuild;
 const GLOBAL_NAME = '__corpusBrowserModule';
-const NODE_ONLY_PROBE = '[typeof process, typeof Buffer, typeof require].join(",")';
-export const NODE_ONLY_ABSENT = 'undefined,undefined,undefined';
+// `in` reads no getter, so a test that counts reads of an accessor global sees only the module's own reads.
+const NODE_ONLY_PROBE = '["process", "Buffer", "require"].filter(name => name in globalThis).join(",")';
+export const NODE_ONLY_ABSENT = '';
 
 export interface BrowserBundle { code: string; inputs: string[] }
 export interface BrowserModule<T> { exports: T; nodeOnlyGlobals: string; inputs: string[] }
