@@ -59,7 +59,7 @@ const RISK_GLOBS = {
 /** Small repo-relative glob matcher; `*` never crosses a slash and `**` does. */
 function matchesGlob(file, glob) {
   const pattern = glob.split(/(\*\*|\*|\[Mm\])/g).map((part) => {
-    if (part === "**") return ".*";
+    if (part === "**") return "[\\s\\S]*";
     if (part === "*") return "[^/]*";
     if (part === "[Mm]") return "[Mm]";
     return part.replace(/[\\^$+?.()|{}[\]]/g, "\\$&");
