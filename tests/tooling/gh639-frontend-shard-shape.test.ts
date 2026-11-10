@@ -33,8 +33,9 @@ const UNION_RUN = 'node scripts/ci/shard-reports.mjs union .vitest-blobs 4 "${{ 
 const BASE = "1acb988e";
 const runFile = promisify(execFile);
 const show = async (file: string) => (await runFile("git", ["show", `${BASE}:${file}`], { cwd: ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 })).stdout;
-const scopeWithoutRiskOutputs = (text: string) => ["deps", "editor", "pipeline", "ci", "ipc", "platform"].reduce(
-  (remaining, name) => remaining.replace(`  ${name}: \${{ steps.scope.outputs.${name} }}\n`, ""), text);
+const RISK_OUTPUT_LINES = ["deps", "editor", "pipeline", "ci", "ipc", "platform"]
+  .map((name) => `  ${name}: \${{ steps.scope.outputs.${name} }}\n`).join("");
+const scopeWithoutRiskOutputs = (text: string) => text.replace(RISK_OUTPUT_LINES, "");
 const dirs: string[] = [];
 afterEach(() => {
   for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
@@ -288,6 +289,7 @@ describe("GH639 nothing else weakened", () => {
   const jobMutations: Array<[string, (text: string) => string, string]> = [
     ["scope non-output byte", (text: string) => text.replace("timeout-minutes: 5", "timeout-minutes: 6"), "scope"],
     ["scope seventh output", (text: string) => text.replace("      platform: ${{ steps.scope.outputs.platform }}", "      platform: ${{ steps.scope.outputs.platform }}\n      seventh: ${{ steps.scope.outputs.seventh }}"), "scope"],
+    ["scope output order", (text: string) => text.replace("      deps: ${{ steps.scope.outputs.deps }}\n      editor: ${{ steps.scope.outputs.editor }}", "      editor: ${{ steps.scope.outputs.editor }}\n      deps: ${{ steps.scope.outputs.deps }}"), "scope"],
     ...["prose-checks", "rust-test", "rust-audit"].map((id) =>
       [`${id} byte`, (text: string) => text.replace(`  ${id}:\n`, `  ${id}:\n    mutation: true\n`), id] as [string, (text: string) => string, string]),
   ];

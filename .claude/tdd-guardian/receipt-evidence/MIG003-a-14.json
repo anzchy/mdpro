@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T13:41:12.875Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/ci-change-scope.test.ts\",\"ADR95-WI-1 change-scope CLI\",\"preserves the legacy code gate for a non-ASCII prose filename\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/ci-change-scope.test.ts",
+        "line": 146
+      },
+      "message": "AssertionError: expected { status: +0, …(2) } to deeply equal { status: +0, …(2) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-14/20261110T134112875Z/tests",
+    "tree": "17e19a9599789e16bffb87b0d8c62e9ae62c1b8e"
+  },
+  "spec_blobs": {
+    "tests/tooling/ci-change-scope.test.ts": "972828a86f334319b48800a51f72f7eacd233650"
+  },
+  "settled_blobs": {
+    "tests/tooling/ci-change-scope.test.ts": "972828a86f334319b48800a51f72f7eacd233650"
+  }
+}

@@ -77,6 +77,13 @@ export function classifyRiskClasses(paths) {
 
 /** Changed paths between the merge base of `base` and `head`, or null when git fails. */
 function changedPaths(base, head) {
+  const r = spawnSync("git", ["diff", "--name-only", "--no-renames", `${base}...${head}`], { encoding: "utf8" });
+  if (r.status !== 0) return null;
+  return r.stdout.split("\n").filter((l) => l !== "");
+}
+
+/** Unquoted paths for risk classes; the legacy quoted read above preserves `code`. */
+function changedRiskPaths(base, head) {
   const r = spawnSync("git", ["diff", "--name-only", "-z", "--no-renames", `${base}...${head}`], { encoding: "utf8" });
   if (r.status !== 0) return null;
   return r.stdout.split("\0").filter((l) => l !== "");
@@ -87,8 +94,9 @@ function main(argv) {
   const paths = base && head ? changedPaths(base, head) : null;
   const scope = paths === null ? "code" : classifyPaths(paths);
   const line = `code=${scope === "code"}\n`;
-  const forced = !base || !head ? "no PR base" : paths === null ? "git failed" : paths.length === 0 ? "empty diff" : "";
-  const classes = forced ? Object.fromEntries(Object.keys(RISK_GLOBS).map((name) => [name, true])) : classifyRiskClasses(paths);
+  const riskPaths = paths === null ? null : changedRiskPaths(base, head);
+  const forced = !base || !head ? "no PR base" : riskPaths === null ? "git failed" : riskPaths.length === 0 ? "empty diff" : "";
+  const classes = forced ? Object.fromEntries(Object.keys(RISK_GLOBS).map((name) => [name, true])) : classifyRiskClasses(riskPaths);
   const names = Object.keys(RISK_GLOBS);
   const output = line + names.map((name) => `${name}=${classes[name]}\n`).join("");
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, output);

@@ -141,6 +141,15 @@ describe("ADR95-WI-1 change-scope CLI", () => {
     });
   }, spawnBudget(1_000));
 
+  it("preserves the legacy code gate for a non-ASCII prose filename", () => {
+    const { run } = repoFixture();
+    expect(run("docs/adr/文字.md")).toEqual({
+      status: 0,
+      output: "code=true\ndeps=false\neditor=false\npipeline=false\nci=false\nipc=false\nplatform=false\n",
+      summary: "",
+    });
+  }, spawnBudget(1_000));
+
   it.each([
     ["no PR base", "", "HEAD", "no PR base"],
     ["git failed", "bad-ref", "HEAD", "git failed"],
