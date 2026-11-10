@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - MCP event listeners now release subscriptions that finish registering after a window's hook cleans up, preventing duplicate AI edits after remounts (#750).
 
+### Security
+
+- Update the locked OpenSSL crate to 0.10.78 to address RUSTSEC-2026-0463 and restore a passing Rust dependency audit (#745).
+
 ## [0.3.6] - 2026-11-02
 
 ### Highlights
