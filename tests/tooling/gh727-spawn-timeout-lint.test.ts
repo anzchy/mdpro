@@ -111,6 +111,19 @@ describe("GH727 spawn-timeout lint", () => {
     expect(lint({ "tests/tooling/x.test.ts": `${head}${body}\n` }).map((line) => line.split(":")[1])).toEqual(["8", "9", "10", "11"]);
   });
 
+  it("takes a by-name callback only from a function, not from a spawning value beside it", () => {
+    const body = [
+      "const child = spawn(\"true\");",
+      "const holder = { run() { spawn(\"true\"); } };",
+      "function pure() { return 1; }",
+      "const arrowSpawn = () => { spawn(\"true\"); };",
+      "it(\"value\", pure, child);",
+      "it(\"object\", pure, holder);",
+      "it(\"function\", arrowSpawn);",
+    ].join("\n");
+    expect(lint({ "tests/tooling/x.test.ts": `${head}${body}\n` }).map((line) => line.split(":")[1])).toEqual(["9"]);
+  });
+
   it("follows a spawning object assigned in a hook to the tests that use it", () => {
     const body = [
       "import { beforeEach } from \"vitest\";",

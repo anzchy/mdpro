@@ -1,0 +1,33 @@
+{
+  "id": "GH727-S35",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-09T23:51:31.465Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/gh727-spawn-timeout-lint.test.ts\",\"GH727 spawn-timeout lint\",\"takes a by-name callback only from a function, not from a spawning value beside it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/gh727-spawn-timeout-lint.test.ts",
+        "line": 124
+      },
+      "message": "AssertionError: expected [ '7', '8', '9' ] to deeply equal [ '9' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/GH727-S35/20261109T235131465Z/tests",
+    "tree": "01de724dd75217c8538ea58663549eadd6374338"
+  },
+  "spec_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "e4387a6e2728bad232d3a54b40ced1a03d91f9b1"
+  },
+  "settled_blobs": {
+    "tests/tooling/gh727-spawn-timeout-lint.test.ts": "e4387a6e2728bad232d3a54b40ced1a03d91f9b1"
+  }
+}
