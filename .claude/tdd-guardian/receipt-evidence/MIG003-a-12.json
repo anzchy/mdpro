@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-12",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:38:39.968Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-faults.test.ts\",\"MIG003a fault fixtures\",\"rejects a collected identity missing from merged started identities\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/mig003a-faults.test.ts",
+        "line": 84
+      },
+      "message": "Error: merged started identities differ from shard reports: tests/tooling/fault.test.ts: fault > required identity: 1 shard, 0 merged"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-12/20261110T123839968Z/tests",
+    "tree": "50a36776d265a1bdeaa47a549e14bdc505869cae"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "1e32e78cdd9ba2d54562af10d998de9037c79f78"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "1e32e78cdd9ba2d54562af10d998de9037c79f78"
+  }
+}

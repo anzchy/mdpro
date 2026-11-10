@@ -1,0 +1,111 @@
+{
+  "id": "MIG003-a-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:25:51.296Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/plugins/milkdown/commonmarkPreset.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: true, …(4) } to deeply equal { deps: false, editor: true, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/plugins/milkdown/emptyParagraph/a.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: true, …(4) } to deeply equal { deps: false, editor: true, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/plugins/milkdown/gfmPreset.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: true, …(4) } to deeply equal { deps: false, editor: true, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/plugins/milkdown/linkDefinitions/a.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: true, …(4) } to deeply equal { deps: false, editor: true, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/plugins/milkdown/listSpread/a.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: true, …(4) } to deeply equal { deps: false, editor: true, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/plugins/milkdown/table/a.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: true, …(4) } to deeply equal { deps: false, editor: true, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/services/exportService.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/services/highlightSyntax.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/services/mathRender.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies pipeline row path src/services/sanitizerPolicy.ts\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 41
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-3/20261110T122551296Z/tests",
+    "tree": "425deb4090984ea3a4e8f0e753411ad98057d558"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "cc86236764ff2c1ab457be4cb8471a46bd5a2771"
+  }
+}

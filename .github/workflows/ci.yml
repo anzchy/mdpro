@@ -54,6 +54,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.scope.outputs.code }}
+      deps: ${{ steps.scope.outputs.deps }}
+      editor: ${{ steps.scope.outputs.editor }}
+      pipeline: ${{ steps.scope.outputs.pipeline }}
+      ci: ${{ steps.scope.outputs.ci }}
+      ipc: ${{ steps.scope.outputs.ipc }}
+      platform: ${{ steps.scope.outputs.platform }}
     steps:
       - uses: actions/checkout@v6
         with:

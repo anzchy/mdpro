@@ -33,6 +33,8 @@ const UNION_RUN = 'node scripts/ci/shard-reports.mjs union .vitest-blobs 4 "${{ 
 const BASE = "1acb988e";
 const runFile = promisify(execFile);
 const show = async (file: string) => (await runFile("git", ["show", `${BASE}:${file}`], { cwd: ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 })).stdout;
+const scopeWithoutRiskOutputs = (text: string) => ["deps", "editor", "pipeline", "ci", "ipc", "platform"].reduce(
+  (remaining, name) => remaining.replace(`  ${name}: \${{ steps.scope.outputs.${name} }}\n`, ""), text);
 const dirs: string[] = [];
 afterEach(() => {
   for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
@@ -278,8 +280,23 @@ describe("GH639 nothing else weakened", () => {
 
   it("keeps every other job byte-identical to the base", async () => {
     const base = await show(".github/workflows/ci.yml");
-    for (const id of ["scope", "prose-checks", "rust-test", "rust-audit"]) expect(job(TEXT, id), id).toBe(job(base, id));
+    expect(scopeWithoutRiskOutputs(job(TEXT, "scope") ?? "")).toBe(job(base, "scope"));
+    for (const id of ["prose-checks", "rust-test", "rust-audit"]) expect(job(TEXT, id), id).toBe(job(base, id));
     expect(jobIds(TEXT)).toEqual(["scope", "prose-checks", "frontend", "frontend-merge", "rust-test", "rust-audit", "ci-gate"]);
+  }, 30_000);
+
+  const jobMutations: Array<[string, (text: string) => string, string]> = [
+    ["scope non-output byte", (text: string) => text.replace("timeout-minutes: 5", "timeout-minutes: 6"), "scope"],
+    ["scope seventh output", (text: string) => text.replace("      platform: ${{ steps.scope.outputs.platform }}", "      platform: ${{ steps.scope.outputs.platform }}\n      seventh: ${{ steps.scope.outputs.seventh }}"), "scope"],
+    ...["prose-checks", "rust-test", "rust-audit"].map((id) =>
+      [`${id} byte`, (text: string) => text.replace(`  ${id}:\n`, `  ${id}:\n    mutation: true\n`), id] as [string, (text: string) => string, string]),
+  ];
+  it.each(jobMutations)("rejects mutation of %s", async (_label, mutate, id) => {
+    const base = await show(".github/workflows/ci.yml");
+    const mutated = mutate(TEXT);
+    expect(mutated).not.toBe(TEXT);
+    const candidate = id === "scope" ? scopeWithoutRiskOutputs(job(mutated, id) ?? "") : job(mutated, id);
+    expect(candidate).not.toBe(job(base, id));
   }, 30_000);
 
   it("keeps each shard's setup steps as they were, unconditioned, once each, and none of them in the merge job", async () => {

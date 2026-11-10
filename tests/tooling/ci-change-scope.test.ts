@@ -15,6 +15,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { classifyPaths, PROSE_PREFIXES, PROSE_ROOT_FILES } from "../../scripts/ci/change-scope.mjs";
 import { collectionCases } from "../support/collectionCases";
+import { spawnBudget } from "../support/spawnBudget";
 
 const SCRIPT = path.resolve(__dirname, "..", "..", "scripts", "ci", "change-scope.mjs");
 
@@ -79,39 +80,104 @@ function repoFixture() {
   git("add", "seed.txt");
   git("commit", "-q", "-m", "base");
   const base = git("rev-parse", "HEAD");
-  const run = (file: string, baseRef = base) => {
+  const run = (file: string, baseRef = base, summary = false) => {
     fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
     fs.writeFileSync(path.join(dir, file), `${file}\n`);
     git("add", file);
     git("commit", "-q", "-m", file);
     const out = path.join(dir, "gh-output");
     fs.writeFileSync(out, "");
+    const summaryPath = path.join(dir, "gh-summary");
+    fs.writeFileSync(summaryPath, "");
+    const env: NodeJS.ProcessEnv = { ...process.env, GITHUB_OUTPUT: out };
+    if (summary) env.GITHUB_STEP_SUMMARY = summaryPath;
+    else delete env.GITHUB_STEP_SUMMARY;
     const r = spawnSync("node", [SCRIPT, baseRef, "HEAD"], {
       cwd: dir,
       encoding: "utf8",
-      env: { ...process.env, GITHUB_OUTPUT: out },
+      env,
+      timeout: spawnBudget(1_000),
     });
-    return { status: r.status, output: fs.readFileSync(out, "utf8") };
+    return { status: r.status, output: fs.readFileSync(out, "utf8"), summary: fs.readFileSync(summaryPath, "utf8") };
   };
-  return { run };
+  return { run, dir, base };
 }
 
 describe("ADR95-WI-1 change-scope CLI", () => {
   it("writes code=false for a prose-only range", () => {
     const { run } = repoFixture();
-    expect(run("docs/adr/0001-x.md")).toEqual({ status: 0, output: "code=false\n" });
+    expect(run("docs/adr/0001-x.md")).toEqual({ status: 0, output: "code=false\ndeps=false\neditor=false\npipeline=false\nci=false\nipc=false\nplatform=false\n", summary: "" });
   });
 
   it("writes code=true when the range touches code", () => {
     const { run } = repoFixture();
-    expect(run("src/a.ts")).toEqual({ status: 0, output: "code=true\n" });
+    expect(run("src/a.ts")).toEqual({ status: 0, output: "code=true\ndeps=false\neditor=false\npipeline=false\nci=false\nipc=false\nplatform=false\n", summary: "" });
   });
 
   it("writes code=true and exits 0 when the base cannot be resolved", () => {
     const { run } = repoFixture();
     expect(run("docs/adr/0001-x.md", "0000000000000000000000000000000000000000")).toEqual({
       status: 0,
-      output: "code=true\n",
+      output: "code=true\ndeps=true\neditor=true\npipeline=true\nci=true\nipc=true\nplatform=true\n",
+      summary: "",
     });
   });
+
+  it("writes a class-activating range to output and summary", () => {
+    const { run } = repoFixture();
+    expect(run("src/services/editor/port.ts", undefined, true)).toEqual({
+      status: 0,
+      output: "code=true\ndeps=false\neditor=true\npipeline=false\nci=false\nipc=true\nplatform=false\n",
+      summary: "Risk classes: deps=false editor=true pipeline=false ci=false ipc=true platform=false\n",
+    });
+  }, spawnBudget(1_000));
+
+  it.each([
+    ["no PR base", "", "HEAD", "no PR base"],
+    ["git failed", "bad-ref", "HEAD", "git failed"],
+    ["empty diff", "HEAD", "HEAD", "empty diff"],
+  ])("forces every class for %s and appends one summary line", (_name, baseRef, headRef, reason) => {
+    const { dir } = repoFixture();
+    const output = path.join(dir, "output-extra");
+    const summary = path.join(dir, "summary-extra");
+    const r = spawnSync("node", [SCRIPT, baseRef, headRef], {
+      cwd: dir, encoding: "utf8", timeout: spawnBudget(1_000),
+      env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary },
+    });
+    expect([r.status, fs.readFileSync(output, "utf8"), fs.readFileSync(summary, "utf8")]).toEqual([
+      0, "code=true\ndeps=true\neditor=true\npipeline=true\nci=true\nipc=true\nplatform=true\n",
+      `Risk classes: deps=true editor=true pipeline=true ci=true ipc=true platform=true (all true: ${reason})\n`,
+    ]);
+  }, spawnBudget(1_000));
+
+  it("writes seven ordered lines to stdout with GITHUB_OUTPUT unset", () => {
+    const { dir, base } = repoFixture();
+    const env = { ...process.env };
+    delete env.GITHUB_OUTPUT;
+    delete env.GITHUB_STEP_SUMMARY;
+    const r = spawnSync("node", [SCRIPT, base, "HEAD"], {
+      cwd: dir, encoding: "utf8", timeout: spawnBudget(1_000),
+      env,
+    });
+    expect([r.status, r.stdout]).toEqual([0, "code=true\ndeps=true\neditor=true\npipeline=true\nci=true\nipc=true\nplatform=true\n"]);
+  }, spawnBudget(1_000));
+
+  it.each([
+    ["code", 'const line = `code=${scope === "code"}\\n`;', 'const line = "code=bad\\n";'],
+    ["class value", "const names = Object.keys(RISK_GLOBS);", "classes.deps = false; const names = Object.keys(RISK_GLOBS);"],
+    ["class order", "const names = Object.keys(RISK_GLOBS);", "const names = Object.keys(RISK_GLOBS).reverse();"],
+  ])("rejects a changed %s in the existing CLI pin", (_name, before, after) => {
+    const { dir } = repoFixture();
+    const source = fs.readFileSync(SCRIPT, "utf8");
+    expect(source).toContain(before);
+    const mutant = path.join(fs.realpathSync(dir), "change-scope-mutant.mjs");
+    fs.writeFileSync(mutant, source.replace(before, after));
+    const output = path.join(dir, "mutant-output");
+    const r = spawnSync("node", [mutant, "bad-ref", "HEAD"], {
+      cwd: dir, encoding: "utf8", timeout: spawnBudget(1_000),
+      env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: "" },
+    });
+    expect(r.status).toBe(0);
+    expect(fs.readFileSync(output, "utf8")).not.toBe("code=true\ndeps=true\neditor=true\npipeline=true\nci=true\nipc=true\nplatform=true\n");
+  }, spawnBudget(1_000));
 });

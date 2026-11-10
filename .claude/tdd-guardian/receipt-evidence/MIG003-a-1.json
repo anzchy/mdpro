@@ -1,0 +1,87 @@
+{
+  "id": "MIG003-a-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:24:16.554Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path package.json\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path patches/a.patch\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path patches/nested/a.patch\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path pnpm-lock.yaml\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path scripts/deps/check.mjs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path src-tauri/Cargo.lock\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies dependency row path src-tauri/Cargo.toml\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 17
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: true, editor: false, …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-1/20261110T122416554Z/tests",
+    "tree": "66592da35ca199f02b8f61a5c3bf485daf4066c3"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "3072f7492ade8fa6971a599b8a7cea30b4b392f4"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "3072f7492ade8fa6971a599b8a7cea30b4b392f4"
+  }
+}

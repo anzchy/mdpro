@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:36:35.285Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-faults.test.ts\",\"MIG003a fault fixtures\",\"accepts the git failure fail-safe but rejects a crashed scope job at the real gate\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-faults.test.ts",
+        "line": 64
+      },
+      "message": "AssertionError: expected 1 to be +0 // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-10/20261110T123635285Z/tests",
+    "tree": "f4da71a69d851697fbc74819660950557d33b5ce"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "750c762f8250c23d6b7ac23d47dbf962fe2087c1"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "750c762f8250c23d6b7ac23d47dbf962fe2087c1"
+  }
+}

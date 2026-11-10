@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-9",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:35:46.172Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-faults.test.ts\",\"MIG003a fault fixtures\",\"accepts the shard report and rejects missing or empty report mutations\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/mig003a-faults.test.ts",
+        "line": 43
+      },
+      "message": "Error: frontend-blob-ubuntu-latest-shard-1-attempt-1: .ci-vitest-results.json missing or empty"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-9/20261110T123546172Z/tests",
+    "tree": "3a7e4f463a148eae6062dbfe589f68d07f263406"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "6a6bdc4df139720691f3c7d81838ca8b0a77c905"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "6a6bdc4df139720691f3c7d81838ca8b0a77c905"
+  }
+}

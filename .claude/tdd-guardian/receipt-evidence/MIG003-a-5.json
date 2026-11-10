@@ -1,0 +1,51 @@
+{
+  "id": "MIG003-a-5",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:28:14.870Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies IPC and platform row path src-tauri/capabilities/default.json\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies IPC and platform row path src-tauri/src/commands/save.rs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    },
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a risk classes\",\"classifies IPC and platform row path src-tauri/src/lib.rs\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 60
+      },
+      "message": "AssertionError: expected { deps: false, editor: false, …(4) } to deeply equal { deps: false, editor: false, …(4) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-5/20261110T122814870Z/tests",
+    "tree": "a132334d3558c1cae2b830f449bf3d87d78b0e3f"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "e263d285a722e7add33958bf36c56041b752fd27"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "e263d285a722e7add33958bf36c56041b752fd27"
+  }
+}

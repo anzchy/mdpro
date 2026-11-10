@@ -2,3 +2,6 @@
 export declare const PROSE_PREFIXES: readonly string[];
 export declare const PROSE_ROOT_FILES: readonly string[];
 export declare function classifyPaths(paths: readonly string[]): "prose" | "code";
+export declare function classifyRiskClasses(paths: readonly string[]): {
+  deps: boolean; editor: boolean; pipeline: boolean; ci: boolean; ipc: boolean; platform: boolean;
+};

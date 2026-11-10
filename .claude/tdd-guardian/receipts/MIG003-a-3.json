@@ -1,0 +1,66 @@
+{
+  "id": "MIG003-a-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:25:51.296Z",
+  "head_sha": "4dac35fb0b8de73ce4edcdb03da05ab796391667",
+  "dirty_source": [
+    "scripts/ci/change-scope.d.mts",
+    "scripts/ci/change-scope.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "10 of 24 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/mig003a-risk-classes.test.ts": {
+      "state": "ok",
+      "sha": "bf2ba3aa468ab9cbd8640d2b931abdcdb3d89dff837d454333061155409cb2f8",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "55598108856e9af9",
+        "9c94784f8cfa14e6",
+        "14e3a259e7c8e985",
+        "25cbeba3d53496f1",
+        "dabb3d8d61e5a7b9",
+        "f0e3abf680ef2c5c",
+        "9fc68c87f070ae32",
+        "5a2442c0822c09e2",
+        "c8306d2d95cdfeb7",
+        "d58a497b10b0f697",
+        "5771a87a8c16728d",
+        "2e6967f27e25d60b",
+        "0fecf03e89ddaad8",
+        "8f88b0c484dfef87",
+        "29576b54e255e3c9",
+        "9fc68c87f070ae32",
+        "75c25db85b3db58e",
+        "3629eb0f647ce14a",
+        "b595666110251854",
+        "3586af7fbcc2e7c9",
+        "792b7e7fa12751ad",
+        "1188d6fdab7e36e0",
+        "a9d34e3bd4b388e1",
+        "8f88b0c484dfef87",
+        "29576b54e255e3c9",
+        "9fc68c87f070ae32",
+        "cf47d9705af0306a",
+        "ff4f08866bd17245",
+        "d5f645bed97e0cee",
+        "114cb7367d8f3b8a",
+        "57e46b2c033214ff",
+        "d458acd8c07947ff",
+        "63854f84c67f162f",
+        "4c5639b783ee96a4",
+        "9dae6a83e21b44a4",
+        "8f88b0c484dfef87",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": null,
+  "verdict": null,
+  "findings": []
+}

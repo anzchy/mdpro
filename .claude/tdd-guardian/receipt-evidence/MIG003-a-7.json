@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-7",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:30:17.812Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-risk-classes.test.ts\",\"MIG003a workflow outputs\",\"publishes exactly six advisory outputs from scope alone\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/tooling/mig003a-risk-classes.test.ts",
+        "line": 72
+      },
+      "message": "AssertionError: expected [ [ 'deps', null ], …(5) ] to deeply equal [ [ 'deps', …(1) ], …(5) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-7/20261110T123017812Z/tests",
+    "tree": "7ecc8ad6dca574467ac39385d257b0dd3132d6d6"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "855bf8149d65b548a8e02c9bcdf08696fd483b20"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-risk-classes.test.ts": "855bf8149d65b548a8e02c9bcdf08696fd483b20"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "MIG003-a-11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:37:59.552Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/tooling/mig003a-faults.test.ts\",\"MIG003a fault fixtures\",\"rejects required pending and todo identities through the real comparator\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/tooling/mig003a-faults.test.ts",
+        "line": 75
+      },
+      "message": "Error: Incomplete or failed test: [\"tests/tooling/fault.test.ts\",\"fault\",\"required identity\"] (pending)\nInventory test incomplete: [\"tests/tooling/fault.test.ts\",\"fault\",\"required identity\"] (pending)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG003-a-11/20261110T123759552Z/tests",
+    "tree": "ed57eb7349c4a5b6a85fc9042445ef78b38d4e49"
+  },
+  "spec_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "b5d335c2d06ed782422045a5ab92693fc797aa35"
+  },
+  "settled_blobs": {
+    "tests/tooling/mig003a-faults.test.ts": "b5d335c2d06ed782422045a5ab92693fc797aa35"
+  }
+}
