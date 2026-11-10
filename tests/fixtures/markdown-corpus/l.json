@@ -1,0 +1,1084 @@
+[
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-emoji-surrogates",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-emoji-surrogates/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/l/l-emoji-surrogates/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "🚀"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Astral code points (UTF-16 surrogate pairs) in a heading and a paragraph serialize unchanged.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-emoji-zwj",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-emoji-zwj/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-emoji-zwj/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "‍"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "ZWJ sequences, including one with VS16 and one with a skin-tone modifier, keep every joiner.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-emoji-skin-tones",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-emoji-skin-tones/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-emoji-skin-tones/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "🏽"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "All five Fitzpatrick modifiers stay attached to their base emoji.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-emoji-flags-keycaps",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-emoji-flags-keycaps/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-emoji-flags-keycaps/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "️"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Regional-indicator flags, keycap sequences and VS15/VS16 presentation selectors serialize unchanged.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-emoji-edges",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-emoji-edges/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-emoji-edges/input.md",
+    "negative": {
+      "kind": "alterByte",
+      "offset": 0
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An emoji as the first and last grapheme of the document is neither split nor trimmed.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-cjk-punctuation",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-cjk-punctuation/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-cjk-punctuation/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "……"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Full-width CJK punctuation in a heading, a paragraph and a list is written as typed, with no escapes.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-decoded-line-endings",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-decoded-line-endings/expected.md"
+    },
+    "externalEvidence": [
+      "src-tauri/src/commands/file.rs test_utf8_crlf_round_trip_preserves_crlf_on_disk",
+      "src-tauri/src/commands/file.rs test_utf16_crlf_round_trip_preserves_crlf_and_encoding",
+      "src-tauri/src/commands/file.rs test_detect_line_ending",
+      "src-tauri/src/commands/file.rs test_restore_line_endings_is_idempotent",
+      "src-tauri/src/services/encoding.rs test_utf8_round_trip_preserves_crlf",
+      "src-tauri/src/services/encoding.rs test_utf16_round_trip_preserves_crlf",
+      "tests/d188-empty-paragraph-stability.test.tsx F3-crlf"
+    ],
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/l/l-decoded-line-endings/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n第二行"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "The editor sees only the LF text Rust decodes; CRLF and UTF-16 restoration are proved by the cited Rust tests.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-fullwidth-spaces",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-fullwidth-spaces/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-fullwidth-spaces/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "　"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "U+3000 mid-line, doubled, leading and trailing is content, never trimmed or turned into U+0020.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-combining-marks",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-combining-marks/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-combining-marks/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "́"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Decomposed and precomposed forms stay distinct: the serializer applies no NFC or NFD normalization.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-inner-feff",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-inner-feff/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-inner-feff/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "﻿"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A U+FEFF inside a paragraph survives; only a document-leading one is dropped (see l-leading-bom).",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-leading-bom",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "desired": "no-edit/l/l-leading-bom/desired.md",
+    "expected": {
+      "serialized": "no-edit/l/l-leading-bom/expected.md"
+    },
+    "externalEvidence": [
+      "src-tauri/src/services/encoding.rs detect_encoding_with_confidence: UTF-8 BOM detected with High confidence (~:155)",
+      "src-tauri/src/services/encoding.rs decode_bytes: UTF-8 decode keeps the BOM as U+FEFF (~:19-21)"
+    ],
+    "fidelityTag": "known-limitation",
+    "guardedPaths": [
+      {
+        "path": "src/services/documentSave.ts",
+        "receipt": "MIG001-l-4"
+      }
+    ],
+    "input": "no-edit/l/l-leading-bom/input.md",
+    "limitRef": "#723",
+    "negative": {
+      "kind": "matchDesiredOnBaseline"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An unedited save keeps the BOM, but the serialized output (what any edit writes) loses the leading U+FEFF.",
+    "reason": "Rust keeps the UTF-8 BOM as a leading U+FEFF and the Markdown parser drops it, so any serialize writes the file without its BOM.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-table-wide-chars",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-table-wide-chars/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      },
+      {
+        "path": "src/plugins/milkdown/gfmPreset.ts",
+        "receipt": "MIG001-l-3"
+      }
+    ],
+    "input": "no-edit/l/l-table-wide-chars/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "👍🏿"
+    },
+    "normalizations": [
+      "N7"
+    ],
+    "platform": "any",
+    "rationale": "N7 rewrites the delimiter row and pads cells, measuring CJK and emoji widths in UTF-16 code units.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-code-unicode",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-code-unicode/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/l/l-code-unicode/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "　"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Inside a code span and a fenced block, emoji sequences and U+3000 are literal bytes.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "👨‍👩‍👧"
+      },
+      "kind": "type",
+      "text": "!"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-zwj-type-after",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-zwj-type-after/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "edited/l/l-zwj-type-after/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "‍"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A caret anchored after a whole ZWJ cluster inserts after the cluster and leaves every joiner in place.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "kind": "delete",
+      "range": {
+        "text": "👨‍👩‍👧"
+      }
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-zwj-delete",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-zwj-delete/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "edited/l/l-zwj-delete/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "👩‍💻"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Deleting a selected ZWJ cluster removes all its code points and leaves the other ZWJ sequence intact.",
+    "status": "active"
+  },
+  {
+    "action": [
+      {
+        "kind": "delete",
+        "range": {
+          "text": "👨‍👩‍👧"
+        }
+      },
+      {
+        "kind": "undo"
+      }
+    ],
+    "actionGroup": "interaction",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-zwj-delete-undo",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "observation": "interaction/l/l-zwj-delete-undo/expected.json",
+      "serialized": "interaction/l/l-zwj-delete-undo/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "interaction/l/l-zwj-delete-undo/input.md",
+    "negative": {
+      "kind": "wrongObservation"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Undo of a ZWJ-cluster delete restores the original bytes; the selection observation pins what undo selects.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "kind": "delete",
+      "range": {
+        "text": "👍🏽"
+      }
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-skin-tone-delete",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-skin-tone-delete/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [],
+    "input": "edited/l/l-skin-tone-delete/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "up"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Deleting a skin-toned emoji removes base and modifier together, leaving its two spaces.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "🇨🇳"
+      },
+      "kind": "type",
+      "text": " "
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-flag-type-between",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-flag-type-between/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [],
+    "input": "edited/l/l-flag-type-between/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "🇯🇵"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A caret between two regional-indicator pairs sits on a grapheme boundary; the space separates two whole flags.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "é"
+      },
+      "kind": "type",
+      "text": "!"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-combining-type",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-combining-type/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "edited/l/l-combining-type/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "́"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An unnormalized anchor after a decomposed e+acute inserts after the mark and keeps the decomposed form.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "，"
+      },
+      "kind": "type",
+      "text": "亲爱的"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-cjk-type",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-cjk-type/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "edited/l/l-cjk-type/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "亲爱的"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "CJK text typed after full-width punctuation is inserted exactly there, with no added space or escape.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "第一句。"
+      },
+      "kind": "type",
+      "text": "\n"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-cjk-enter",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-cjk-enter/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [],
+    "input": "edited/l/l-cjk-enter/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Enter after a CJK full stop splits the paragraph with one blank line (ADR-0091 decision 1).",
+    "status": "active"
+  },
+  {
+    "action": {
+      "kind": "toggleMark",
+      "mark": "strong",
+      "range": {
+        "text": "世界"
+      }
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-cjk-strong",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-cjk-strong/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/typoraCommandFactories.ts",
+        "receipt": "MIG001-l-2"
+      }
+    ],
+    "input": "edited/l/l-cjk-strong/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "**"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Strong on CJK letters between CJK letters and punctuation writes plain delimiters, no entities.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "kind": "toggleMark",
+      "mark": "strong",
+      "range": {
+        "text": "，世界。"
+      }
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-cjk-strong-punct",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "desired": "edited/l/l-cjk-strong-punct/desired.md",
+    "expected": {
+      "serialized": "edited/l/l-cjk-strong-punct/expected.md"
+    },
+    "fidelityTag": "known-limitation",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      },
+      {
+        "path": "src/plugins/milkdown/typoraCommandFactories.ts",
+        "receipt": "MIG001-l-2"
+      }
+    ],
+    "input": "edited/l/l-cjk-strong-punct/input.md",
+    "limitRef": "#722",
+    "negative": {
+      "kind": "matchDesiredOnBaseline"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Bold starting at a full-width comma rewrites the preceding CJK letter as &#x597D;, text the user never typed.",
+    "reason": "Strong opening on CJK punctuation after a CJK letter is not left-flanking, so the serializer writes that letter as a numeric entity; no entity-free Markdown keeps strong emphasis at this boundary, so desired uses inline HTML <strong>, which round-trips byte for byte today (ruling 2).",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "line"
+      },
+      "kind": "type",
+      "text": "!"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-leading-bom-edit",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "desired": "edited/l/l-leading-bom-edit/desired.md",
+    "expected": {
+      "serialized": "edited/l/l-leading-bom-edit/expected.md"
+    },
+    "externalEvidence": [
+      "src-tauri/src/services/encoding.rs detect_encoding_with_confidence: UTF-8 BOM detected with High confidence (~:155)",
+      "src-tauri/src/services/encoding.rs decode_bytes: UTF-8 decode keeps the BOM as U+FEFF (~:19-21)"
+    ],
+    "fidelityTag": "known-limitation",
+    "guardedPaths": [
+      {
+        "path": "src/services/documentSave.ts",
+        "receipt": "MIG001-l-4"
+      }
+    ],
+    "input": "edited/l/l-leading-bom-edit/input.md",
+    "limitRef": "#723",
+    "negative": {
+      "kind": "matchDesiredOnBaseline"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Editing a UTF-8-BOM file writes the edit but silently drops the BOM.",
+    "reason": "The leading U+FEFF Rust keeps is dropped by the Markdown parser, so the edited save writes the file without its BOM.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "kind": "toggleMark",
+      "mark": "strong",
+      "range": {
+        "text": "重点，"
+      }
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-cjk-strong-punct-end",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "desired": "edited/l/l-cjk-strong-punct-end/desired.md",
+    "expected": {
+      "serialized": "edited/l/l-cjk-strong-punct-end/expected.md"
+    },
+    "fidelityTag": "known-limitation",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      },
+      {
+        "path": "src/plugins/milkdown/typoraCommandFactories.ts",
+        "receipt": "MIG001-l-2"
+      }
+    ],
+    "input": "edited/l/l-cjk-strong-punct-end/input.md",
+    "limitRef": "#722",
+    "negative": {
+      "kind": "matchDesiredOnBaseline"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Bold ending at a full-width comma rewrites the following CJK letter as &#x7136;, the closing-side half of #722.",
+    "reason": "Strong closing on CJK punctuation before a CJK letter is not right-flanking, so the serializer writes the following letter as a numeric entity; no entity-free Markdown keeps strong emphasis at this boundary, so desired uses inline HTML <strong>, which round-trips byte for byte today (ruling 2).",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-block-start-feff",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-block-start-feff/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-block-start-feff/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "﻿Second"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A U+FEFF at the start of a later paragraph or heading text survives; only the stream-leading one is dropped (#723).",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-fullwidth-doc-edges",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-fullwidth-doc-edges/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-fullwidth-doc-edges/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "　　第一段"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A U+3000 indent at document start and a paragraph of only U+3000 are content, not trimmed whitespace or an empty paragraph.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "段首"
+      },
+      "kind": "type",
+      "text": "!"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-fullwidth-type",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "edited/l/l-fullwidth-type/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "edited/l/l-fullwidth-type/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "　　"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An edit in a paragraph indented with U+3000 keeps both full-width spaces; nothing rewrites them to U+0020.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-heading-emoji-only",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "derivedFrom": "tests/cjk-slug.test.ts emoji-only and chapter headings",
+    "expected": {
+      "serialized": "no-edit/l/l-heading-emoji-only/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/l/l-heading-emoji-only/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "🎊"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An emoji-only heading and a CJK heading with ASCII punctuation, taken from the slug tests, serialize unchanged.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "6b1ea8008847751174cf93f8f48f9caa8bc240de",
+    "caseId": "l-unicode-containers",
+    "category": "l",
+    "consumers": [
+      "MIG-002a",
+      "MIG-002d",
+      "MIG-002e",
+      "MIG-002h",
+      "MIG-009a"
+    ],
+    "expected": {
+      "serialized": "no-edit/l/l-unicode-containers/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-l-1"
+      }
+    ],
+    "input": "no-edit/l/l-unicode-containers/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "中文"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "ZWJ and skin-tone emoji in a blockquote and an ordered item, and a CJK link destination, are written unchanged (no percent-encoding).",
+    "status": "active"
+  }
+]

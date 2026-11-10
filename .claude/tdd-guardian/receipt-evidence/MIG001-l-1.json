@@ -1,0 +1,204 @@
+{
+  "id": "MIG001-l-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T07:38:01.540Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-block-start-feff\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-block-start-feff: l-block-start-feff: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-punctuation\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-punctuation: l-cjk-punctuation: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-strong-punct\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-strong-punct: l-cjk-strong-punct: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-strong-punct-end\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-strong-punct-end: l-cjk-strong-punct-end: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-type\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-type: l-cjk-type: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-combining-marks\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-combining-marks: l-combining-marks: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-combining-type\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-combining-type: l-combining-type: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-emoji-edges\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-emoji-edges: l-emoji-edges: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-emoji-flags-keycaps\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-emoji-flags-keycaps: l-emoji-flags-keycaps: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-emoji-skin-tones\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-emoji-skin-tones: l-emoji-skin-tones: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-emoji-zwj\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-emoji-zwj: l-emoji-zwj: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-fullwidth-doc-edges\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-fullwidth-doc-edges: l-fullwidth-doc-edges: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-fullwidth-spaces\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-fullwidth-spaces: l-fullwidth-spaces: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-fullwidth-type\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-fullwidth-type: l-fullwidth-type: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-inner-feff\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-inner-feff: l-inner-feff: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-table-wide-chars\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-table-wide-chars: l-table-wide-chars: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-unicode-containers\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-unicode-containers: l-unicode-containers: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-zwj-delete\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-zwj-delete: l-zwj-delete: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-zwj-delete-undo\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-zwj-delete-undo: l-zwj-delete-undo: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-zwj-type-after\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-zwj-type-after: l-zwj-type-after: baseline serialized bytes differ from expectation"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG001-l-1/20261110T073801540Z/tests",
+    "tree": "31b96ad9b5d7a29ba6ebbb6adce4517e938c6bc7"
+  },
+  "spec_blobs": {
+    "tests/corpus-l-unicode-encodings.any.test.tsx": "593831902a5b9105a60eef52540ab8b59c71301e"
+  },
+  "settled_blobs": {
+    "tests/corpus-l-unicode-encodings.any.test.tsx": "593831902a5b9105a60eef52540ab8b59c71301e"
+  }
+}

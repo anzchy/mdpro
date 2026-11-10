@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Test tooling: an engine-neutral Markdown golden corpus, a production Milkdown driver and read-only checking, scratch generation and determinism commands, with empty-paragraph baselines for migration comparisons (#706).
+- Test tooling: golden-corpus category l, with 30 emoji, CJK, full-width-space, combining-mark and BOM baselines at the editor, including known limitations for a dropped leading BOM (#723) and entities at CJK-punctuation bold (#722) (#717).
 
 ### Changed
 

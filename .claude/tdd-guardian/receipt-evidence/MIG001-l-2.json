@@ -1,0 +1,51 @@
+{
+  "id": "MIG001-l-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T07:39:28.410Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-strong\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-strong: l-cjk-strong: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-strong-punct\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-strong-punct: l-cjk-strong-punct: baseline serialized bytes differ from expectation"
+    },
+    {
+      "id": "[\"tests/corpus-l-unicode-encodings.any.test.tsx\",\"l-cjk-strong-punct-end\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 99
+      },
+      "message": "Error: l-cjk-strong-punct-end: l-cjk-strong-punct-end: baseline serialized bytes differ from expectation"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG001-l-2/20261110T073928410Z/tests",
+    "tree": "31b96ad9b5d7a29ba6ebbb6adce4517e938c6bc7"
+  },
+  "spec_blobs": {
+    "tests/corpus-l-unicode-encodings.any.test.tsx": "593831902a5b9105a60eef52540ab8b59c71301e"
+  },
+  "settled_blobs": {
+    "tests/corpus-l-unicode-encodings.any.test.tsx": "593831902a5b9105a60eef52540ab8b59c71301e"
+  }
+}
