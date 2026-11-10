@@ -90,6 +90,7 @@ function changedRiskPaths(base, head) {
 }
 
 function main(argv) {
+  if (process.env.GITHUB_JOB === "scope") throw Error("MIG003a classifier fault");
   const [base, head] = argv;
   const paths = base && head ? changedPaths(base, head) : null;
   const scope = paths === null ? "code" : classifyPaths(paths);
