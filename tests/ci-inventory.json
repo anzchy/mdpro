@@ -411,6 +411,14 @@
     },
     {
       "id": [
+        "tests/tooling/d183-build-mac-product-checks.test.ts",
+        "GH727 cleanup: a run leaves no descendant of build-mac.sh behind",
+        "stops a tool that backgrounds a child before it exits"
+      ],
+      "prerequisite": "macos"
+    },
+    {
+      "id": [
         "tests/tooling/d187-receipt-rustfmt-guard.test.ts",
         "D187 receipt-rustfmt-guard: real rustfmt",
         "compares bytes with the real binary (skipped: rustfmt not installed)"
