@@ -1,0 +1,61 @@
+## Parent
+
+#733 (MIG-002 spec r3); row #702.
+
+## What to build
+
+**MIG-002e: row e (external wholesale replace).**
+
+Clauses (spec #733):
+- e-C1 (1): focus, selection and both scroll anchors are captured on the old view before the reload.
+- e-C2 (1): replace, invalidation and the generation bump happen as one synchronous step, observed by the transition recorder, and the restore happens under the new generation.
+- e-C3 (1): there is no late flush from the old writer.
+- e-C4 (2):
+  - **Frontend:** given one copy per held spelling (D185; a fake-behaviour row tied by a shared Rust-produced fan-out fixture), each holder's document, canonical or alias, records its own pending change, and none records one for a spelling it does not hold. The D173 alias payload fixture is not used for this row.
+  - **Rust:** cite `services/file_watcher_fanout_tests.rs::d185_wi2_a_two_spellings_two_windows_both_get_an_external_modify`, `services/file_watcher_fanout_tests.rs::d185_wi2_b_only_alias_held_alias_and_event_path_get_it`, `services/file_watcher_fanout_tests.rs::d185_wi2_d_two_tabs_in_one_window_both_get_it`, `services/file_watcher_baseline_spelling_tests.rs::d106_a_removing_one_spelling_keeps_the_others_baseline` and `services/file_watcher_notice_spelling_tests.rs::d173_wi4_b97_component_equal_spellings_each_get_a_notice`. Add the fan-out fixture with a new test in the fan-out module that compares it with `fan_out`'s output (`MIG002-e-C4-R<n>`).
+- e-C5 (pin): an external replace while another window is dirty.
+- e-C7 (pin, split from r2's e-C4): opening one file under two raw spellings; the guard compares exact strings. Pin today's outcome of the second opening; if it is unsafe (for example two writable tabs on one file), it moves to path 4.
+- e-C6 (2):
+  - **Frontend:** rapid changes give at most one prompt within the prompt debounce, and no conflicting reloads.
+  - **Rust:** the watcher's debounce (ADR-0111); cite `services/file_watcher_route_debounce_kind_tests.rs::dk_c_two_modified_inside_the_interval_still_debounce`, `services/file_watcher_route_debounce_kind_tests.rs::dk_a_replace_then_remove_reports_the_deletion`, `services/file_watcher_route_state_change_tests.rs::sc_a_modified_rm_recreate_inside_the_interval_ends_modified` and `services/file_watcher_route_state_change_tests.rs::sc_c_the_same_state_repeated_is_still_debounced`.
+- e-CS (pin): the serializer throws during an external replace.
+
+State owners: row e's. StrictMode clauses: e-C2, e-C3. Reused suites to cite: `wholesale-path-partition`, `toc-wholesale-reset`, `d214-external-change-baseline`, `d173-alias-delivery`, `d185-alias-delivery-contract`, `d173-watch-holds`, `d173-b87-two-tabs-rename`, `d273-recovery-focus`. Likely MIG-005 host sites at 7bb42efb: `milkdownFocusCarry`, `scrollAnchor/capture`, `focusActiveEditor`; confirm by grep.
+
+Corpus categories: a, l, n. Each journey cites its case-ids, listed in its test matrix.
+
+## Acceptance criteria
+
+- [ ] The card `docs/test/cards/MIG002-e.md` is written in the ADR-0144 format (model: `D326-identity-check.md`), with steps tagged `cli`, `computer-use` or `human`, each with its proof, a failure condition, and a log line plus effect. It is reviewed against this row's clauses in the round-one audit request (ADR-0144 decision 2). It covers: an external edit reloads and keeps the cursor and scroll position in WYSIWYG and in Source; the same file opened through a symlink; an external change while a second window holds the document dirty.
+
+## Shared acceptance criteria (every MIG-002 ticket, r3)
+
+- [ ] Every clause above follows its evidence path (spec #733 § Evidence paths):
+  - **path 1:** a passing App journey, a negative journey, and a receipt per guarded `src/` path;
+  - **path 2:** the frontend half as in path 1, plus the Rust half's `cargo test`s, each cited by exact `<file>::<test>` path (or new, with an `-R<n>` receipt and listed as a filled gap), and its declared fake-behaviour rows, each tied by a shared fixture where it carries a payload. **Exception:** a Rust-only clause (h-C6) has no frontend half, so no journey, negative journey or frontend receipt; each of its Rust sub-obligations maps to a named test or a new `-R<n>` test;
+  - **path 3 (pin):** a current-outcome journey plus a receipt;
+  - **path 4 (known limitation):** a current-outcome journey plus a `KL` receipt, `NOT PROVED`, and a tracked `ref`. Before round-one audit the delegator records an ADR-0146 decision-4 acceptance on ground (a), moving the guarantee to the `ref`; without it the clause blocks. An outcome that cannot be driven is sent to the delegator (`observable: false`, ground (a) or (c)), never given a seam.
+
+  Existing suites are cited by name; none is moved or rewritten.
+- [ ] Receipts follow MIG-001's temporary-mutation procedure, with ids `MIG002-<row>-<clause>-<n>`, `…-R<n>` (Rust) and `MIG002-<row>-KL<n>-<k>`. The handoff has each mutation diff, failing assertion and restore, and lists "replay passes at base" under Known qualifications.
+- [ ] The test matrix lists per clause: its path, corpus case-ids, the unsafe attempt (guarantees), the byte and token oracles, and the Rust tests and fake-behaviour rows for a Rust half (spec § Test matrix). It is written and attacked before the first RED; the delegator checks its coverage when confirming the handoff.
+- [ ] Each guarantee and pin journey asserts:
+  - the document id;
+  - the expected delta of every token its clause touches through `readTokens`, and "unchanged" for the rest;
+  - the write log's bytes and order (and the IPC call log where the clause names an IPC);
+  - the effect on each state owner the ticket names;
+  - that no `failed` flush is reported as success. A path-4 journey is exempt, and its clause is `NOT PROVED`.
+- [ ] Documents are opened by MIG-001 case-id. An unedited write is byte-equal to the case's untouched bytes; an edited write equals bytes the journey states.
+- [ ] The StrictMode clauses listed above run with StrictMode on. A failure seen only under StrictMode takes path 4 with `strictModeOnly: true`.
+- [ ] Each known limitation is recorded in this row's registry file (`<row>-KL<n>`: clause, current, desired, reason, ref) and sent to the delegator as a finding. No `ref: pending` remains at landing. No production fix is made.
+- [ ] Nothing under `src/` or `src-tauri/` changes, except restored receipt mutations and new `cargo test`s for listed gaps.
+- [ ] After a1, the harness changes only by addition: row-local helper modules and new fake-behaviour rows. a1's harness tests and the corpus suite stay green.
+- [ ] Budget (D26): each journey under 5 s under coverage, measured; each journey file sets a 15 s test timeout; each file under 60 s. The handoff reports this row's times and the running totals against MIG-002's 5-minute shard-time ceiling and M0's 10 minutes (shard time = per-file durations summed across the four `frontend` shards in a coverage run).
+- [ ] No feature-ledger change, unless a known limitation proves a `Shipped` row false; that row then becomes `Partial` + `限制：` in the same commit.
+- [ ] The handoff ends with a clause-status table (`PROVED` / `PINNED` / `NOT PROVED`) and names this row's MIG-005 host sites from `git grep -n 'getEditor()' src` at its base.
+- [ ] The PR lands with a waiver that quotes the user's ruling (#686 item 4; r2 「Keep #686, name departure (Recommended)」) and names the single M0 Mac batch at the SHA after the last MIG-002 sub-PR lands. The waiver is recorded as an ADR-0144 decision-5 audit-log gate exception.
+- [ ] Journeys are in `tests/state-safety/<row>-<slug>.journey.test.tsx` and follow rule 10's placement rules.
+
+## Blocked by
+
+#735 (MIG-002a1), #717 (MIG-001l), #719 (MIG-001n)
