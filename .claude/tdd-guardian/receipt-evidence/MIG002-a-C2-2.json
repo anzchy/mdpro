@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a-C2-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:10:12.465Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/a-save.journey.test.tsx\",\"a-C2 StrictMode Cmd+S saves the latest edit before edit sync\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/a-save.journey.test.tsx",
+        "line": 15
+      },
+      "message": "AssertionError: expected { command: 'save_file', …(4) } to match object { documentId: 'corpus-document', …(3) }\n(1 matching property omitted from actual)"
+    },
+    {
+      "id": "[\"tests/state-safety/a-save.journey.test.tsx\",\"a-C2 rejects stale bytes after two edits before the sync delay\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/a-save.journey.test.tsx",
+        "line": 35
+      },
+      "message": "AssertionError: expected [ { command: 'save_file', …(4) } ] to match object [ { …(4) } ]\n(1 matching property omitted from actual)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a-C2-2/20261110T081012465Z/tests",
+    "tree": "f7221a783365d5796f572268cf2e72c101d2dd1c"
+  },
+  "spec_blobs": {
+    "tests/state-safety/a-save.journey.test.tsx": "f695758bebc4cc7aa172d82a02850ac19df6fc48"
+  },
+  "settled_blobs": {
+    "tests/state-safety/a-save.journey.test.tsx": "f695758bebc4cc7aa172d82a02850ac19df6fc48"
+  }
+}

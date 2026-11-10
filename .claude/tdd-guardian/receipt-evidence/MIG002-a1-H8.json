@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H8",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:17:30.983Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-fault.test.tsx\",\"H8 real serializer failure is healed by removing the invalid list\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-fault.test.tsx",
+        "line": 12
+      },
+      "message": "AssertionError: expected 'failed' not to be 'failed' // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H8/20261110T081730983Z/tests",
+    "tree": "b9cd5c681dbb89f22d187edb956f1b43db24c668"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-fault.test.tsx": "a2fb035cef4dc2faff756c840d97f528151d71e1"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-fault.test.tsx": "a2fb035cef4dc2faff756c840d97f528151d71e1"
+  }
+}

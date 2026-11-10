@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H9",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:18:09.109Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-tokens.test.tsx\",\"H9 readTokens reports the document lifetime and replacement deltas\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-tokens.test.tsx",
+        "line": 11
+      },
+      "message": "AssertionError: expected { lifetime: 2, replacement: +0, …(5) } to deeply equal { lifetime: 2, replacement: 1, …(5) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H9/20261110T081809109Z/tests",
+    "tree": "13516b4e28f1bc87f555dd384c57e61de33ba457"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-tokens.test.tsx": "9a4198218fdacfe5e728e808aa903a9a4fd0d958"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-tokens.test.tsx": "9a4198218fdacfe5e728e808aa903a9a4fd0d958"
+  }
+}

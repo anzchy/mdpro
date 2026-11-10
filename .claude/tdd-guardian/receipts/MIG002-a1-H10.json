@@ -1,0 +1,60 @@
+{
+  "id": "MIG002-a1-H10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:18:52.227Z",
+  "head_sha": "4a4b1b4d4e5cb92372cbf4d020c2831c61d35220",
+  "dirty_source": [
+    ".claude/settings.json",
+    "CHANGELOG.md",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/state-safety/harness-tokens.test.tsx": {
+      "state": "ok",
+      "sha": "ad1e41ee67a2978eae7585a460f3925d106eeb75a222a4958617cba1077a02c4",
+      "lines": [
+        "4ab083840abb65c9",
+        "14f78c6652636483",
+        "3ed702bc0beed1dc",
+        "54ce4b8c00891f99",
+        "03d9aba6351173e5",
+        "33635cbe2d76bafb",
+        "24ee399c0d0a8743",
+        "8a8f43cf2be7a25a",
+        "3cd3ea25151bf564",
+        "fea4f476d3be6a23",
+        "16b51f8dad141b38",
+        "49feb3519319476a",
+        "937d36030718994e",
+        "54ce4b8c00891f99",
+        "03d9aba6351173e5",
+        "33635cbe2d76bafb",
+        "05e279e3d54d72c7",
+        "8a8f43cf2be7a25a",
+        "3cd3ea25151bf564",
+        "933fb4d3d676e89c",
+        "a294d01c29b63c67",
+        "4c45d82d4b3db1a1",
+        "16b51f8dad141b38",
+        "49feb3519319476a"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T08:20:16.188Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "5 non-test file(s) were already modified when the red was recorded (.claude/settings.json, CHANGELOG.md, scripts/load-guard/__pycache__/backstop.cpython-314.pyc, scripts/load-guard/__pycache__/guard.cpython-314.pyc, scripts/load-guard/__pycache__/policy.cpython-314.pyc). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

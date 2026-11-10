@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H11",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:23:20.338Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-mount.test.tsx\",\"H11 mounts the real App Milkdown editor under fake time\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-mount.test.tsx",
+        "line": 9
+      },
+      "message": "AssertionError: expected null not to be null"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H11/20261110T082320338Z/tests",
+    "tree": "7ac3798ba94358192383938236ca226d6707c138"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-mount.test.tsx": "07516841a33ef794ce6d19b5b1e6bfaa5aa448ab"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-mount.test.tsx": "07516841a33ef794ce6d19b5b1e6bfaa5aa448ab"
+  }
+}

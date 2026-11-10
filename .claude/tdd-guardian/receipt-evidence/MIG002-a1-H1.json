@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:13:33.385Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-save.test.tsx\",\"H1 records exact untouched corpus bytes through App save\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-save.test.tsx",
+        "line": 10
+      },
+      "message": "AssertionError: expected [] to have a length of 1 but got +0"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H1/20261110T081333385Z/tests",
+    "tree": "6a822441e71a2bd48044f3c746f9c3109029b871"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-save.test.tsx": "cda2816cfc619a14270014322806468700890e6a"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-save.test.tsx": "cda2816cfc619a14270014322806468700890e6a"
+  }
+}

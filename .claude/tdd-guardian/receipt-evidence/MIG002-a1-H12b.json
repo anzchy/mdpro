@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H12b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:31:16.494Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/known-limitations-registry.test.ts\",\"rejects pending references and malformed records\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/known-limitations-registry.test.ts",
+        "line": 13
+      },
+      "message": "AssertionError: expected [] to include 'a-KL1: clause'"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H12b/20261110T083116494Z/tests",
+    "tree": "198a43535c900fb09445e02b13bb324778522919"
+  },
+  "spec_blobs": {
+    "tests/state-safety/known-limitations-registry.test.ts": "b65fb26b800f2c955076c84ec8bd450b2afcbf59"
+  },
+  "settled_blobs": {
+    "tests/state-safety/known-limitations-registry.test.ts": "b65fb26b800f2c955076c84ec8bd450b2afcbf59"
+  }
+}

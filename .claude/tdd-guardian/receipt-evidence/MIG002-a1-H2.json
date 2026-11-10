@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a1-H2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:14:18.465Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-save.test.tsx\",\"H1 records exact untouched corpus bytes through App save\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-save.test.tsx",
+        "line": 10
+      },
+      "message": "AssertionError: expected [ Array(2) ] to have a length of 1 but got 2"
+    },
+    {
+      "id": "[\"tests/state-safety/harness-save.test.tsx\",\"H2 opens an untouched corpus case without writing\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-save.test.tsx",
+        "line": 20
+      },
+      "message": "AssertionError: expected [ { command: 'save_file', …(4) } ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H2/20261110T081418465Z/tests",
+    "tree": "e44553c9b1efdc757d0abee2b27086f600df3824"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-save.test.tsx": "cda2816cfc619a14270014322806468700890e6a"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-save.test.tsx": "cda2816cfc619a14270014322806468700890e6a"
+  }
+}

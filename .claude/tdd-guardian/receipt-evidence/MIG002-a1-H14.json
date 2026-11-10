@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H14",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T09:44:08.638Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-harness-dialog.test.tsx\",\"H14 uses the scripted native save-dialog path for a write\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-harness-dialog.test.tsx",
+        "line": 22
+      },
+      "message": "AssertionError: expected { success: true, …(2) } to match object { Object (path) }\n(2 matching properties omitted from actual)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H14/20261110T094408638Z/tests",
+    "tree": "f049d696e852ccbb8885a4d27148f8ab2c397383"
+  },
+  "spec_blobs": {
+    "tests/state-safety-harness-dialog.test.tsx": "2573347b180e72ca4989812c9d481bc412149d37"
+  },
+  "settled_blobs": {
+    "tests/state-safety-harness-dialog.test.tsx": "2573347b180e72ca4989812c9d481bc412149d37"
+  }
+}

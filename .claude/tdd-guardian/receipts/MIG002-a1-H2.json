@@ -1,0 +1,58 @@
+{
+  "id": "MIG002-a1-H2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:14:18.465Z",
+  "head_sha": "4a4b1b4d4e5cb92372cbf4d020c2831c61d35220",
+  "dirty_source": [
+    ".claude/settings.json",
+    "CHANGELOG.md",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "2 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/state-safety/harness-save.test.tsx": {
+      "state": "ok",
+      "sha": "5d79f3c77b1b2002d849049226a5887f2cbe4536e7a7ab38cf775f5accc44ec7",
+      "lines": [
+        "4ab083840abb65c9",
+        "14f78c6652636483",
+        "55d27fd67265d148",
+        "54ce4b8c00891f99",
+        "03d9aba6351173e5",
+        "bf7b1d7caba17730",
+        "3cd3ea25151bf564",
+        "e0a67e16f59b1b38",
+        "30d57c70abb5e38f",
+        "57b6c7f8e8fee813",
+        "5cf38abcf51b6079",
+        "16b51f8dad141b38",
+        "49feb3519319476a",
+        "bee8b0ad79a26c8f",
+        "54ce4b8c00891f99",
+        "03d9aba6351173e5",
+        "634100feca43caa1",
+        "7091e69396f98c11",
+        "eb5569f3adc654ba",
+        "00c6dc6a0133e391",
+        "16b51f8dad141b38",
+        "49feb3519319476a"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T08:14:24.154Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "5 non-test file(s) were already modified when the red was recorded (.claude/settings.json, CHANGELOG.md, scripts/load-guard/__pycache__/backstop.cpython-314.pyc, scripts/load-guard/__pycache__/guard.cpython-314.pyc, scripts/load-guard/__pycache__/policy.cpython-314.pyc). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

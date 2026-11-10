@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H4",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:04:37.680Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-dialog.test.tsx\",\"H4 delivers a scripted open-dialog answer to App\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-dialog.test.tsx",
+        "line": 12
+      },
+      "message": "AssertionError: expected [] to match object [ { …(2) } ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H4/20261110T080437680Z/tests",
+    "tree": "2ba6dbce79e511f05cf1ea9c38c426018d69ace6"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-dialog.test.tsx": "61e0bf0afcae788bd7a3f7997134d7af0fca9c2a"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-dialog.test.tsx": "61e0bf0afcae788bd7a3f7997134d7af0fca9c2a"
+  }
+}

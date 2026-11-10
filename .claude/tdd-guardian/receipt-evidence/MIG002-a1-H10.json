@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H10",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:18:52.227Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-tokens.test.tsx\",\"H10 records each notified document and editor state transition\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-tokens.test.tsx",
+        "line": 23
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H10/20261110T081852227Z/tests",
+    "tree": "c1e26baba07142bd3c2f7c247c47ba1c0eee211a"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-tokens.test.tsx": "9a4198218fdacfe5e728e808aa903a9a4fd0d958"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-tokens.test.tsx": "9a4198218fdacfe5e728e808aa903a9a4fd0d958"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a-CS-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:09:27.718Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/a-serializer.journey.test.tsx\",\"a-CS pins the current App outcome when the real serializer throws during save\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/a-serializer.journey.test.tsx",
+        "line": 12
+      },
+      "message": "AssertionError: expected { lifetime: 2, replacement: 1, …(5) } to deeply equal { lifetime: 1, replacement: +0, …(5) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a-CS-1/20261110T080927718Z/tests",
+    "tree": "f7221a783365d5796f572268cf2e72c101d2dd1c"
+  },
+  "spec_blobs": {
+    "tests/state-safety/a-serializer.journey.test.tsx": "385466999982ba2d487dd6d9f863d40c31357abf"
+  },
+  "settled_blobs": {
+    "tests/state-safety/a-serializer.journey.test.tsx": "385466999982ba2d487dd6d9f863d40c31357abf"
+  }
+}

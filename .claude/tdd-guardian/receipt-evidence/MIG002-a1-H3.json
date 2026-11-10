@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-H3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T08:14:49.753Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety/harness-ipc.test.tsx\",\"H3 logs startup non-write IPC with its arguments\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety/harness-ipc.test.tsx",
+        "line": 7
+      },
+      "message": "AssertionError: expected [ …(32) ] to deep equally contain { Object (command, args) }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-H3/20261110T081449753Z/tests",
+    "tree": "e4e26119f333fe9926859fccf8e05c176e7b104b"
+  },
+  "spec_blobs": {
+    "tests/state-safety/harness-ipc.test.tsx": "8e96551cdaf62eba9b6dd2805575492c7b51b3fb"
+  },
+  "settled_blobs": {
+    "tests/state-safety/harness-ipc.test.tsx": "8e96551cdaf62eba9b6dd2805575492c7b51b3fb"
+  }
+}
