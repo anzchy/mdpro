@@ -26,3 +26,15 @@ pub const MAX_DOCUMENTS_PER_WINDOW: usize = 100;
 /// racing with each other across test threads.
 #[cfg(test)]
 pub(crate) static HOME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+// DO NOT MERGE (MIG-003b): the platform advisory's fault run. This test fails
+// on macOS only, in the lib unit tests (the first cargo test target), so the
+// macOS leg goes red with `test ci_fault_platform::... ... FAILED` and the
+// Windows leg compiles it out.
+#[cfg(all(test, target_os = "macos"))]
+mod ci_fault_platform {
+    #[test]
+    fn platform_advisory_fault_fails_on_macos() {
+        panic!("DO NOT MERGE: MIG-003b platform advisory fault");
+    }
+}
