@@ -24,6 +24,10 @@ forms: `codex-panes.md`).
 ## Acceptance criteria
 - **AC-F1 (finding <id>).** <the fix>, and its regression: <the exact sequence the auditor traced>, RED first
   (`<ID>-F<n>-1`; a fresh id, never one that already has a `.claude/tdd-guardian/receipts/<ID>.json`). Must fail on `<sha>`.
+- **AC-Fs (instance sweep, every Critical or High).** The class is <class>. The "Fix <n>" section carries a sweep
+  table: one row per instance (site × triggering case or input shape) across the whole class wherever the range
+  reaches it, each fixed with its regression test or not affected with a file:line trace or a command and its
+  output ([§ Converging rounds](../landing-and-audit.md#converging-rounds)).
 - **AC-Fk.** Every existing AC still passes unchanged.
 Matrix attack: <required (a missed case) | skipped: this brief fully specifies the fix and its regression>.
 

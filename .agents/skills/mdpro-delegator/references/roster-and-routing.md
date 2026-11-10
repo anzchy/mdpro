@@ -129,6 +129,19 @@ the heartbeat assignment.
 - **Where its outputs go.** Glossary edits and the user's approval words, plus an unnumbered ADR draft (CLAUDE.md's ADR structure,
   marked Proposed) **only** for a decision on [CLAUDE.md § ADR](../../../../CLAUDE.md#architecture-decision-records-adr)'s scope list,
   all under `~/.mdpro-redesign/planner/<feature>/`. It hands the paths to the delegator.
+- **Citation table and size budget** ([entry](../../../../docs/agents/decisions/20261110-audit-rounds-converge.md)).
+  - Every spec, ticket or revision handoff lists each test, fixture and ADR clause it cites as evidence. Each row
+    gives:
+    - the exact path and test name, or the decision number;
+    - whether it exists at the named master SHA;
+    - the quoted assertion or sentence that supports the claim.
+
+    The delegator checks the table before the plan review, and the plan-review request names any ticket over the size
+    budget with its stated reason, for the auditors to check ([§ Converging rounds](landing-and-audit.md#converging-rounds)).
+  - `/to-tickets` aims each ticket at about 400 changed production lines or fewer, counted as
+    `docs/agents/audit-dimensions.md` § Split recommendation counts them, with its exclusions.
+    - A ticket expected to go over says why in its scope, and the plan review checks that reason.
+    - A spec may tighten the number. Loosening it takes a new decision-log entry.
 - **Which decisions are ADRs** ([ADR-0165](../../../../docs/adr/0165-adrs-record-architecture-and-product-decisions-only.md)
   decisions 1 and 3; [decision log](../../../../docs/agents/decisions/20261102-adr-scope-and-decision-log.md)). The planner proposes the class by the two-part test in [the bar](../../../../docs/adr/README.md#the-bar), and the delegator classifies before
   reserving a number; doubt goes below the bar. The spec cites each ADR it relies on. Every other decision in the spec takes a local id

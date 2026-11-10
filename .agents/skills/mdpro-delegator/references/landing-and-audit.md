@@ -11,7 +11,7 @@ each block names where it came from. When this file and a rule disagree, the rul
    wrapper garbles plain `git diff`), then dispatches two independent checks
    on that SHA at once: `mdpro-landing-verifier` (lanes, receipt-store integrity, tree
    identity) and the two audits of item 4. It also pushes that SHA as the
-   PR's head, so CI tests what will land. When the branch was rebased or fixed
+   PR's head, so CI tests what will land. A confirm waits for CI ([§ Converging rounds](#converging-rounds)). When the branch was rebased or fixed
    after an earlier push, it re-pushes with
    `git push --force-with-lease=<branch>:<old head>`, a standing exception to
    rule 25 for PR branches only, never `master`, `release/x.y` or a tag
@@ -231,6 +231,57 @@ worktree half of the confirmation above; branches still need it.
      Ancestry does not count.
    - **Every gate exception** (lane or unrunnable check) gets a row in
      `docs/audit/audit-log.md` § Gate exceptions, whenever it is granted.
+
+## Converging rounds
+
+**Findings leave the loop before a round, not by skipping it** ([entry](../../../../docs/agents/decisions/20261110-audit-rounds-converge.md)). ADR-0143's cap, ADR-0121 decision 4's
+confirm scope and every auditor request template are unchanged.
+- **CI.**
+  - Round one starts with CI, as § Landing item 2 says.
+  - Before merging round one, read `ci-gate` on that SHA. A range-caused red goes into the same fix brief as the
+    findings.
+  - A confirm request, including an ADR-0129 post-cap confirm, goes out only when `ci-gate` on the fix SHA has finished green, or every failing test is
+    **outside the range**. Outside the range means either:
+    - the same test fails on a recorded run at the base or at master `<M>`, and the request cites that run id; or
+    - the test is a registered intermittent, and the request cites its issue or D row.
+
+    Anything else is the range's red, and it goes back to the owner.
+  - An out-of-range red cited in three items' confirm requests gets an issue with an owner.
+  - Landing still needs a green `ci-gate`.
+- **Instance sweep.**
+  - A fix brief names the bug class of each Critical or High.
+  - The handoff's "Fix <n>" section carries a sweep table. Each row is an instance: a site together with a
+    triggering case or input shape, across the whole class wherever the range reaches it, not only in changed lines.
+  - Each row is either fixed, with its regression test, or not affected, with a file:line trace or a command and its
+    output.
+  - The auditors read the table with the handoff. A missed instance is PARTIAL.
+- **Citation check, for planner spec, ticket and revision handoffs only.**
+  - Before the plan review, check that every test, fixture and ADR clause the spec or tickets cite as evidence has a
+    row; a missing row goes back to the planner. Then check every row of the planner's citation table ([§ Planner](roster-and-routing.md#planner))
+    that a normative clause rests on.
+  - Then check randomly chosen other rows, up to five rows in all. Check every row when there are fewer than five.
+  - A row fails when the quoted text is not at that path and name at `<M>`, or does not support the claim. A failed
+    row goes back to the planner.
+- **Round record.**
+  - Every § Ranges row in `docs/audit/audit-log.md`, whether landed, superseded or abandoned, and each plan review's
+    merged-verdict file, records:
+    - `Rounds`: `r1`, `r2` or `r2+extra`;
+    - `Days` from the first request to the outcome;
+    - `Causes`: one per round after the first.
+  - The causes are:
+    - `r1-findings`;
+    - `late-finding`, naming the auditor and why round one missed it;
+    - `partial-class-fix`;
+    - `ci-red`, a fix-SHA red that held a confirm;
+    - `citation`;
+    - `disagreement`;
+    - `scope-change`.
+  - A confirm held by a fix-SHA red takes `ci-red`, not `r1-findings`. An ADR-0129 post-cap fix is `post-cap-fix`, not a round.
+  - In § Ranges, these go in the `Rounds` cell as `<rounds> · <days> d · <causes>`, for example
+    `r2 · 3 d · r1-findings`.
+  - A late finding is not an escape: `docs/audit/escapes.md` is unchanged.
+  - At each release checkpoint, report to the user the slowest quarter of outcomes since the last checkpoint,
+    grouped by cause, and the share that reached C0 H0 by r2 with no post-cap ruling.
 
 ## Tiers
 

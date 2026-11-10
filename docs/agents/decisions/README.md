@@ -43,6 +43,9 @@ High tier there.
 
 ## Entries
 
+- [20261110-audit-rounds-converge.md](20261110-audit-rounds-converge.md): a confirm waits for a green or
+  out-of-range `ci-gate`, every Critical or High fix carries an instance-sweep table, planner handoffs carry a checked
+  citation table, tickets follow the split rule's budget, and every range records its rounds, days and causes.
 - [20261108-short-checks-may-run-on-prs.md](20261108-short-checks-may-run-on-prs.md): ADR-0095 decision 7 is folded
   into `landing-and-audit.md` § PR CI. Heavy checks stay off PRs; a short check runs advisory, then joins `ci-gate`
   after a clean trial.
