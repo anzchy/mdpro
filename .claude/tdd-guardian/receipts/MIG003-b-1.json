@@ -1,0 +1,53 @@
+{
+  "id": "MIG003-b-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T21:41:21.747Z",
+  "head_sha": "5265eb2478433cf84d680720a14cd421737c5a18",
+  "dirty_source": [
+    ".claude/settings.json"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/platform-advisory-workflow.test.ts": {
+      "state": "ok",
+      "sha": "6ac13fbd509df6496076d85f517e21af76add1612a612b2a4084242ad126ac93",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "7388e92cb525f7dd",
+        "684888c0ebb17f37",
+        "f7769cac93b700be",
+        "821c6f13a3fbfdcf",
+        "ed9623369ff082ab",
+        "87dda682347c848f",
+        "aa2bc7cd756da3c4",
+        "9c94784f8cfa14e6",
+        "e05307772d57add0",
+        "68eaa38f9814fedd",
+        "ba3895ddcf1fe16d",
+        "22dd79931cb83b27",
+        "cfd3a3d4b5afb543",
+        "ac76445bdcf6732a",
+        "94d8f7781dd2caa5",
+        "cd21b90d580a763b",
+        "776647d6212f4c99",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T21:41:32.788Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (.claude/settings.json). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

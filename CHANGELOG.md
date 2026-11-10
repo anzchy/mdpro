@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - CI: report six advisory risk classes from the changed paths in the scope job and its job summary (#753).
+- CI: a native platform advisory workflow (`platform-advisory.yml`) checks, lints (`clippy -D warnings`) and tests the Rust backend on macOS and Windows nightly and on dispatch, never on a pull request; a checker fails a run whose `cargo test` log shows no tests, and a `rust-cache hit` step marks warm-cache legs (#754).
 - CI: the Rust audit jobs restore a cached, pinned cargo-audit (0.22.2), whose master copy is saved only by the daily audit on master, version-checked before use, instead of compiling it on every run (#640).
 
 ### Fixed

@@ -1,0 +1,74 @@
+name: Platform advisory (native)
+on:
+  schedule:
+    - cron: '37 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-advisory-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      # Only a schedule run on master writes this key, so a dispatch on another
+      # ref (such as ci-fault/platform) never seeds a cache that master restores.
+      - id: rust-cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: platform-advisory-${{ runner.os }}
+          save-if: ${{ github.event_name == 'schedule' && github.ref == 'refs/heads/master' }}
+
+      # MIG003-r3-D29: the warm-cache marker. This no-op runs only when the
+      # restore matched its key exactly, so its jobs-API conclusion (success
+      # warm, skipped cold) is the source of MIG-003d's warm-cache filter.
+      # Keep the name, the if and its place right after rust-cache exact.
+      - name: rust-cache hit
+        if: steps.rust-cache.outputs.cache-hit == 'true'
+        run: echo "rust-cache restored an exact key match"
+
+      # tauri-build requires each bundle.externalBin to exist as
+      # binaries/mdpro_mcp-<target triple>, plus .exe on Windows (tauri-utils
+      # external_binaries). An empty stub satisfies build.rs, as in ci.yml's
+      # rust-test. Bash, because Windows' default pwsh has no touch.
+      - name: Create sidecar stub for build.rs
+        shell: bash
+        run: |
+          triple="$(rustc -vV | sed -n 's/^host: //p')"
+          test -n "$triple"
+          ext=""
+          if [[ "$RUNNER_OS" == "Windows" ]]; then ext=".exe"; fi
+          mkdir -p src-tauri/binaries
+          touch "src-tauri/binaries/mdpro_mcp-${triple}${ext}"
+
+      - run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+
+      # -D warnings is never narrowed (by cfg or allow lists) without the
+      # user's approval (spec § Bootstrap).
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      # Actions runs a bash step as `bash -eo pipefail`, so tee cannot mask a
+      # failing cargo test, on Windows too. cargo test stops at the first
+      # failing test target.
+      - name: cargo test
+        shell: bash
+        run: cargo test --manifest-path src-tauri/Cargo.toml 2>&1 | tee cargo-test.log
+
+      # A green cargo test that ran no test at all still fails here.
+      - run: node scripts/ci/cargo-test-summary.mjs cargo-test.log
