@@ -1,0 +1,51 @@
+{
+  "id": "MIG002-a1-F6-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:13:56.450Z",
+  "head_sha": "c35b5a5f47bb297d303446b7eb50cd96541bcabe",
+  "dirty_source": [
+    ".claude/settings.json",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 2 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/state-safety-harness-ipc.test.tsx": {
+      "state": "ok",
+      "sha": "c3437c2b56e697b424c4299c7164b57633893d12f4885d0359302f3a86a907ae",
+      "lines": [
+        "4ab083840abb65c9",
+        "7d04962be05780c6",
+        "a371ceeab1022513",
+        "54ce4b8c00891f99",
+        "03d9aba6351173e5",
+        "13cb652f0fd932f9",
+        "7091e69396f98c11",
+        "16b51f8dad141b38",
+        "49feb3519319476a",
+        "c1f337e3decab219",
+        "54ce4b8c00891f99",
+        "fc76ef75e5791a10",
+        "4349f300d9911ccf",
+        "7091e69396f98c11",
+        "a62ab0f807d9d4e8",
+        "49feb3519319476a"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T12:14:14.562Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (.claude/settings.json, scripts/load-guard/__pycache__/backstop.cpython-314.pyc, scripts/load-guard/__pycache__/guard.cpython-314.pyc, scripts/load-guard/__pycache__/policy.cpython-314.pyc). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

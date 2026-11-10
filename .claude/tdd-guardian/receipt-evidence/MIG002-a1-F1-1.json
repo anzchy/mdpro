@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a1-F1-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:03:13.921Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-save.journey.test.tsx\",\"a-C2 keyboard Cmd+S refuses a failed serializer\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/state-safety-a-save.journey.test.tsx",
+        "line": 78
+      },
+      "message": "TypeError: .toMatch() expects to receive a string, but got object"
+    },
+    {
+      "id": "[\"tests/state-safety-a-save.journey.test.tsx\",\"a-C2 keyboard Cmd+S saves the latest pending edit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-save.journey.test.tsx",
+        "line": 54
+      },
+      "message": "AssertionError: expected [] to deeply equal [ Array(2) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F1-1/20261110T120313921Z/tests",
+    "tree": "6b07888e6bdedb4677785ad078420a11aa980ea8"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-save.journey.test.tsx": "af87521693e1e40ca17e13f532605c6cd10237c9"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-save.journey.test.tsx": "af87521693e1e40ca17e13f532605c6cd10237c9"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a1-F7-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:18:01.161Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-harness-events.test.tsx\",\"H5 awaits close listener cancellation\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-harness-events.test.tsx",
+        "line": 34
+      },
+      "message": "AssertionError: expected undefined to deeply equal { prevented: true }"
+    },
+    {
+      "id": "[\"tests/state-safety-harness-events.test.tsx\",\"H5 routes window and global emissions to both scoped and Any listeners\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-harness-events.test.tsx",
+        "line": 22
+      },
+      "message": "AssertionError: expected [ 'window', 'any' ] to deeply equal [ 'any', 'window', 'any', 'window' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F7-1/20261110T121801161Z/tests",
+    "tree": "38c896e2cfc455ab122e4cb883418f9df8579742"
+  },
+  "spec_blobs": {
+    "tests/state-safety-harness-events.test.tsx": "9f0bd069d6ea7a19549439cb2b69e2c1034fd06a"
+  },
+  "settled_blobs": {
+    "tests/state-safety-harness-events.test.tsx": "9f0bd069d6ea7a19549439cb2b69e2c1034fd06a"
+  }
+}

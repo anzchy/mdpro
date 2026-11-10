@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a1-F2-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:09:06.320Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-failed-flush.journey.test.tsx\",\"a-C4 never reports a second failed save as success\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-failed-flush.journey.test.tsx",
+        "line": 63
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    },
+    {
+      "id": "[\"tests/state-safety-a-failed-flush.journey.test.tsx\",\"a-C4 refuses a save when the real serializer fails\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-failed-flush.journey.test.tsx",
+        "line": 19
+      },
+      "message": "AssertionError: expected false to be true // Object.is equality"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F2-2/20261110T120906320Z/tests",
+    "tree": "b045f5d951e5c81a5f7018ffba0c1397c4df83bb"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-failed-flush.journey.test.tsx": "b0dfbb770faf19b5d2ce5144120333b06e9cda40"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-failed-flush.journey.test.tsx": "b0dfbb770faf19b5d2ce5144120333b06e9cda40"
+  }
+}

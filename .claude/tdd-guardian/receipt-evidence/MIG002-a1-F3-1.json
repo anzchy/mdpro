@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-F3-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:00:20.785Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-harness-composition.test.tsx\",\"H13 commits composition text through the real editor before save\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-harness-composition.test.tsx",
+        "line": 9
+      },
+      "message": "AssertionError: expected { wasComposing: false, ended: true } to deeply equal { wasComposing: true, ended: true }"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F3-1/20261110T120020785Z/tests",
+    "tree": "9955e1b14edafe7d51fcfb8b5f80856f86d7e486"
+  },
+  "spec_blobs": {
+    "tests/state-safety-harness-composition.test.tsx": "c7c28d74ce1432a2d4618e6372f746ac5d5670df"
+  },
+  "settled_blobs": {
+    "tests/state-safety-harness-composition.test.tsx": "c7c28d74ce1432a2d4618e6372f746ac5d5670df"
+  }
+}

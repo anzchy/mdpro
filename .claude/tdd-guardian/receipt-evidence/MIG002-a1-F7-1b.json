@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-F7-1b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:30:18.891Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-harness-events.test.tsx\",\"H5 routes window and global emissions to both scoped and Any listeners\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-harness-events.test.tsx",
+        "line": 23
+      },
+      "message": "AssertionError: expected [] to deeply equal [ 'any', 'window' ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F7-1b/20261110T123018891Z/tests",
+    "tree": "301085c9043d01edc9002a5ce19a54d0fac88a55"
+  },
+  "spec_blobs": {
+    "tests/state-safety-harness-events.test.tsx": "8d04b5489272224c5b368bae843f4dfab4c7109e"
+  },
+  "settled_blobs": {
+    "tests/state-safety-harness-events.test.tsx": "8d04b5489272224c5b368bae843f4dfab4c7109e"
+  }
+}

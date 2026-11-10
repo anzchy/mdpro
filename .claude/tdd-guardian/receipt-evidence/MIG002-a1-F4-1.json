@@ -1,0 +1,51 @@
+{
+  "id": "MIG002-a1-F4-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:04:46.437Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-save.journey.test.tsx\",\"a-C2 StrictMode Cmd+S saves the latest edit before edit sync\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-save.journey.test.tsx",
+        "line": 17
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(2) ]"
+    },
+    {
+      "id": "[\"tests/state-safety-a-save.journey.test.tsx\",\"a-C2 keyboard Cmd+S saves the latest pending edit\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-save.journey.test.tsx",
+        "line": 59
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(2) ]"
+    },
+    {
+      "id": "[\"tests/state-safety-a-save.journey.test.tsx\",\"a-C2 rejects stale bytes after two edits before the sync delay\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-save.journey.test.tsx",
+        "line": 42
+      },
+      "message": "AssertionError: expected [ …(3) ] to deeply equal [ Array(2) ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F4-1/20261110T120446437Z/tests",
+    "tree": "8abd874edbe1281f5992882d559fe79e80522bb4"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-save.journey.test.tsx": "88d21259c364485c07892c7bd2965f24425e2c90"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-save.journey.test.tsx": "88d21259c364485c07892c7bd2965f24425e2c90"
+  }
+}

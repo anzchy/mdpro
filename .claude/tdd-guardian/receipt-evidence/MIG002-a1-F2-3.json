@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a1-F2-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:22:27.304Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-failed-flush.journey.test.tsx\",\"a-C4 never reports a second failed save as success\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-failed-flush.journey.test.tsx",
+        "line": 54
+      },
+      "message": "AssertionError: expected [ { level: 'info', …(4) }, …(1) ] to deeply equal [ ObjectContaining {\"status\": \"fail\"} ]"
+    },
+    {
+      "id": "[\"tests/state-safety-a-failed-flush.journey.test.tsx\",\"a-C4 refuses a save when the real serializer fails\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-failed-flush.journey.test.tsx",
+        "line": 16
+      },
+      "message": "AssertionError: expected [ { level: 'info', …(4) }, …(1) ] to deeply equal [ ObjectContaining{…} ]"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F2-3/20261110T122227304Z/tests",
+    "tree": "072c4b480453d49cd4eb05c37a9304b43945286b"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-failed-flush.journey.test.tsx": "10d27e4e819b53d32259f2936c5a18cfc844ef73"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-failed-flush.journey.test.tsx": "10d27e4e819b53d32259f2936c5a18cfc844ef73"
+  }
+}

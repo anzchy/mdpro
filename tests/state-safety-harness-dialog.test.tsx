@@ -20,7 +20,8 @@ it('H14 uses the scripted native save-dialog path for a write', async () => {
   boundary.scriptDialog('save', '/tmp/mig002/scripted-save.md');
   const result = await boundary.invoke('save_file_dialog', { documentId: 'd1', content: 'new\n' });
   expect(result).toMatchObject({ path: '/tmp/mig002/scripted-save.md' });
-  expect(boundary.writeLog).toMatchObject([{
-    command: 'save_file_dialog', path: '/tmp/mig002/scripted-save.md', content: 'new\n',
+  expect(boundary.writeLog).toEqual([{
+    command: 'save_file_dialog', documentId: 'd1', path: '/tmp/mig002/scripted-save.md',
+    content: 'new\n', bytes: [...new TextEncoder().encode('new\n')],
   }]);
 });

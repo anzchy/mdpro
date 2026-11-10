@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a1-F6-3b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:14:48.115Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-failed-flush.journey.test.tsx\",\"a-C4 never reports a second failed save as success\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/helpers/appJourneyHarness.tsx",
+        "line": 226
+      },
+      "message": "Error: unmodelled App IPC attempts: write_file_fallback, write_file_fallback"
+    },
+    {
+      "id": "[\"tests/state-safety-a-failed-flush.journey.test.tsx\",\"a-C4 refuses a save when the real serializer fails\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/helpers/appJourneyHarness.tsx",
+        "line": 226
+      },
+      "message": "Error: unmodelled App IPC attempts: write_file_fallback"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F6-3b/20261110T121448115Z/tests",
+    "tree": "313105a30d59240afc3068e45b65564c2634b737"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-failed-flush.journey.test.tsx": "10d27e4e819b53d32259f2936c5a18cfc844ef73"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-failed-flush.journey.test.tsx": "10d27e4e819b53d32259f2936c5a18cfc844ef73"
+  }
+}

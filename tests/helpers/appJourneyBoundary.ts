@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { FakeTauriBoundary, type BoundaryWrite } from '../support/corpus/fakeBoundary';
 import { makePreferences } from '../support/preferenceFixtures';
+import { defaultAppliedShortcuts } from '../../src/commands/appliedKeymap';
 
 type Callback = (event: { payload: unknown }) => void;
 export interface JourneyCall { command: string; args: Record<string, unknown> }
@@ -10,15 +11,16 @@ export interface FakeBehaviour { behaviour: string; rustProof: string; fixture?:
 export class AppJourneyBoundary {
   readonly corpus = new FakeTauriBoundary();
   readonly calls: JourneyCall[] = [];
-  readonly events: Array<{ name: string; payload: unknown }> = [];
+  readonly events: Array<{ name: string; payload: unknown; windowScoped: boolean }> = [];
   readonly logs: Array<Record<string, unknown>> = [];
   readonly replies: JourneyCall[] = [];
+  readonly unmodelledCalls: JourneyCall[] = [];
   /** Rows that model a Rust-only outcome; a1 needs none. */
   readonly fakeBehaviours: FakeBehaviour[] = [];
   private readonly listeners = new Map<string, Set<Callback>>();
   private readonly windowListeners = new Map<string, Set<Callback>>();
   private readonly dialogAnswers = new Map<string, unknown[]>();
-  private closeListener: ((event: { preventDefault: () => void }) => void) | null = null;
+  private closeListener: ((event: { preventDefault: () => void }) => void | Promise<void>) | null = null;
 
   get writeLog(): readonly BoundaryWrite[] { return this.corpus.writeLog; }
   get liveListeners(): number {
@@ -42,18 +44,20 @@ export class AppJourneyBoundary {
     return Promise.resolve(() => { group.delete(callback); if (!group.size) table.delete(name); });
   }
   emit(name: string, payload: unknown, windowScoped = false): void {
-    this.events.push({ name, payload: structuredClone(payload) });
-    const table = windowScoped ? this.windowListeners : this.listeners;
-    for (const callback of table.get(name) ?? []) callback({ payload });
+    this.events.push({ name, payload: structuredClone(payload), windowScoped });
+    for (const callback of this.listeners.get(name) ?? []) callback({ payload });
+    for (const callback of this.windowListeners.get(name) ?? []) callback({ payload });
   }
-  onCloseRequested(callback: (event: { preventDefault: () => void }) => void): Promise<() => void> {
+  onCloseRequested(callback: (event: { preventDefault: () => void }) => void | Promise<void>): Promise<() => void> {
     if (this.closeListener) throw new Error('duplicate close listener');
     this.closeListener = callback;
     return Promise.resolve(() => { if (this.closeListener === callback) this.closeListener = null; });
   }
-  requestClose(): void {
+  async requestClose(): Promise<{ prevented: boolean }> {
     if (!this.closeListener) throw new Error('close listener absent');
-    this.closeListener({ preventDefault: () => {} });
+    let prevented = false;
+    await this.closeListener({ preventDefault: () => { prevented = true; } });
+    return { prevented };
   }
   async invoke(command: string, args: Record<string, unknown> = {}): Promise<unknown> {
     const call = { command, args: structuredClone(args) };
@@ -77,7 +81,7 @@ export class AppJourneyBoundary {
       case 'get_preferences': return makePreferences();
       case 'get_logging_settings': return { enabled: true, level: 'info' };
       case 'get_launch_paths': case 'list_drafts': return [];
-      case 'get_applied_shortcuts': return { bindings: {} };
+      case 'get_applied_shortcuts': return defaultAppliedShortcuts('macos');
       case 'cleanup_old_drafts': case 'save_window_state': case 'save_window_geometry':
         return null;
       case 'plugin:app|set_app_theme': case 'sync_recent_files_menu': case 'set_preferences': return null;
@@ -88,7 +92,7 @@ export class AppJourneyBoundary {
       case 'mcp_sync_documents': return null;
       case 'quit_guard_reply': this.replies.push(call); return null;
       case 'log_event': this.logs.push(args.payload as Record<string, unknown>); return null;
-      default: throw new Error(`unmodelled App IPC: ${command}`);
+      default: this.unmodelledCalls.push(call); throw new Error(`unmodelled App IPC: ${command}`);
     }
   }
 }

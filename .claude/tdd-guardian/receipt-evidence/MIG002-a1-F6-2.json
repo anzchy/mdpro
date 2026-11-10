@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a1-F6-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:11:23.634Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-harness-teardown.test.tsx\",\"H7 rejects a window DOM listener left after unmount\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/state-safety-harness-teardown.test.tsx",
+        "line": 25
+      },
+      "message": "Error: promise resolved \"undefined\" instead of rejecting"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a1-F6-2/20261110T121123634Z/tests",
+    "tree": "933ebf520e675a2ea52c4330bfabf5f957b06b30"
+  },
+  "spec_blobs": {
+    "tests/state-safety-harness-teardown.test.tsx": "c2147991959071ec948b7e102310de6c4b331892"
+  },
+  "settled_blobs": {
+    "tests/state-safety-harness-teardown.test.tsx": "c2147991959071ec948b7e102310de6c4b331892"
+  }
+}

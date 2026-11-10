@@ -20,6 +20,8 @@ export interface JourneyTokens {
 export async function createAppJourney(options: { strictMode?: boolean } = {}) {
   const boundary = new AppJourneyBoundary();
   installAppJourneyBoundary(boundary);
+  const oldPlatform = Object.getOwnPropertyDescriptor(navigator, 'platform');
+  Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
   const [{ default: App }, { useDocumentStore }, { useEditorStore }, { useMilkdownEditorStore },
     { useExternalChangeStore }, { useToastStore }, { getEditorGeneration }, { captureToken }] = await Promise.all([
       import('../../src/App'), import('../../src/stores/documentStore'), import('../../src/stores/editorStore'),
@@ -34,7 +36,6 @@ export async function createAppJourney(options: { strictMode?: boolean } = {}) {
   useToastStore.setState(useToastStore.getInitialState(), true);
   useEditorStore.setState({ viewMode: 'wysiwyg' });
   const startingEditorGeneration = getEditorGeneration();
-  Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
   const oldGetClientRects = Range.prototype.getClientRects;
   const oldGetBoundingClientRect = Range.prototype.getBoundingClientRect;
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
@@ -50,15 +51,57 @@ export async function createAppJourney(options: { strictMode?: boolean } = {}) {
     if (typeof handler === 'function' && handler.toString().includes('ifTimeout()')) milkdownTimers.add(id);
     return id;
   }) as typeof setTimeout;
+  const domListeners: Array<{ target: 'window' | 'document'; type: string;
+    listener: EventListenerOrEventListenerObject; capture: boolean }> = [];
+  const captureOf = (options?: boolean | AddEventListenerOptions | EventListenerOptions) =>
+    typeof options === 'boolean' ? options : options?.capture ?? false;
+  const watchListeners = (target: Window | Document, name: 'window' | 'document') => {
+    const add = target.addEventListener.bind(target);
+    const remove = target.removeEventListener.bind(target);
+    const addSpy = vi.spyOn(target, 'addEventListener').mockImplementation((type, listener, options?: boolean | AddEventListenerOptions) => {
+      const capture = captureOf(options);
+      if (listener && (name === 'window' || type === 'keydown') && !domListeners.some(entry =>
+        entry.target === name && entry.type === type && entry.listener === listener && entry.capture === capture)) {
+        domListeners.push({ target: name, type, listener, capture });
+      }
+      add(type, listener, options);
+    });
+    const removeSpy = vi.spyOn(target, 'removeEventListener').mockImplementation((type, listener, options?: boolean | EventListenerOptions) => {
+      const index = domListeners.findIndex(entry => entry.target === name && entry.type === type &&
+        entry.listener === listener && entry.capture === captureOf(options));
+      if (index >= 0) domListeners.splice(index, 1);
+      remove(type, listener, options);
+    });
+    return () => { addSpy.mockRestore(); removeSpy.mockRestore(); };
+  };
+  const restoreWindowListeners = watchListeners(window, 'window');
+  const restoreDocumentListeners = watchListeners(document, 'document');
 
-  const transitions: Array<{ source: 'document' | 'milkdown'; activeId: string | null; documents: Array<{ id: string; content: string; dirty: boolean }> }> = [];
+  const transitions: Array<{
+    source: 'document' | 'milkdown'; activeId: string | null;
+    documents: Array<{ id: string; path: string | null; content: string; savedContent?: string; isModified: boolean; dirty: boolean }>;
+    lifetimeEpoch: Record<string, number>; replacementEpoch: Record<string, number>;
+    baselineEpoch: Record<string, number>; baselinePathEpoch: Record<string, number>;
+    editorGenerations: Record<string, number>; flusherDocumentIds: string[]; editorStatus: string | null;
+  }> = [];
   const snapshot = (source: 'document' | 'milkdown') => {
     const state = useDocumentStore.getState();
+    const milkdown = useMilkdownEditorStore.getState();
+    const currentEditor = milkdown.getEditor() as Editor | null;
     transitions.push({ source, activeId: state.activeDocumentId,
-      documents: state.documents.map(doc => ({ id: doc.id, content: doc.content, dirty: doc.isModified })) });
+      documents: state.documents.map(doc => ({ id: doc.id, path: doc.path, content: doc.content,
+        savedContent: doc.savedContent, isModified: doc.isModified, dirty: doc.isModified })),
+      lifetimeEpoch: { ...state.lifetimeEpoch }, replacementEpoch: { ...state.replacementEpoch },
+      baselineEpoch: { ...state.baselineEpoch }, baselinePathEpoch: { ...state.baselinePathEpoch },
+      editorGenerations: { ...milkdown.editorGenerations },
+      flusherDocumentIds: Object.keys(milkdown.flushers).sort(),
+      editorStatus: currentEditor?.status.toLowerCase() ?? null,
+    });
   };
   const unsubscribeDocument = useDocumentStore.subscribe(() => snapshot('document'));
   const unsubscribeMilkdown = useMilkdownEditorStore.subscribe(() => snapshot('milkdown'));
+  const toastHistory: Array<string | null> = [];
+  const unsubscribeToast = useToastStore.subscribe(state => { toastHistory.push(state.message); });
   const mountedAt = realNow();
   const view = render(options.strictMode ? <StrictMode><App /></StrictMode> : <App />);
 
@@ -119,13 +162,18 @@ export async function createAppJourney(options: { strictMode?: boolean } = {}) {
   async function compose(text: string) {
     const pmView = editor().action(ctx => ctx.get(editorViewCtx));
     const element = pmView.dom;
+    let wasComposing = false;
     await act(async () => {
       element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }));
       element.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: text }));
-      const end = pmView.state.doc.content.size - 1;
-      pmView.dispatch(pmView.state.tr.insertText(text, end));
+      wasComposing = pmView.composing;
+      element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertCompositionText', data: text, isComposing: true }));
+      element.querySelector('p:last-child')?.append(text);
+      element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertCompositionText', data: text, isComposing: true }));
       element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: text }));
     });
+    await advance(20);
+    return { wasComposing, ended: !pmView.composing };
   }
   function breakSerializer() {
     const pmView = editor().action(ctx => ctx.get(editorViewCtx));
@@ -150,23 +198,39 @@ export async function createAppJourney(options: { strictMode?: boolean } = {}) {
     await act(async () => { boundary.emit('menu:action', { action, target: 'main' }, true); });
     await flushMicrotasks();
   }
+  async function shortcutSave() {
+    await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 's', code: 'KeyS', metaKey: true, bubbles: true, cancelable: true,
+    })); });
+    await flushMicrotasks();
+  }
   async function cleanup() {
     await act(async () => { view.unmount(); });
     await flushMicrotasks();
-    unsubscribeDocument(); unsubscribeMilkdown();
-    useToastStore.getState().clearToast();
+    unsubscribeDocument(); unsubscribeMilkdown(); unsubscribeToast();
     for (const timer of milkdownTimers) clearTimeout(timer);
     const pending = vi.getTimerCount();
+    useToastStore.getState().clearToast();
     const listeners = boundary.liveListeners;
     const flushers = Object.values(useMilkdownEditorStore.getState().flushers).flat().length;
+    const leakedDomListeners = domListeners.map(entry => `${entry.target}:${entry.type}`);
+    for (const entry of domListeners) {
+      (entry.target === 'window' ? window : document).removeEventListener(entry.type, entry.listener, entry.capture);
+    }
+    restoreWindowListeners(); restoreDocumentListeners();
     globalThis.setTimeout = fakeSetTimeout;
     vi.useRealTimers();
     Range.prototype.getClientRects = oldGetClientRects;
     Range.prototype.getBoundingClientRect = oldGetBoundingClientRect;
-    if (pending || listeners || flushers) throw new Error(`journey leaked timers=${pending} listeners=${listeners} flushers=${flushers}: ${boundary.liveListenerNames.join(', ')}`);
+    if (oldPlatform) Object.defineProperty(navigator, 'platform', oldPlatform);
+    else Reflect.deleteProperty(navigator, 'platform');
+    if (pending || listeners || flushers || leakedDomListeners.length) throw new Error(
+      `journey leaked timers=${pending} listeners=${listeners} flushers=${flushers} domListeners=${leakedDomListeners.length}: ${boundary.liveListenerNames.concat(leakedDomListeners).join(', ')}`);
+    if (boundary.unmodelledCalls.length) throw new Error(
+      `unmodelled App IPC attempts: ${boundary.unmodelledCalls.map(call => call.command).join(', ')}`);
   }
-  return { boundary, view, transitions, mountMs, advance, flushMicrotasks, openCase, editor,
-    readTokens, type, compose, breakSerializer, healSerializer, menu, cleanup,
+  return { boundary, view, transitions, toastHistory, mountMs, advance, flushMicrotasks, openCase, editor,
+    readTokens, type, compose, breakSerializer, healSerializer, menu, shortcutSave, cleanup,
     documentStore: useDocumentStore, editorStore: useEditorStore, milkdownStore: useMilkdownEditorStore,
     toastStore: useToastStore };
 }

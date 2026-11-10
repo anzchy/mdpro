@@ -1,0 +1,62 @@
+{
+  "id": "MIG002-a1-F6-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T12:11:23.634Z",
+  "head_sha": "c35b5a5f47bb297d303446b7eb50cd96541bcabe",
+  "dirty_source": [
+    ".claude/settings.json",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 5 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/state-safety-harness-teardown.test.tsx": {
+      "state": "ok",
+      "sha": "430641e7befc782ad40ca79b3102735644c47a9ba30b939cc04149932239fcd8",
+      "lines": [
+        "4ab083840abb65c9",
+        "7d04962be05780c6",
+        "8a8756ef6d38bc3c",
+        "54ce4b8c00891f99",
+        "4ee8d58413013ae2",
+        "e64a888d6cd6913c",
+        "49feb3519319476a",
+        "6913d013e164a397",
+        "54ce4b8c00891f99",
+        "f0994b23bfa6b5b8",
+        "e64a888d6cd6913c",
+        "49feb3519319476a",
+        "219a2cd5b1302fb8",
+        "54ce4b8c00891f99",
+        "217df287bc9a1c6a",
+        "3a6f9c2df4953ba6",
+        "49feb3519319476a",
+        "a45d799759c580b5",
+        "54ce4b8c00891f99",
+        "d8f2e34236bcce71",
+        "07d2b36a43f814ef",
+        "49feb3519319476a",
+        "b4c90484530f8871",
+        "54ce4b8c00891f99",
+        "24c5559a4a2cfb89",
+        "9d80111e5748ebc8",
+        "49feb3519319476a"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T12:11:53.193Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (.claude/settings.json, scripts/load-guard/__pycache__/backstop.cpython-314.pyc, scripts/load-guard/__pycache__/guard.cpython-314.pyc, scripts/load-guard/__pycache__/policy.cpython-314.pyc). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
