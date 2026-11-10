@@ -1,0 +1,91 @@
+{
+  "id": "MIG003-b-17",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T21:51:06.044Z",
+  "head_sha": "5265eb2478433cf84d680720a14cd421737c5a18",
+  "dirty_source": [
+    ".claude/settings.json",
+    ".github/workflows/platform-advisory.yml",
+    "scripts/ci/cargo-test-summary.d.mts",
+    "scripts/ci/cargo-test-summary.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 7 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/cargo-test-summary.test.ts": {
+      "state": "ok",
+      "sha": "ab122a109e6fc1f2e36c0b19c47d407c1030fb1a7db5a5e903092e5b636620e8",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "84b8c2de74dfb701",
+        "8bd9a39a24e5657e",
+        "ed9623369ff082ab",
+        "9c94784f8cfa14e6",
+        "bfb94a06c8eb5065",
+        "7a91dc1941ab4416",
+        "411c4c540e67f1b4",
+        "1da3b4380ceb16a6",
+        "86f21bdff9a75359",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "27f6143c08332c53",
+        "cfa682acc047bbe8",
+        "e013f53300c46885",
+        "0b81c2bac65d2148",
+        "1a2f987bac138310",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "607c2619287a61c9",
+        "4b77dd860179dd9d",
+        "c67d7fdc6d6f07a1",
+        "84f1ed738dc6b836",
+        "27424b9725886792",
+        "29576b54e255e3c9",
+        "f6448110c510fc2d",
+        "f9b48c9d0fe62ee7",
+        "82e7e1fba72ea8f1",
+        "ff57715d83321106",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "e90b0c41a1fa2cc6",
+        "71ddf879dfc7307f",
+        "2ba9c9f5fadc9d47",
+        "f49133281883e51c",
+        "b3adfa6304efc908",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "1c45c84ad70694a1",
+        "db46a5760d4fc618",
+        "4e1bb5aaf398885d",
+        "f6eebbdc71d20671",
+        "2a64163ce9b933cc",
+        "378995ba6932666a",
+        "09dfeca9f3e364aa",
+        "98e462ba830f7394",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9",
+        "59d6952da7746627",
+        "55de5be3ee05a4c1",
+        "c064a10d419c26dd",
+        "d4d15207d1565cf9",
+        "1074b04ca1b212c2",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T21:51:15.743Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (.claude/settings.json, .github/workflows/platform-advisory.yml, scripts/ci/cargo-test-summary.d.mts, scripts/ci/cargo-test-summary.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

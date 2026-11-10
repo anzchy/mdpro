@@ -1,0 +1,48 @@
+{
+  "id": "MIG003-b-12",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-10T21:48:37.908Z",
+  "head_sha": "5265eb2478433cf84d680720a14cd421737c5a18",
+  "dirty_source": [
+    ".claude/settings.json",
+    ".github/workflows/platform-advisory.yml",
+    "scripts/ci/cargo-test-summary.d.mts",
+    "scripts/ci/cargo-test-summary.mjs"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/tooling/cargo-test-summary.test.ts": {
+      "state": "ok",
+      "sha": "e1b8433bed41bf3033f685b18be45a3543048647ab229c18a77ea4aab4432867",
+      "lines": [
+        "e89bcc293adfc2b4",
+        "8d64a30d9de151b6",
+        "84b8c2de74dfb701",
+        "8bd9a39a24e5657e",
+        "ed9623369ff082ab",
+        "9c94784f8cfa14e6",
+        "bfb94a06c8eb5065",
+        "7a91dc1941ab4416",
+        "411c4c540e67f1b4",
+        "1da3b4380ceb16a6",
+        "86f21bdff9a75359",
+        "29576b54e255e3c9",
+        "29576b54e255e3c9"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-10T21:48:54.091Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "4 non-test file(s) were already modified when the red was recorded (.claude/settings.json, .github/workflows/platform-advisory.yml, scripts/ci/cargo-test-summary.d.mts, scripts/ci/cargo-test-summary.mjs). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}
