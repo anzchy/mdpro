@@ -263,7 +263,7 @@ confirm scope and every auditor request template are unchanged.
   - A row fails when the quoted text is not at that path and name at `<M>`, or does not support the claim. A failed
     row goes back to the planner.
 - **Round record.**
-  - Every § Ranges row in `docs/audit/audit-log.md`, whether landed, superseded or abandoned, and each plan review's
+  - Every row of the Ranges table in `docs/audit/audit-log.md`, whether landed, superseded or abandoned, and each plan review's
     merged-verdict file, records:
     - `Rounds`: `r1`, `r2` or `r2+extra`;
     - `Days` from the first request to the outcome;
@@ -277,7 +277,7 @@ confirm scope and every auditor request template are unchanged.
     - `disagreement`;
     - `scope-change`.
   - A confirm held by a fix-SHA red takes `ci-red`, not `r1-findings`. An ADR-0129 post-cap fix is `post-cap-fix`, not a round.
-  - In § Ranges, these go in the `Rounds` cell as `<rounds> · <days> d · <causes>`, for example
+  - In the Ranges table, these go in the `Rounds` cell as `<rounds> · <days> d · <causes>`, for example
     `r2 · 3 d · r1-findings`.
   - A late finding is not an escape: `docs/audit/escapes.md` is unchanged.
   - At each release checkpoint, report to the user the slowest quarter of outcomes since the last checkpoint,
