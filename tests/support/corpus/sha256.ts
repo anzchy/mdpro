@@ -15,6 +15,9 @@ const ROUND_CONSTANTS = new Uint32Array([
 ]);
 const INITIAL_STATE = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
 const BLOCK_BYTES = 64;
+const WORD_BYTES = 4;
+const BLOCK_WORDS = BLOCK_BYTES / WORD_BYTES;
+const ROUNDS = 64;
 const LENGTH_BYTES = 8;
 const rotr = (value: number, bits: number) => (value >>> bits) | (value << (32 - bits));
 
@@ -35,16 +38,16 @@ export function sha256Hex(input: string | Uint8Array): string {
   const padded = pad(typeof input === 'string' ? new TextEncoder().encode(input) : input);
   const view = new DataView(padded.buffer);
   const state = [...INITIAL_STATE];
-  const schedule = new Uint32Array(64);
+  const schedule = new Uint32Array(ROUNDS);
   for (let block = 0; block < padded.length; block += BLOCK_BYTES) {
-    for (let t = 0; t < 16; t++) schedule[t] = view.getUint32(block + t * 4);
-    for (let t = 16; t < 64; t++) {
+    for (let t = 0; t < BLOCK_WORDS; t++) schedule[t] = view.getUint32(block + t * WORD_BYTES);
+    for (let t = BLOCK_WORDS; t < ROUNDS; t++) {
       const s0 = rotr(schedule[t - 15], 7) ^ rotr(schedule[t - 15], 18) ^ (schedule[t - 15] >>> 3);
       const s1 = rotr(schedule[t - 2], 17) ^ rotr(schedule[t - 2], 19) ^ (schedule[t - 2] >>> 10);
       schedule[t] = (schedule[t - 16] + s0 + schedule[t - 7] + s1) >>> 0;
     }
     let [a, b, c, d, e, f, g, h] = state;
-    for (let t = 0; t < 64; t++) {
+    for (let t = 0; t < ROUNDS; t++) {
       const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + ROUND_CONSTANTS[t] + schedule[t]) >>> 0;
       const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
       h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, expect, it, vi } from 'vitest';
 import { runCase } from './support/corpus/runner.ts';
 import type { CorpusDriver, MountingRecord } from './support/corpus/types.ts';
