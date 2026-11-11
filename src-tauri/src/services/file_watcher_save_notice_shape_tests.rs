@@ -179,3 +179,25 @@ fn d173_wi2_s4_production_sink_emits_file_changed_and_reports_the_result() {
         "FileWatcher::new installs the production sink:\n{new}"
     );
 }
+
+/// MIG002-a-C8-R1: the frontend journey consumes this exact Rust notice shape.
+#[test]
+fn mig002_a_c8_r1_shared_notice_fixture_matches_rust_wire_shape() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/state-safety/save-notice.json"
+    ))
+    .expect("shared notice fixture is JSON");
+    let notice = SaveNotice {
+        event: FileChangedEvent {
+            path: "/tmp/mig002/a-neighbor-edit.md".into(),
+            change_type: "modified".into(),
+            new_path: None,
+            timestamp: 1_767_225_600_777,
+        },
+        origin: SaveOrigin {
+            window_label: "other".into(),
+            document_id: "corpus-document".into(),
+        },
+    };
+    assert_eq!(serde_json::to_value(notice).expect("notice JSON"), fixture);
+}

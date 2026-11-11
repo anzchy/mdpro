@@ -11,12 +11,13 @@ export interface FakeBehaviour { behaviour: string; rustProof: string; fixture?:
 export class AppJourneyBoundary {
   readonly corpus = new FakeTauriBoundary();
   readonly calls: JourneyCall[] = [];
-  readonly events: Array<{ name: string; payload: unknown; windowScoped: boolean }> = [];
+  readonly events: Array<{ name: string; payload: unknown; windowScoped: boolean; targetLabel?: string }> = [];
   readonly logs: Array<Record<string, unknown>> = [];
   readonly replies: JourneyCall[] = [];
   readonly unmodelledCalls: JourneyCall[] = [];
-  /** Rows that model a Rust-only outcome; a1 needs none. */
+  /** Declared fake outcomes tied to named Rust tests. */
   readonly fakeBehaviours: FakeBehaviour[] = [];
+  readonly windowLabel = 'main';
   private readonly listeners = new Map<string, Set<Callback>>();
   private readonly windowListeners = new Map<string, Set<Callback>>();
   private readonly dialogAnswers = new Map<string, unknown[]>();
@@ -48,6 +49,13 @@ export class AppJourneyBoundary {
     for (const callback of this.listeners.get(name) ?? []) callback({ payload });
     for (const callback of this.windowListeners.get(name) ?? []) callback({ payload });
   }
+  /** Targeted delivery is confined to this fake window; Rust save notices use broadcast `emit`. */
+  emitTo(targetLabel: string, name: string, payload: unknown): void {
+    this.events.push({ name, payload: structuredClone(payload), windowScoped: true, targetLabel });
+    if (targetLabel !== this.windowLabel) return;
+    for (const callback of this.listeners.get(name) ?? []) callback({ payload });
+    for (const callback of this.windowListeners.get(name) ?? []) callback({ payload });
+  }
   onCloseRequested(callback: (event: { preventDefault: () => void }) => void | Promise<void>): Promise<() => void> {
     if (this.closeListener) throw new Error('duplicate close listener');
     this.closeListener = callback;
@@ -69,6 +77,10 @@ export class AppJourneyBoundary {
       case 'save_file_dialog': {
         const path = this.answerDialog('save');
         if (path !== null && (typeof path !== 'string' || !path)) throw new Error('invalid save dialog path');
+        if (path !== null && path !== args.originalPath && this.calls.some(call =>
+          call.command === 'open_file' && call.args.path === path)) {
+          throw { AlreadyOpen: { path } };
+        }
         this.corpus.saveDialogPath = path;
         return this.corpus.invoke(command, args);
       }

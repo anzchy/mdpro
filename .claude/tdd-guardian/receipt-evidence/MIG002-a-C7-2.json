@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a-C7-2",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-11T04:22:11.034Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-save-as.journey.test.tsx\",\"a-C7 Save As onto a second open tab currently refuses the target without overwriting it\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-save-as.journey.test.tsx",
+        "line": 54
+      },
+      "message": "AssertionError: expected [ { …(5) } ] to deeply equal []"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a-C7-2/20261111T042211034Z/tests",
+    "tree": "99df2046d986ef72cf5dc161039c55c89396259e"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-save-as.journey.test.tsx": "57a9a8c2196f1fab2576910b785ec2a77a1f142b"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-save-as.journey.test.tsx": "57a9a8c2196f1fab2576910b785ec2a77a1f142b"
+  }
+}

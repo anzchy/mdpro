@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a-C8-3",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-11T04:23:05.141Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-notices.journey.test.tsx\",\"a-C8 labelled other-window notice keeps the dirty buffer and records the external change\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-notices.journey.test.tsx",
+        "line": 27
+      },
+      "message": "AssertionError: expected { documentId: 'corpus-document', …(6) } to be undefined"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a-C8-3/20261111T042305141Z/tests",
+    "tree": "10561e883e08cf842f2f53ce111c3f859fce9ca1"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-notices.journey.test.tsx": "8295c8be8b6569782c349f0d52c82f9ca15945c5"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-notices.journey.test.tsx": "8295c8be8b6569782c349f0d52c82f9ca15945c5"
+  }
+}

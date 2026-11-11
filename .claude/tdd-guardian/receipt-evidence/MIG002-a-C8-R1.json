@@ -1,0 +1,42 @@
+{
+  "id": "MIG002-a-C8-R1",
+  "lane": "rust",
+  "recorded_at": "2026-11-11T05:02:46.612Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "scripts/heavy-lock.sh node scripts/cargo-test-lane.mjs cargo test --manifest-path src-tauri/Cargo.toml",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "tauri_app_lib::services::file_watcher::save_notice::shape_tests::d173_wi2_s1_notice_is_the_watcher_payload_plus_camel_case_origin",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/src/services/file_watcher_save_notice_shape_tests.rs",
+        "line": 62
+      },
+      "message": "assertion `left == right` failed\n  left: Object {\"event\": Object {\"changeType\": String(\"modified\"), \"newPath\": Null, \"path\": String(\"/d/a.md\"), \"timestamp\": Number(5)}, \"origin\": Object {\"documentId\": String(\"doc-a\"), \"windowLabel\": String(\"mdpro-w1\")}}\n right: Object {\"changeType\": String(\"modified\"), \"newPath\": Null, \"origin\": Object {\"documentId\": String(\"doc-a\"), \"windowLabel\": String(\"mdpro-w1\")}, \"path\": String(\"/d/a.md\"), \"timestamp\": Number(5)}"
+    },
+    {
+      "id": "tauri_app_lib::services::file_watcher::save_notice::shape_tests::mig002_a_c8_r1_shared_notice_fixture_matches_rust_wire_shape",
+      "kind": "assertion",
+      "location": {
+        "file": "src-tauri/src/services/file_watcher_save_notice_shape_tests.rs",
+        "line": 202
+      },
+      "message": "assertion `left == right` failed\n  left: Object {\"event\": Object {\"changeType\": String(\"modified\"), \"newPath\": Null, \"path\": String(\"/tmp/mig002/a-neighbor-edit.md\"), \"timestamp\": Number(1767225600777)}, \"origin\": Object {\"documentId\": String(\"corpus-document\"), \"windowLabel\": String(\"other\")}}\n right: Object {\"changeType\": String(\"modified\"), \"newPath\": Null, \"origin\": Object {\"documentId\": String(\"corpus-document\"), \"windowLabel\": String(\"other\")}, \"path\": String(\"/tmp/mig002/a-neighbor-edit.md\"), \"timestamp\": Number(1767225600777)}"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a-C8-R1/20261111T050246612Z/tests",
+    "tree": "07b8c0bca645259fc000ab2bf7b3c87c5a11bf4f"
+  },
+  "spec_blobs": {
+    "src-tauri/src/services/file_watcher_save_notice_shape_tests.rs": "88bc53fb4d69d75defa9b9aa590660705f7fbff0"
+  },
+  "settled_blobs": {
+    "src-tauri/src/services/file_watcher_save_notice_shape_tests.rs": "88bc53fb4d69d75defa9b9aa590660705f7fbff0"
+  }
+}

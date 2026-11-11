@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "a-KL1",
+    "clause": "a-C3",
+    "current": "An in-flight save whose settle flush fails keeps the document dirty but App still displays Saved for that write.",
+    "desired": "A failed settle flush must not report an ordinary successful save; the user must see that the editor still has unsaved content.",
+    "reason": "performSave uses the successful save_file result to show Saved even when applySaveResult demotes the result after a failed settle flush.",
+    "ref": "#776"
+  }
+]
