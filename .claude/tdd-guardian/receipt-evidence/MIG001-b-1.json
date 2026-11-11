@@ -1,0 +1,33 @@
+{
+  "id": "MIG001-b-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-11T03:45:06.492Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "en_US.UTF-8",
+    "node": "v22.22.3",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/corpus-b-inline-html-breaks.any.test.tsx\",\"b-legacy-br-paragraph\"]",
+      "kind": "panic",
+      "location": {
+        "file": "tests/support/corpus/runner.ts",
+        "line": 100
+      },
+      "message": "Error: b-legacy-br-paragraph: b-legacy-br-paragraph: baseline serialized bytes differ from expectation"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG001-b-1/20261111T034506492Z/tests",
+    "tree": "bd994e8e05eec683edf721a6865fd4f001449b51"
+  },
+  "spec_blobs": {
+    "tests/corpus-b-inline-html-breaks.any.test.tsx": "be8e70aaa5021808772be27db5567fc35a52977d"
+  },
+  "settled_blobs": {
+    "tests/corpus-b-inline-html-breaks.any.test.tsx": "be8e70aaa5021808772be27db5567fc35a52977d"
+  }
+}

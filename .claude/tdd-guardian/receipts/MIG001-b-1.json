@@ -1,0 +1,71 @@
+{
+  "id": "MIG001-b-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-11T03:45:06.492Z",
+  "head_sha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+  "dirty_source": [
+    "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 10 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/corpus-b-inline-html-breaks.any.test.tsx": {
+      "state": "ok",
+      "sha": "def76d0f1a688f0bebf4539e2dc64a844e549c10f5eb393d8189fd4e231bb032",
+      "lines": [
+        "6dc6e82619d2f4ac",
+        "379b36c7e6eda995",
+        "e1d24bd04b21be63",
+        "6d40716742fbd3a9",
+        "30ed0422822d8b8b",
+        "f9df71bb14cc1f77",
+        "3dbbd1c7e64066dd",
+        "c76363852dd536a9",
+        "99f74486e98487d2",
+        "7772e26203b80556",
+        "2bf929f556f8bce1",
+        "a61bd3a778403651",
+        "fdd5abdca77137e2",
+        "fd504045971ed53b",
+        "fd22a94bc6a98862",
+        "ebdb388031e7ebc5",
+        "90d7402ac120d0f8",
+        "a6eb2547f1f49df0",
+        "47f02792054532df",
+        "66e8625fd8ca8c29",
+        "d184a40cdd0e545d",
+        "ca7649bcc9e5b5e8",
+        "b3ed8b0ae8c554df",
+        "fbd8934d7191f577",
+        "f5a8d26f1046778f",
+        "4d7e424706334eb5",
+        "85763b25bbb1eb58",
+        "608c270e64b1d3c1",
+        "1c107b9cade064af",
+        "12fd07c79159e87a",
+        "d10066328edfd68d",
+        "caf61d6e2c8b71c2",
+        "943f11adfa8ee81a",
+        "985045f1c0578a8d",
+        "432ada7731817518",
+        "d10b36aa74a59bcf",
+        "29576b54e255e3c9",
+        "d10b36aa74a59bcf",
+        "2e29cd9a98755c46"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-11T03:45:54.842Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "1 non-test file(s) were already modified when the red was recorded (src/plugins/milkdown/emptyParagraph/blankLineGaps.ts). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

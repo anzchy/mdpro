@@ -1,0 +1,322 @@
+[
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-br-space",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d192-inline-br-roundtrip.test.tsx R1",
+    "expected": {
+      "serialized": "no-edit/b/b-inline-br-space/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-b-2"
+      }
+    ],
+    "input": "no-edit/b/b-inline-br-space/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br />"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An inline spaced br tag retains its source spelling.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-br-loose",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx D4c",
+    "expected": {
+      "serialized": "no-edit/b/b-inline-br-loose/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/b/b-inline-br-loose/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br >"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A br tag with a space before the closing angle bracket retains that spelling.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-br-plain",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d192-inline-br-roundtrip.test.tsx R2",
+    "expected": {
+      "serialized": "no-edit/b/b-inline-br-plain/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-b-2"
+      }
+    ],
+    "input": "no-edit/b/b-inline-br-plain/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br>"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Two plain br tags in a paragraph remain separate and verbatim.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-br-tight",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d192-inline-br-roundtrip.test.tsx R3",
+    "expected": {
+      "serialized": "no-edit/b/b-inline-br-tight/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-b-2"
+      }
+    ],
+    "input": "no-edit/b/b-inline-br-tight/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br/>"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A tight br tag inside a list item retains its source spelling.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-br-adjacent",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "expected": {
+      "serialized": "no-edit/b/b-inline-br-adjacent/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-b-2"
+      }
+    ],
+    "input": "no-edit/b/b-inline-br-adjacent/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br><br>"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Adjacent br tags remain two tags after serialization.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-two-space-hard-break",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx D2",
+    "expected": {
+      "serialized": "no-edit/b/b-two-space-hard-break/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [],
+    "input": "no-edit/b/b-two-space-hard-break/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\\\n"
+    },
+    "normalizations": [
+      "N1"
+    ],
+    "platform": "any",
+    "rationale": "Two trailing spaces before LF normalize to a backslash hard break.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-backslash-hard-break",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx D1",
+    "expected": {
+      "serialized": "no-edit/b/b-backslash-hard-break/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/b/b-backslash-hard-break/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\\\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "A backslash hard break remains a backslash and LF.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-table-cell-br",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx D6",
+    "expected": {
+      "serialized": "no-edit/b/b-table-cell-br/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-b-2"
+      }
+    ],
+    "input": "no-edit/b/b-table-cell-br/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br>"
+    },
+    "normalizations": [
+      "N7"
+    ],
+    "platform": "any",
+    "rationale": "A br tag inside a table cell survives column padding.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-legacy-br-paragraph",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx E1",
+    "expected": {
+      "serialized": "no-edit/b/b-legacy-br-paragraph/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [
+      {
+        "path": "src/plugins/milkdown/emptyParagraph/blankLineGaps.ts",
+        "receipt": "MIG001-b-1"
+      },
+      {
+        "path": "src/plugins/milkdown/commonmarkPreset.ts",
+        "receipt": "MIG001-b-2"
+      }
+    ],
+    "input": "no-edit/b/b-legacy-br-paragraph/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\n\n"
+    },
+    "normalizations": [
+      "N5"
+    ],
+    "platform": "any",
+    "rationale": "A legacy standalone br paragraph normalizes to an empty paragraph gap.",
+    "status": "active"
+  },
+  {
+    "action": [],
+    "actionGroup": "no-edit",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-html-span",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "expected": {
+      "serialized": "no-edit/b/b-inline-html-span/expected.md"
+    },
+    "fidelityTag": "immutable",
+    "guardedPaths": [],
+    "input": "no-edit/b/b-inline-html-span/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<span"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "An inline HTML span retains its tag and attribute text verbatim.",
+    "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "after",
+        "text": "b"
+      },
+      "kind": "type",
+      "text": "!"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-backslash-neighbor-edit",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d188-empty-paragraph-read.test.tsx D1",
+    "expected": {
+      "serialized": "edited/b/b-backslash-neighbor-edit/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [],
+    "input": "edited/b/b-backslash-neighbor-edit/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "\\\n"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "Typing after the hard break retains the break and changes only the target text.",
+    "status": "active"
+  }
+]
