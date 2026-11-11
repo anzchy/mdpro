@@ -26,6 +26,7 @@ it('validates all real category-a, category-b and category-l records without cha
     'a-neighbor-edit', 'a-neighbor-undo', 'a-one-blank', 'a-quote-gap', 'a-quote-then-block', 'a-trailing-quote-enter',
     'a-two-blanks', 'a-whitespace-lines', 'a-zero-blanks',
     'b-backslash-hard-break', 'b-backslash-neighbor-edit', 'b-inline-br-adjacent', 'b-inline-br-loose',
+    'b-inline-br-neighbor-edit',
     'b-inline-br-plain', 'b-inline-br-space', 'b-inline-br-tight', 'b-inline-html-span',
     'b-legacy-br-paragraph', 'b-table-cell-br', 'b-two-space-hard-break',
     'l-block-start-feff', 'l-cjk-enter', 'l-cjk-punctuation', 'l-cjk-strong', 'l-cjk-strong-punct',

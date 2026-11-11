@@ -24,9 +24,15 @@ for (const record of collectionCases('category-b inline HTML and breaks', record
     const mounting = record.caseKind === 'guard-only' ? undefined : record;
     const subject: Record<string, string> = {
       'b-inline-br-adjacent': '<br><br>',
+      'b-inline-br-loose': 'a<br >c',
+      'b-inline-br-neighbor-edit': 'first<br />second\n\nother',
+      'b-inline-br-plain': 'a<br>b<br>c',
+      'b-inline-br-space': 'first<br />second',
+      'b-inline-br-tight': 'item<br/>more',
       'b-inline-html-span': '<span class="note">word</span>',
       'b-two-space-hard-break': '  \n',
       'b-backslash-hard-break': '\\\n',
+      'b-backslash-neighbor-edit': 'a\\\nb',
       'b-table-cell-br': 'x<br>y',
       'b-legacy-br-paragraph': '\n<br />\n',
     };

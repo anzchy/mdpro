@@ -318,5 +318,37 @@
     "platform": "any",
     "rationale": "Typing after the hard break retains the break and changes only the target text.",
     "status": "active"
+  },
+  {
+    "action": {
+      "at": {
+        "edge": "before",
+        "text": "other"
+      },
+      "kind": "type",
+      "text": "X"
+    },
+    "actionGroup": "edited",
+    "baselineSha": "70e5f92cb555713b374634cf42e67fcceb4900b7",
+    "caseId": "b-inline-br-neighbor-edit",
+    "category": "b",
+    "consumers": [
+      "MIG-002f"
+    ],
+    "derivedFrom": "tests/d192-inline-br-roundtrip.test.tsx R5",
+    "expected": {
+      "serialized": "edited/b/b-inline-br-neighbor-edit/expected.md"
+    },
+    "fidelityTag": "semantic-roundtrip",
+    "guardedPaths": [],
+    "input": "edited/b/b-inline-br-neighbor-edit/input.md",
+    "negative": {
+      "kind": "dropText",
+      "text": "<br />"
+    },
+    "normalizations": [],
+    "platform": "any",
+    "rationale": "The first edit in a neighboring paragraph keeps the inline br tag in serialized content.",
+    "status": "active"
   }
 ]
