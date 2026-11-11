@@ -1,0 +1,74 @@
+{
+  "id": "MIG002-a-C9-1b",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-11T07:25:38.340Z",
+  "head_sha": "32f58df25d542d2f8fb1d489f04dfd57abad79d4",
+  "dirty_source": [
+    ".claude/settings.json",
+    "docs/feature-ledger.md",
+    "scripts/load-guard/__pycache__/backstop.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/guard.cpython-314.pyc",
+    "scripts/load-guard/__pycache__/policy.cpython-314.pyc",
+    "src/services/saveService.ts"
+  ],
+  "red": {
+    "red": true,
+    "kind": "assertion-failure",
+    "reason": "1 of 1 tests failed. The suite ran and the new assertions rejected the current code."
+  },
+  "test_files": {
+    "tests/state-safety-a-ime.journey.test.tsx": {
+      "state": "ok",
+      "sha": "529824f315c810b7868bb5715956869f9fc1b875b86d4a36216c125445d8ea35",
+      "lines": [
+        "4ab083840abb65c9",
+        "7d04962be05780c6",
+        "0b6f60d1e1b66fcd",
+        "d4670492577fa264",
+        "a82ca9912c3af7bd",
+        "17e80e0ab7565754",
+        "03d9aba6351173e5",
+        "e9268b9b2969792a",
+        "880edf5cf2f1794a",
+        "e3deb58a5ffb823d",
+        "692d5653d4c5852a",
+        "9d172fa4ffb7edc7",
+        "dee087b50e9b5a3b",
+        "68f5fe58365a4e54",
+        "80375426b8deca78",
+        "13d05d7b716875b5",
+        "e48886db3428a66f",
+        "e95670e83eb21bfe",
+        "cb01894f9e5dfb64",
+        "8db739f7fafddc5c",
+        "814899b5d0957b6e",
+        "9d172fa4ffb7edc7",
+        "20f4a35a2c095be8",
+        "c93e374df9786aea",
+        "6c73ac8a34bb3346",
+        "6c73ac8a34bb3346",
+        "0ae47a13980fb259",
+        "48032edcc03e8d93",
+        "e95670e83eb21bfe",
+        "5e0d891b328ebca2",
+        "7e7dbf68bdd699a7",
+        "696383a59ab4bd8b",
+        "83b07cef61a625f5",
+        "94e6ac82d5d85d6c",
+        "acfb29a6e112317f",
+        "d10b36aa74a59bcf",
+        "49feb3519319476a"
+      ],
+      "reason": ""
+    }
+  },
+  "verified_at": "2026-11-11T07:25:49.257Z",
+  "verdict": "SEPARATION-HELD",
+  "findings": [
+    {
+      "severity": "medium",
+      "code": "implementation-already-present",
+      "message": "6 non-test file(s) were already modified when the red was recorded (.claude/settings.json, docs/feature-ledger.md, scripts/load-guard/__pycache__/backstop.cpython-314.pyc, scripts/load-guard/__pycache__/guard.cpython-314.pyc, scripts/load-guard/__pycache__/policy.cpython-314.pyc, …). The tests may have been written against an implementation that already existed, which is the contamination the receipt exists to detect."
+    }
+  ]
+}

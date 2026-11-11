@@ -1,0 +1,33 @@
+{
+  "id": "MIG002-a-KL2-1",
+  "lane": "unit-red",
+  "recorded_at": "2026-11-11T06:59:18.615Z",
+  "plugin_version": "0.10.2",
+  "lane_command": "node scripts/tdd/unit-red-lane.mjs",
+  "env": {
+    "LANG": "C.UTF-8",
+    "node": "v24.15.0",
+    "platform": "darwin"
+  },
+  "failures": [
+    {
+      "id": "[\"tests/state-safety-a-stale-inflight.journey.test.tsx\",\"a-KL2 pins a stale save result restoring the old path after write start\"]",
+      "kind": "assertion",
+      "location": {
+        "file": "tests/state-safety-a-stale-inflight.journey.test.tsx",
+        "line": 102
+      },
+      "message": "AssertionError: expected { id: 'corpus-document', …(8) } to match object { id: 'corpus-document', …(4) }\n(4 matching properties omitted from actual)"
+    }
+  ],
+  "tests_tree": {
+    "ref": "refs/receipts/MIG002-a-KL2-1/20261111T065918615Z/tests",
+    "tree": "cd59f48d549f92c5383c4659625751db7c985411"
+  },
+  "spec_blobs": {
+    "tests/state-safety-a-stale-inflight.journey.test.tsx": "1ce698f32caf1fb3c2287cf1c5dfae1058ae9dec"
+  },
+  "settled_blobs": {
+    "tests/state-safety-a-stale-inflight.journey.test.tsx": "1ce698f32caf1fb3c2287cf1c5dfae1058ae9dec"
+  }
+}
