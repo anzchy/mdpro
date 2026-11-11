@@ -1,25 +1,15 @@
-import { act } from '@testing-library/react';
-import { editorViewCtx } from '@milkdown/kit/core';
 import { expect, it } from 'vitest';
 import { createAppJourney } from './helpers/appJourneyHarness';
 import { openA2LCase } from './helpers/a2CorpusCase';
+import { beginA2Composition } from './helpers/a2Composition';
 
 it('a-C9 pins Cmd+S while CJK IME composition is active', async () => {
   const j = await createAppJourney();
   try {
     const { id, path, content } = await openA2LCase(j, 'l-cjk-type');
     const before = j.readTokens(id);
-    const view = j.editor().action(ctx => ctx.get(editorViewCtx));
-    const element = view.dom;
     const composing = '亲爱的';
-    await act(async () => {
-      element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }));
-      element.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: composing }));
-      element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertCompositionText', data: composing, isComposing: true }));
-      element.querySelector('p:last-child')?.append(composing);
-      element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertCompositionText', data: composing, isComposing: true }));
-    });
-    expect(view.composing).toBe(true);
+    const endComposition = await beginA2Composition(j, composing, 'p:last-child');
     await j.shortcutSave();
     const expected = '你好，世界。亲爱的\n';
     const write = { command: 'save_file', documentId: id, path, content: expected, bytes: [...new TextEncoder().encode(expected)] };
@@ -28,9 +18,7 @@ it('a-C9 pins Cmd+S while CJK IME composition is active', async () => {
     expect(j.boundary.calls.filter(c => c.command === 'save_file')).toMatchObject([{ args: { documentId: id, path, content: expected } }]);
     expect(j.documentStore.getState().getDocumentById(id)).toMatchObject({ id, content: expected, savedContent: expected, isModified: false });
     expect(j.readTokens(id)).toEqual({ ...before, lifetime: before.lifetime + 1, replacement: before.replacement + 1 });
-    await act(async () => {
-      element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: composing }));
-    });
+    await endComposition();
     await j.advance(250);
     await j.shortcutSave();
     expect(j.boundary.writeLog).toEqual([write, draft, write, draft]);

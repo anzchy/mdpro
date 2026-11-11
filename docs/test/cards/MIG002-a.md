@@ -18,7 +18,7 @@
 
 ## Lifecycle and external-change checks
 
-- **[computer-use]** During a save, close/reopen the tab, then repeat with a reload and a Save As path move (a-C5). **Proof:** screen recording, tab content and before/after hashes. **Failure:** a stale completion cleans or rebaselines the newer buffer. **Log/effect:** stale-cancel or demotion line corresponds to the old task; the replacement stays dirty when appropriate.
+- **[computer-use]** During a save, close/reopen the tab, then repeat with a reload and a Save As path move (a-C5). **Proof:** screen recording, tab content and before/after hashes. **Failure:** a stale completion cleans or rebaselines the newer buffer. **Log/effect:** stale-cancel or demotion line corresponds to the old task; the replacement stays dirty when appropriate. a-KL2/#787 pins today's stale-result failure after write start; record it as FAIL until the ADR-0146 disposition and fix.
 - **[computer-use]** Change the scratch file outside mdpro before Save; repeat after deletion and choose Cancel, then an explicit recreate (a-C6). **Proof:** prompt screenshots, disk hashes and dirty indicators. **Failure:** write before consent, lost ignored-deletion marker, or stale consent accepted. **Log/effect:** `file.change.received` and save-blocked/recreate-choice lines track the prompt; no write precedes the matching choice.
 
 ## Result record

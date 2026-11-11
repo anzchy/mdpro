@@ -1,25 +1,15 @@
-import { act } from '@testing-library/react';
-import { editorViewCtx } from '@milkdown/kit/core';
 import { expect, it } from 'vitest';
 import { createAppJourney } from './helpers/appJourneyHarness';
 import { openA2LCase } from './helpers/a2CorpusCase';
+import { beginA2Composition } from './helpers/a2Composition';
 
 it('a-C9 preserves an emoji composition in a category-l heading', async () => {
   const j = await createAppJourney();
   try {
     const { id, path, content } = await openA2LCase(j, 'l-heading-emoji-only');
     const before = j.readTokens(id);
-    const view = j.editor().action(ctx => ctx.get(editorViewCtx));
-    const element = view.dom;
     const composing = '🎊';
-    await act(async () => {
-      element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-      element.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: composing }));
-      element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertCompositionText', data: composing, isComposing: true }));
-      element.querySelector('h1:last-child')?.append(composing);
-      element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertCompositionText', data: composing, isComposing: true }));
-    });
-    expect(view.composing).toBe(true);
+    await beginA2Composition(j, composing, 'h1:last-child');
     await j.shortcutSave();
     const expected = content.replace(/架构\n$/, '架构🎊\n');
     expect(j.boundary.writeLog).toEqual([
