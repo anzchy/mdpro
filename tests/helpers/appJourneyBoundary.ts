@@ -74,6 +74,10 @@ export class AppJourneyBoundary {
       case 'open_file': case 'save_file':
       case 'save_draft': case 'delete_draft': case 'release_watch_hold':
         return this.corpus.invoke(command, args);
+      case 'reload_file': {
+        const opened = await this.corpus.invoke('open_file', args) as { document: unknown };
+        return opened.document;
+      }
       case 'save_file_dialog': {
         const path = this.answerDialog('save');
         if (path !== null && (typeof path !== 'string' || !path)) throw new Error('invalid save dialog path');

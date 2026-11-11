@@ -10,9 +10,9 @@
   {
     "id": "a-KL2",
     "clause": "a-C5",
-    "current": "A save reply arriving after a same-id replacement rebaselines that replacement to the stale bytes; after a path move it restores the old path and marks the document clean.",
-    "desired": "A save result started before replacement or path move must leave the newer document path, dirty state, and baseline untouched.",
-    "reason": "The post-IPC result application checks baseline generation but does not recheck the document replacement epoch or path before applying the old result.",
+    "current": "A save reply arriving after an externally reported path move restores the old path and marks the document clean.",
+    "desired": "A save result started before a path move must leave the newer document path, dirty state, and baseline untouched.",
+    "reason": "The post-IPC result application checks baseline generation but does not recheck the document path before applying the old result.",
     "ref": "#787"
   }
 ]
